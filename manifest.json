@@ -1,0 +1,16 @@
+{
+    "name": "Lichternacht Bechhofen",
+    "short_name": "Lichternacht",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#1f2937",
+    "theme_color": "#fbbf24",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
