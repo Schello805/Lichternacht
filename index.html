@@ -12,6 +12,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Lichternacht">
 
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:title" content="Lichternacht Bechhofen 2025">
+    <meta property="og:description" content="Die offizielle App zur Lichternacht. Karte, Programm und Infos.">
+    <meta property="og:image" content="icon.png">
+    <meta property="og:url" content="https://lichternacht.bechhofen.de">
+    <meta property="og:type" content="website">
+
     <!-- Icons & Manifest -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
@@ -228,6 +235,8 @@
                         class="ph ph-plus"></i> Neu</button>
                 <button onclick="toggleAdminPanel()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
                         class="ph ph-export"></i> Export</button>
+                <button onclick="resetApp()" class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                    title="App zurücksetzen"><i class="ph ph-trash"></i></button>
                 <button onclick="logoutAdmin()" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40">Exit</button>
             </div>
         </div>
@@ -481,6 +490,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
+    <!-- Config -->
+    <script src="config.js"></script>
+
     <script type="module">
         // --- VARIABLES ---
         let map, userMarker, userLocation, routingControl;
@@ -719,6 +731,22 @@
             refreshMapMarkers();
             renderTimeline();
             showToast('Abgemeldet', 'info');
+        };
+        window.resetApp = async () => {
+            if (!confirm("ACHTUNG: Dies löscht alle lokalen Daten und den Cache! Die App wird neu geladen.")) return;
+            localStorage.clear();
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            }
+            // Unregister SW
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+            window.location.reload();
         };
         window.toggleAdminPanel = () => {
             const p = document.getElementById('admin-panel');
