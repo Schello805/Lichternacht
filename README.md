@@ -6,16 +6,20 @@ Die offizielle Progressive Web App (PWA) für die Lichternacht Bechhofen 2025.
 
 ## Features
 
+### Für Besucher
 *   **Interaktive Karte:** Übersicht aller Stationen mit Leaflet.js.
 *   **Offline-First:** Funktioniert dank Service Worker auch ohne Internetverbindung.
 *   **Echtzeit-Programm:** Anzeige des aktuellen und nächsten Events.
-*   **Favoriten:** Markiere Stationen als Favoriten und filtere danach.
+*   **Favoriten (❤️):** Markiere Stationen als Favoriten und filtere danach.
+*   **Voting (🔥):** Gib Stationen einen Like, wenn sie dir gefallen.
+*   **Lichter-Pass (🏆):** Checke an 10 Stationen ein (GPS-basiert) und erhalte eine Belohnung.
 *   **Dark Mode:** Augenfreundliches Design für die Nacht.
-*   **Admin-Modus:**
-    *   Login via E-Mail (Firebase Auth).
-    *   Bearbeiten von Stationen und Events direkt in der App.
-    *   Verschieben von Markern per Drag & Drop.
-    *   Upload von Bildern.
+
+### Für Admins
+*   **Login:** Sicherer Login via E-Mail (Firebase Auth).
+*   **Editor:** Bearbeiten von Stationen (Name, Beschreibung, Angebot, Tags) direkt in der App.
+*   **Bilder:** Upload per Drag & Drop oder Klick.
+*   **Excel-Import/Export:** Massenbearbeitung von Daten via Copy & Paste (TSV-Format).
 *   **Cloud Sync:** Synchronisation aller Daten über Google Firebase (Firestore).
 
 ## Tech Stack
@@ -59,6 +63,7 @@ Da es eine reine Client-Side App ist, wird kein Node.js Server benötigt.
 1.  Klicke auf das Schloss-Icon oben rechts.
 2.  Logge dich mit der Admin-Email (`michael@schellenberger.biz`) ein.
 3.  Nutze den "Edit"-Button in den Stationen oder das Admin-Menü für neue Einträge.
+4.  **Massenbearbeitung:** Klicke auf "Export", kopiere den Text in Excel, bearbeite ihn, und importiere ihn wieder.
 
 ## Lizenz
 

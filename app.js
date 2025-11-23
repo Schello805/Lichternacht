@@ -104,6 +104,10 @@ window.onload = async () => {
             getDocs = fbStore.getDocs;
             setDoc = fbStore.setDoc;
             deleteDoc = fbStore.deleteDoc;
+            // Add updateDoc and increment
+            const fbStoreModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            window.updateDoc = fbStoreModule.updateDoc;
+            window.increment = fbStoreModule.increment;
 
             const firebaseConfig = JSON.parse(__firebase_config);
             if (firebaseConfig.apiKey === "API_KEY_HIER") throw new Error("No Configured API Key");
@@ -310,6 +314,29 @@ function setAdminState(admin) {
     refreshMapMarkers();
     renderTimeline();
 }
+
+window.uploadSeedData = async () => {
+    if (!confirm("Möchtest du alle Demo-Daten (Stationen & Events) in die Cloud hochladen? Bestehende Daten mit gleicher ID werden überschrieben.")) return;
+
+    setLoading(true, "Lade Stationen hoch...");
+    try {
+        for (const s of seedStations) {
+            await saveData('station', s);
+        }
+        setLoading(true, "Lade Events hoch...");
+        for (const e of seedEvents) {
+            await saveData('event', e);
+        }
+        setLoading(false);
+        showToast('Alle Daten erfolgreich hochgeladen!', 'success');
+        await loadData();
+    } catch (err) {
+        console.error(err);
+        setLoading(false);
+        showToast('Fehler beim Hochladen', 'error');
+    }
+};
+
 window.resetApp = async () => {
     if (!confirm("ACHTUNG: Dies löscht alle lokalen Daten und den Cache! Die App wird neu geladen.")) return;
     localStorage.clear();
@@ -330,10 +357,103 @@ window.toggleAdminPanel = () => {
     const p = document.getElementById('admin-panel');
     if (p.classList.contains('hidden')) {
         p.classList.remove('hidden');
-        const sStr = stations.map(s => `{ id: ${s.id}, name: "${s.name}", desc: "${s.desc}", lat: ${s.lat}, lng: ${s.lng}, tags: ${JSON.stringify(s.tags)}${s.time ? `, time: "${s.time}"` : ''}${s.image ? `, image: "${s.image}"` : ''} }`).join(",\n    ");
-        const eStr = events.map(e => `{ id: "${e.id}", time: "${e.time}", title: "${e.title}", desc: "${e.desc}", loc: "${e.loc}", color: "${e.color}", lat: ${e.lat}, lng: ${e.lng} }`).join(",\n    ");
-        document.getElementById('export-area').value = `const stations = [\n    ${sStr}\n];\n\nconst events = [\n    ${eStr}\n];`;
+
+        // Header
+        let tsv = "TYPE\tID\tNAME_TITLE\tDESC\tOFFER\tLAT\tLNG\tTAGS_COLOR\tTIME\tIMAGE_LOC\n";
+
+        // Stations
+        stations.forEach(s => {
+            tsv += `station\t${s.id}\t${esc(s.name)}\t${esc(s.desc)}\t${esc(s.offer || '')}\t${s.lat}\t${s.lng}\t${esc(s.tags.join(','))}\t${esc(s.time || '')}\t${esc(s.image || '')}\n`;
+        });
+
+        // Events
+        events.forEach(e => {
+            tsv += `event\t${e.id}\t${esc(e.title)}\t${esc(e.desc)}\t\t${e.lat}\t${e.lng}\t${esc(e.color)}\t${esc(e.time)}\t${esc(e.loc)}\n`;
+        });
+
+        document.getElementById('export-area').value = tsv;
     } else p.classList.add('hidden');
+};
+
+function esc(str) {
+    if (!str) return "";
+    return str.toString().replace(/\t/g, " ").replace(/\n/g, " [br] ");
+}
+
+window.importData = async () => {
+    const tsvStr = document.getElementById('export-area').value;
+    const lines = tsvStr.split('\n');
+
+    const newStations = [];
+    const newEvents = [];
+
+    try {
+        for (let i = 1; i < lines.length; i++) { // Skip header
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const cols = line.split('\t');
+            if (cols.length < 5) continue; // Skip invalid lines
+
+            const type = cols[0].trim().toLowerCase();
+            const id = cols[1].trim();
+            const nameTitle = cols[2].trim();
+            const desc = cols[3].trim().replace(/ \[br\] /g, "\n");
+            const offer = cols[4] ? cols[4].trim().replace(/ \[br\] /g, "\n") : ""; // New Column
+            const lat = Number(cols[5].replace(',', '.'));
+            const lng = Number(cols[6].replace(',', '.'));
+            const tagsColor = cols[7] ? cols[7].trim() : "";
+            const time = cols[8] ? cols[8].trim() : "";
+            const imgLoc = cols[9] ? cols[9].trim() : "";
+
+            if (type === 'station') {
+                newStations.push({
+                    id: Number(id),
+                    name: nameTitle,
+                    desc: desc,
+                    offer: offer,
+                    lat: lat,
+                    lng: lng,
+                    tags: tagsColor.split(',').map(t => t.trim()).filter(t => t),
+                    time: time || null,
+                    image: imgLoc || null
+                });
+            } else if (type === 'event') {
+                newEvents.push({
+                    id: id,
+                    title: nameTitle,
+                    desc: desc,
+                    lat: lat,
+                    lng: lng,
+                    color: tagsColor || 'gray',
+                    time: time,
+                    loc: imgLoc
+                });
+            }
+        }
+
+        if (!confirm(`Importieren?\n${newStations.length} Stationen\n${newEvents.length} Events\n\nDies überschreibt existierende Daten in der Cloud!`)) return;
+
+        setLoading(true, "Importiere Stationen...");
+        for (const s of newStations) {
+            await saveData('station', s);
+        }
+
+        setLoading(true, "Importiere Events...");
+        for (const e of newEvents) {
+            await saveData('event', e);
+        }
+
+        setLoading(false);
+        showToast('Import erfolgreich!', 'success');
+        toggleAdminPanel();
+        await loadData();
+
+    } catch (e) {
+        setLoading(false);
+        alert("Fehler beim Import: " + e.message);
+        console.error(e);
+    }
 };
 window.handleAdminAdd = () => {
     if (activeTab === 'events') openEventModal();
@@ -341,10 +461,49 @@ window.handleAdminAdd = () => {
 }
 
 // --- UI ---
+// --- UI ---
 const tagMap = {
     food: "Essen", drink: "Trinken", wc: "WC", kids: "Kinder",
     culture: "Kultur", party: "Party", shop: "Laden", event: "Event"
 };
+const reverseTagMap = Object.fromEntries(Object.entries(tagMap).map(([k, v]) => [v, k]));
+
+window.toggleLike = async (id) => {
+    event.stopPropagation();
+    const likedKey = `liked_${id}`;
+    if (localStorage.getItem(likedKey)) {
+        showToast('Du hast bereits abgestimmt!', 'info');
+        return;
+    }
+
+    // Optimistic UI update
+    const s = stations.find(x => x.id == id);
+    if (s) {
+        s.likes = (s.likes || 0) + 1;
+        updateLikeBtn(id, s.likes);
+        // Update list item count if visible
+        const listEl = document.getElementById(`like-count-${id}`);
+        if (listEl) listEl.innerHTML = `<i class="ph-fill ph-fire text-orange-500 text-xs mr-0.5"></i>${s.likes}`;
+    }
+
+    localStorage.setItem(likedKey, 'true');
+    showToast('Danke für deine Stimme!', 'success');
+
+    if (!useLocalStorage && window.updateDoc && window.increment) {
+        try {
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'stations', id.toString());
+            await window.updateDoc(ref, { likes: window.increment(1) });
+        } catch (e) { console.error("Like Error", e); }
+    }
+};
+
+function updateLikeBtn(id, count) {
+    const btn = document.getElementById('modal-like-btn');
+    if (!btn) return;
+    const isLiked = localStorage.getItem(`liked_${id}`);
+    btn.innerHTML = `<i class="ph ${isLiked ? 'ph-fill' : ''} ph-fire text-xl ${isLiked ? 'text-orange-500' : 'text-gray-400'}"></i><span class="ml-1 text-xs font-bold ${isLiked ? 'text-orange-600' : 'text-gray-500'}">${count || 0}</span>`;
+    if (isLiked) btn.classList.add('bg-orange-50', 'border-orange-200');
+}
 
 window.openModal = (s) => {
     window.activeStationId = s.id;
@@ -352,20 +511,98 @@ window.openModal = (s) => {
     document.getElementById('modal-title').innerText = s.name;
     document.getElementById('modal-subtitle').innerText = s.tags.map(t => tagMap[t] || t).join(' • ').toUpperCase();
 
+    // --- GAMIFICATION ---
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+
+    window.checkIn = (id) => {
+        if (visitedStations.has(id)) return;
+
+        if (!userLocation) {
+            window.locateUser(() => window.checkIn(id));
+            return;
+        }
+
+        const s = stations.find(x => x.id == id);
+        if (!s) return;
+
+        // Calc distance
+        const dist = getDistance(userLocation.lat, userLocation.lng, s.lat, s.lng);
+        if (dist > 0.2) { // 200m radius (generous)
+            showToast(`Du bist zu weit weg! (${(dist * 1000).toFixed(0)}m)`, 'error');
+            return;
+        }
+
+        visitedStations.add(id);
+        localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
+
+        updatePassProgress();
+        updateCheckInBtn(id);
+        showToast('Check-in erfolgreich! 🏆', 'success');
+
+        // Confetti or reward logic here
+        if (visitedStations.size === 10) alert("Glückwunsch! Du hast 10 Stationen besucht! Zeige diesen Screen für eine Überraschung.");
+    };
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function updatePassProgress() {
+        const count = visitedStations.size;
+        const el = document.getElementById('pass-progress');
+        if (el) el.innerHTML = `<i class="ph-fill ph-trophy text-yellow-500 mr-1"></i><span class="font-bold">${count}</span>`;
+    }
+
+    function updateCheckInBtn(id) {
+        const btn = document.getElementById('checkin-btn');
+        if (!btn) return;
+
+        if (visitedStations.has(id)) {
+            btn.innerHTML = `<i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i><span class="text-green-600 font-bold">Besucht</span>`;
+            btn.disabled = true;
+            btn.classList.add('bg-green-50', 'border-green-200');
+            btn.classList.remove('bg-white', 'hover:bg-gray-50');
+        } else {
+            btn.innerHTML = `<i class="ph ph-map-pin text-xl mr-2"></i><span>Einchecken</span>`;
+            btn.disabled = false;
+            btn.classList.remove('bg-green-50', 'border-green-200');
+            btn.classList.add('bg-white', 'hover:bg-gray-50');
+        }
+    }
+
+    // ... inside openModal ...
     updateModalFavBtn(s.id);
+    updateLikeBtn(s.id, s.likes);
+    updateCheckInBtn(s.id); // Update CheckIn Button
 
-    let descHtml = s.desc;
-    if (s.time) descHtml = `<strong class="text-yellow-700 block mb-1">⏰ ${s.time} Uhr</strong>` + descHtml;
-    document.getElementById('modal-desc').innerHTML = descHtml;
+    // Description & Offer
+    let content = `<p class="font-bold text-gray-800 dark:text-gray-200 mb-2"><i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${s.desc}</p>`; // Address
+    if (s.offer) content += `<div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic">${s.offer.replace(/\n/g, '<br>')}</div>`; // Offer
+    if (s.time) content += `<p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center"><i class="ph-fill ph-clock mr-1"></i>${s.time} Uhr</p>`;
 
-    // Image Logic
+    document.getElementById('modal-desc').innerHTML = content;
+
+    // Image Logic with Placeholder
     const imgCont = document.getElementById('modal-image-container');
-    const imgEl = document.getElementById('modal-image');
+
     if (s.image) {
-        imgEl.src = s.image;
+        imgCont.innerHTML = `<img id="modal-image" src="${s.image}" class="w-full h-56 object-contain bg-white">`;
         imgCont.classList.remove('hidden');
     } else {
-        imgCont.classList.add('hidden');
+        // Placeholder
+        imgCont.innerHTML = `<div class="w-full h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-500"><i class="ph ph-image text-5xl"></i></div>`;
+        imgCont.classList.remove('hidden');
     }
 
     document.getElementById('modal-view-mode').classList.remove('hidden');
@@ -384,18 +621,62 @@ window.editStation = () => {
     document.getElementById('modal-edit-mode').classList.remove('hidden');
     document.getElementById('edit-name').value = s.name;
     document.getElementById('edit-desc').value = s.desc;
-    document.getElementById('edit-tags').value = s.tags.join(', ');
+    document.getElementById('edit-offer').value = s.offer || ''; // New Field
+    // Show German tags in input
+    document.getElementById('edit-tags').value = s.tags.map(t => tagMap[t] || t).join(', ');
     document.getElementById('edit-time').value = s.time || '';
     document.getElementById('edit-image').value = s.image || '';
     renderTagHelper(s.tags);
+
+    // Setup Drag & Drop
+    setupDragDrop();
 };
+
+function setupDragDrop() {
+    const dropZone = document.getElementById('image-upload-btn');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('bg-gray-200'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('bg-gray-200'), false);
+    });
+
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files[0]) {
+            const input = document.getElementById('image-upload');
+            input.files = files;
+            window.handleImageUpload(input);
+        }
+    }
+}
 
 window.saveStationChanges = async () => {
     const s = stations.find(x => x.id == window.activeStationId);
     if (!s) return;
     s.name = document.getElementById('edit-name').value;
     s.desc = document.getElementById('edit-desc').value;
-    s.tags = document.getElementById('edit-tags').value.split(',').map(t => t.trim()).filter(t => t);
+    s.offer = document.getElementById('edit-offer').value; // New Field
+    // Map back to English keys
+    s.tags = document.getElementById('edit-tags').value.split(',')
+        .map(t => t.trim())
+        .filter(t => t)
+        .map(t => reverseTagMap[t] || t); // Translate back
+
     s.time = document.getElementById('edit-time').value || null;
     s.image = document.getElementById('edit-image').value || null;
 
@@ -445,14 +726,24 @@ function renderTagHelper(currentTags) {
 }
 window.toggleTag = (tag) => {
     const input = document.getElementById('edit-tags');
-    let current = input.value.split(',').map(t => t.trim()).filter(t => t);
+    // Parse current input (German) back to keys to manipulate
+    let current = input.value.split(',')
+        .map(t => t.trim())
+        .filter(t => t)
+        .map(t => reverseTagMap[t] || t);
+
     if (current.includes(tag)) current = current.filter(t => t !== tag);
     else current.push(tag);
-    input.value = current.join(', ');
+
+    // Write back as German
+    input.value = current.map(t => tagMap[t] || t).join(', ');
     renderTagHelper(current);
 };
 
 // Standard functions (Lists, Filters, Events)
+window.openHelpModal = () => { document.getElementById('help-modal').classList.remove('hidden'); };
+window.closeHelpModal = () => { document.getElementById('help-modal').classList.add('hidden'); };
+
 window.closeModal = () => { document.getElementById('modal-content').classList.add('translate-y-full'); setTimeout(() => document.getElementById('detail-modal').classList.add('hidden'), 300); };
 window.switchTab = (tabName) => {
     activeTab = tabName;
@@ -521,7 +812,7 @@ window.renderList = (items) => {
         // Image Thumbnail or Placeholder
         let imgHtml = '';
         if (s.image) {
-            imgHtml = `<div class="w-10 h-10 rounded-lg bg-gray-200 flex-shrink-0 overflow-hidden border border-gray-300 dark:border-gray-600 mr-3"><img src="${s.image}" class="w-full h-full object-cover"></div>`;
+            imgHtml = `<div class="w-10 h-10 rounded-lg bg-gray-200 flex-shrink-0 overflow-hidden border border-gray-300 dark:border-gray-600 mr-3"><img src="${s.image}" loading="lazy" class="w-full h-full object-cover"></div>`;
         } else {
             imgHtml = `<div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center border border-gray-200 dark:border-gray-600 mr-3 text-gray-400 dark:text-gray-500"><i class="ph ph-image text-xl"></i></div>`;
         }
@@ -534,11 +825,13 @@ window.renderList = (items) => {
         // Fix: Use ph-fill class for filled heart
         const favIconClass = isFav ? 'ph-fill ph-heart text-red-500' : 'ph-heart text-gray-300 dark:text-gray-500 hover:text-red-400';
 
+        const likeCountHtml = s.likes ? `<span id="like-count-${s.id}" class="ml-2 flex items-center text-xs text-orange-500 font-bold bg-orange-50 dark:bg-orange-900/30 px-1.5 py-0.5 rounded"><i class="ph-fill ph-fire mr-0.5"></i>${s.likes}</span>` : `<span id="like-count-${s.id}"></span>`;
+
         el.innerHTML = `
             <div class="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center font-bold text-white shadow-md border border-yellow-400 mr-3">${s.id}</div>
             ${imgHtml}
             <div class="flex-grow min-w-0">
-                <div class="flex flex-wrap items-center mb-1"><h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm mr-1 truncate">${s.name}</h3>${iconHtml}</div>
+                <div class="flex flex-wrap items-center mb-1"><h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm mr-1 truncate">${s.name}</h3>${likeCountHtml}${iconHtml}</div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">${s.desc}</p>
             </div>
             <button onclick="toggleFavorite(${s.id})" class="p-2 z-10"><i class="ph ${favIconClass} text-xl transition-colors"></i></button>

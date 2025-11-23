@@ -72,6 +72,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="openHelpModal()"
+                    class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
+                    <i class="ph ph-info text-xl"></i>
+                </button>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
                     <i class="ph ph-github-logo text-xl"></i>
@@ -86,6 +90,10 @@
                     class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 border border-gray-200 font-medium dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700">
                     Starten...
                 </div>
+                <div id="pass-progress"
+                    class="flex items-center text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-200 ml-1">
+                    <i class="ph-fill ph-trophy text-yellow-500 mr-1"></i><span class="font-bold">0</span>
+                </div>
             </div>
         </header>
 
@@ -98,6 +106,9 @@
                         class="ph ph-plus"></i> Neu</button>
                 <button onclick="toggleAdminPanel()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
                         class="ph ph-export"></i> Export</button>
+                <button onclick="uploadSeedData()"
+                    class="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"><i
+                        class="ph ph-cloud-arrow-up"></i> Demo-Upload</button>
                 <button onclick="resetApp()" class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
                     title="App zurücksetzen"><i class="ph ph-trash"></i></button>
                 <button onclick="logoutAdmin()" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40">Exit</button>
@@ -114,13 +125,17 @@
                 <!-- Admin Export Panel -->
                 <div id="admin-panel"
                     class="hidden admin-panel absolute top-10 left-5 right-5 bg-white p-5 rounded-lg shadow-xl z-[5000]">
-                    <h3 class="font-bold text-lg mb-2">Daten Exportieren</h3>
-                    <p class="text-sm text-gray-600 mb-2">Daten sichern:</p>
-                    <textarea id="export-area" class="w-full h-48 p-2 border rounded text-xs font-mono bg-gray-50"
-                        readonly></textarea>
-                    <div class="flex justify-end gap-2 mt-4">
+                    <h3 class="font-bold text-lg mb-2">Daten Import/Export (Excel/Tabelle)</h3>
+                    <p class="text-sm text-gray-600 mb-2">Daten kopieren und in Excel/Google Sheets einfügen. Zum
+                        Importieren einfach wieder hier reinkopieren.</p>
+                    <textarea id="export-area"
+                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-gray-50 mb-4 whitespace-pre"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="importData()"
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Importieren
+                            (Cloud)</button>
                         <button
-                            onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('In Zwischenablage kopiert', 'success');"
+                            onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
                             class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kopieren</button>
                         <button onclick="toggleAdminPanel()"
                             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Schließen</button>
@@ -237,11 +252,7 @@
                 id="modal-content">
 
                 <!-- Image Display Header -->
-                <div id="modal-image-container" class="w-full aspect-square bg-gray-200 relative hidden">
-                    <img id="modal-image" src="" class="w-full h-full object-cover rounded-t-2xl">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent h-20">
-                    </div>
-                </div>
+                <div id="modal-image-container" class="w-full hidden relative"></div>
                 <div id="modal-drag-handle" class="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-4 mb-2"></div>
 
                 <div class="p-6 pt-0">
@@ -266,11 +277,25 @@
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
                             </div>
+                            <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
+                                class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors">
+                                <i class="ph ph-fire text-xl text-gray-400"></i>
+                            </button>
                             <button id="modal-fav-btn" onclick="toggleFavorite(window.activeStationId, true)"
                                 class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-red-500 transition-colors">
                                 <i class="ph ph-heart text-2xl"></i>
                             </button>
                         </div>
+
+                        <!-- Check-In Button -->
+                        <button id="checkin-btn" onclick="checkIn(window.activeStationId)"
+                            class="w-full mb-4 py-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                            <i class="ph ph-map-pin text-xl"></i>
+                            <span>Einchecken</span>
+                        </button>
+                        <p class="text-center text-xs text-gray-400 italic mb-4">Sammle Stationen für deinen
+                            Lichter-Pass (GPS erforderlich).</p>
+
                         <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
@@ -291,16 +316,24 @@
                     <div id="modal-edit-mode" class="hidden">
                         <h3 class="font-bold mb-3 text-lg">Station bearbeiten</h3>
                         <input id="edit-name" class="w-full mb-2 p-2 border rounded" placeholder="Name">
-                        <textarea id="edit-desc" class="w-full mb-2 p-2 border rounded" rows="3"
-                            placeholder="Beschreibung"></textarea>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Adresse / Ort</label>
+                        <textarea id="edit-desc"
+                            class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="Adresse / Ort"></textarea>
+
+                        <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
+                        <textarea id="edit-offer"
+                            class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="Was wird angeboten?"></textarea>
 
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Bild</label>
                         <div class="flex gap-2 mb-2">
                             <input type="file" id="image-upload" accept="image/*" class="hidden"
                                 onchange="handleImageUpload(this)">
-                            <button onclick="document.getElementById('image-upload').click()"
-                                class="bg-gray-100 text-gray-700 px-3 py-2 rounded text-xs font-bold border border-gray-300 hover:bg-gray-200 w-full">
-                                <i class="ph ph-camera text-lg align-middle mr-1"></i> Foto hochladen / wählen
+                            <button id="image-upload-btn" onclick="document.getElementById('image-upload').click()"
+                                class="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 hover:border-yellow-500 transition-colors flex items-center justify-center gap-2">
+                                <i class="ph ph-camera text-xl"></i>
+                                <span>Foto hochladen / wählen</span>
                             </button>
                         </div>
                         <input id="edit-image" class="w-full mb-2 p-2 border rounded text-xs text-gray-400"
@@ -371,6 +404,75 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <!-- Config -->
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeHelpModal()"></div>
+        <div
+            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button onclick="closeHelpModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="ph ph-x text-2xl"></i>
+            </button>
+
+            <h2 class="text-2xl font-bold font-serif mb-6 text-center dark:text-white">Anleitung</h2>
+
+            <div class="space-y-6">
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
+                        <i class="ph-fill ph-map-trifold text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in
+                            der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-500">
+                        <i class="ph-fill ph-heart text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Favoriten</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Herz, um dir
+                            deinen persönlichen Plan zusammenzustellen. Filter in der Liste nach "Favoriten".</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-500">
+                        <i class="ph-fill ph-fire text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Voting</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Gefällt dir eine Station besonders gut? Gib
+                            ihr eine Flamme! Das hilft anderen Besuchern und freut den Veranstalter.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600">
+                        <i class="ph-fill ph-trophy text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Besuche 10 Stationen und checke vor Ort ein
+                            (GPS erforderlich). Zeige deinen vollen Pass für eine kleine Überraschung!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen 2025 App</p>
+                <p class="text-xs text-gray-400">Version 1.0 • Made with ❤️</p>
+            </div>
+        </div>
+    </div>
+
     <script src="config.js"></script>
 
     <script type="module" src="app.js"></script>
