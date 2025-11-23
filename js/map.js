@@ -11,6 +11,7 @@ export function initMap() {
 }
 
 export function updateMapTiles(isDark) {
+    console.log('Update Map Tiles:', isDark ? 'DARK' : 'LIGHT');
     if (tileLayer) state.map.removeLayer(tileLayer);
     const tileUrl = isDark
         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'

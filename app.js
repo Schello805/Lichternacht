@@ -8,7 +8,7 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, shareStation
+    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList
 } from './js/ui.js';
 import {
     uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs
@@ -43,6 +43,7 @@ window.fillEventCoords = fillEventCoords;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
 window.shareStation = shareStation;
+window.filterList = filterList;
 window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
@@ -75,7 +76,13 @@ window.onload = async () => {
         document.documentElement.classList.add('dark');
         updateDarkModeIcon(true);
     }
+    // Search
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => filterStations(e.target.value));
+    }
 
+    // Init
     initMap();
 
     // Tutorial Check

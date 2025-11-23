@@ -55,6 +55,45 @@ export function renderList(items) {
     });
 }
 
+export function filterStations(query) {
+    if (!query) {
+        renderList(state.stations);
+        return;
+    }
+    query = query.toLowerCase();
+    const filtered = state.stations.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.desc.toLowerCase().includes(query) ||
+        s.id.toString().includes(query) ||
+        s.tags.some(t => (tagMap[t] || t).toLowerCase().includes(query))
+    );
+    renderList(filtered);
+}
+
+export function filterList(category) {
+    // Update Buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        const onclick = btn.getAttribute('onclick');
+        if (onclick && onclick.includes(`'${category}'`)) {
+            btn.className = 'filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm';
+            // Fix icon color for favorites if active
+            if (category === 'favorites') btn.innerHTML = `<i class="ph-fill ph-heart text-white mr-1"></i>Favoriten`;
+        } else {
+            btn.className = 'filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600';
+            // Reset icon for favorites
+            if (btn.innerText.includes('Favoriten')) btn.innerHTML = `<i class="ph-fill ph-heart text-red-500 mr-1"></i>Favoriten`;
+        }
+    });
+
+    let filtered = state.stations;
+    if (category === 'favorites') {
+        filtered = state.stations.filter(s => state.favorites.has(s.id));
+    } else if (category !== 'all') {
+        filtered = state.stations.filter(s => s.tags.includes(category));
+    }
+    renderList(filtered);
+}
+
 export function renderTimeline() {
     const container = document.getElementById('timeline-container');
     container.innerHTML = '';
