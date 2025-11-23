@@ -1,9 +1,21 @@
-const CACHE_NAME = 'lichternacht-v1';
+const CACHE_NAME = 'lichternacht-v2';
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
     './icon.png',
+    './style.css',
+    './app.js',
+    './config.js',
+    './js/state.js',
+    './js/utils.js',
+    './js/firebase-init.js',
+    './js/data.js',
+    './js/map.js',
+    './js/gamification.js',
+    './js/ui.js',
+    './js/auth.js',
+    './js/admin.js',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css',

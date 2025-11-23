@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'michael@schellenberger.biz';
+    }
+    
+    function isIncrement(field) {
+      return request.resource.data[field] == resource.data[field] + 1;
+    }
+
+    // Global Config
+    match /global/config {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Global Stats (Champions)
+    match /global/stats {
+      allow read: if true;
+      allow create: if true; // Allow creating if not exists
+      allow update: if isAdmin() || (
+        // Allow updating stats fields (simplified check)
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['championsCount', 'count_bronze', 'count_silver', 'count_gold', 'count_diamond'])
+      );
+    }
+
+    // Artifacts (App Data)
+    match /artifacts/{appId}/public/data {
+      
+      // Stations
+      match /stations/{stationId} {
+        allow read: if true;
+        allow create, delete: if isAdmin();
+        allow update: if isAdmin() || (
+          // Allow incrementing likes
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
+          isIncrement('likes')
+        );
+      }
+
+      // Events
+      match /events/{eventId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+
+      // Presence (Heartbeat)
+      match /presence/{sessionId} {
+        allow read: if true;
+        allow write: if true; // Public write for heartbeat
+      }
+    }
+  }
+}

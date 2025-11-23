@@ -42,6 +42,54 @@
        CSS STYLES
        ========================================== -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Custom Tooltip CSS */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10000;
+            /* Very high z-index */
+            top: 120%;
+            /* Position below */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+        }
+
+        .tooltip-container .tooltip-text::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            /* Arrow points up */
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #000 transparent;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
 </head>
 
 <body
@@ -139,12 +187,42 @@
                     <textarea id="export-area"
                         class="w-full h-64 p-2 border rounded text-xs font-mono bg-gray-50 mb-4 whitespace-pre"></textarea>
                     <div class="flex justify-end gap-2">
-                        <button onclick="importData()"
-                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Importieren
-                            (Cloud)</button>
-                        <button
-                            onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
-                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kopieren</button>
+                        <!-- JSON Dump -->
+                        <div class="tooltip-container">
+                            <button onclick="dumpData()"
+                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">JSON
+                                Dump</button>
+                            <span class="tooltip-text">Erzeugt ein Backup aller Daten als JSON in der
+                                Konsole/Zwischenablage.</span>
+                        </div>
+
+                        <!-- Download JS -->
+                        <div class="tooltip-container">
+                            <button onclick="downloadDataJs()"
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Download
+                                data.js</button>
+                            <span class="tooltip-text">Lädt eine fertige 'data.js' Datei mit den aktuellen Daten
+                                herunter. Ersetze damit die Datei in 'js/data.js'.</span>
+                        </div>
+
+                        <!-- Import -->
+                        <div class="tooltip-container">
+                            <button onclick="importData()"
+                                class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Importieren
+                                (Cloud)</button>
+                            <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
+                                Feld oben.</span>
+                        </div>
+
+                        <!-- Copy -->
+                        <div class="tooltip-container">
+                            <button
+                                onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kopieren</button>
+                            <span class="tooltip-text">Kopiert die Daten (TSV) in die Zwischenablage für Excel/Google
+                                Sheets.</span>
+                        </div>
+
                         <button onclick="toggleAdminPanel()"
                             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Schließen</button>
                     </div>
@@ -224,14 +302,20 @@
         <!-- Navigation -->
         <nav class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
             <div onclick="switchTab('map')" id="nav-map"
-                class="flex-1 cursor-pointer tab-active flex flex-col items-center"><i
-                    class="ph ph-map-trifold text-2xl mb-1"></i><span>Karte</span></div>
+                class="flex-1 cursor-pointer tab-active flex flex-col items-center">
+                <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Karte</span>
+            </div>
             <div onclick="switchTab('list')" id="nav-list"
-                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center"><i
-                    class="ph ph-list-dashes text-2xl mb-1"></i><span>Stationen</span></div>
+                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+                <i class="ph ph-list-dashes text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Stationen</span>
+            </div>
             <div onclick="switchTab('events')" id="nav-events"
-                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center"><i
-                    class="ph ph-calendar-star text-2xl mb-1"></i><span>Programm</span></div>
+                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+                <i class="ph ph-calendar-star text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Programm</span>
+            </div>
         </nav>
 
         <!-- Login Modal -->
@@ -573,4 +657,3 @@
 </body>
 
 </html>
-```
