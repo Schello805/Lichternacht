@@ -381,7 +381,7 @@
 
                         <!-- Check-In Button -->
                         <button id="checkin-btn" onclick="checkIn(window.activeStationId)"
-                            class="w-full mb-4 py-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                            class="w-full mb-4 py-3 rounded-xl bg-gray-900 text-white shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 hover:bg-black">
                             <i class="ph ph-map-pin text-xl"></i>
                             <span>Einchecken</span>
                         </button>
@@ -392,7 +392,7 @@
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
                         <div class="flex gap-2 mt-4">
-                            <button onclick="shareStation(activeStationId)"
+                            <button onclick="shareStation()"
                                 class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600"><i
                                     class="ph ph-share-network text-lg"></i></button>
                             <button id="btn-internal-route"

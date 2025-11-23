@@ -164,6 +164,7 @@ function updateCurrentEventDisplay() {
 
 export function openModal(s) {
     state.activeStationId = s.id;
+    window.activeStationId = s.id;
     document.getElementById('modal-number').innerText = s.id;
     document.getElementById('modal-title').innerText = s.name;
     document.getElementById('modal-subtitle').innerText = s.tags.map(t => tagMap[t] || t).join(' • ').toUpperCase();
@@ -254,6 +255,29 @@ export function updateDarkModeIcon(isDark) {
 
 export function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
 export function closeHelpModal() { document.getElementById('help-modal').classList.add('hidden'); }
+
+export async function shareStation() {
+    const s = state.stations.find(x => x.id == state.activeStationId);
+    if (!s) return;
+
+    const shareData = {
+        title: `Lichternacht: ${s.name}`,
+        text: `Schau dir ${s.name} auf der Lichternacht Bechhofen an!\n${s.desc}`,
+        url: window.location.href
+    };
+
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            // Fallback
+            navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+            showToast('Link kopiert!', 'success');
+        }
+    } catch (err) {
+        console.log('Share failed:', err);
+    }
+}
 
 // --- EDIT MODE ---
 export function editStation() {

@@ -8,7 +8,7 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent
+    fillEventCoords, saveEventChanges, deleteEvent, shareStation
 } from './js/ui.js';
 import {
     uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs
@@ -42,6 +42,7 @@ window.closeEventModal = closeEventModal;
 window.fillEventCoords = fillEventCoords;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
+window.shareStation = shareStation;
 window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;

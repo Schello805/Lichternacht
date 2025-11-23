@@ -5,11 +5,18 @@ export async function toggleLike(id) {
     // event is global, but better pass it or stop propagation in UI
     if (window.event) window.event.stopPropagation();
 
+    if (!id) {
+        console.error("No ID for toggleLike");
+        return;
+    }
+
     const likedKey = `liked_${id}`;
     if (localStorage.getItem(likedKey)) {
         showToast('Du hast bereits abgestimmt!', 'info');
         return;
     }
+
+    localStorage.setItem(likedKey, 'true');
 
     // Optimistic UI update
     const s = state.stations.find(x => x.id == id);
@@ -21,7 +28,6 @@ export async function toggleLike(id) {
         if (listEl) listEl.innerHTML = `<i class="ph-fill ph-fire text-orange-500 text-xs mr-0.5"></i>${s.likes}`;
     }
 
-    localStorage.setItem(likedKey, 'true');
     showToast('Danke für deine Stimme!', 'success');
 
     if (!state.useLocalStorage && state.fb.updateDoc && state.fb.increment) {
@@ -49,7 +55,7 @@ export function toggleFavorite(id, fromModal = false) {
     // Refresh list if needed (we don't have access to renderList here easily, but that's fine)
     // We could dispatch an event or just let the user refresh.
     // Actually, we should update the list icon if visible.
-    const listIcon = document.getElementById(`fav-icon-${id}`);
+    const listIcon = document.getElementById(`fav - icon - ${id} `);
     if (listIcon) {
         listIcon.className = state.favorites.has(id) ? "ph-fill ph-heart text-red-500" : "ph ph-heart text-gray-400";
     }
@@ -59,7 +65,13 @@ export function updateLikeBtn(id, count) {
     const btn = document.getElementById('modal-like-btn');
     if (!btn) return;
     const isLiked = localStorage.getItem(`liked_${id}`);
-    btn.innerHTML = `<i class="ph ${isLiked ? 'ph-fill' : ''} ph-fire text-xl ${isLiked ? 'text-orange-500' : 'text-gray-400'}"></i><span class="ml-1 text-xs font-bold ${isLiked ? 'text-orange-600' : 'text-gray-500'}">${count || 0}</span>`;
+    const iconHtml = isLiked
+        ? `<i class="ph-fill ph-fire text-xl text-orange-500"></i>`
+        : `<i class="ph ph-fire text-xl text-gray-400"></i>`;
+
+    const countClass = isLiked ? 'text-orange-600' : 'text-gray-500';
+
+    btn.innerHTML = `${iconHtml}<span class="ml-1 text-xs font-bold ${countClass}">${count || 0}</span>`;
     if (isLiked) btn.classList.add('bg-orange-50', 'border-orange-200');
 }
 
@@ -67,7 +79,7 @@ export function updateModalFavBtn(id) {
     const btn = document.getElementById('modal-fav-btn');
     if (!btn) return;
     const isFav = state.favorites.has(id);
-    btn.innerHTML = `<i class="ph ${isFav ? 'ph-fill text-red-500' : 'ph-heart text-gray-400'} text-2xl"></i>`;
+    btn.innerHTML = `<i class="ph ph-heart ${isFav ? 'ph-fill text-red-500' : 'text-gray-400'} text-2xl"></i>`;
 }
 
 export async function checkIn(id) {
@@ -156,13 +168,13 @@ export function updateCheckInBtn(id) {
     if (visitedStations.has(id)) {
         btn.innerHTML = `<i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i><span class="text-green-600 font-bold">Besucht</span>`;
         btn.disabled = true;
-        btn.classList.add('bg-green-50', 'border-green-200');
-        btn.classList.remove('bg-white', 'hover:bg-gray-50');
+        btn.classList.add('bg-green-50', 'border', 'border-green-200');
+        btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
     } else {
         btn.innerHTML = `<i class="ph ph-map-pin text-xl mr-2"></i><span>Einchecken</span>`;
         btn.disabled = false;
-        btn.classList.remove('bg-green-50', 'border-green-200');
-        btn.classList.add('bg-white', 'hover:bg-gray-50');
+        btn.classList.remove('bg-green-50', 'border', 'border-green-200');
+        btn.classList.add('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
     }
 }
 
