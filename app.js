@@ -586,10 +586,10 @@ window.openModal = (s) => {
     updateLikeBtn(s.id, s.likes);
     updateCheckInBtn(s.id); // Update CheckIn Button
 
-    // Description & Offer
-    let content = `<p class="font-bold text-gray-800 dark:text-gray-200 mb-2"><i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${s.desc}</p>`; // Address
-    if (s.offer) content += `<div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic">${s.offer.replace(/\n/g, '<br>')}</div>`; // Offer
-    if (s.time) content += `<p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center"><i class="ph-fill ph-clock mr-1"></i>${s.time} Uhr</p>`;
+    // Description & Offer (Safe HTML generation)
+    let content = `<p class="font-bold text-gray-800 dark:text-gray-200 mb-2"><i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${escapeHTML(s.desc)}</p>`;
+    if (s.offer) content += `<div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic">${escapeHTML(s.offer).replace(/\n/g, '<br>')}</div>`;
+    if (s.time) content += `<p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center"><i class="ph-fill ph-clock mr-1"></i>${escapeHTML(s.time)} Uhr</p>`;
 
     document.getElementById('modal-desc').innerHTML = content;
 
@@ -800,6 +800,17 @@ function updateModalFavBtn(id) {
     }
 }
 
+// Security: Escape HTML
+function escapeHTML(str) {
+    if (!str) return "";
+    return str.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 window.renderList = (items) => {
     const list = document.getElementById('stations-list');
     list.innerHTML = '';
@@ -831,8 +842,8 @@ window.renderList = (items) => {
             <div class="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center font-bold text-white shadow-md border border-yellow-400 mr-3">${s.id}</div>
             ${imgHtml}
             <div class="flex-grow min-w-0">
-                <div class="flex flex-wrap items-center mb-1"><h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm mr-1 truncate">${s.name}</h3>${likeCountHtml}${iconHtml}</div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">${s.desc}</p>
+                <div class="flex flex-wrap items-center mb-1"><h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm mr-1 truncate">${escapeHTML(s.name)}</h3>${likeCountHtml}${iconHtml}</div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">${escapeHTML(s.desc)}</p>
             </div>
             <button onclick="toggleFavorite(${s.id})" class="p-2 z-10"><i class="ph ${favIconClass} text-xl transition-colors"></i></button>
         `;
