@@ -11,6 +11,7 @@ let favorites = new Set(); // IDs of favorite stations
 let useLocalStorage = false;
 let db, auth, appId;
 let initializeApp, getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, getFirestore, collection, doc, getDocs, setDoc, deleteDoc;
+let serverTimestamp, query, where, getCountFromServer;
 
 // --- SEED DATA ---
 const seedStations = [
@@ -83,6 +84,11 @@ window.onload = async () => {
     updateCurrentEvent();
     setInterval(updateCurrentEvent, 30000); // Check every 30s
 
+    // Tutorial Check
+    if (!localStorage.getItem('tutorial_seen')) {
+        document.getElementById('tutorial-modal').classList.remove('hidden');
+    }
+
     const btn = document.getElementById('status-indicator');
 
     if (typeof __firebase_config !== 'undefined') {
@@ -92,9 +98,14 @@ window.onload = async () => {
             const fbAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
             const fbStore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
 
-            initializeApp = fbApp.initializeApp;
-            getAuth = fbAuth.getAuth;
-            signInAnonymously = fbAuth.signInAnonymously;
+            const firebaseConfig = JSON.parse(__firebase_config);
+            if (firebaseConfig.apiKey === "API_KEY_HIER") throw new Error("No Configured API Key");
+
+            const app = fbApp.initializeApp(firebaseConfig);
+            auth = fbAuth.getAuth(app);
+            db = fbStore.getFirestore(app);
+
+            // Bind globals
             signInWithEmailAndPassword = fbAuth.signInWithEmailAndPassword;
             signOut = fbAuth.signOut;
             onAuthStateChanged = fbAuth.onAuthStateChanged;
@@ -104,18 +115,21 @@ window.onload = async () => {
             getDocs = fbStore.getDocs;
             setDoc = fbStore.setDoc;
             deleteDoc = fbStore.deleteDoc;
-            // Add updateDoc and increment
-            const fbStoreModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-            window.updateDoc = fbStoreModule.updateDoc;
-            window.increment = fbStoreModule.increment;
 
-            const firebaseConfig = JSON.parse(__firebase_config);
-            if (firebaseConfig.apiKey === "API_KEY_HIER") throw new Error("No Configured API Key");
+            // Extended Firestore features
+            window.updateDoc = fbStore.updateDoc;
+            window.increment = fbStore.increment;
+            window.getDoc = fbStore.getDoc;
+            serverTimestamp = fbStore.serverTimestamp;
+            query = fbStore.query;
+            where = fbStore.where;
+            getCountFromServer = fbStore.getCountFromServer;
 
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // --- DYNAMIC YEAR CONFIG ---
+            await syncGlobalConfig();
+
+            // --- PRESENCE SYSTEM ---
+            initPresence();
 
             // Auth Listener
             onAuthStateChanged(auth, async (user) => {
@@ -295,6 +309,86 @@ window.logoutAdmin = async () => {
         showToast('Abgemeldet', 'info');
     } catch (e) {
         console.error(e);
+    }
+};
+
+// --- PRESENCE ---
+const sessionId = crypto.randomUUID();
+
+function initPresence() {
+    if (useLocalStorage) return;
+
+    const sendHeartbeat = async () => {
+        try {
+            // Write to: artifacts/{appId}/public/data/presence/{sessionId}
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'presence', sessionId);
+            await setDoc(ref, { lastSeen: serverTimestamp() });
+        } catch (e) { console.warn("Heartbeat failed", e); }
+    };
+
+    const updateUserCount = async () => {
+        try {
+            // Count docs where lastSeen > 5 minutes ago
+            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
+            const q = query(colRef, where('lastSeen', '>', fiveMinAgo));
+            const snapshot = await getCountFromServer(q);
+            const count = snapshot.data().count;
+
+            const el = document.getElementById('user-count');
+            if (el) {
+                el.querySelector('span').innerText = count;
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        } catch (e) { console.warn("Count failed", e); }
+    };
+
+    // Initial call
+    sendHeartbeat();
+    updateUserCount();
+
+    // Loop (Heartbeat every 5m, Count every 2m)
+    setInterval(sendHeartbeat, 5 * 60 * 1000);
+    setInterval(updateUserCount, 2 * 60 * 1000);
+}
+
+async function syncGlobalConfig() {
+    try {
+        const docRef = doc(db, 'global', 'config');
+        const docSnap = await window.getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.activeYear) {
+                appId = `lichternacht-${data.activeYear}`;
+                console.log("Configured Year:", data.activeYear);
+                // Update UI Year if needed
+                document.querySelectorAll('.year-display').forEach(el => el.innerText = data.activeYear);
+            }
+        } else {
+            console.log("No global config found, using default:", appId);
+        }
+    } catch (e) {
+        console.warn("Could not sync global config (offline?)", e);
+    }
+}
+
+window.closeTutorial = () => {
+    document.getElementById('tutorial-modal').classList.add('hidden');
+    localStorage.setItem('tutorial_seen', 'true');
+};
+
+window.changeYear = async () => {
+    const newYear = prompt("Neues Jahr eingeben (z.B. 2026).\nACHTUNG: Dies wechselt die Datenbank für ALLE Nutzer sofort!");
+    if (!newYear || newYear.length !== 4) return;
+
+    try {
+        await setDoc(doc(db, 'global', 'config'), { activeYear: newYear }, { merge: true });
+        alert(`Jahr auf ${newYear} geändert. Die Seite wird neu geladen.`);
+        location.reload();
+    } catch (e) {
+        console.error(e);
+        alert("Fehler beim Ändern des Jahres.");
     }
 };
 
