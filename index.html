@@ -71,35 +71,37 @@
                     <p class="text-xs text-yellow-800/70">Bechhofen | 22. Nov 2025</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
+                <div id="status-indicator"
+                    class="hidden text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 font-medium mr-1">
+                    Starten...</div>
                 <button onclick="openHelpModal()"
                     class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
                     <i class="ph ph-info text-xl"></i>
                 </button>
-                <a href="https://github.com/Schello805/Lichternacht" target="_blank"
-                    class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
-                    <i class="ph ph-github-logo text-xl"></i>
-                </a>
                 <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-2">
                     <i class="ph ph-moon text-xl" id="dark-mode-icon"></i>
                 </button>
-                <button onclick="toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors">
+                <button onclick="toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-2">
                     <i class="ph ph-lock-key text-xl" id="lock-icon"></i>
                 </button>
-                <div id="status-indicator"
-                    class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 border border-gray-200 font-medium dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700">
-                    Starten...
-                </div>
-                <div id="user-count"
-                    class="hidden items-center text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 font-bold ml-1">
-                    <i class="ph-fill ph-users mr-1"></i><span>0</span>
-                </div>
-                <div id="pass-progress"
-                    class="flex items-center text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-200 ml-1">
-                    <i class="ph-fill ph-trophy text-yellow-500 mr-1"></i><span class="font-bold">0</span>
-                </div>
             </div>
         </header>
+
+        <!-- Floating Status Elements (Bottom Right) -->
+        <div class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2 pointer-events-none">
+            <!-- User Count -->
+            <div id="user-count"
+                class="hidden pointer-events-auto items-center text-xs px-3 py-1.5 rounded-full bg-blue-500/90 text-white font-bold shadow-lg backdrop-blur-sm animate-fade-in">
+                <i class="ph-fill ph-users mr-1.5"></i><span>0</span>
+            </div>
+            <!-- Lichter Pass Progress -->
+            <div id="pass-progress"
+                class="pointer-events-auto flex items-center text-xs bg-yellow-500/90 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm cursor-pointer"
+                onclick="openHelpModal()">
+                <i class="ph-fill ph-trophy mr-1.5"></i><span class="font-bold">0</span>
+            </div>
+        </div>
 
         <!-- Admin Bar (Logged in) -->
         <div id="admin-bar"
@@ -466,16 +468,102 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Besuche 10 Stationen und checke vor Ort ein
-                            (GPS erforderlich). Zeige deinen vollen Pass für eine kleine Überraschung!</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Besuche Stationen und checke vor Ort
+                            ein. Sammle alle Trophäen!</p>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div
+                                class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800 flex items-center justify-between">
+                                <span class="flex items-center text-orange-700 dark:text-orange-400 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Bronze (10)</span>
+                                <span id="count-bronze" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                <span class="flex items-center text-gray-600 dark:text-gray-300 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Silber (20)</span>
+                                <span id="count-silver" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-100 dark:border-yellow-800 flex items-center justify-between">
+                                <span class="flex items-center text-yellow-600 dark:text-yellow-400 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Gold (30)</span>
+                                <span id="count-gold" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                <span class="flex items-center text-blue-600 dark:text-blue-300 font-bold"><i
+                                        class="ph-fill ph-diamond mr-1"></i> Alle</span>
+                                <span id="count-diamond" class="font-bold">0</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
                 <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen 2025 App</p>
-                <p class="text-xs text-gray-400">Version 1.0 • Made with ❤️</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.0 • Made with ❤️</p>
+                <a href="https://github.com/Schello805/Lichternacht" target="_blank"
+                    class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
+                </a>
             </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorial-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div
+            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
+
+            <div class="text-center mb-6">
+                <div
+                    class="w-16 h-16 bg-yellow-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4">
+                    <i class="ph-fill ph-star text-3xl text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold font-serif dark:text-white">Willkommen!</h2>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Lichternacht Bechhofen App</p>
+            </div>
+
+            <div class="space-y-6 mb-8">
+                <!-- PWA Hint -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center"><i
+                            class="ph-fill ph-download-simple mr-2"></i>App installieren</h3>
+                    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">Für das beste Erlebnis (Vollbild, Offline):
+                    </p>
+                    <ol class="text-sm text-blue-700 dark:text-blue-400 list-decimal list-inside space-y-1 ml-1">
+                        <li>Tippe unten auf <span class="font-bold"><i class="ph ph-export"></i> Teilen</span> (iOS)
+                            oder Menü (Android).</li>
+                        <li>Wähle <span class="font-bold">"Zum Home-Bildschirm"</span>.</li>
+                    </ol>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <i class="ph-fill ph-map-trifold text-2xl text-yellow-500 mt-1"></i>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Entdecken</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte. Tippe
+                            auf Marker für Details.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <i class="ph-fill ph-trophy text-2xl text-green-500 mt-1"></i>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Besuche Stationen und checke ein. Sammle
+                            alle Trophäen!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeTutorial()"
+                class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95">
+                Los geht's! 🚀
+            </button>
         </div>
     </div>
 

@@ -107,6 +107,7 @@ window.onload = async () => {
 
             // Bind globals
             signInWithEmailAndPassword = fbAuth.signInWithEmailAndPassword;
+            signInAnonymously = fbAuth.signInAnonymously;
             signOut = fbAuth.signOut;
             onAuthStateChanged = fbAuth.onAuthStateChanged;
             getFirestore = fbStore.getFirestore;
@@ -124,6 +125,8 @@ window.onload = async () => {
             query = fbStore.query;
             where = fbStore.where;
             getCountFromServer = fbStore.getCountFromServer;
+
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'lichternacht-2025'; // Default
 
             // --- DYNAMIC YEAR CONFIG ---
             await syncGlobalConfig();
@@ -328,10 +331,10 @@ function initPresence() {
 
     const updateUserCount = async () => {
         try {
-            // Count docs where lastSeen > 5 minutes ago
-            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+            // Count docs where lastSeen > 2 minutes ago (Live)
+            const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);
             const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
-            const q = query(colRef, where('lastSeen', '>', fiveMinAgo));
+            const q = query(colRef, where('lastSeen', '>', twoMinAgo));
             const snapshot = await getCountFromServer(q);
             const count = snapshot.data().count;
 
@@ -341,6 +344,17 @@ function initPresence() {
                 el.classList.remove('hidden');
                 el.classList.add('flex');
             }
+
+            // Also fetch global stats (Champions)
+            const statsRef = doc(db, 'global', 'stats');
+            const statsSnap = await window.getDoc(statsRef);
+            if (statsSnap.exists()) {
+                const d = statsSnap.data();
+                if (document.getElementById('count-bronze')) document.getElementById('count-bronze').innerText = d.count_bronze || 0;
+                if (document.getElementById('count-silver')) document.getElementById('count-silver').innerText = d.count_silver || 0;
+                if (document.getElementById('count-gold')) document.getElementById('count-gold').innerText = d.count_gold || 0;
+                if (document.getElementById('count-diamond')) document.getElementById('count-diamond').innerText = d.count_diamond || 0;
+            }
         } catch (e) { console.warn("Count failed", e); }
     };
 
@@ -348,9 +362,9 @@ function initPresence() {
     sendHeartbeat();
     updateUserCount();
 
-    // Loop (Heartbeat every 5m, Count every 2m)
-    setInterval(sendHeartbeat, 5 * 60 * 1000);
-    setInterval(updateUserCount, 2 * 60 * 1000);
+    // Loop (Heartbeat every 1m, Count every 1m)
+    setInterval(sendHeartbeat, 60 * 1000);
+    setInterval(updateUserCount, 60 * 1000);
 }
 
 async function syncGlobalConfig() {
@@ -612,7 +626,7 @@ window.openModal = (s) => {
         if (saved) visitedStations = new Set(JSON.parse(saved));
     } catch (e) { }
 
-    window.checkIn = (id) => {
+    window.checkIn = async (id) => {
         if (visitedStations.has(id)) return;
 
         if (!userLocation) {
@@ -634,11 +648,46 @@ window.openModal = (s) => {
         localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
 
         updatePassProgress();
+
+        // Check for Champion Status
+        const count = visitedStations.size;
+        let newLevel = null;
+        // Check thresholds
+        if (count === stations.length && count > 0) newLevel = 'diamond';
+        else if (count === 30) newLevel = 'gold';
+        else if (count === 20) newLevel = 'silver';
+        else if (count === 10) newLevel = 'bronze';
+
+        if (newLevel) {
+            const key = `reached_${newLevel}`;
+            if (!localStorage.getItem(key)) {
+                localStorage.setItem(key, 'true');
+
+                let msg = '', field = '';
+                if (newLevel === 'bronze') { msg = 'Bronze Champion! 🥉'; field = 'count_bronze'; }
+                if (newLevel === 'silver') { msg = 'Silber Champion! 🥈'; field = 'count_silver'; }
+                if (newLevel === 'gold') { msg = 'Gold Champion! 🥇'; field = 'count_gold'; }
+                if (newLevel === 'diamond') { msg = 'Diamant Champion! 💎'; field = 'count_diamond'; }
+
+                showToast(msg, 'success');
+
+                // Increment global counter
+                try {
+                    const statsRef = doc(db, 'global', 'stats');
+                    const updatePayload = {};
+                    updatePayload[field] = window.increment(1);
+
+                    await window.updateDoc(statsRef, updatePayload).catch(async () => {
+                        const setPayload = {};
+                        setPayload[field] = 1;
+                        await setDoc(statsRef, setPayload, { merge: true });
+                    });
+                } catch (e) { console.warn("Could not update champion stats", e); }
+            }
+        }
+
         updateCheckInBtn(id);
         showToast('Check-in erfolgreich! 🏆', 'success');
-
-        // Confetti or reward logic here
-        if (visitedStations.size === 10) alert("Glückwunsch! Du hast 10 Stationen besucht! Zeige diesen Screen für eine Überraschung.");
     };
 
     function getDistance(lat1, lon1, lat2, lon2) {
@@ -910,6 +959,7 @@ window.renderList = (items) => {
     list.innerHTML = '';
     if (items.length === 0) { list.innerHTML = '<div class="text-center text-gray-500 mt-10 dark:text-gray-400">Keine Ergebnisse.</div>'; return; }
     items.forEach(s => {
+        if (!s) return;
         const el = document.createElement('div');
         el.className = 'bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex gap-4 items-center active:bg-gray-50 dark:active:bg-gray-700 transition-colors cursor-pointer relative overflow-hidden';
         el.onclick = () => openModal(s);
@@ -989,12 +1039,14 @@ window.locateUser = (cb) => {
     if (!navigator.geolocation) { showToast("Kein GPS verfügbar", 'error'); return; }
     setLoading(true, "Suche GPS...");
     document.getElementById('status-indicator').innerText = "Suche...";
-    navigator.geolocation.getCurrentPosition(pos => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
         setLoading(false);
-        const lat = pos.coords.latitude; const lng = pos.coords.longitude; userLocation = { lat, lng };
-        if (userMarker) userMarker.setLatLng([lat, lng]);
-        else { const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); userMarker = L.marker([lat, lng], { icon: icon }).addTo(map); }
-        if (!routingControl) map.setView([lat, lng], 18);
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        userLocation = { lat: userLat, lng: userLng };
+        if (userMarker) userMarker.setLatLng([userLat, userLng]);
+        else { const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); userMarker = L.marker([userLat, userLng], { icon: icon }).addTo(map); }
+        if (!routingControl) map.setView([userLat, userLng], 18);
         document.getElementById('status-indicator').innerText = "Verbunden"; if (cb) cb();
         showToast("Standort gefunden", 'success');
     }, err => {
