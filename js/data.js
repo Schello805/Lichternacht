@@ -56,7 +56,18 @@ export async function loadData() {
         state.events = eData ? JSON.parse(eData) : seedEvents;
     } else {
         try {
-            const { collection, getDocs } = state.fb;
+            const { collection, getDocs, doc, getDoc } = state.fb;
+
+            // Load Config & Downloads
+            try {
+                const configSnap = await getDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'));
+                if (configSnap.exists()) {
+                    const data = configSnap.data();
+                    state.config = { ...state.config, ...data };
+                    if (data.downloads) state.downloads = data.downloads;
+                }
+            } catch (e) { console.warn("Config load error", e); }
+
             const sCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'stations');
             const sSnap = await getDocs(sCol);
             state.stations = sSnap.empty ? seedStations : [];

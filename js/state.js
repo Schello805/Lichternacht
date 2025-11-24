@@ -11,6 +11,7 @@ export const state = {
     activeEventId: null,
     activeTab: "map",
     favorites: new Set(),
+    downloads: { flyer1: '', flyer2: '' },
     useLocalStorage: false,
     db: null,
     auth: null,

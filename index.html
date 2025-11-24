@@ -231,6 +231,40 @@
                         <button onclick="toggleAdminPanel()"
                             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Schließen</button>
                     </div>
+
+                    <!-- Downloads -->
+                    <div
+                        class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+                        <h3 class="font-bold mb-3 dark:text-white">Downloads verwalten</h3>
+                        <div class="space-y-3">
+                            <!-- Flyer 1 -->
+                            <div class="flex gap-2">
+                                <input id="admin-flyer1" type="text" placeholder="URL zu Flyer 1 (PDF)"
+                                    class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                                <label
+                                    class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
+                                    <i class="ph ph-upload"></i>
+                                    <input type="file" id="upload-flyer1" class="hidden" accept=".pdf"
+                                        onchange="uploadFlyer('upload-flyer1', 'admin-flyer1')">
+                                </label>
+                            </div>
+
+                            <!-- Flyer 2 -->
+                            <div class="flex gap-2">
+                                <input id="admin-flyer2" type="text" placeholder="URL zu Flyer 2 (PDF)"
+                                    class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                                <label
+                                    class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
+                                    <i class="ph ph-upload"></i>
+                                    <input type="file" id="upload-flyer2" class="hidden" accept=".pdf"
+                                        onchange="uploadFlyer('upload-flyer2', 'admin-flyer2')">
+                                </label>
+                            </div>
+
+                            <button onclick="saveDownloads()"
+                                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Map Controls -->

@@ -3,6 +3,51 @@ import { showToast, setLoading, esc } from './utils.js';
 import { saveData, loadData, seedStations, seedEvents } from './data.js';
 import { openEventModal, renderTagHelper, setupDragDrop } from './ui.js';
 
+export async function saveDownloads() {
+    const f1 = document.getElementById('admin-flyer1').value.trim();
+    const f2 = document.getElementById('admin-flyer2').value.trim();
+    state.downloads = { flyer1: f1, flyer2: f2 };
+
+    if (!state.useLocalStorage) {
+        try {
+            const { doc, setDoc } = state.fb;
+            const ref = doc(state.db, 'artifacts', state.appId, 'public', 'config');
+            await setDoc(ref, { downloads: state.downloads }, { merge: true });
+            showToast('Downloads gespeichert', 'success');
+        } catch (e) { console.error(e); showToast('Fehler beim Speichern', 'error'); }
+    } else {
+        showToast('Lokal gespeichert (nicht persistent)', 'success');
+    }
+    renderTimeline(); // Refresh UI
+}
+
+export async function uploadFlyer(inputId, targetInputId) {
+    const input = document.getElementById(inputId);
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById(targetInputId).value = data.url;
+            showToast('Flyer hochgeladen!', 'success');
+        } else {
+            throw new Error('Upload failed');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Upload Fehler (Server läuft?)', 'error');
+    }
+}
+
 export async function uploadSeedData() {
     if (!confirm("Möchtest du alle Demo-Daten (Stationen & Events) in die Cloud hochladen? Bestehende Daten mit gleicher ID werden überschrieben.")) return;
 

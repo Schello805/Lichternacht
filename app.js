@@ -8,10 +8,10 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList
+    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS
 } from './js/ui.js';
 import {
-    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs
+    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads
 } from './js/admin.js';
 
 // Bind to Window for HTML access
@@ -24,6 +24,8 @@ window.importData = importData;
 window.handleAdminAdd = handleAdminAdd;
 window.dumpData = dumpData;
 window.downloadDataJs = downloadDataJs;
+window.uploadFlyer = uploadFlyer;
+window.saveDownloads = saveDownloads;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
@@ -47,6 +49,7 @@ window.filterList = filterList;
 window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
+window.generateICS = generateICS;
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');
@@ -87,6 +90,19 @@ window.onload = async () => {
     document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
     document.getElementById('nav-events').addEventListener('click', () => switchTab('events'));
 
+    // Notifications: Request permission on first user interaction
+    const requestNotif = () => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+        document.removeEventListener('click', requestNotif);
+    };
+    document.addEventListener('click', requestNotif);
+
+    // Check for upcoming events every minute
+    setInterval(checkUpcomingEvents, 60000);
+    checkUpcomingEvents(); // Initial check
+
     // Init
     initMap();
 
@@ -110,3 +126,37 @@ window.onload = async () => {
         loadData();
     }
 };
+
+function checkUpcomingEvents() {
+    if (!state.events) return;
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeVal = currentHours * 60 + currentMinutes;
+
+    state.events.forEach(e => {
+        const [h, m] = e.time.split(':').map(Number);
+        const eventTimeVal = h * 60 + m;
+
+        // Check if event starts in exactly 15 minutes
+        // We use a small window (14-16 min) to be safe with the interval
+        const diff = eventTimeVal - currentTimeVal;
+
+        if (diff === 15) {
+            sendLocalNotification(`Gleich geht's los: ${e.title}`, `In 15 Minuten bei: ${e.loc}`);
+        }
+    });
+}
+
+function sendLocalNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, {
+            body: body,
+            icon: './icon.png',
+            badge: './icon.png'
+        });
+    } else {
+        // Fallback: Toast inside app if open
+        showToast(title, 'info');
+    }
+}

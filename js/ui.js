@@ -97,7 +97,38 @@ export function filterList(category) {
 export function renderTimeline() {
     const container = document.getElementById('timeline-container');
     container.innerHTML = '';
-    if (state.events.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 mt-10">Keine Events.</div>'; return; }
+    updateCurrentEventDisplay();
+
+    // Downloads Section (Top Placement)
+    const d = state.downloads || {};
+    let downloadsHtml = '';
+
+    if (d.flyer1) {
+        downloadsHtml += `<a href="${d.flyer1}" target="_blank" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-file-pdf text-red-500 text-lg"></i>Flyer 1</a>`;
+    }
+    if (d.flyer2) {
+        downloadsHtml += `<a href="${d.flyer2}" target="_blank" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-file-pdf text-red-500 text-lg"></i>Flyer 2</a>`;
+    }
+
+    // ICS Button
+    downloadsHtml += `<button onclick="generateICS()" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin (ICS)</button>`;
+
+    if (downloadsHtml) {
+        const dlContainer = document.createElement('div');
+        dlContainer.className = 'mb-8';
+        dlContainer.innerHTML = `
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 px-1">Downloads & Infos</h3>
+            <div class="grid grid-cols-2 gap-3">
+                ${downloadsHtml}
+            </div>
+        `;
+        container.appendChild(dlContainer);
+    }
+
+    if (state.events.length === 0) {
+        container.innerHTML += '<div class="text-center text-gray-500 mt-10">Keine Events.</div>';
+        return;
+    }
 
     // Sort by time
     const sorted = [...state.events].sort((a, b) => a.time.localeCompare(b.time));
@@ -141,8 +172,6 @@ export function renderTimeline() {
         `;
         container.appendChild(el);
     });
-
-    updateCurrentEventDisplay();
 }
 
 function updateCurrentEventDisplay() {
@@ -222,6 +251,31 @@ function updateCurrentEventDisplay() {
     }
 }
 
+export function generateICS() {
+    const eventDate = "20251122"; // 22.11.2025
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Lichternacht//Bechhofen//DE
+BEGIN:VEVENT
+UID:${crypto.randomUUID()}@lichternacht.bechhofen.de
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTSTART:20251122T160000Z
+DTEND:20251122T200000Z
+SUMMARY:Lichternacht Bechhofen 2025
+DESCRIPTION:Die lange Nacht der Lichter in Bechhofen.
+LOCATION:Bechhofen
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', 'lichternacht-2025.ics');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 export function openModal(s) {
     state.activeStationId = s.id;
     window.activeStationId = s.id;
@@ -234,19 +288,19 @@ export function openModal(s) {
     updateCheckInBtn(s.id);
 
     // Description & Offer
-    let content = `<p class="font-bold text-gray-800 dark:text-gray-200 mb-2"><i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${escapeHTML(s.desc)}</p>`;
-    if (s.offer) content += `<div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic">${escapeHTML(s.offer).replace(/\n/g, '<br>')}</div>`;
-    if (s.time) content += `<p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center"><i class="ph-fill ph-clock mr-1"></i>${escapeHTML(s.time)} Uhr</p>`;
+    let content = `< p class="font-bold text-gray-800 dark:text-gray-200 mb-2" > <i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${escapeHTML(s.desc)}</p > `;
+    if (s.offer) content += `< div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic" > ${escapeHTML(s.offer).replace(/\n/g, '<br>')}</div > `;
+    if (s.time) content += `< p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center" > <i class="ph-fill ph-clock mr-1"></i>${escapeHTML(s.time)} Uhr</p > `;
 
     document.getElementById('modal-desc').innerHTML = content;
 
     // Image
     const imgCont = document.getElementById('modal-image-container');
     if (s.image) {
-        imgCont.innerHTML = `<img id="modal-image" src="${s.image}" class="w-full h-56 object-contain bg-white">`;
+        imgCont.innerHTML = `< img id = "modal-image" src = "${s.image}" class="w-full h-56 object-contain bg-white" > `;
         imgCont.classList.remove('hidden');
     } else {
-        imgCont.innerHTML = `<div class="w-full h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-500"><i class="ph ph-image text-5xl"></i></div>`;
+        imgCont.innerHTML = `< div class="w-full h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-500" > <i class="ph ph-image text-5xl"></i></div > `;
         imgCont.classList.remove('hidden');
     }
 
@@ -526,3 +580,5 @@ export function setupDragDrop() {
         }
     }
 }
+
+
