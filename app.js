@@ -82,6 +82,11 @@ window.onload = async () => {
         searchInput.addEventListener('input', (e) => filterStations(e.target.value));
     }
 
+    // Navigation
+    document.getElementById('nav-map').addEventListener('click', () => switchTab('map'));
+    document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
+    document.getElementById('nav-events').addEventListener('click', () => switchTab('events'));
+
     // Init
     initMap();
 

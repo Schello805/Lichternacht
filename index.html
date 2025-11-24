@@ -290,7 +290,8 @@
                 <div class="scroll-container p-4 h-full overflow-y-auto">
                     <div
                         class="mb-6 p-5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-lg relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-4 opacity-20"><i class="ph ph-star-four text-6xl"></i>
+                        <div class="absolute -top-6 -right-6 p-4 opacity-5 rotate-12"><i
+                                class="ph ph-star-four text-9xl"></i>
                         </div>
                         <h2 class="font-bold text-lg mb-1 brand-font text-white">Aktuell & Demnächst</h2>
                         <div id="current-event-display" class="mt-2">
@@ -306,18 +307,15 @@
 
         <!-- Navigation -->
         <nav class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
-            <div onclick="switchTab('map')" id="nav-map"
-                class="flex-1 cursor-pointer tab-active flex flex-col items-center">
+            <div id="nav-map" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
                 <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Karte</span>
             </div>
-            <div onclick="switchTab('list')" id="nav-list"
-                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            <div id="nav-list" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
                 <i class="ph ph-list-dashes text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Stationen</span>
             </div>
-            <div onclick="switchTab('events')" id="nav-events"
-                class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            <div id="nav-events" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
                 <i class="ph ph-calendar-star text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Programm</span>
             </div>
@@ -557,8 +555,9 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Besuche Stationen und checke vor Ort
-                            ein. Sammle alle Trophäen!</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche die
+                            Stationen. Wenn du in unmittelbarer Nähe (ca. 30m) bist, kannst du 'Einchecken'. Sammle
+                            Stempel für deinen digitalen Lichter-Pass und erreiche Level von Bronze bis Diamant!</p>
 
                         <div class="grid grid-cols-2 gap-2 text-xs">
                             <div

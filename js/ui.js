@@ -150,6 +150,27 @@ function updateCurrentEventDisplay() {
     if (!container) return;
 
     const now = new Date();
+
+    // Check if event is over (after 22.11.2025)
+    // Note: Month is 0-indexed (10 = November)
+    const eventDate = new Date(2025, 10, 22);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (today > eventDate) {
+        container.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                    <i class="ph ph-calendar-check text-2xl text-white"></i>
+                </div>
+                <div>
+                    <p class="text-white font-bold">Die Lichternacht 2025 ist vorbei</p>
+                    <p class="text-white/80 text-sm">Wir freuen uns auf die nächste!</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
@@ -193,8 +214,8 @@ function updateCurrentEventDisplay() {
                     <i class="ph ph-moon-stars text-2xl text-white"></i>
                 </div>
                 <div>
-                    <p class="text-white font-bold">Programm beendet</p>
-                    <p class="text-white/80 text-sm">Wir sehen uns nächstes Jahr!</p>
+                    <p class="text-white font-bold">Die Lichternacht 2025 ist vorbei</p>
+                    <p class="text-white/80 text-sm">Wir freuen uns auf die nächste!</p>
                 </div>
             </div>
         `;

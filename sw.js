@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lichternacht-v2';
+const CACHE_NAME = 'lichternacht-v3';
 const ASSETS = [
     './',
     './index.html',
@@ -48,12 +48,17 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch: Network First, then Cache (for dynamic data), Cache First for Assets
+// Fetch Strategy
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Strategie für Tiles (Karten) und Bilder: Cache First, falling back to Network
-    if (url.hostname.includes('cartocdn') || url.pathname.match(/\.(png|jpg|jpeg|svg)$/)) {
+    // 1. Cache First: Images, Fonts, Tiles, CSS Libraries
+    if (url.hostname.includes('cartocdn') ||
+        url.pathname.match(/\.(png|jpg|jpeg|svg|woff2|ttf)$/) ||
+        url.hostname.includes('unpkg.com') ||
+        url.hostname.includes('fonts.googleapis.com') ||
+        url.hostname.includes('cdn.tailwindcss.com')) {
+
         event.respondWith(
             caches.match(event.request).then((response) => {
                 return response || fetch(event.request).then((networkResponse) => {
@@ -67,19 +72,16 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Standard Strategie: Stale-While-Revalidate (schnell laden, im Hintergrund updaten)
+    // 2. Network First: HTML, JS, JSON (App Logic)
+    // Versuche erst Netzwerk, wenn das fehlschlägt, nimm Cache.
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                return caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, networkResponse.clone());
-                    return networkResponse;
-                });
-            }).catch(() => {
-                // Offline Fallback könnte hier hin
+        fetch(event.request).then((networkResponse) => {
+            return caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, networkResponse.clone());
+                return networkResponse;
             });
-
-            return cachedResponse || fetchPromise;
+        }).catch(() => {
+            return caches.match(event.request);
         })
     );
 });

@@ -55,9 +55,15 @@ export function toggleFavorite(id, fromModal = false) {
     // Refresh list if needed (we don't have access to renderList here easily, but that's fine)
     // We could dispatch an event or just let the user refresh.
     // Actually, we should update the list icon if visible.
-    const listIcon = document.getElementById(`fav - icon - ${id} `);
+    const listIcon = document.getElementById(`fav-icon-${id}`);
     if (listIcon) {
         listIcon.className = state.favorites.has(id) ? "ph-fill ph-heart text-red-500" : "ph ph-heart text-gray-400";
+    }
+
+    // If we are in favorites view and removed a favorite, refresh the list
+    const favBtn = document.querySelector("button[onclick=\"filterList('favorites')\"]");
+    if (favBtn && favBtn.classList.contains('active') && !state.favorites.has(id)) {
+        if (window.filterList) window.filterList('favorites');
     }
 }
 
@@ -105,7 +111,7 @@ export async function checkIn(id) {
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-    if (dist > 0.2) { // 200m radius
+    if (dist > 0.03) { // 30m radius
         showToast(`Du bist zu weit weg! (${(dist * 1000).toFixed(0)}m)`, 'error');
         return;
     }
