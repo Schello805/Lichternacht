@@ -11,7 +11,7 @@ import {
     fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS
 } from './js/ui.js';
 import {
-    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads
+    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast
 } from './js/admin.js';
 
 // Bind to Window for HTML access
@@ -26,6 +26,7 @@ window.dumpData = dumpData;
 window.downloadDataJs = downloadDataJs;
 window.uploadFlyer = uploadFlyer;
 window.saveDownloads = saveDownloads;
+window.sendBroadcast = sendBroadcast;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
@@ -119,11 +120,64 @@ window.onload = async () => {
         await syncGlobalConfig();
         initPresence();
         initAuthListener(); // Loads data on auth state change
+        initBroadcastListener();
     } else {
         // Offline / No Config
         state.useLocalStorage = true;
         document.getElementById('status-indicator').innerText = "Lokal";
         loadData();
+    }
+};
+
+function initBroadcastListener() {
+    const { doc, onSnapshot } = state.fb;
+
+    onSnapshot(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'), (snap) => {
+        if (snap.exists()) {
+            const data = snap.data();
+            state.lastBroadcast = data; // Store globally
+
+            const lastSeen = Number(localStorage.getItem('last_broadcast_seen') || 0);
+            const fourHoursAgo = Date.now() - (1000 * 60 * 60 * 4);
+
+            // Show Bell if recent message exists
+            const btn = document.getElementById('notification-btn');
+            const badge = btn.querySelector('span');
+
+            if (data.timestamp > fourHoursAgo) {
+                btn.classList.remove('hidden');
+
+                // Show/Hide Red Dot based on seen status
+                if (data.timestamp > lastSeen) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                btn.classList.add('hidden');
+            }
+
+            // Auto-Popup if NEW and recent
+            if (data.timestamp > lastSeen && data.timestamp > fourHoursAgo) {
+                localStorage.setItem('last_broadcast_seen', data.timestamp);
+                sendLocalNotification('Nachricht vom Team', data.text);
+                alert(`NACHRICHT VOM TEAM:\n\n${data.text}`);
+            }
+        }
+    });
+}
+
+window.showLastBroadcast = () => {
+    if (state.lastBroadcast) {
+        // Mark as seen
+        localStorage.setItem('last_broadcast_seen', state.lastBroadcast.timestamp);
+
+        // Hide red dot
+        const btn = document.getElementById('notification-btn');
+        const badge = btn.querySelector('span');
+        if (badge) badge.classList.add('hidden');
+
+        alert(`NACHRICHT VOM TEAM:\n\n${state.lastBroadcast.text}`);
     }
 };
 

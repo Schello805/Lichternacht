@@ -53,5 +53,17 @@ service cloud.firestore {
         allow write: if true; // Public write for heartbeat
       }
     }
+
+    // Config (Downloads)
+    match /artifacts/{appId}/public/config {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Broadcast (Messages)
+    match /artifacts/{appId}/public/broadcast {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

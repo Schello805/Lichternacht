@@ -31,6 +31,7 @@ export async function initFirebase() {
         state.fb.setDoc = fbStore.setDoc;
         state.fb.updateDoc = fbStore.updateDoc;
         state.fb.deleteDoc = fbStore.deleteDoc;
+        state.fb.onSnapshot = fbStore.onSnapshot; // Added
         state.fb.serverTimestamp = fbStore.serverTimestamp;
         state.fb.increment = fbStore.increment;
         state.fb.query = fbStore.query;

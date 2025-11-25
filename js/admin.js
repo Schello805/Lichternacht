@@ -48,6 +48,26 @@ export async function uploadFlyer(inputId, targetInputId) {
     }
 }
 
+export async function sendBroadcast() {
+    const input = document.getElementById('admin-broadcast-text');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!confirm(`Nachricht an ALLE senden?\n"${text}"`)) return;
+
+    if (!state.useLocalStorage) {
+        try {
+            const { doc, setDoc } = state.fb;
+            const ref = doc(state.db, 'artifacts', state.appId, 'public', 'broadcast');
+            await setDoc(ref, { text: text, timestamp: Date.now() });
+            showToast('Nachricht gesendet', 'success');
+            input.value = '';
+        } catch (e) { console.error(e); showToast('Fehler beim Senden', 'error'); }
+    } else {
+        showToast('Nur lokal simuliert (nicht gesendet)', 'info');
+    }
+}
+
 export async function uploadSeedData() {
     if (!confirm("Möchtest du alle Demo-Daten (Stationen & Events) in die Cloud hochladen? Bestehende Daten mit gleicher ID werden überschrieben.")) return;
 

@@ -15,9 +15,15 @@ export async function performLogin() {
         console.log("Attempting sign in...");
         await state.fb.signInWithEmailAndPassword(state.auth, email, pass);
         console.log("Sign in successful");
+
         const modal = document.getElementById('login-modal');
-        if (modal) modal.classList.add('hidden');
-        else console.error("Login modal not found in DOM");
+        if (modal) {
+            modal.classList.add('hidden');
+            console.log("Modal closed");
+        } else {
+            console.error("Login modal not found");
+        }
+
         showToast('Erfolgreich angemeldet', 'success');
     } catch (e) {
         console.error("Login error:", e);
