@@ -111,7 +111,7 @@ export function renderTimeline() {
     }
 
     // ICS Button
-    downloadsHtml += `<button onclick="generateICS()" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin (ICS)</button>`;
+    downloadsHtml += `<button onclick="generateICS()" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin in Kalender eintragen</button>`;
 
     if (downloadsHtml) {
         const dlContainer = document.createElement('div');
@@ -288,19 +288,19 @@ export function openModal(s) {
     updateCheckInBtn(s.id);
 
     // Description & Offer
-    let content = `< p class="font-bold text-gray-800 dark:text-gray-200 mb-2" > <i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${escapeHTML(s.desc)}</p > `;
-    if (s.offer) content += `< div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic" > ${escapeHTML(s.offer).replace(/\n/g, '<br>')}</div > `;
-    if (s.time) content += `< p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center" > <i class="ph-fill ph-clock mr-1"></i>${escapeHTML(s.time)} Uhr</p > `;
+    let content = `<p class="font-bold text-gray-800 dark:text-gray-200 mb-2"><i class="ph-fill ph-map-pin text-yellow-600 mr-1"></i>${escapeHTML(s.desc)}</p>`;
+    if (s.offer) content += `<div class="text-gray-600 dark:text-gray-300 mt-3 border-l-2 border-yellow-500 pl-3 italic">${escapeHTML(s.offer).replace(/\n/g, '<br>')}</div>`;
+    if (s.time) content += `<p class="text-yellow-700 dark:text-yellow-500 font-bold mt-4 flex items-center"><i class="ph-fill ph-clock mr-1"></i>${escapeHTML(s.time)} Uhr</p>`;
 
     document.getElementById('modal-desc').innerHTML = content;
 
     // Image
     const imgCont = document.getElementById('modal-image-container');
     if (s.image) {
-        imgCont.innerHTML = `< img id = "modal-image" src = "${s.image}" class="w-full h-56 object-contain bg-white" > `;
+        imgCont.innerHTML = `<img id="modal-image" src="${s.image}" class="w-full h-56 object-contain bg-white">`;
         imgCont.classList.remove('hidden');
     } else {
-        imgCont.innerHTML = `< div class="w-full h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-500" > <i class="ph ph-image text-5xl"></i></div > `;
+        imgCont.innerHTML = `<div class="w-full h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 dark:text-gray-500"><i class="ph ph-image text-5xl"></i></div>`;
         imgCont.classList.remove('hidden');
     }
 
