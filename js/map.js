@@ -68,3 +68,12 @@ export function calculateRoute(destLat, destLng) {
     }).addTo(state.map);
     showToast("Route wird berechnet...", 'info');
 }
+
+export function resetMap() {
+    if (state.stations.length > 0) {
+        const bounds = L.latLngBounds(state.stations.map(s => [s.lat, s.lng]));
+        state.map.fitBounds(bounds, { padding: [50, 50] });
+    } else {
+        state.map.setView([49.158, 10.552], 16);
+    }
+}

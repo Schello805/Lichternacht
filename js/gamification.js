@@ -98,11 +98,12 @@ export async function checkIn(id) {
     if (visitedStations.has(id)) return;
 
     if (!state.userLocation) {
-        // We need to import locateUser from map.js, but circular dependency.
-        // Better: UI calls locateUser, then calls checkIn.
-        // For now, assume UI handles location check before calling checkIn or we import it dynamically?
-        // Let's just return error if no location.
-        showToast("Bitte erst Standort aktivieren!", 'error');
+        // Auto-locate
+        if (window.locateUser) {
+            window.locateUser(() => checkIn(id));
+        } else {
+            showToast("Bitte erst Standort aktivieren!", 'error');
+        }
         return;
     }
 

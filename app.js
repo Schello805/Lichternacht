@@ -1,6 +1,6 @@
 import { state } from './js/state.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute } from './js/map.js';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap } from './js/map.js';
 import { loadData, syncGlobalConfig, changeYear } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js';
@@ -8,7 +8,7 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS
+    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress
 } from './js/ui.js';
 import {
     uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast
@@ -46,11 +46,14 @@ window.fillEventCoords = fillEventCoords;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
 window.shareStation = shareStation;
+window.filterStations = filterStations;
 window.filterList = filterList;
 window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
+window.resetMap = resetMap;
 window.generateICS = generateICS;
+window.searchAddress = searchAddress;
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');

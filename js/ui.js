@@ -157,11 +157,16 @@ export function renderTimeline() {
         el.appendChild(dot);
 
         // Content
+        // Content
+        const isAdmin = state.isAdmin;
+        const clickAttr = isAdmin ? `onclick="openEventModal('${e.id}')"` : '';
+        const cursorClass = isAdmin ? 'cursor-pointer hover:border-yellow-400' : '';
+
         el.innerHTML += `
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:border-yellow-400 transition-colors" onclick="openEventModal('${e.id}')">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors ${cursorClass}" ${clickAttr}>
                 <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-yellow-600 dark:text-yellow-500 text-sm font-mono">${escapeHTML(e.time)}</span>
-                    ${state.isAdmin ? `<button class="text-xs text-gray-400 hover:text-black" onclick="event.stopPropagation(); openEventModal('${e.id}')"><i class="ph ph-pencil"></i></button>` : ''}
+                    ${isAdmin ? `<button class="text-xs text-gray-400 hover:text-black" onclick="event.stopPropagation(); openEventModal('${e.id}')"><i class="ph ph-pencil"></i></button>` : ''}
                 </div>
                 <h3 class="font-bold text-gray-900 dark:text-white text-lg leading-tight mb-1">${escapeHTML(e.title)}</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${escapeHTML(e.desc)}</p>
@@ -469,6 +474,7 @@ export async function deleteStation() {
 
 // Event Edit
 export function openEventModal(id) {
+    if (!state.isAdmin) return;
     if (id) {
         state.activeEventId = id;
         const e = state.events.find(x => x.id == id);
@@ -500,6 +506,30 @@ export function fillEventCoords() {
     const c = state.map.getCenter();
     document.getElementById('evt-lat').value = c.lat.toFixed(5);
     document.getElementById('evt-lng').value = c.lng.toFixed(5);
+    showToast('Koordinaten übernommen', 'success');
+}
+
+export async function searchAddress() {
+    const query = document.getElementById('evt-address-search').value;
+    if (!query) return;
+
+    showToast('Suche Adresse...', 'info');
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+            const best = data[0];
+            document.getElementById('evt-lat').value = parseFloat(best.lat).toFixed(5);
+            document.getElementById('evt-lng').value = parseFloat(best.lon).toFixed(5);
+            showToast('Adresse gefunden!', 'success');
+        } else {
+            showToast('Adresse nicht gefunden.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Fehler bei der Suche.', 'error');
+    }
 }
 
 export async function saveEventChanges() {
