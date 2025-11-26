@@ -1,6 +1,24 @@
 import { state } from './state.js';
-import { showToast, escapeHTML, setLoading } from './utils.js';
+import { showToast, escapeHTML, setLoading, compressImage } from './utils.js';
 import { updateMapTiles, locateUser, calculateRoute } from './map.js';
+// ... (rest of imports)
+
+// ... (rest of code)
+
+export async function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    showToast('Bild wird verarbeitet...', 'info');
+    try {
+        const compressed = await compressImage(file);
+        document.getElementById('edit-image').value = compressed;
+        showToast('Bild komprimiert & geladen', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Fehler beim Bild-Upload', 'error');
+    }
+}
 import { saveData, deleteData } from './data.js';
 import { checkIn, toggleLike, toggleFavorite, updateLikeBtn, updateCheckInBtn, updateModalFavBtn } from './gamification.js';
 
@@ -111,7 +129,7 @@ export function renderTimeline() {
     }
 
     // ICS Button
-    downloadsHtml += `<button onclick="generateICS()" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin in Kalender eintragen</button>`;
+    downloadsHtml += `<button onclick="generateICS()" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin in Kalender eintragen</button>`;
 
     if (downloadsHtml) {
         const dlContainer = document.createElement('div');
@@ -533,12 +551,29 @@ export async function searchAddress() {
 }
 
 export async function saveEventChanges() {
+    const time = document.getElementById('evt-time').value;
+    const title = document.getElementById('evt-title').value;
+    const desc = document.getElementById('evt-desc').value;
+
+    // Validation
+    if (!time || !title) {
+        showToast('Bitte Zeit und Titel ausfüllen!', 'error');
+        return;
+    }
+
+    // Time Format Validation (HH:MM)
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(time)) {
+        showToast('Ungültige Uhrzeit! Format: HH:MM (00:00 - 23:59)', 'error');
+        return;
+    }
+
     const id = state.activeEventId || 'e' + Date.now();
     const newItem = {
         id: id,
-        time: document.getElementById('evt-time').value,
-        title: document.getElementById('evt-title').value,
-        desc: document.getElementById('evt-desc').value,
+        time: time,
+        title: title,
+        desc: desc,
         loc: document.getElementById('evt-loc').value,
         lat: Number(document.getElementById('evt-lat').value),
         lng: Number(document.getElementById('evt-lng').value),
@@ -566,17 +601,6 @@ export async function deleteEvent() {
     showToast('Event gelöscht', 'success');
     closeEventModal();
     location.reload();
-}
-
-export function handleImageUpload(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('edit-image').value = e.target.result;
-        showToast('Bild geladen (Base64)', 'success');
-    };
-    reader.readAsDataURL(file);
 }
 
 export function setupDragDrop() {
@@ -611,4 +635,46 @@ export function setupDragDrop() {
     }
 }
 
+export function openBugReportModal() {
+    closeHelpModal();
+    document.getElementById('bug-report-modal').classList.remove('hidden');
+    document.getElementById('bug-desc').value = '';
+    document.getElementById('bug-desc').focus();
+}
+
+export async function submitBugReport() {
+    const desc = document.getElementById('bug-desc').value;
+    if (!desc.trim()) {
+        showToast('Bitte beschreibe das Problem.', 'error');
+        return;
+    }
+
+    setLoading(true, "Bereite E-Mail vor...");
+    try {
+        const techInfo = `
+--------------------------------
+Technische Daten (automatisch):
+UserAgent: ${navigator.userAgent}
+Screen: ${window.screen.width}x${window.screen.height}
+URL: ${window.location.href}
+Platform: ${navigator.platform}
+Time: ${new Date().toLocaleString()}
+--------------------------------`;
+
+        const body = encodeURIComponent(`${desc}\n\n${techInfo}`);
+        const subject = encodeURIComponent('Bug Report: Lichternacht App');
+        const mailtoLink = `mailto:info@schellenberger.biz?subject=${subject}&body=${body}`;
+
+        // Open Mail Client
+        window.location.href = mailtoLink;
+
+        showToast('E-Mail Programm geöffnet.', 'success');
+        document.getElementById('bug-report-modal').classList.add('hidden');
+    } catch (e) {
+        console.error(e);
+        showToast('Fehler beim Öffnen der Mail.', 'error');
+    } finally {
+        setLoading(false);
+    }
+}
 

@@ -213,6 +213,7 @@
                                 herunter. Ersetze damit die Datei in 'js/data.js'.</span>
                         </div>
 
+                        <!-- Scripts -->
                         <!-- Import -->
                         <div class="tooltip-container">
                             <button onclick="importData()"
@@ -367,7 +368,13 @@
                         </div>
                         <h2 class="font-bold text-lg mb-1 brand-font text-white">Aktuell & Demnächst</h2>
                         <div id="current-event-display" class="mt-2">
-                            <p class="text-sm text-white/90">Lade Programm...</p>
+                            <div class="animate-pulse flex gap-3">
+                                <div class="bg-white/20 w-10 h-10 rounded-lg"></div>
+                                <div class="flex-1 space-y-2 py-1">
+                                    <div class="h-4 bg-white/20 rounded w-3/4"></div>
+                                    <div class="h-3 bg-white/20 rounded w-1/2"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
@@ -666,12 +673,47 @@
             </div>
 
             <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
-                <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen 2025 App</p>
+                <div class="mb-4">
+                    <button onclick="openBugReportModal()"
+                        class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                        <i class="ph ph-bug"></i> Fehler melden
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
                 <p class="text-xs text-gray-400 mb-2">Version 1.0 • Made with ❤️</p>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
                 </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug Report Modal -->
+    <div id="bug-report-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onclick="document.getElementById('bug-report-modal').classList.add('hidden')"></div>
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative z-10">
+            <h2 class="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+                <i class="ph-fill ph-bug text-red-500"></i> Fehler melden
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Beschreibe das Problem kurz. Wir speichern automatisch dein Gerätemodell, um den Fehler besser zu
+                finden.
+            </p>
+            <textarea id="bug-desc" rows="4"
+                class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                placeholder="Was hat nicht funktioniert?"></textarea>
+
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('bug-report-modal').classList.add('hidden')"
+                    class="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                    Abbrechen
+                </button>
+                <button onclick="submitBugReport()"
+                    class="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
+                    Senden
+                </button>
             </div>
         </div>
     </div>

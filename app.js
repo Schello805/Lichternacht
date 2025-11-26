@@ -8,7 +8,8 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress
+    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress,
+    openBugReportModal, submitBugReport
 } from './js/ui.js';
 import {
     uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast
@@ -54,6 +55,8 @@ window.calculateRoute = calculateRoute;
 window.resetMap = resetMap;
 window.generateICS = generateICS;
 window.searchAddress = searchAddress;
+window.openBugReportModal = openBugReportModal;
+window.submitBugReport = submitBugReport;
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');

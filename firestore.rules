@@ -65,5 +65,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Reports
+    match /artifacts/{appId}/public/reports/{reportId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
   }
 }
