@@ -663,7 +663,7 @@ Time: ${new Date().toLocaleString()}
 
         const body = encodeURIComponent(`${desc}\n\n${techInfo}`);
         const subject = encodeURIComponent('Bug Report: Lichternacht App');
-        const mailtoLink = `mailto:info@schellenberger.biz?subject=${subject}&body=${body}`;
+        const mailtoLink = `mailto:info@lichternacht-bechhofen.de?subject=${subject}&body=${body}`;
 
         // Open Mail Client
         window.location.href = mailtoLink;
