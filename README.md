@@ -3,6 +3,16 @@
 Eine progressive Web App (PWA) für die Lichternacht Bechhofen.
 Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 
+## ✨ Features
+
+*   **Offline-First (PWA):** Funktioniert dank Service Worker und Caching auch bei schlechtem Netz komplett offline.
+*   **Interaktive Karte:** Leaflet-Karte mit Standort-Tracking und Routing.
+*   **Gamification:** Lichter-Pass, Check-Ins, Likes und Favoriten.
+*   **Live-Updates:** Änderungen an Stationen/Events sind sofort bei allen Nutzern sichtbar (Firestore Realtime).
+*   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
+*   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
+*   **Feedback:** Integriertes Bug-Reporting per E-Mail.
+
 ## 📂 Projektstruktur
 
 ```
@@ -12,10 +22,12 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 ├── sw.js               # Service Worker (Offline-Fähigkeit & Caching)
 ├── manifest.json       # PWA Konfiguration (Name, Icons, Farben)
 ├── firestore.rules     # Sicherheitsregeln für die Datenbank
+├── deploy.sh           # Deployment-Skript für den Server
+├── server-htaccess     # Apache Config (wird zu .htaccess auf dem Server)
 ├── js/
 │   ├── admin.js        # Admin-Funktionen (Import/Export, Login)
 │   ├── auth.js         # Authentifizierung (Login, Logout, Listener)
-│   ├── data.js         # Daten-Management & Seed-Daten (DAS HIER UPDATEN!)
+│   ├── data.js         # Daten-Management & Seed-Daten
 │   ├── firebase-init.js# Firebase Initialisierung
 │   ├── gamification.js # Lichter-Pass, Levels, Likes
 │   ├── map.js          # Leaflet Karte & Logik
@@ -25,46 +37,59 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 └── icons/              # App Icons
 ```
 
-## 🚀 Deployment / Update
+## 🚀 Deployment (Server)
 
-Da es sich um eine statische Web-App handelt, ist das Deployment sehr einfach:
+Die App ist für einen **Apache Webserver** optimiert.
 
-1.  **Dateien hochladen:** Lade alle Dateien (außer `.git` oder `.vscode`) auf deinen Webserver hoch.
-2.  **Cache leeren:** Da der Service Worker (`sw.js`) aggressiv cacht, müssen Nutzer die Seite oft 2x neu laden, um Änderungen zu sehen.
-    *   *Tipp:* Wenn du Code änderst, erhöhe die Version in `sw.js` (ganz oben: `CACHE_NAME`), damit Browser das Update erzwingen.
+### Erst-Installation
+1.  Repository auf den Server klonen: `git clone https://github.com/Schello805/Lichternacht.git .`
+2.  Deployment-Skript ausführbar machen: `chmod +x deploy.sh`
+3.  Einmalig ausführen: `./deploy.sh`
+
+### Updates einspielen
+Um Änderungen von GitHub auf den Server zu laden, führe einfach das Skript aus:
+
+```bash
+./deploy.sh
+```
+
+Das Skript erledigt folgendes:
+1.  `git pull` (Neuesten Code holen)
+2.  Kopiert `server-htaccess` zu `.htaccess` (Damit Caching-Regeln stimmen und Nextcloud nicht stört).
+
+**Wichtig:** Die Datei `.htaccess` sollte lokal nicht existieren (oder ignoriert werden), da sie oft Probleme mit Sync-Clients (Nextcloud) verursacht. Wir nutzen daher `server-htaccess` als Vorlage.
 
 ## 🛠 Daten aktualisieren (Jährlicher Workflow)
 
 Um die App für ein neues Jahr fit zu machen:
 
-1.  **Admin-Login:** Logge dich in der App als Admin ein.
+1.  **Admin-Login:** Logge dich in der App als Admin ein (Schloss-Icon).
 2.  **Daten bearbeiten:** Lösche alte Events/Stationen, lege neue an.
 3.  **Backup erstellen:**
-    *   Gehe ins Admin-Panel (Schloss-Icon).
+    *   Gehe ins Admin-Panel.
     *   Klicke auf **"Download data.js"**.
 4.  **Code updaten:**
     *   Nimm die heruntergeladene `data.js`.
-    *   Ersetze damit die Datei `js/data.js` auf deinem Server/in deinem Projektordner.
+    *   Ersetze damit die Datei `js/data.js` im Projektordner.
+    *   Commit & Push zu GitHub.
 5.  **Reset (Optional):**
     *   Klicke auf "Jahr ändern" oder "Reset", um die Datenbank für alle Nutzer sauber zu starten.
 
 ## ⚙️ Konfiguration
 
-Die Konfiguration (API Keys) liegt in `js/firebase-init.js` (oder wird global injiziert).
+Die Konfiguration (API Keys) liegt in `js/firebase-init.js`.
 Stelle sicher, dass deine Firebase Security Rules (`firestore.rules`) in der Firebase Console veröffentlicht sind.
 
-## 📦 Abhängigkeiten (CDNs)
+## 📦 Tech Stack
 
-Die App lädt folgende Bibliotheken von externen Servern:
-- **Firebase (v10.13.1):** Datenbank & Auth
-- **Leaflet (v1.9.4):** Karte
-- **Phosphor Icons:** Icons
-- **TailwindCSS:** Styling
-
-Sollte die App offline/komisch aussehen, prüfe deine Internetverbindung oder ob diese CDNs erreichbar sind.
+- **Frontend:** HTML5, Vanilla JS, TailwindCSS (via CDN)
+- **Backend:** Firebase (Firestore, Auth)
+- **Maps:** Leaflet.js & OpenStreetMap
+- **Icons:** Phosphor Icons
+- **PWA:** Workbox (Service Worker)
 
 ## 🆘 Notfall-Hilfe
 
-*   **App lädt nicht?** Cache leeren, Service Worker unregisteren (DevTools -> Application -> Service Workers).
+*   **App lädt nicht?** Cache leeren oder `sw.js` unregisteren.
 *   **Keine Daten?** Prüfe die Browser-Konsole (F12) auf rote Fehler.
 *   **Login geht nicht?** Prüfe in der Firebase Console, ob "Email/Password" und "Anonymous" aktiviert sind.
