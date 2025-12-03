@@ -23,15 +23,15 @@ export function refreshMapMarkers() {
     state.markers.forEach(m => state.map.removeLayer(m.marker));
     state.markers = [];
     state.stations.forEach(s => {
-        const icon = L.divIcon({ className: 'custom-pin', html: `<div style="background-color: #f59e0b; color: #000; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: sans-serif;">${s.id}</div>`, iconSize: [32, 32], iconAnchor: [16, 16] });
-        const marker = L.marker([s.lat, s.lng], { icon: icon, draggable: state.isAdmin }).addTo(state.map);
-        marker.on('dragend', async (e) => {
-            if (!state.isAdmin) return;
-            const p = e.target.getLatLng();
-            s.lat = Number(p.lat.toFixed(5)); s.lng = Number(p.lng.toFixed(5));
-            await saveData('station', s);
-            showToast('Position aktualisiert', 'success');
+        const isActive = state.activeStationId && state.activeStationId === s.id;
+        const color = isActive ? '#1d4ed8' : '#f59e0b';
+        const icon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif;">${s.id}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
         });
+        const marker = L.marker([s.lat, s.lng], { icon: icon }).addTo(state.map);
         marker.on('click', () => openModal(s));
         state.markers.push({ id: s.id, marker: marker });
     });

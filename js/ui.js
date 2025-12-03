@@ -19,6 +19,82 @@ export async function handleImageUpload(input) {
         showToast('Fehler beim Bild-Upload', 'error');
     }
 }
+
+export function updateStationPickerDisplay(lat, lng) {
+    const latSpan = document.getElementById('station-lat-display');
+    const lngSpan = document.getElementById('station-lng-display');
+    if (latSpan) latSpan.innerText = `Lat: ${lat !== undefined ? lat : '--'}`;
+    if (lngSpan) lngSpan.innerText = `Lng: ${lng !== undefined ? lng : '--'}`;
+}
+
+function confirmStationCoordinateOverwrite(station, newLat, newLng, sourceLabel) {
+    if (!station) return true;
+    if (typeof station.lat !== 'number' || typeof station.lng !== 'number') return true;
+    const oldLat = Number(station.lat.toFixed(5));
+    const oldLng = Number(station.lng.toFixed(5));
+    if (oldLat === newLat && oldLng === newLng) return true;
+    const descSnippet = station.desc ? station.desc.trim().replace(/\s+/g, ' ').slice(0, 80) : 'keine Beschreibung';
+    const confirmText = `Station "${station.name || station.id}" hat bereits Koordinaten (${oldLat}, ${oldLng}) und Beschreibung "${descSnippet}". Die ${sourceLabel}-Position (${newLat}, ${newLng}) überschreibt diese Werte. Wirklich übernehmen?`;
+    return window.confirm(confirmText);
+}
+
+export function startStationPicker() {
+    const map = state.map;
+    if (!map) {
+        showToast('Karte nicht verfügbar.', 'error');
+        return;
+    }
+
+    showToast('Karte klicken, um Position zu wählen. Rechtsklick bricht ab.', 'info');
+    const tempMarker = L.marker(map.getCenter(), { opacity: 0.7 }).addTo(map);
+
+    const finalize = (lat, lng) => {
+        map.off('click', onClick);
+        map.off('contextmenu', onCancel);
+        tempMarker.remove();
+        const latInput = document.getElementById('edit-lat');
+        const lngInput = document.getElementById('edit-lng');
+        const numLat = Number(lat.toFixed(5));
+        const numLng = Number(lng.toFixed(5));
+        const s = state.stations.find(x => x.id == state.activeStationId);
+        if (s && !confirmStationCoordinateOverwrite(s, numLat, numLng, 'Klick auf der Karte')) {
+            showToast('Positionierung abgebrochen.', 'info');
+            return;
+        }
+        if (s) {
+            s.lat = numLat;
+            s.lng = numLng;
+        }
+        if (latInput) latInput.value = numLat;
+        if (lngInput) lngInput.value = numLng;
+        updateStationPickerDisplay(lat.toFixed(5), lng.toFixed(5));
+        showToast('Stationen-Koordinaten übernommen. Speichern nicht vergessen.', 'success');
+    };
+
+    const onClick = (e) => {
+        const { lat, lng } = e.latlng;
+        tempMarker.setLatLng(e.latlng);
+        finalize(lat, lng);
+    };
+
+    const onCancel = () => {
+        map.off('click', onClick);
+        map.off('contextmenu', onCancel);
+        tempMarker.remove();
+        showToast('Positionierung abgebrochen.', 'info');
+    };
+
+    map.once('click', onClick);
+    map.once('contextmenu', onCancel);
+}
+
+export function clearStationImage() {
+    const input = document.getElementById('edit-image');
+    if (input) input.value = '';
+    const fileInput = document.getElementById('image-upload');
+    if (fileInput) fileInput.value = '';
+    showToast('Bild entfernt. Bitte speichern, um die Änderung zu übernehmen.', 'info');
+}
 import { saveData, deleteData } from './data.js';
 import { checkIn, toggleLike, toggleFavorite, updateLikeBtn, updateCheckInBtn, updateModalFavBtn } from './gamification.js';
 
@@ -337,6 +413,58 @@ export function openModal(s) {
     requestAnimationFrame(() => document.getElementById('modal-content').classList.remove('translate-y-full'));
 }
 
+export function createEventForStation() {
+    const s = state.stations.find(x => x.id == state.activeStationId);
+    if (!s) {
+        showToast('Keine aktive Station gefunden.', 'error');
+        return;
+    }
+
+    if (!state.isAdmin) {
+        showToast('Nur für Admins verfügbar.', 'error');
+        return;
+    }
+
+    // Neues Event vorbereiten, basierend auf der Station
+    const locText = s.name || '';
+
+    openEventModal();
+    document.getElementById('evt-title').value = s.name || '';
+    document.getElementById('evt-desc').value = s.desc || '';
+    const evtLoc = document.getElementById('evt-loc');
+    if (evtLoc) evtLoc.value = locText;
+    const select = document.getElementById('evt-linked-station');
+    if (select) {
+        select.value = s.id;
+        applyStationToEvent(s.id);
+    }
+}
+
+export function populateEventStationSelect(selectedId) {
+    const select = document.getElementById('evt-linked-station');
+    if (!select) return;
+    const options = [
+        '<option value="">Keine Station</option>',
+        ...state.stations.map(s => `<option value="${s.id}">${s.name}</option>`)
+    ];
+    select.innerHTML = options.join('');
+    if (selectedId) select.value = selectedId;
+}
+
+export function applyStationToEvent(stationId) {
+    const select = document.getElementById('evt-linked-station');
+    if (select) select.value = stationId || '';
+    if (!stationId) return;
+    const station = state.stations.find(s => s.id == stationId);
+    if (!station) return;
+    const latInput = document.getElementById('evt-lat');
+    const lngInput = document.getElementById('evt-lng');
+    if (latInput && typeof station.lat === 'number') latInput.value = station.lat.toFixed(5);
+    if (lngInput && typeof station.lng === 'number') lngInput.value = station.lng.toFixed(5);
+    const locInput = document.getElementById('evt-loc');
+    if (locInput && !locInput.value) locInput.value = station.name;
+}
+
 export function closeModal() {
     document.getElementById('modal-content').classList.add('translate-y-full');
     setTimeout(() => document.getElementById('detail-modal').classList.add('hidden'), 300);
@@ -430,6 +558,11 @@ export function editStation() {
     document.getElementById('edit-image').value = s.image || '';
     renderTagHelper(s.tags);
     // Drag Drop setup would go here
+    if (typeof s.lat === 'number' && typeof s.lng === 'number') {
+        document.getElementById('edit-lat').value = s.lat;
+        document.getElementById('edit-lng').value = s.lng;
+        updateStationPickerDisplay(s.lat.toFixed(5), s.lng.toFixed(5));
+    }
 }
 
 export function renderTagHelper(currentTags) {
@@ -472,6 +605,18 @@ export async function saveStationChanges() {
         return reverseTagMap[t] || t.toLowerCase();
     }).filter(t => t);
 
+    // Simple coordinate validation
+    if (typeof s.lat !== 'number' || typeof s.lng !== 'number' || Number.isNaN(s.lat) || Number.isNaN(s.lng)) {
+        showToast('Bitte Koordinaten für die Station setzen (Adresse suchen oder Karte + 📍).', 'error');
+        return;
+    }
+
+    const linkedEvents = state.events.filter(e => e.stationId === s.id);
+    for (const ev of linkedEvents) {
+        ev.lat = s.lat;
+        ev.lng = s.lng;
+        await saveData('event', ev);
+    }
     await saveData('station', s);
     showToast('Änderungen gespeichert', 'success');
 
@@ -479,6 +624,113 @@ export async function saveStationChanges() {
     renderList(state.stations);
     refreshMapMarkers(); // Update map (maybe name changed)
     openModal(s); // Re-render modal
+}
+
+export function fillStationCoords() {
+    const c = state.map.getCenter();
+    const lat = c.lat.toFixed(5);
+    const lng = c.lng.toFixed(5);
+
+    const ok = window.confirm(`Aktuelle Kartenmitte für diese Station übernehmen?\n\nKoordinaten: ${lat}, ${lng}`);
+    if (!ok) {
+        showToast('Übernahme abgebrochen.', 'info');
+        return;
+    }
+
+    const s = state.stations.find(x => x.id == state.activeStationId);
+    if (!s) {
+        showToast('Keine aktive Station gefunden.', 'error');
+        return;
+    }
+
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (!confirmStationCoordinateOverwrite(s, numLat, numLng, 'Kartenmitte')) {
+        showToast('Übernahme abgebrochen.', 'info');
+        return;
+    }
+
+    s.lat = numLat;
+    s.lng = numLng;
+    showToast('Koordinaten für Station übernommen. Nach dem Speichern werden Marker aktualisiert.', 'success');
+    updateStationPickerDisplay(lat, lng);
+}
+
+export async function searchStationAddress() {
+    const input = document.getElementById('station-address-search');
+    if (!input) return;
+    const query = input.value;
+    if (!query) return;
+
+    showToast('Suche Stations-Adresse...', 'info');
+    try {
+        let q = query.trim();
+        if (!q.includes(',')) {
+            q = `${q}, Bechhofen, Deutschland`;
+        }
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&limit=3&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+            const best = data[0];
+            const lat = parseFloat(best.lat);
+            const lng = parseFloat(best.lon);
+            const name = best.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+            const centerLat = 49.158;
+            const centerLng = 10.552;
+            const R = 6371;
+            const dLat = (lat - centerLat) * Math.PI / 180;
+            const dLng = (lng - centerLng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(centerLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const cVal = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distanceKm = R * cVal;
+
+            let confirmText = `Gefundene Adresse für Station:\n\n${name}\n\nKoordinaten: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            const maxDistanceKm = (state.config && typeof state.config.maxDistanceKm === 'number')
+                ? state.config.maxDistanceKm
+                : 10;
+            if (distanceKm > maxDistanceKm) {
+                confirmText += `\n\nAchtung: Die Position liegt ca. ${distanceKm.toFixed(1)} km vom Zentrum Bechhofen entfernt. Trotzdem übernehmen?`;
+            } else {
+                confirmText += `\n\nDiese Koordinaten für die Station übernehmen?`;
+            }
+
+            const ok = window.confirm(confirmText);
+            if (!ok) {
+                showToast('Übernahme abgebrochen.', 'info');
+                return;
+            }
+
+            const s = state.stations.find(x => x.id == state.activeStationId);
+            if (!s) {
+                showToast('Keine aktive Station gefunden.', 'error');
+                return;
+            }
+
+            const numLat = Number(lat.toFixed(5));
+            const numLng = Number(lng.toFixed(5));
+            if (!confirmStationCoordinateOverwrite(s, numLat, numLng, 'Adresssuche')) {
+                showToast('Übernahme abgebrochen.', 'info');
+                return;
+            }
+            s.lat = numLat;
+            s.lng = numLng;
+            const descInput = document.getElementById('edit-desc');
+            if (descInput) descInput.value = name;
+            showToast('Adresse übernommen. Nach dem Speichern werden Marker aktualisiert.', 'success');
+            updateStationPickerDisplay(lat.toFixed(5), lng.toFixed(5));
+        } else {
+            console.log('Nominatim (Station): keine Ergebnisse', { query, usedQuery: q, data });
+            showToast('Adresse nicht gefunden.', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Fehler bei der Suche.', 'error');
+    }
 }
 
 export async function deleteStation() {
@@ -504,6 +756,7 @@ export function openEventModal(id) {
         document.getElementById('evt-lng').value = e.lng;
         document.getElementById('evt-color').value = e.color;
         document.getElementById('btn-delete-event').classList.remove('hidden');
+        populateEventStationSelect(e.stationId || '');
     } else {
         state.activeEventId = null;
         document.getElementById('evt-time').value = '';
@@ -514,6 +767,7 @@ export function openEventModal(id) {
         document.getElementById('evt-lng').value = '';
         document.getElementById('evt-color').value = 'yellow';
         document.getElementById('btn-delete-event').classList.add('hidden');
+        populateEventStationSelect('');
     }
     document.getElementById('event-modal').classList.remove('hidden');
 }
@@ -522,9 +776,18 @@ export function closeEventModal() { document.getElementById('event-modal').class
 
 export function fillEventCoords() {
     const c = state.map.getCenter();
-    document.getElementById('evt-lat').value = c.lat.toFixed(5);
-    document.getElementById('evt-lng').value = c.lng.toFixed(5);
-    showToast('Koordinaten übernommen', 'success');
+    const lat = c.lat.toFixed(5);
+    const lng = c.lng.toFixed(5);
+
+    const ok = window.confirm(`Aktuelle Kartenmitte verwenden?\n\nKoordinaten: ${lat}, ${lng}`);
+    if (!ok) {
+        showToast('Übernahme abgebrochen.', 'info');
+        return;
+    }
+
+    document.getElementById('evt-lat').value = lat;
+    document.getElementById('evt-lng').value = lng;
+    showToast('Koordinaten übernommen.', 'success');
 }
 
 export async function searchAddress() {
@@ -533,15 +796,61 @@ export async function searchAddress() {
 
     showToast('Suche Adresse...', 'info');
     try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+        let q = query.trim();
+
+        // Wenn kein Ort angegeben ist, automatisch Bechhofen, Deutschland ergänzen
+        if (!q.includes(',')) {
+            q = `${q}, Bechhofen, Deutschland`;
+        }
+
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&limit=3&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url);
         const data = await res.json();
 
         if (data && data.length > 0) {
             const best = data[0];
-            document.getElementById('evt-lat').value = parseFloat(best.lat).toFixed(5);
-            document.getElementById('evt-lng').value = parseFloat(best.lon).toFixed(5);
-            showToast('Adresse gefunden!', 'success');
+
+            const lat = parseFloat(best.lat);
+            const lng = parseFloat(best.lon);
+
+            const name = best.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+            // Zentrum Bechhofen (ca.)
+            const centerLat = 49.158;
+            const centerLng = 10.552;
+
+            // Haversine-Distanz in km
+            const R = 6371; // Erdradius in km
+            const dLat = (lat - centerLat) * Math.PI / 180;
+            const dLng = (lng - centerLng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(centerLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distanceKm = R * c;
+
+            let confirmText = `Gefundene Adresse:\n\n${name}\n\nKoordinaten: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+            const maxDistanceKm = (state.config && typeof state.config.maxDistanceKm === 'number')
+                ? state.config.maxDistanceKm
+                : 10; // Schwellwert in km für Warnung
+            if (distanceKm > maxDistanceKm) {
+                confirmText += `\n\nAchtung: Die Position liegt ca. ${distanceKm.toFixed(1)} km vom Zentrum Bechhofen entfernt. Trotzdem übernehmen?`;
+            } else {
+                confirmText += `\n\nDiese Koordinaten für das Event übernehmen?`;
+            }
+
+            const ok = window.confirm(confirmText);
+            if (!ok) {
+                showToast('Übernahme abgebrochen.', 'info');
+                return;
+            }
+
+            document.getElementById('evt-lat').value = lat.toFixed(5);
+            document.getElementById('evt-lng').value = lng.toFixed(5);
+            showToast('Adresse übernommen.', 'success');
         } else {
+            console.log('Nominatim: keine Ergebnisse', { query, usedQuery: q, data });
             showToast('Adresse nicht gefunden.', 'error');
         }
     } catch (e) {
@@ -569,6 +878,9 @@ export async function saveEventChanges() {
     }
 
     const id = state.activeEventId || 'e' + Date.now();
+    const stationSelect = document.getElementById('evt-linked-station');
+    const linkedStationId = stationSelect && stationSelect.value ? Number(stationSelect.value) : null;
+
     const newItem = {
         id: id,
         time: time,
@@ -577,8 +889,14 @@ export async function saveEventChanges() {
         loc: document.getElementById('evt-loc').value,
         lat: Number(document.getElementById('evt-lat').value),
         lng: Number(document.getElementById('evt-lng').value),
-        color: document.getElementById('evt-color').value
+        color: document.getElementById('evt-color').value,
+        stationId: linkedStationId
     };
+
+    if (Number.isNaN(newItem.lat) || Number.isNaN(newItem.lng)) {
+        showToast('Bitte Koordinaten für das Event setzen (Adresse suchen oder Karte + 📍).', 'error');
+        return;
+    }
 
     if (state.activeEventId) {
         // Update existing in array

@@ -65,6 +65,13 @@ export async function loadData() {
                     const data = configSnap.data();
                     state.config = { ...state.config, ...data };
                     if (data.downloads) state.downloads = data.downloads;
+
+                    // Apply Config to UI
+                    if (state.config.title) {
+                        document.getElementById('app-title').innerText = state.config.title;
+                        document.title = state.config.title;
+                    }
+                    if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
                 }
             } catch (e) { console.warn("Config load error", e); }
 

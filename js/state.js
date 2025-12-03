@@ -12,6 +12,10 @@ export const state = {
     activeTab: "map",
     favorites: new Set(),
     downloads: { flyer1: '', flyer2: '' },
+    config: {
+        title: 'LICHTERNACHT',
+        subtitle: 'Bechhofen | 22. Nov 2025'
+    },
     useLocalStorage: false,
     db: null,
     auth: null,

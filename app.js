@@ -9,10 +9,11 @@ import {
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
     fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress,
+    fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport
 } from './js/ui.js';
 import {
-    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast
+    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig
 } from './js/admin.js';
 
 // Bind to Window for HTML access
@@ -27,6 +28,7 @@ window.dumpData = dumpData;
 window.downloadDataJs = downloadDataJs;
 window.uploadFlyer = uploadFlyer;
 window.saveDownloads = saveDownloads;
+window.saveAppConfig = saveAppConfig;
 window.sendBroadcast = sendBroadcast;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
@@ -41,9 +43,14 @@ window.saveStationChanges = saveStationChanges;
 window.deleteStation = deleteStation;
 window.handleImageUpload = handleImageUpload;
 window.editStation = editStation;
+window.createEventForStation = createEventForStation;
+window.clearStationImage = clearStationImage;
 window.openEventModal = openEventModal;
 window.closeEventModal = closeEventModal;
 window.fillEventCoords = fillEventCoords;
+window.fillStationCoords = fillStationCoords;
+window.searchStationAddress = searchStationAddress;
+window.startStationPicker = startStationPicker;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
 window.shareStation = shareStation;

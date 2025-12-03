@@ -8,6 +8,7 @@
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#fbbf24">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Lichternacht">
@@ -120,8 +121,9 @@
             <div class="flex items-center gap-3">
                 <img src="icon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-yellow-500 shadow-sm">
                 <div>
-                    <h1 class="text-xl font-bold text-yellow-700 tracking-wider brand-font">LICHTERNACHT</h1>
-                    <p class="text-xs text-yellow-800/70">Bechhofen | 22. Nov 2025</p>
+                    <h1 id="app-title" class="text-xl font-bold text-yellow-700 tracking-wider brand-font">LICHTERNACHT
+                    </h1>
+                    <p id="app-subtitle" class="text-xs text-yellow-800/70">Bechhofen | 22. Nov 2025</p>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -169,6 +171,8 @@
         <div id="admin-bar"
             class="hidden bg-yellow-500 text-black px-4 py-2 text-xs font-bold flex justify-between items-center z-50 shadow-md">
             <span>🔧 ADMIN (Lokal)</span>
+            <span class="text-[10px] text-black/70 uppercase tracking-wide">Verschiebe die Station einfach auf der
+                Karte</span>
             <div class="flex gap-2">
                 <button onclick="handleAdminAdd()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
                         class="ph ph-plus"></i> Neu</button>
@@ -236,10 +240,24 @@
                             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Schließen</button>
                     </div>
 
+                    <!-- App Config -->
+                    <div
+                        class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">2. App Titel & Untertitel</h4>
+                        <div class="space-y-3">
+                            <input id="admin-app-title" type="text" placeholder="Titel (z.B. LICHTERNACHT)"
+                                class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <input id="admin-app-subtitle" type="text" placeholder="Untertitel (z.B. Bechhofen | Datum)"
+                                class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <button onclick="saveAppConfig()"
+                                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                        </div>
+                    </div>
+
                     <!-- Downloads -->
                     <div
                         class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">2. Downloads</h4>
+                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">3. Downloads</h4>
                         <div class="space-y-3">
                             <!-- Flyer 1 -->
                             <div class="flex gap-2">
@@ -273,7 +291,7 @@
                     <!-- Broadcast -->
                     <div
                         class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 border-t border-gray-200 dark:border-gray-600 pt-4">
-                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">3. Nachricht an alle (Live)
+                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">4. Nachricht an alle (Live)
                         </h4>
                         <div class="flex gap-2">
                             <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
@@ -288,7 +306,7 @@
                     <!-- System -->
                     <div
                         class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 border-t border-gray-200 dark:border-gray-600 pt-4">
-                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">4. System & Datenbank</h4>
+                        <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">5. System & Datenbank</h4>
                         <div class="flex flex-wrap gap-2">
                             <button onclick="uploadSeedData()"
                                 class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm flex items-center gap-2">
@@ -440,6 +458,9 @@
                             <span id="modal-number"
                                 class="bg-yellow-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-md">1</span>
                             <div>
+                                <button onclick="createEventForStation()"
+                                    class="admin-badge bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold mr-2 hover:bg-green-200"><i
+                                        class="ph ph-calendar-plus"></i> Programmpunkt</button>
                                 <button onclick="editStation()"
                                     class="admin-badge bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold mr-2 hover:bg-blue-200"><i
                                         class="ph ph-pencil-simple"></i> Bearbeiten</button>
@@ -498,6 +519,14 @@
                         <textarea id="edit-desc"
                             class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                             placeholder="Adresse / Ort"></textarea>
+                        <input id="edit-lat" type="hidden">
+                        <input id="edit-lng" type="hidden">
+
+                        <p class="text-[11px] text-gray-400 italic mb-3">Tipp: Als Admin kannst du die Marker direkt auf
+                            der Karte verschieben.</p>
+                        <p class="text-[11px] text-gray-400 italic mb-3">Als Admin kannst du auch die Marker direkt auf
+                            der Karte ziehen, sobald du eingeloggt bist – die Anzeige hilft dir, die Station
+                            wiederzufinden.</p>
 
                         <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
                         <textarea id="edit-offer"
@@ -514,12 +543,17 @@
                                 <span>Foto hochladen / wählen</span>
                             </button>
                         </div>
-                        <input id="edit-image" class="w-full mb-2 p-2 border rounded text-xs text-gray-400"
-                            placeholder="Base64 String (wird automatisch gefüllt)" readonly>
+                        <div class="flex justify-end mb-2">
+                            <button type="button" onclick="clearStationImage()"
+                                class="text-xs text-red-600 hover:text-red-800">Bild entfernen</button>
+                        </div>
+                        <input id="edit-image" type="hidden" class="hidden" aria-hidden="true" readonly>
 
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Tags / Filter</label>
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
+
+
 
                         <input id="edit-time" class="w-full mb-4 p-2 border rounded"
                             placeholder="Uhrzeit (z.B. 'ab 18:00')">
@@ -541,8 +575,27 @@
                 <h3 class="font-bold mb-3 text-lg">Programm bearbeiten</h3>
                 <input id="evt-time" class="w-full mb-2 p-2 border rounded" placeholder="Uhrzeit (z.B. 17:00)">
                 <input id="evt-title" class="w-full mb-2 p-2 border rounded" placeholder="Titel">
-                <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung">
-                <input id="evt-loc" class="w-full mb-2 p-2 border rounded" placeholder="Ort Text (z.B. Kirche)">
+                <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)">
+                <input id="evt-loc" class="w-full mb-2 p-2 border rounded"
+                    placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)">
+
+                <div class="mb-2">
+                    <label for="evt-linked-station" class="text-[10px] font-bold uppercase text-gray-400">Station wählen
+                        (optional)</label>
+                    <select id="evt-linked-station" onchange="applyStationToEvent(this.value)"
+                        class="w-full mt-1 p-2 border rounded text-xs">
+                        <option value="">Keine Station</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <input id="evt-address-search" class="w-full mb-1 p-2 border rounded text-xs"
+                        placeholder="Adresse suchen (optional, z.B. Kirche Bechhofen)">
+                    <button onclick="searchAddress()"
+                        class="w-full bg-gray-100 text-gray-700 text-xs py-1.5 rounded border border-gray-300 hover:bg-gray-200">
+                        Adresse suchen & Koordinaten übernehmen (ansonsten Karte + 📍 nutzen)
+                    </button>
+                </div>
 
                 <div class="flex gap-2 mb-2">
                     <input id="evt-lat" class="w-1/2 p-2 border rounded text-xs" placeholder="Lat (49...)">
@@ -604,6 +657,10 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in
                             der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Für Orte ohne exakte Adresse (z.B. eine
+                            Wiese) kannst du die Karte an die richtige Stelle schieben, im Programm-Editor den 📍-Button
+                            "Kartenmitte" nutzen und im Feld "Ort" eine freie Beschreibung eintragen (z.B. "Wiese hinter
+                            dem Sportplatz").</p>
                     </div>
                 </div>
 

@@ -107,10 +107,41 @@ export async function resetApp() {
     window.location.reload();
 }
 
+export async function saveAppConfig() {
+    const title = document.getElementById('admin-app-title').value.trim();
+    const subtitle = document.getElementById('admin-app-subtitle').value.trim();
+
+    state.config.title = title;
+    state.config.subtitle = subtitle;
+
+    // Update UI immediately
+    document.getElementById('app-title').innerText = title;
+    document.getElementById('app-subtitle').innerText = subtitle;
+
+    if (!state.useLocalStorage) {
+        try {
+            const { doc, setDoc } = state.fb;
+            const ref = doc(state.db, 'artifacts', state.appId, 'public', 'config');
+            await setDoc(ref, { title, subtitle }, { merge: true });
+            showToast('Konfiguration gespeichert', 'success');
+        } catch (e) { console.error(e); showToast('Fehler beim Speichern', 'error'); }
+    } else {
+        showToast('Lokal gespeichert (nicht persistent)', 'success');
+    }
+}
+
 export function toggleAdminPanel() {
     const p = document.getElementById('admin-panel');
     if (p.classList.contains('hidden')) {
         p.classList.remove('hidden');
+
+        // Populate Config Inputs
+        document.getElementById('admin-app-title').value = state.config.title || '';
+        document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
+
+        // Populate Download Inputs
+        document.getElementById('admin-flyer1').value = state.downloads.flyer1 || '';
+        document.getElementById('admin-flyer2').value = state.downloads.flyer2 || '';
 
         // Header
         let tsv = "TYPE\tID\tNAME_TITLE\tDESC\tOFFER\tLAT\tLNG\tTAGS_COLOR\tTIME\tIMAGE_LOC\n";
