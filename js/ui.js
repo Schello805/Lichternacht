@@ -205,7 +205,9 @@ export function renderTimeline() {
     }
 
     // ICS Button
-    downloadsHtml += `<button onclick="generateICS()" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin in Kalender eintragen</button>`;
+    if (d.icsDate) {
+        downloadsHtml += `<button onclick="generateICS()" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i class="ph ph-calendar-plus text-blue-500 text-lg"></i>Termin in Kalender eintragen</button>`;
+    }
 
     if (downloadsHtml) {
         const dlContainer = document.createElement('div');
@@ -351,16 +353,22 @@ function updateCurrentEventDisplay() {
 }
 
 export function generateICS() {
-    const eventDate = "20251122"; // 22.11.2025
+    const d = state.downloads || {};
+    const dateStr = d.icsDate || "20251122"; // Fallback
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+
+    // Format: YYYYMMDD
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Lichternacht//Bechhofen//DE
 BEGIN:VEVENT
 UID:${crypto.randomUUID()}@lichternacht.bechhofen.de
 DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
-DTSTART:20251122T160000Z
-DTEND:20251122T200000Z
-SUMMARY:Lichternacht Bechhofen 2025
+DTSTART:${dateStr}T160000Z
+DTEND:${dateStr}T200000Z
+SUMMARY:Lichternacht Bechhofen ${year}
 DESCRIPTION:Die lange Nacht der Lichter in Bechhofen.
 LOCATION:Bechhofen
 END:VEVENT
@@ -369,7 +377,7 @@ END:VCALENDAR`;
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', 'lichternacht-2025.ics');
+    link.setAttribute('download', `lichternacht-${year}.ics`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

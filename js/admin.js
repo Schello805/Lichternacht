@@ -6,14 +6,16 @@ import { openEventModal, renderTagHelper, setupDragDrop } from './ui.js';
 export async function saveDownloads() {
     const f1 = document.getElementById('admin-flyer1').value.trim();
     const f2 = document.getElementById('admin-flyer2').value.trim();
-    state.downloads = { flyer1: f1, flyer2: f2 };
+    const icsDate = document.getElementById('admin-ics-date').value.trim();
+
+    state.downloads = { flyer1: f1, flyer2: f2, icsDate: icsDate };
 
     if (!state.useLocalStorage) {
         try {
             const { doc, setDoc } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'config');
             await setDoc(ref, { downloads: state.downloads }, { merge: true });
-            showToast('Downloads gespeichert', 'success');
+            showToast('Downloads & ICS gespeichert', 'success');
         } catch (e) { console.error(e); showToast('Fehler beim Speichern', 'error'); }
     } else {
         showToast('Lokal gespeichert (nicht persistent)', 'success');
@@ -142,9 +144,11 @@ export function toggleAdminPanel() {
         // Populate Download Inputs
         document.getElementById('admin-flyer1').value = state.downloads.flyer1 || '';
         document.getElementById('admin-flyer2').value = state.downloads.flyer2 || '';
+        document.getElementById('admin-ics-date').value = state.downloads.icsDate || '';
 
         // Header
         let tsv = "TYPE\tID\tNAME_TITLE\tDESC\tOFFER\tLAT\tLNG\tTAGS_COLOR\tTIME\tIMAGE_LOC\n";
+
 
         // Stations
         state.stations.forEach(s => {
