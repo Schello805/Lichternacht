@@ -3,6 +3,24 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error('Global Error:', msg, url, lineNo, error);
+            // Zeige nur Toast/Alert wenn UI geladen, sonst Fallback
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.className = 'p-4 mb-2 rounded shadow-lg text-white bg-red-600';
+                toast.textContent = 'Ein Fehler ist aufgetreten: ' + msg;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+            } else {
+                // Fallback für ganz frühe Fehler
+                // alert('Fehler: ' + msg); 
+            }
+            return false;
+        };
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lichternacht Bechhofen 2025</title>
 
@@ -25,24 +43,19 @@
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <!-- Tailwind CSS (Static) -->
+    <link href="./dist/output.css" rel="stylesheet">
 
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet-routing-machine.css" />
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
 
     <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="vendor/phosphor/phosphor.js"></script>
 
     <!-- ==========================================
        CSS STYLES
@@ -123,7 +136,7 @@
                 <div>
                     <h1 id="app-title" class="text-xl font-bold text-yellow-700 tracking-wider brand-font">LICHTERNACHT
                     </h1>
-                    <p id="app-subtitle" class="text-xs text-yellow-800/70">Bechhofen | 22. Nov 2025</p>
+                    <p id="app-subtitle" class="text-xs text-yellow-800/70"></p>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -642,8 +655,8 @@
        ========================================== -->
 
     <!-- Firebase Libraries -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/leaflet/leaflet-routing-machine.js"></script>
 
     <!-- Config -->
     <!-- Help Modal -->

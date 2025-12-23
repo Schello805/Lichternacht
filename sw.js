@@ -1,4 +1,4 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js');
+importScripts('vendor/workbox/workbox-sw.js');
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -6,14 +6,14 @@ if (workbox) {
     // Precache & Route
     // Wir nutzen hier Runtime Caching für alles, da wir keine Build-Step haben.
 
-    // Cache HTML, CSS, JS
+    // Cache HTML, CSS, JS (inkl. lokale Vendor-Files)
     workbox.routing.registerRoute(
         ({ request }) => request.destination === 'document' ||
             request.destination === 'script' ||
             request.destination === 'style' ||
             request.destination === 'worker',
         new workbox.strategies.StaleWhileRevalidate({
-            cacheName: 'static-resources',
+            cacheName: 'static-resources-v1.1.0',
         })
     );
 
@@ -37,14 +37,6 @@ if (workbox) {
             url.origin === 'https://fonts.gstatic.com',
         new workbox.strategies.StaleWhileRevalidate({
             cacheName: 'google-fonts',
-        })
-    );
-
-    // Cache Phosphor Icons
-    workbox.routing.registerRoute(
-        ({ url }) => url.origin === 'https://unpkg.com',
-        new workbox.strategies.StaleWhileRevalidate({
-            cacheName: 'icons',
         })
     );
 

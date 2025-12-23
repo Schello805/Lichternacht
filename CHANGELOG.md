@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0] - 2025-12-23
+### Added
+- **Offline-First:** Alle externen Bibliotheken (Leaflet, Tailwind, Phosphor Icons) liegen nun lokal im `vendor/` Ordner.
+- **Build System:** `package.json` und Tailwind CLI Setup hinzugefügt. CSS wird nun vorab kompiliert (`npm run build`).
+- **Error Handling:** Globaler Error-Monitor zeigt dem Nutzer Fehlermeldungen anstatt einer weißen Seite.
+- **Service Worker:** Optimiertes Caching für lokale Ressourcen.
+
+### Fixed
+- **Performance:** Tailwind Runtime Script entfernt (verhindert FOUC und spart CPU).
+- **Bugfixes:** Fehlende JS-Dateien (`ui.js`, `admin.js`, `utils.js`) wiederhergestellt und Importe korrigiert.
+- **Map:** Leaflet Routing Machine Source-Map Fehler behoben.
+
+## [1.0.0] - Initial Release
+- Erste Version der Lichternacht App.
+
+
 ## [1.0.0] - 2025-11-23 (Initial Release Version)
 
 ### Features

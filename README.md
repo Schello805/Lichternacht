@@ -59,6 +59,27 @@ Das Skript erledigt folgendes:
 
 **Wichtig:** Die Datei `.htaccess` sollte lokal nicht existieren (oder ignoriert werden), da sie oft Probleme mit Sync-Clients (Nextcloud) verursacht. Wir nutzen daher `server-htaccess` als Vorlage.
 
+## 🛠 Entwicklung & Build
+
+Das Projekt nutzt **TailwindCSS** für das Styling. Um CSS-Änderungen zu machen, musst du das CSS neu bauen:
+
+1.  **Abhängigkeiten installieren:**
+    ```bash
+    npm install
+    ```
+
+2.  **CSS Bauen (Watch Mode für Entwicklung):**
+    ```bash
+    npm run watch
+    ```
+
+3.  **CSS für Produktion bauen:**
+    ```bash
+    npm run build
+    ```
+
+Die generierte Datei liegt unter `dist/output.css`.
+
 ## 🛠 Daten aktualisieren (Jährlicher Workflow)
 
 Um die App für ein neues Jahr fit zu machen:
@@ -82,7 +103,7 @@ Stelle sicher, dass deine Firebase Security Rules (`firestore.rules`) in der Fir
 
 ## 📦 Tech Stack
 
-- **Frontend:** HTML5, Vanilla JS, TailwindCSS (via CDN)
+- **Frontend:** HTML5, Vanilla JS, TailwindCSS (Local Build)
 - **Backend:** Firebase (Firestore, Auth)
 - **Maps:** Leaflet.js & OpenStreetMap
 - **Icons:** Phosphor Icons
