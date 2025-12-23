@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2] - 2025-12-23
+### Added
+- **Features:** "Route" und "Maps" Buttons im Station-Popup sind nun funktional.
+- **Sharing:** "Teilen"-Button nutzt nun die native Web Share API (oder Clipboard Fallback).
+
+### Fixed
+- **Bugfix:** Fehler "No ID for toggleLike" behoben (ID 0 wird nun korrekt akzeptiert).
+
 ## [1.1.1] - 2025-12-23
 ### Fixed
 - **UI:** Fix für das Station-Modal (Popup).
