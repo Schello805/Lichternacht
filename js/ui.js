@@ -146,8 +146,82 @@ export function renderList(stations) {
 }
 
 export function renderTimeline() {
-    // Placeholder for timeline rendering
-    console.log("Rendering timeline...");
+    const container = document.getElementById('timeline-container');
+    if (!container) return;
+
+    if (!state.events || state.events.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm italic">Noch keine Programmpunkte vorhanden.</p>';
+        return;
+    }
+
+    // Sort by time
+    const sorted = [...state.events].sort((a, b) => {
+        return a.time.localeCompare(b.time);
+    });
+
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeVal = currentHours * 60 + currentMinutes;
+
+    let nextEvent = null;
+
+    container.innerHTML = sorted.map((e, index) => {
+        const [h, m] = e.time.split(':').map(Number);
+        const eventTimeVal = h * 60 + m;
+        const isPast = eventTimeVal < currentTimeVal - 30; // 30 min buffer
+        const isCurrent = eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45; // Roughly current
+        
+        if (!nextEvent && eventTimeVal > currentTimeVal) {
+            nextEvent = e;
+        }
+
+        const colorClass = e.color === 'yellow' ? 'bg-yellow-500' : 
+                          e.color === 'red' ? 'bg-red-500' : 
+                          e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
+
+        return `
+        <div class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''}">
+            <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125' : ''}">
+                <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${e.time} Uhr</span>
+                    ${state.isAdmin ? `<button onclick="deleteEvent('${e.id}')" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>` : ''}
+                </div>
+                <h4 class="font-bold text-gray-900 dark:text-white">${e.title}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${e.desc}</p>
+                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
+                    <i class="ph-fill ph-map-pin"></i>
+                    <span>${e.loc}</span>
+                    <button onclick="state.map.flyTo([${e.lat}, ${e.lng}], 18); switchTab('map');" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    // Update Header Widget
+    const headerDisplay = document.getElementById('current-event-display');
+    if (headerDisplay) {
+        if (nextEvent) {
+            headerDisplay.innerHTML = `
+                <div class="flex gap-3 items-center">
+                    <div class="bg-white/20 p-2 rounded-lg text-center min-w-[50px]">
+                        <span class="block font-bold text-sm leading-tight">${nextEvent.time}</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-white/80 uppercase font-bold tracking-wider">Demnächst</p>
+                        <p class="font-bold text-white leading-tight">${nextEvent.title}</p>
+                        <p class="text-xs text-white/80 truncate">${nextEvent.loc}</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            headerDisplay.innerHTML = `<p class="text-white/80 text-sm">Heute keine weiteren Programmpunkte.</p>`;
+        }
+    }
 }
 
 export function filterStations(query) {

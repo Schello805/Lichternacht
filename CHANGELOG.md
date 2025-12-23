@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.5] - 2025-12-23
+### Added
+- **UI:** Timeline-Ansicht für das Programm implementiert (chronologisch sortiert, mit "Jetzt"-Status).
+
+### Fixed
+- **Code:** Syntax-Fehler (doppelte Funktionsdeklaration) behoben, der die App blockiert hat.
+
 ## [1.1.4] - 2025-12-23
 ### Added
 - **Admin:** Bearbeiten, Löschen und Bild-Upload für Stationen ist nun voll funktionsfähig.
