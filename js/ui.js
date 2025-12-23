@@ -387,20 +387,12 @@ export function searchAddress() {
     console.log("searchAddress called");
 }
 
-export function fillStationCoords() {
-    console.log("fillStationCoords called");
-}
-
 export function searchStationAddress() {
     console.log("searchStationAddress called");
 }
 
 export function createEventForStation(id) {
     console.log("createEventForStation called", id);
-}
-
-export function clearStationImage() {
-    console.log("clearStationImage called");
 }
 
 export function startStationPicker() {
@@ -414,8 +406,5 @@ export function openBugReportModal() {
 export function submitBugReport() {
     console.log("submitBugReport called");
     closeModal('bug-report-modal');
-    showToast('Bug gemeldet!', 'success');
-}
- closeModal('bug-report-modal');
     showToast('Bug gemeldet!', 'success');
 }
