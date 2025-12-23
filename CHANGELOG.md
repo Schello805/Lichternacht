@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.3] - 2025-12-23
+### Fixed
+- **Sharing:** Fix für den Teilen-Button im Station-Popup. ID wird nun korrekt übergeben und Fallback für Clipboard verbessert.
+
 ## [1.1.2] - 2025-12-23
 ### Added
 - **Features:** "Route" und "Maps" Buttons im Station-Popup sind nun funktional.

@@ -205,14 +205,19 @@ export function deleteEvent(id) {
 }
 
 export function shareStation(id) {
-    const sId = id || state.activeStationId;
+    const sId = (id !== undefined && id !== null) ? id : state.activeStationId;
+    console.log("shareStation", sId);
+    
     const s = state.stations.find(x => x.id == sId);
-    if (!s) return;
+    if (!s) {
+        console.error("Station not found for sharing", sId);
+        return;
+    }
 
     const shareData = {
         title: `Lichternacht: ${s.name}`,
         text: `Komm zur Station "${s.name}" bei der Lichternacht Bechhofen!\n${s.offer || ''}`,
-        url: window.location.href // Oder spezifischer Deep-Link wenn verfügbar
+        url: window.location.href
     };
 
     if (navigator.share) {
@@ -220,9 +225,18 @@ export function shareStation(id) {
     } else {
         // Fallback: Copy to clipboard
         const text = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
-        navigator.clipboard.writeText(text).then(() => {
-            showToast('Infos in die Zwischenablage kopiert!', 'success');
-        }).catch(() => showToast('Teilen nicht möglich', 'error'));
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Infos in die Zwischenablage kopiert!', 'success');
+            }).catch(err => {
+                console.error("Clipboard failed", err);
+                showToast('Teilen fehlgeschlagen', 'error');
+            });
+        } else {
+            console.warn("Clipboard API not available");
+            showToast('Teilen nicht unterstützt', 'error');
+        }
     }
 }
 
