@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1] - 2025-12-23
+### Fixed
+- **UI:** Fix für das Station-Modal (Popup).
+    - Öffnet nun korrekt animiert (statt am unteren Rand zu kleben).
+    - Höherer Z-Index (2000), damit es immer über der Navigation liegt.
+    - "X"-Button und Hintergrund-Klick schließen das Modal nun zuverlässig.
+
 ## [1.1.0] - 2025-12-23
 ### Added
 - **Offline-First:** Alle externen Bibliotheken (Leaflet, Tailwind, Phosphor Icons) liegen nun lokal im `vendor/` Ordner.
