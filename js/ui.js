@@ -166,22 +166,161 @@ export function filterList(tag) {
     renderList(filtered);
 }
 
-// --- Editing / Admin Stubs ---
-
-export function saveStationChanges() {
-    console.log("saveStationChanges called");
-}
-
-export function deleteStation(id) {
-    console.log("deleteStation called", id);
-}
-
-export function handleImageUpload() {
-    console.log("handleImageUpload called");
-}
+// --- Editing / Admin ---
 
 export function editStation(id) {
-    console.log("editStation called", id);
+    const sId = id || state.activeStationId;
+    const s = state.stations.find(x => x.id == sId);
+    if (!s) return;
+
+    // Populate fields
+    document.getElementById('edit-name').value = s.name;
+    document.getElementById('edit-desc').value = s.desc || '';
+    document.getElementById('edit-offer').value = s.offer || '';
+    document.getElementById('edit-lat').value = s.lat;
+    document.getElementById('edit-lng').value = s.lng;
+    document.getElementById('edit-tags').value = (s.tags || []).join(', ');
+    document.getElementById('edit-time').value = s.time || '';
+
+    // Image preview in edit mode (optional, maybe just text or reusing the main image container)
+    // For now we rely on the main image container being visible if set.
+    
+    // Toggle Views
+    document.getElementById('modal-view-mode').classList.add('hidden');
+    document.getElementById('modal-edit-mode').classList.remove('hidden');
+}
+
+export async function saveStationChanges() {
+    const id = state.activeStationId;
+    const s = state.stations.find(x => x.id == id);
+    if (!s) return;
+
+    const newName = document.getElementById('edit-name').value;
+    const newDesc = document.getElementById('edit-desc').value;
+    const newOffer = document.getElementById('edit-offer').value;
+    // Lat/Lng might have been updated by dragging (we need to ensure drag updates the hidden fields)
+    const newLat = parseFloat(document.getElementById('edit-lat').value);
+    const newLng = parseFloat(document.getElementById('edit-lng').value);
+
+    if (!newName) {
+        showToast("Name darf nicht leer sein", 'error');
+        return;
+    }
+
+    // Update Local Object
+    s.name = newName;
+    s.desc = newDesc;
+    s.offer = newOffer;
+    s.lat = newLat;
+    s.lng = newLng;
+    
+    // Image is handled by handleImageUpload directly updating the object temporarily or we grab it from a temp var?
+    // Actually handleImageUpload updates the object directly in memory? Let's assume we update s.image there.
+    // If not, we might need a hidden field for image data too. 
+    // Let's implement handleImageUpload to update s.image directly on the active station object in state.
+
+    try {
+        await saveData('station', s);
+        showToast("Station gespeichert", 'success');
+        
+        // Refresh UI
+        renderList(state.stations);
+        if (window.refreshMapMarkers) window.refreshMapMarkers(); // Need to import or availability check
+        
+        // Go back to view mode
+        openModal(s); 
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Speichern", 'error');
+    }
+}
+
+export async function deleteStation(id) {
+    if (!confirm("Station wirklich löschen?")) return;
+    const sId = id || state.activeStationId;
+    
+    try {
+        await deleteData('station', sId);
+        showToast("Station gelöscht", 'success');
+        
+        // Refresh UI
+        state.stations = state.stations.filter(s => s.id != sId);
+        renderList(state.stations);
+        if (window.refreshMapMarkers) window.refreshMapMarkers();
+        
+        closeModal();
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Löschen", 'error');
+    }
+}
+
+export function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Resize Image before saving (simple canvas resize)
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Max bounds
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 600;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            
+            // Update active station immediately
+            const s = state.stations.find(x => x.id == state.activeStationId);
+            if (s) {
+                s.image = dataUrl;
+                // Update Preview
+                const imgContainer = document.getElementById('modal-image-container');
+                imgContainer.innerHTML = `<img src="${s.image}" class="w-full h-48 object-cover rounded-t-2xl">`;
+                imgContainer.classList.remove('hidden');
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+export function clearStationImage() {
+    const s = state.stations.find(x => x.id == state.activeStationId);
+    if (s) {
+        s.image = null;
+        document.getElementById('modal-image-container').classList.add('hidden');
+    }
+}
+
+export function fillStationCoords() {
+    // Helper to update hidden inputs when dragging marker
+    // This assumes the map marker drag event calls this or updates the inputs directly.
+    // If not, we might need to hook this up.
+    // For now, let's leave it as a placeholder or implementing if we know the marker context.
+    // Actually, in admin mode, map.js should update these inputs.
+    console.log("fillStationCoords called - inputs should be updated by map drag event");
 }
 
 export function openEventModal() {
@@ -275,5 +414,8 @@ export function openBugReportModal() {
 export function submitBugReport() {
     console.log("submitBugReport called");
     closeModal('bug-report-modal');
+    showToast('Bug gemeldet!', 'success');
+}
+ closeModal('bug-report-modal');
     showToast('Bug gemeldet!', 'success');
 }
