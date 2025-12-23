@@ -14,6 +14,7 @@ export function openModal(target) {
         // Station Object
         const s = target;
         state.activeStationId = s.id;
+        window.activeStationId = s.id; // Wichtig für HTML onclicks
         
         // Populate Modal
         document.getElementById('modal-title').innerText = s.name;
@@ -29,21 +30,19 @@ export function openModal(target) {
             imgContainer.classList.add('hidden');
         }
 
-        // Tags
-        // (Optional: Render tags somewhere if needed)
+        // ...
 
-        // Update Buttons (Like/Fav/CheckIn)
-        // Note: These functions need to be available globally or imported if we want to call them here directly.
-        // But usually the buttons in HTML call window.toggleLike etc.
-        // We just need to update their visual state.
-        
-        // We can try to call updateLikeBtn from gamification if we import it, 
-        // OR trigger a custom event, OR just rely on the click handlers refreshing state.
-        // For now, let's just show the modal.
-        
         const modal = document.getElementById('detail-modal');
+        const content = document.getElementById('modal-content');
         if (modal) {
             modal.classList.remove('hidden');
+            // Animate in - Double RAF for safety
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (content) content.classList.remove('translate-y-full');
+                });
+            });
+            
             // Reset view mode
             document.getElementById('modal-view-mode').classList.remove('hidden');
             document.getElementById('modal-edit-mode').classList.add('hidden');
@@ -52,6 +51,20 @@ export function openModal(target) {
 }
 
 export function closeModal(id) {
+    if (!id) {
+        // Default to detail modal if no ID passed (e.g. from X button)
+        const modal = document.getElementById('detail-modal');
+        const content = document.getElementById('modal-content');
+        
+        if (content) content.classList.add('translate-y-full');
+        
+        // Wait for animation
+        setTimeout(() => {
+            if (modal) modal.classList.add('hidden');
+        }, 300);
+        return;
+    }
+
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
 }
