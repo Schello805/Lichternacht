@@ -13,7 +13,7 @@ if (workbox) {
             request.destination === 'style' ||
             request.destination === 'worker',
         new workbox.strategies.StaleWhileRevalidate({
-            cacheName: 'static-resources-v1.1.3',
+            cacheName: 'static-resources-v1.1.4',
         })
     );
 

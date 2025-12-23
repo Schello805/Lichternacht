@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.4] - 2025-12-23
+### Added
+- **Admin:** Bearbeiten, Löschen und Bild-Upload für Stationen ist nun voll funktionsfähig.
+- **Admin:** Unterstützung für Tags und Uhrzeiten im Bearbeiten-Dialog.
+
 ## [1.1.3] - 2025-12-23
 ### Fixed
 - **Sharing:** Fix für den Teilen-Button im Station-Popup. ID wird nun korrekt übergeben und Fallback für Clipboard verbessert.
