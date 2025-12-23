@@ -30,7 +30,23 @@ export function openModal(target) {
             imgContainer.classList.add('hidden');
         }
 
-        // ...
+        // Route & Maps Buttons
+        const btnRoute = document.getElementById('btn-internal-route');
+        const btnMaps = document.getElementById('btn-route');
+        
+        if (btnRoute) {
+            btnRoute.onclick = () => {
+                closeModal();
+                if (window.calculateRoute) window.calculateRoute(s.lat, s.lng);
+            };
+        }
+        
+        if (btnMaps) {
+            btnMaps.onclick = () => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
+                window.open(url, '_blank');
+            };
+        }
 
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
@@ -189,7 +205,25 @@ export function deleteEvent(id) {
 }
 
 export function shareStation(id) {
-    console.log("shareStation called", id);
+    const sId = id || state.activeStationId;
+    const s = state.stations.find(x => x.id == sId);
+    if (!s) return;
+
+    const shareData = {
+        title: `Lichternacht: ${s.name}`,
+        text: `Komm zur Station "${s.name}" bei der Lichternacht Bechhofen!\n${s.offer || ''}`,
+        url: window.location.href // Oder spezifischer Deep-Link wenn verfügbar
+    };
+
+    if (navigator.share) {
+        navigator.share(shareData).catch(console.error);
+    } else {
+        // Fallback: Copy to clipboard
+        const text = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Infos in die Zwischenablage kopiert!', 'success');
+        }).catch(() => showToast('Teilen nicht möglich', 'error'));
+    }
 }
 
 export function generateICS() {

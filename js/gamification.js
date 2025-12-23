@@ -5,7 +5,7 @@ export async function toggleLike(id) {
     // event is global, but better pass it or stop propagation in UI
     if (window.event) window.event.stopPropagation();
 
-    if (!id) {
+    if (id === undefined || id === null) {
         console.error("No ID for toggleLike");
         return;
     }
