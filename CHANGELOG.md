@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.8] - 2025-12-24
+### Fixed
+- **Code:** Kritischer Syntax-Fehler in `ui.js` behoben, der das Laden der App verhinderte (doppelte Funktionsdeklaration & unvollständiger Code-Block).
+
 ## [1.1.7] - 2025-12-24
 ### Fixed
 - **Admin:** Fix für "Station bearbeiten" - Modal öffnet nun zuverlässig, auch wenn es vorher geschlossen war.
