@@ -18,6 +18,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
+console.log("Lichternacht App v1.1.11 loaded");
 window.performLogin = performLogin;
 window.logoutAdmin = logoutAdmin;
 window.uploadSeedData = uploadSeedData;

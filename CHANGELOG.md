@@ -1,8 +1,15 @@
 # Changelog
 
+## [1.1.11] - 2025-12-24
+### Fixed
+- **Service Worker:** Fixed missing `CACHE_NAME` definition in `sw.js` causing SW registration to fail.
+- **Cache Busting:** Added version query to `app.js` in `index.html` to force reload of JavaScript files.
+
 ## [1.1.10] - 2025-12-24
 ### Fixed
-- Fixed `SyntaxError: Importing binding name 'shareStation' is not found`.
+- **Cache Busting:** Added version query to `app.js` import in `index.html` to force browser refresh and fix persistent `SyntaxError` with imports.
+- **Utils:** Verified `shareStation` export.
+
 - Moved `shareStation` to `utils.js` and corrected imports.
 - Restored missing exports `generateICS`, `openEventModal`, `closeEventModal` in `ui.js`.
 
