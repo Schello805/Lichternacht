@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.9] - 2025-12-24
+### Fixed
+- Fixed critical syntax error causing app load failure (duplicate `searchAddress` declaration).
+
+
 ## [1.1.8] - 2025-12-24
 ### Fixed
 - **Code:** Kritischer Syntax-Fehler in `ui.js` behoben, der das Laden der App verhinderte (doppelte Funktionsdeklaration & unvollständiger Code-Block).
