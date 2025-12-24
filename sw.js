@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.1.11';
+const CACHE_NAME = 'lichternacht-v1.1.12';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);

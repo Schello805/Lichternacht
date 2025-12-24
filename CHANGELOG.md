@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.12] - 2025-12-24
+### Changed
+- **System:** Renamed `app.js` to `main.js` to forcefully break stubborn browser caches and fix import errors.
+- **Version:** Bumped to 1.1.12.
+
 ## [1.1.11] - 2025-12-24
 ### Fixed
 - **Service Worker:** Fixed missing `CACHE_NAME` definition in `sw.js` causing SW registration to fail.
