@@ -1,6 +1,6 @@
 import { state } from './js/state.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap } from './js/map.js';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig, changeYear } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js';
@@ -62,6 +62,7 @@ window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
 window.resetMap = resetMap;
+window.refreshMapMarkers = refreshMapMarkers;
 window.generateICS = generateICS;
 window.searchAddress = searchAddress;
 window.openBugReportModal = openBugReportModal;

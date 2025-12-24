@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.7] - 2025-12-24
+### Fixed
+- **Admin:** Fix für "Station bearbeiten" - Modal öffnet nun zuverlässig, auch wenn es vorher geschlossen war.
+- **Admin:** Marker sind nun auf der Karte verschiebbar (Drag & Drop) und aktualisieren sofort die Koordinaten im Bearbeiten-Formular.
+- **Admin:** "Neue Station" wird sofort auf der Karte angezeigt (Refresh Map).
+
 ## [1.1.6] - 2025-12-24
 ### Added
 - **Admin:** Vollständige Implementierung der Admin-Tools (JSON Import/Export, Konfiguration, Downloads, Broadcasts).

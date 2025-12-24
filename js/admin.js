@@ -85,15 +85,11 @@ export function handleAdminAdd(type) {
     };
     
     state.stations.push(newStation);
-    // Open Modal for this new station
-    // We need to import openModal but circular dependency might be an issue if we import ui.js here.
-    // Better: expose openModal globally or on window, or dispatch event.
-    // For now, let's assume window.openModal works or we can dynamically import.
-    // Actually ui.js imports admin.js? No, ui.js imports data.js and utils.js.
-    // We can verify imports. 
-    // Let's just use the global scope we set up in app.js probably?
-    // Or simpler: access via state or window if available.
     
+    // Refresh Map to show new pin immediately
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+
+    // Open Modal for this new station
     if (window.editStation) {
         // Add to local state first so find works
         window.editStation(newId);

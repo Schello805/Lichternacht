@@ -31,8 +31,40 @@ export function refreshMapMarkers() {
             iconSize: [32, 32],
             iconAnchor: [16, 16]
         });
-        const marker = L.marker([s.lat, s.lng], { icon: icon }).addTo(state.map);
-        marker.on('click', () => openModal(s));
+        
+        // Admin: Draggable Markers
+        const isDraggable = state.isAdmin;
+        const marker = L.marker([s.lat, s.lng], { icon: icon, draggable: isDraggable }).addTo(state.map);
+        
+        marker.on('click', () => {
+            // Prevent click when dragging
+            if (marker._isDragging) return;
+            openModal(s);
+        });
+
+        if (isDraggable) {
+            marker.on('dragstart', () => { marker._isDragging = true; });
+            marker.on('dragend', (e) => {
+                setTimeout(() => { marker._isDragging = false; }, 100); // Debounce click
+                const newPos = e.target.getLatLng();
+                
+                // Update Local State
+                s.lat = newPos.lat;
+                s.lng = newPos.lng;
+                
+                // Update Form if open
+                if (state.activeStationId === s.id) {
+                    const latInput = document.getElementById('edit-lat');
+                    const lngInput = document.getElementById('edit-lng');
+                    if (latInput && lngInput) {
+                        latInput.value = newPos.lat;
+                        lngInput.value = newPos.lng;
+                        showToast(`Neue Position: ${newPos.lat.toFixed(4)}, ${newPos.lng.toFixed(4)}`, 'info');
+                    }
+                }
+            });
+        }
+
         state.markers.push({ id: s.id, marker: marker });
     });
 }

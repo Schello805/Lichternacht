@@ -247,6 +247,9 @@ export function editStation(id) {
     const s = state.stations.find(x => x.id == sId);
     if (!s) return;
 
+    state.activeStationId = s.id;
+    window.activeStationId = s.id;
+
     // Populate fields
     document.getElementById('edit-name').value = s.name;
     document.getElementById('edit-desc').value = s.desc || '';
@@ -259,6 +262,18 @@ export function editStation(id) {
     // Image preview in edit mode (optional, maybe just text or reusing the main image container)
     // For now we rely on the main image container being visible if set.
     
+    // Ensure Modal is Open
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('modal-content');
+    if (modal && modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (content) content.classList.remove('translate-y-full');
+            });
+        });
+    }
+
     // Toggle Views
     document.getElementById('modal-view-mode').classList.add('hidden');
     document.getElementById('modal-edit-mode').classList.remove('hidden');
