@@ -10,7 +10,7 @@ import {
     handleImageUpload, editStation, openEventModal, closeEventModal,
     fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
-    openBugReportModal, submitBugReport
+    openBugReportModal, submitBugReport, editEvent, applyStationToEvent
 } from './js/ui.js';
 import {
     uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig
@@ -44,6 +44,8 @@ window.deleteStation = deleteStation;
 window.handleImageUpload = handleImageUpload;
 window.editStation = editStation;
 window.createEventForStation = createEventForStation;
+window.editEvent = editEvent;
+window.applyStationToEvent = applyStationToEvent;
 window.clearStationImage = clearStationImage;
 window.openEventModal = openEventModal;
 window.closeEventModal = closeEventModal;

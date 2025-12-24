@@ -397,76 +397,262 @@ export function fillStationCoords() {
     console.log("fillStationCoords called - inputs should be updated by map drag event");
 }
 
-export function openEventModal() {
+// --- Event Management ---
+
+export function createEventForStation(id) {
+    const sId = id || state.activeStationId;
+    const s = state.stations.find(x => x.id == sId);
+    
+    // Clear/Reset Modal
+    resetEventModal();
+    
+    if (s) {
+        document.getElementById('evt-linked-station').value = s.id;
+        applyStationToEvent(s.id);
+    }
+    
+    // Set active ID to null (new event)
+    state.activeEventId = null; 
+    
     openModal('event-modal');
 }
 
-export function closeEventModal() {
-    closeModal('event-modal');
+export function editEvent(id) {
+    const e = state.events.find(x => x.id == id);
+    if (!e) return;
+    
+    state.activeEventId = e.id;
+    
+    document.getElementById('evt-time').value = e.time;
+    document.getElementById('evt-title').value = e.title;
+    document.getElementById('evt-desc').value = e.desc || '';
+    document.getElementById('evt-loc').value = e.loc;
+    document.getElementById('evt-lat').value = e.lat;
+    document.getElementById('evt-lng').value = e.lng;
+    document.getElementById('evt-color').value = e.color || 'yellow';
+    
+    // Station Link logic if we had it stored in event
+    // For now we don't strictly store linkedStationId in event, 
+    // but we could match by coords or name.
+    
+    document.getElementById('btn-delete-event').classList.remove('hidden');
+    openModal('event-modal');
+}
+
+function resetEventModal() {
+    state.activeEventId = null;
+    document.getElementById('evt-time').value = '';
+    document.getElementById('evt-title').value = '';
+    document.getElementById('evt-desc').value = '';
+    document.getElementById('evt-loc').value = '';
+    document.getElementById('evt-lat').value = '';
+    document.getElementById('evt-lng').value = '';
+    document.getElementById('evt-color').value = 'yellow';
+    document.getElementById('evt-linked-station').value = '';
+    document.getElementById('btn-delete-event').classList.add('hidden');
+    
+    // Populate Station Select
+    const sel = document.getElementById('evt-linked-station');
+    sel.innerHTML = '<option value="">Keine Station</option>' + 
+        state.stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+export function applyStationToEvent(val) {
+    if (!val) return;
+    const s = state.stations.find(x => x.id == val);
+    if (s) {
+        document.getElementById('evt-title').value = s.name; // Suggest Name
+        document.getElementById('evt-loc').value = s.name;
+        document.getElementById('evt-lat').value = s.lat;
+        document.getElementById('evt-lng').value = s.lng;
+    }
 }
 
 export function fillEventCoords() {
-    console.log("fillEventCoords called");
+    const center = state.map.getCenter();
+    document.getElementById('evt-lat').value = center.lat.toFixed(5);
+    document.getElementById('evt-lng').value = center.lng.toFixed(5);
+    showToast("Kartenmitte übernommen", 'info');
 }
 
-export function saveEventChanges() {
-    console.log("saveEventChanges called");
-}
-
-export function deleteEvent(id) {
-    console.log("deleteEvent called", id);
-}
-
-export function shareStation(id) {
-    const sId = (id !== undefined && id !== null) ? id : state.activeStationId;
-    console.log("shareStation", sId);
+export async function saveEventChanges() {
+    const time = document.getElementById('evt-time').value;
+    const title = document.getElementById('evt-title').value;
+    const desc = document.getElementById('evt-desc').value;
+    const loc = document.getElementById('evt-loc').value;
+    const lat = parseFloat(document.getElementById('evt-lat').value);
+    const lng = parseFloat(document.getElementById('evt-lng').value);
+    const color = document.getElementById('evt-color').value;
     
-    const s = state.stations.find(x => x.id == sId);
-    if (!s) {
-        console.error("Station not found for sharing", sId);
+    if (!time || !title) {
+        showToast("Zeit und Titel sind Pflicht!", 'error');
+        return;
+    }
+    
+    const evt = {
+        id: state.activeEventId || ('evt_' + Date.now()),
+        time,
+        title,
+        desc,
+        loc,
+        lat: lat || 0,
+        lng: lng || 0,
+        color
+    };
+    
+    try {
+        await saveData('event', evt);
+        showToast("Programmpunkt gespeichert", 'success');
+        
+        // Update State
+        if (state.activeEventId) {
+            const idx = state.events.findIndex(x => x.id == evt.id);
+            if (idx >= 0) state.events[idx] = evt;
+        } else {
+            state.events.push(evt);
+        }
+        
+        renderTimeline();
+        closeModal('event-modal');
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Speichern", 'error');
+    }
+}
+
+export async function deleteEvent(id) {
+    const eId = id || state.activeEventId;
+    if (!eId) return;
+    
+    if (!confirm("Programmpunkt wirklich löschen?")) return;
+    
+    try {
+        await deleteData('event', eId);
+        showToast("Gelöscht", 'success');
+        
+        state.events = state.events.filter(x => x.id != eId);
+        renderTimeline();
+        closeModal('event-modal');
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Löschen", 'error');
+    }
+}
+
+export function renderTimeline() {
+    const container = document.getElementById('timeline-container');
+    if (!container) return;
+
+    if (!state.events || state.events.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm italic">Noch keine Programmpunkte vorhanden.</p>';
         return;
     }
 
-    const shareData = {
-        title: `Lichternacht: ${s.name}`,
-        text: `Komm zur Station "${s.name}" bei der Lichternacht Bechhofen!\n${s.offer || ''}`,
-        url: window.location.href
-    };
+    // Sort by time
+    const sorted = [...state.events].sort((a, b) => {
+        return a.time.localeCompare(b.time);
+    });
 
-    if (navigator.share) {
-        navigator.share(shareData).catch(console.error);
-    } else {
-        // Fallback: Copy to clipboard
-        const text = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeVal = currentHours * 60 + currentMinutes;
+
+    let nextEvent = null;
+
+    container.innerHTML = sorted.map((e, index) => {
+        const [h, m] = e.time.split(':').map(Number);
+        const eventTimeVal = h * 60 + m;
+        const isPast = eventTimeVal < currentTimeVal - 30; // 30 min buffer
+        const isCurrent = eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45; // Roughly current
         
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Infos in die Zwischenablage kopiert!', 'success');
-            }).catch(err => {
-                console.error("Clipboard failed", err);
-                showToast('Teilen fehlgeschlagen', 'error');
-            });
+        if (!nextEvent && eventTimeVal > currentTimeVal) {
+            nextEvent = e;
+        }
+
+        const colorClass = e.color === 'yellow' ? 'bg-yellow-500' : 
+                          e.color === 'red' ? 'bg-red-500' : 
+                          e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
+
+        return `
+        <div class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''}">
+            <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125' : ''}">
+                <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${e.time} Uhr</span>
+                    ${state.isAdmin ? `
+                        <div class="flex gap-2">
+                            <button onclick="editEvent('${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
+                            <button onclick="deleteEvent('${e.id}')" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
+                        </div>` : ''}
+                </div>
+                <h4 class="font-bold text-gray-900 dark:text-white">${e.title}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${e.desc}</p>
+                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
+                    <i class="ph-fill ph-map-pin"></i>
+                    <span>${e.loc}</span>
+                    <button onclick="state.map.flyTo([${e.lat}, ${e.lng}], 18); switchTab('map');" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    // Update Header Widget
+    const headerDisplay = document.getElementById('current-event-display');
+    if (headerDisplay) {
+        if (nextEvent) {
+            headerDisplay.innerHTML = `
+                <div class="flex gap-3 items-center">
+                    <div class="bg-white/20 p-2 rounded-lg text-center min-w-[50px]">
+                        <span class="block font-bold text-sm leading-tight">${nextEvent.time}</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-white/80 uppercase font-bold tracking-wider">Demnächst</p>
+                        <p class="font-bold text-white leading-tight">${nextEvent.title}</p>
+                        <p class="text-xs text-white/80 truncate">${nextEvent.loc}</p>
+                    </div>
+                </div>
+            `;
         } else {
-            console.warn("Clipboard API not available");
-            showToast('Teilen nicht unterstützt', 'error');
+            headerDisplay.innerHTML = `<p class="text-white/80 text-sm">Heute keine weiteren Programmpunkte.</p>`;
         }
     }
 }
 
-export function generateICS() {
-    console.log("generateICS called");
-}
-
 export function searchAddress() {
-    console.log("searchAddress called");
+    const query = document.getElementById('evt-address-search').value;
+    if (!query) return;
+    
+    // Simple Nominatim Search
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Bechhofen')}`;
+    
+    showToast("Suche Adresse...", 'info');
+    
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                const res = data[0];
+                document.getElementById('evt-lat').value = res.lat;
+                document.getElementById('evt-lng').value = res.lon;
+                document.getElementById('evt-loc').value = res.display_name.split(',')[0];
+                showToast("Gefunden: " + res.display_name, 'success');
+            } else {
+                showToast("Nichts gefunden. Versuche es genauer.", 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast("Fehler bei der Suche", 'error');
+        });
 }
 
 export function searchStationAddress() {
-    console.log("searchStationAddress called");
-}
-
-export function createEventForStation(id) {
-    console.log("createEventForStation called", id);
+   // Similar logic if needed for stations, or remove if unused.
+   console.log("searchStationAddress placeholder");
 }
 
 export function startStationPicker() {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.6] - 2025-12-24
+### Added
+- **Admin:** Vollständige Implementierung der Admin-Tools (JSON Import/Export, Konfiguration, Downloads, Broadcasts).
+- **Admin:** Event-Verwaltung (Erstellen, Bearbeiten, Löschen) mit Stations-Verknüpfung und Adress-Suche.
+- **Admin:** "Neue Station"-Button erstellt nun direkt Marker in Kartenmitte.
+
 ## [1.1.5] - 2025-12-23
 ### Added
 - **UI:** Timeline-Ansicht für das Programm implementiert (chronologisch sortiert, mit "Jetzt"-Status).
