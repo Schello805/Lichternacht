@@ -1,3 +1,4 @@
+import { state } from './state.js';
 
 export function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
@@ -53,4 +54,23 @@ export function getDistance(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // in metres
+}
+
+export function shareStation(id) {
+    const s = state.stations.find(x => x.id == id);
+    if (!s) return;
+
+    const url = `${window.location.origin}/?station=${s.id}`;
+    const text = `Schau dir ${s.name} bei der Lichternacht an!`;
+
+    if (navigator.share) {
+        navigator.share({
+            title: s.name,
+            text: text,
+            url: url
+        }).catch(console.error);
+    } else {
+        navigator.clipboard.writeText(`${text} ${url}`);
+        showToast("Link kopiert!", "success");
+    }
 }

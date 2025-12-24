@@ -1,4 +1,5 @@
 import { state } from './js/state.js';
+import { shareStation, showToast } from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig, changeYear } from './js/data.js';
@@ -8,7 +9,7 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
     handleImageUpload, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, shareStation, filterStations, filterList, generateICS, searchAddress,
+    fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent
 } from './js/ui.js';

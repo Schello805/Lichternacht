@@ -522,6 +522,54 @@ export function submitBugReport() {
     showToast('Bug gemeldet!', 'success');
 }
 
+export function openEventModal() {
+    openModal('event-modal');
+}
+
+export function closeEventModal() {
+    closeModal('event-modal');
+}
+
+export function generateICS() {
+    // Generate ICS for all events
+    if (!state.events || state.events.length === 0) {
+        showToast("Keine Events für Kalender", "error");
+        return;
+    }
+
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Lichternacht//DE\n";
+    
+    state.events.forEach(e => {
+        const [h, m] = e.time.split(':');
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+        const end = new Date(start.getTime() + 30 * 60000); // 30 min default duration
+        
+        const format = (date) => date.toISOString().replace(/-|:|\.\d+/g, "");
+        
+        icsContent += "BEGIN:VEVENT\n";
+        icsContent += `SUMMARY:${e.title}\n`;
+        icsContent += `DESCRIPTION:${e.desc || ''}\n`;
+        icsContent += `LOCATION:${e.loc}\n`;
+        icsContent += `DTSTART:${format(start)}\n`;
+        icsContent += `DTEND:${format(end)}\n`;
+        icsContent += "END:VEVENT\n";
+    });
+    
+    icsContent += "END:VCALENDAR";
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lichternacht.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    showToast("Kalender heruntergeladen", "success");
+}
+
 export function renderTimeline() {
     const container = document.getElementById('timeline-container');
     if (!container) return;

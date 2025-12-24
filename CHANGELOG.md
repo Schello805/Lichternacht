@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.10] - 2025-12-24
+### Fixed
+- Fixed `SyntaxError: Importing binding name 'shareStation' is not found`.
+- Moved `shareStation` to `utils.js` and corrected imports.
+- Restored missing exports `generateICS`, `openEventModal`, `closeEventModal` in `ui.js`.
+
 ## [1.1.9] - 2025-12-24
 ### Fixed
 - Fixed critical syntax error causing app load failure (duplicate `searchAddress` declaration).

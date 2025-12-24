@@ -13,7 +13,7 @@ if (workbox) {
             request.destination === 'style' ||
             request.destination === 'worker',
         new workbox.strategies.StaleWhileRevalidate({
-            cacheName: 'lichternacht-v1.1.9',
+            cacheName: CACHE_NAME,
         })
     );
 
