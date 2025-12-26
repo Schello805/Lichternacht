@@ -846,26 +846,35 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
-                    // NUCLEAR OPTION: Unregister all existing SWs first
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (const registration of registrations) {
-                        console.log('Unregistering old SW:', registration);
-                        await registration.unregister();
-                    }
-                    
-                    // Register new SW
-                    const reg = await navigator.serviceWorker.register('./sw.js?v=1.4.12', {
+                    // Register SW
+                    const reg = await navigator.serviceWorker.register('./sw.js?v=1.4.13', {
                         scope: './',
                         updateViaCache: 'none'
                     });
-                    console.log('SW registered via inline script', reg);
+                    
+                    // Check for updates
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        if (installingWorker == null) return;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    console.log('New content is available; please refresh.');
+                                } else {
+                                    console.log('Content is cached for offline use.');
+                                }
+                            }
+                        };
+                    };
+                    
+                    console.log('SW registered', reg);
                 } catch (err) {
                     console.log('SW registration failed', err);
                 }
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.12"></script>
+    <script type="module" src="main.js?v=1.4.13"></script>
 </body>
 
 </html>
