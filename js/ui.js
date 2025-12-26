@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
 import { saveData, deleteData } from './data.js';
+import { refreshMapMarkers } from './map.js';
 
 // --- Modal & Tab Handling ---
 
@@ -81,6 +82,13 @@ export function closeModal(id) {
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
         
+        // Reset active station highlight
+        if (state.activeStationId) {
+            state.activeStationId = null;
+            window.activeStationId = null;
+            refreshMapMarkers();
+        }
+
         if (content) content.classList.add('translate-y-full');
         
         // Wait for animation
