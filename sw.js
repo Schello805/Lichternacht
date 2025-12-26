@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.1.12';
+const CACHE_NAME = 'lichternacht-v1.4.5';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -10,12 +10,22 @@ if (workbox) {
 
     // Cache HTML, CSS, JS (inkl. lokale Vendor-Files)
     workbox.routing.registerRoute(
-        ({ request }) => request.destination === 'document' ||
-            request.destination === 'script' ||
-            request.destination === 'style' ||
-            request.destination === 'worker',
-        new workbox.strategies.StaleWhileRevalidate({
+        ({ request, url }) => {
+            // Exclude Firestore/Google APIs from interception
+            if (url.origin.includes('firestore.googleapis.com') || 
+                url.origin.includes('googleapis.com') ||
+                url.origin.includes('firebase')) {
+                return false;
+            }
+
+            return request.destination === 'document' ||
+                request.destination === 'script' ||
+                request.destination === 'style' ||
+                request.destination === 'worker';
+        },
+        new workbox.strategies.NetworkFirst({
             cacheName: CACHE_NAME,
+            networkTimeoutSeconds: 3,
         })
     );
 
@@ -52,4 +62,19 @@ if (workbox) {
 // Force Update
 self.addEventListener('install', (event) => {
     self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME && cacheName !== 'images' && cacheName !== 'google-fonts') {
+                        console.log('Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => clients.claim())
+    );
 });

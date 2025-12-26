@@ -5,7 +5,28 @@ import { saveData, seedStations, seedEvents } from './data.js';
 
 export function toggleAdminPanel() {
     const panel = document.getElementById('admin-panel');
-    if (panel) panel.classList.toggle('hidden');
+    if (panel) {
+        panel.classList.toggle('hidden');
+        
+        // If panel is now visible, pre-fill with data
+        if (!panel.classList.contains('hidden')) {
+            const data = {
+                stations: state.stations,
+                events: state.events
+            };
+            const json = JSON.stringify(data, null, 2);
+            document.getElementById('export-area').value = json;
+
+            // Pre-fill App Config
+            document.getElementById('admin-app-title').value = state.config.title || '';
+            document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
+
+            // Pre-fill Downloads
+            document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
+            document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
+            document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
+        }
+    }
 }
 
 export async function uploadSeedData() {
@@ -29,11 +50,7 @@ export async function uploadSeedData() {
     }
 }
 
-export function resetApp() {
-    if (!confirm("Wirklich alles zurücksetzen? (Löscht lokale Einstellungen und Cache)")) return;
-    localStorage.clear();
-    location.reload();
-}
+
 
 export async function importData() {
     const json = document.getElementById('export-area').value;
@@ -189,14 +206,11 @@ export async function sendBroadcast() {
     
     if (!confirm(`Nachricht senden an alle?\n"${text}"`)) return;
 
-    // We use a 'broadcast' document or collection
     try {
-        const { doc, setDoc, Timestamp } = state.fb;
-        // Write to a 'signals' collection or just update a config doc
-        // Let's use 'signals/broadcast'
-        await setDoc(doc(state.db, 'artifacts', state.appId, 'signals', 'broadcast'), {
-            msg: text,
-            timestamp: Timestamp.now()
+        const { doc, setDoc } = state.fb;
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'), {
+            text: text,
+            timestamp: Date.now()
         });
         
         showToast("Nachricht gesendet!", 'success');
@@ -232,3 +246,10 @@ export async function saveAppConfig() {
         showToast("Fehler beim Speichern", 'error');
     }
 }
+
+export function resetApp() {
+    console.warn("resetApp is deprecated");
+    localStorage.clear();
+    location.reload();
+}
+

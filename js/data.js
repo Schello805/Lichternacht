@@ -1,7 +1,5 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
-import { refreshMapMarkers } from './map.js';
-import { renderList, renderTimeline } from './ui.js';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -77,16 +75,25 @@ export async function loadData() {
 
             const sCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'stations');
             const sSnap = await getDocs(sCol);
-            state.stations = sSnap.empty ? seedStations : [];
-            // Clear array and push
-            state.stations.length = 0;
-            sSnap.forEach(doc => state.stations.push(doc.data()));
+            
+            if (sSnap.empty) {
+                console.log("Firestore stations empty, using seed data");
+                state.stations = [...seedStations];
+            } else {
+                state.stations = [];
+                sSnap.forEach(doc => state.stations.push(doc.data()));
+            }
 
             const eCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'events');
             const eSnap = await getDocs(eCol);
-            state.events = eSnap.empty ? seedEvents : [];
-            state.events.length = 0;
-            eSnap.forEach(doc => state.events.push(doc.data()));
+            
+            if (eSnap.empty) {
+                console.log("Firestore events empty, using seed data");
+                state.events = [...seedEvents];
+            } else {
+                state.events = [];
+                eSnap.forEach(doc => state.events.push(doc.data()));
+            }
         } catch (e) {
             console.warn("Firestore load failed (CORS/Offline?), falling back to seed data.", e);
             showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
@@ -94,9 +101,10 @@ export async function loadData() {
             state.events = seedEvents;
         }
     }
-    refreshMapMarkers();
-    renderList(state.stations);
-    renderTimeline();
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+    if (window.renderList) window.renderList(state.stations);
+    if (window.renderTimeline) window.renderTimeline();
+    if (window.renderFilterBar) window.renderFilterBar();
 }
 
 export async function saveData(type, item) {
@@ -150,17 +158,7 @@ export async function syncGlobalConfig() {
     }
 }
 
-export async function changeYear() {
-    const newYear = prompt("Neues Jahr eingeben (z.B. 2026).\nACHTUNG: Dies wechselt die Datenbank für ALLE Nutzer sofort!");
-    if (!newYear || newYear.length !== 4) return;
-
-    try {
-        const { doc, setDoc } = state.fb;
-        await setDoc(doc(state.db, 'global', 'config'), { activeYear: newYear }, { merge: true });
-        alert(`Jahr auf ${newYear} geändert. Die Seite wird neu geladen.`);
-        location.reload();
-    } catch (e) {
-        console.error(e);
-        alert("Fehler beim Ändern des Jahres.");
-    }
+export function changeYear() {
+    console.warn("changeYear is deprecated");
 }
+

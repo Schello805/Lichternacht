@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
-import { loadData, syncGlobalConfig, changeYear } from './js/data.js';
+import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js';
 import {
@@ -11,18 +11,28 @@ import {
     handleImageUpload, editStation, openEventModal, closeEventModal,
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
-    openBugReportModal, submitBugReport, editEvent, applyStationToEvent
+    openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
+    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker
 } from './js/ui.js';
 import {
-    uploadSeedData, resetApp, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig
+    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-console.log("Lichternacht App v1.1.11 loaded");
+const APP_VERSION = "1.4.5";
+console.log(`Lichternacht App v${APP_VERSION} loaded`);
+window.state = state; // Explicitly bind state to window
+
+// Forced Reload Mechanism for Major Updates
+const lastVersion = localStorage.getItem('app_version');
+if (lastVersion !== APP_VERSION) {
+    console.log(`Version changed from ${lastVersion} to ${APP_VERSION}. Cleaning up...`);
+    localStorage.setItem('app_version', APP_VERSION);
+    // Optional: clear specific caches if needed, but SW update usually handles it.
+}
 window.performLogin = performLogin;
 window.logoutAdmin = logoutAdmin;
 window.uploadSeedData = uploadSeedData;
-window.resetApp = resetApp;
 window.toggleAdminPanel = toggleAdminPanel;
 window.importData = importData;
 window.handleAdminAdd = handleAdminAdd;
@@ -37,8 +47,27 @@ window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
 window.openModal = openModal;
 window.closeModal = closeModal;
-window.switchTab = switchTab;
-window.toggleDarkMode = toggleDarkMode;
+
+// Navigation Bindings (Robust)
+window.switchTab = (tab) => {
+    console.log("window.switchTab called", tab);
+    switchTab(tab);
+};
+window.appSwitchTab = window.switchTab; // Alias for safety
+
+window.flyToStation = (lat, lng) => {
+    if (state.map) {
+        state.map.flyTo([lat, lng], 18);
+        window.switchTab('map');
+    } else {
+        console.error("Map not initialized");
+    }
+};
+
+window.toggleDarkMode = () => {
+    toggleDarkMode();
+    updateMapTiles(document.documentElement.classList.contains('dark'));
+};
 window.openHelpModal = openHelpModal;
 window.closeHelpModal = closeHelpModal;
 window.saveStationChanges = saveStationChanges;
@@ -60,7 +89,6 @@ window.deleteEvent = deleteEvent;
 window.shareStation = shareStation;
 window.filterStations = filterStations;
 window.filterList = filterList;
-window.changeYear = changeYear;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
 window.resetMap = resetMap;
@@ -69,6 +97,11 @@ window.generateICS = generateICS;
 window.searchAddress = searchAddress;
 window.openBugReportModal = openBugReportModal;
 window.submitBugReport = submitBugReport;
+window.renderList = renderList;
+window.renderTimeline = renderTimeline;
+window.renderFilterBar = renderFilterBar;
+window.openStation = openStation;
+window.startEventPicker = startEventPicker;
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');
@@ -81,14 +114,6 @@ window.toggleAdminLogin = () => {
 };
 
 window.onload = async () => {
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-        try {
-            await navigator.serviceWorker.register('./sw.js');
-            console.log('SW registered');
-        } catch (e) { console.log('SW fail', e); }
-    }
-
     // Load Favorites
     const savedFavs = localStorage.getItem('favorites');
     if (savedFavs) state.favorites = new Set(JSON.parse(savedFavs));
@@ -103,11 +128,6 @@ window.onload = async () => {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => filterStations(e.target.value));
     }
-
-    // Navigation
-    document.getElementById('nav-map').addEventListener('click', () => switchTab('map'));
-    document.getElementById('nav-list').addEventListener('click', () => switchTab('list'));
-    document.getElementById('nav-events').addEventListener('click', () => switchTab('events'));
 
     // Notifications: Request permission on first user interaction
     const requestNotif = () => {
@@ -134,7 +154,9 @@ window.onload = async () => {
     const fbReady = await initFirebase();
 
     if (fbReady) {
-        state.appId = typeof __app_id !== 'undefined' ? __app_id : 'lichternacht-2025';
+        state.appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'lichternacht';
+        console.log("Using App ID:", state.appId);
+        
         await syncGlobalConfig();
         initPresence();
         initAuthListener(); // Loads data on auth state change

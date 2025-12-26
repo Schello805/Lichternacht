@@ -14,7 +14,7 @@ export const state = {
     downloads: { flyer1: '', flyer2: '' },
     config: {
         title: 'LICHTERNACHT',
-        subtitle: 'Bechhofen | 22. Nov 2025'
+        subtitle: 'Bechhofen | 22. Nov'
     },
     useLocalStorage: false,
     db: null,

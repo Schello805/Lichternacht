@@ -66,6 +66,15 @@ export function openModal(target) {
     }
 }
 
+export function openStation(id) {
+    const s = state.stations.find(x => x.id == id);
+    if (s) {
+        openModal(s);
+    } else {
+        console.error("Station not found:", id);
+    }
+}
+
 export function closeModal(id) {
     if (!id) {
         // Default to detail modal if no ID passed (e.g. from X button)
@@ -86,31 +95,81 @@ export function closeModal(id) {
 }
 
 export function switchTab(tab) {
-    // Hide all contents
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    console.log("switchTab called for:", tab);
+    
+    // Hide all views
+    const views = ['view-map', 'view-list', 'view-events'];
+    views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('hidden');
+            el.style.display = 'none'; 
+        }
+    });
     
     // Deactivate all nav buttons
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('text-yellow-600', 'font-bold'));
+    const navs = ['nav-map', 'nav-list', 'nav-events'];
+    navs.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.classList.remove('tab-active', 'text-yellow-600', 'font-bold');
+            btn.classList.add('tab-inactive', 'text-gray-500');
+        }
+    });
     
-    // Show selected
-    const content = document.getElementById(`tab-${tab}`);
-    if (content) content.classList.remove('hidden');
+    // Show selected view
+    const content = document.getElementById(`view-${tab}`);
+    if (content) {
+        content.classList.remove('hidden');
+        content.style.display = ''; 
+        if (tab === 'list') content.style.display = 'flex';
+        else content.style.display = 'block';
+        
+        console.log("Showing view:", `view-${tab}`);
+    } else {
+        console.error("View not found:", `view-${tab}`);
+    }
     
-    // Activate button
-    const btn = document.getElementById(`nav-${tab}`);
-    if (btn) btn.classList.add('text-yellow-600', 'font-bold');
+    // Activate selected button
+    const activeBtn = document.getElementById(`nav-${tab}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('tab-inactive', 'text-gray-500');
+        activeBtn.classList.add('tab-active', 'text-yellow-600', 'font-bold');
+    }
 
     if (tab === 'map') {
-        // Trigger map resize if needed
-        window.dispatchEvent(new Event('resize'));
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            if (state.map) state.map.invalidateSize();
+        }, 50);
     }
 }
+
+// Alias for backward compatibility
+export const appSwitchTab = switchTab;
 
 export function toggleDarkMode() {
     document.documentElement.classList.toggle('dark');
     const isDark = document.documentElement.classList.contains('dark');
     localStorage.setItem('darkMode', isDark);
     updateDarkModeIcon(isDark);
+    
+    // JS Fallback for styling (if CSS fails/lags)
+    const header = document.getElementById('main-header');
+    if (header) {
+        header.style.backgroundColor = isDark ? 'rgba(17, 24, 39, 0.9)' : '';
+        header.style.borderBottomColor = isDark ? 'rgba(202, 138, 4, 0.2)' : '';
+    }
+    const map = document.getElementById('map');
+    if (map) {
+        map.style.backgroundColor = isDark ? '#1f2937' : '';
+    }
+    
+    // Update Meta Theme Color
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+        meta.content = isDark ? '#111827' : '#fbbf24';
+    }
 }
 
 export function updateDarkModeIcon(isDark) {
@@ -130,19 +189,72 @@ export function closeHelpModal() {
 
 // --- Rendering ---
 
+export const TAG_TRANSLATIONS = {
+    'food': 'Essen',
+    'drink': 'Getränke',
+    'kids': 'Kinder',
+    'wc': 'WC',
+    'shop': 'Einkaufen',
+    'culture': 'Kultur',
+    'party': 'Party',
+    'event': 'Event'
+};
+
+let currentFilter = 'all';
+
+export function renderFilterBar() {
+    const container = document.getElementById('filter-bar');
+    if (!container) return;
+
+    // Collect all tags from stations
+    const allTags = new Set();
+    state.stations.forEach(s => {
+        if (s.tags) s.tags.forEach(t => allTags.add(t));
+    });
+    
+    // Add default tags that should always appear if they exist or not? 
+    // Maybe just show what we have.
+    // Ensure the basic ones are there if they are in data.
+    
+    const sortedTags = [...allTags].sort();
+
+    let html = `
+        <button onclick="filterList('all')" data-tag="all" 
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
+        <button onclick="filterList('favorites')" data-tag="favorites" 
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
+    `;
+
+    sortedTags.forEach(tag => {
+        const label = TAG_TRANSLATIONS[tag] || tag;
+        const isActive = currentFilter === tag;
+        const classes = isActive 
+            ? 'active bg-yellow-600 text-white' 
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50';
+            
+        html += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
+    });
+
+    container.innerHTML = html;
+}
+
 export function renderList(stations) {
-    const container = document.getElementById('list-container');
+    const container = document.getElementById('stations-list');
     if (!container) return;
     
-    container.innerHTML = stations.map(s => `
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4" onclick="state.map.flyTo([${s.lat}, ${s.lng}], 18); switchTab('map');">
+    container.innerHTML = stations.map(s => {
+        const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
+        
+        return `
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4" onclick="openStation('${s.id}')">
             <h3 class="font-bold text-lg">${s.name}</h3>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
-            <div class="mt-2 flex gap-2">
-                ${s.tags ? s.tags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">${t}</span>`).join('') : ''}
+            <div class="mt-2 flex gap-2 flex-wrap">
+                ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">${t}</span>`).join('')}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 export function filterStations(query) {
@@ -156,10 +268,78 @@ export function filterStations(query) {
 }
 
 export function filterList(tag) {
+    currentFilter = tag;
+    
+    // Update active button state
+    const buttons = document.querySelectorAll('.filter-btn');
+    buttons.forEach(btn => {
+        const btnTag = btn.dataset.tag;
+        if (btnTag === tag) {
+            btn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
+            btn.classList.add('active', 'bg-yellow-600', 'text-white');
+            // Update heart icon if it's favorites
+            const icon = btn.querySelector('.ph-heart');
+            if(icon) { icon.classList.remove('text-red-500'); icon.classList.add('text-white'); }
+        } else {
+            btn.classList.remove('active', 'bg-yellow-600', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
+            // Reset heart icon
+            const icon = btn.querySelector('.ph-heart');
+            if(icon) { icon.classList.remove('text-white'); icon.classList.add('text-red-500'); }
+        }
+    });
+
+    if (tag === 'all') {
+        renderList(state.stations);
+        return;
+    }
+    
+    if (tag === 'favorites') {
+        const favs = state.stations.filter(s => state.favorites.has(s.id));
+        renderList(favs);
+        if (favs.length === 0) {
+            showToast("Keine Favoriten markiert", 'info');
+        }
+        return;
+    }
+
     // Filter by tag
     const filtered = state.stations.filter(s => s.tags && s.tags.includes(tag));
     renderList(filtered);
 }
+
+// --- Helper for Tag Picking ---
+function renderTagPicker() {
+    const container = document.getElementById('available-tags');
+    const input = document.getElementById('edit-tags');
+    if (!container || !input) return;
+
+    // Default + Existing Tags
+    const allTags = new Set(Object.keys(TAG_TRANSLATIONS));
+    state.stations.forEach(s => s.tags?.forEach(t => allTags.add(t)));
+    
+    // Parse current input
+    const currentTags = new Set(input.value.split(',').map(t => t.trim()).filter(t => t));
+
+    container.innerHTML = [...allTags].sort().map(tag => {
+        const label = TAG_TRANSLATIONS[tag] || tag;
+        const isActive = currentTags.has(tag);
+        const bg = isActive ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+        return `<span onclick="toggleEditTag('${tag}')" class="cursor-pointer px-2 py-1 rounded text-xs select-none transition-colors ${bg}">${label}</span>`;
+    }).join('');
+}
+
+window.toggleEditTag = (tag) => {
+    const input = document.getElementById('edit-tags');
+    let tags = input.value.split(',').map(t => t.trim()).filter(t => t);
+    if (tags.includes(tag)) {
+        tags = tags.filter(t => t !== tag);
+    } else {
+        tags.push(tag);
+    }
+    input.value = tags.join(', ');
+    renderTagPicker(); 
+};
 
 // --- Editing / Admin ---
 
@@ -179,6 +359,10 @@ export function editStation(id) {
     document.getElementById('edit-lng').value = s.lng;
     document.getElementById('edit-tags').value = (s.tags || []).join(', ');
     document.getElementById('edit-time').value = s.time || '';
+
+    // Init Tag Picker
+    renderTagPicker();
+    document.getElementById('edit-tags').oninput = () => renderTagPicker();
 
     // Image preview in edit mode (optional, maybe just text or reusing the main image container)
     // For now we rely on the main image container being visible if set.
@@ -235,6 +419,7 @@ export async function saveStationChanges() {
         
         // Refresh UI
         renderList(state.stations);
+        renderFilterBar();
         if (window.refreshMapMarkers) window.refreshMapMarkers(); // Need to import or availability check
         
         // Go back to view mode
@@ -256,6 +441,7 @@ export async function deleteStation(id) {
         // Refresh UI
         state.stations = state.stations.filter(s => s.id != sId);
         renderList(state.stations);
+        renderFilterBar();
         if (window.refreshMapMarkers) window.refreshMapMarkers();
         
         closeModal();
@@ -508,6 +694,48 @@ export function searchStationAddress() {
    console.log("searchStationAddress placeholder");
 }
 
+export function startEventPicker() {
+    closeEventModal();
+    switchTab('map');
+    
+    // Create/Show Picker UI
+    let picker = document.getElementById('map-picker');
+    if (!picker) {
+        picker = document.createElement('div');
+        picker.id = 'map-picker';
+        picker.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[500] pointer-events-none';
+        picker.innerHTML = `<i class="ph-fill ph-map-pin text-4xl text-red-600 drop-shadow-md pb-4"></i>`;
+        document.getElementById('map').appendChild(picker);
+    }
+    picker.classList.remove('hidden');
+
+    // Show Confirm Button
+    let btn = document.getElementById('map-picker-confirm');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'map-picker-confirm';
+        btn.className = 'absolute bottom-24 left-1/2 transform -translate-x-1/2 z-[500] bg-red-600 text-white px-6 py-3 rounded-full font-bold shadow-lg';
+        btn.innerText = 'Position für Event wählen';
+        btn.onclick = () => {
+            const center = state.map.getCenter();
+            
+            // Re-open Modal
+            openEventModal();
+            
+            // Fill Coords
+            document.getElementById('evt-lat').value = center.lat.toFixed(6);
+            document.getElementById('evt-lng').value = center.lng.toFixed(6);
+            
+            // Cleanup
+            picker.classList.add('hidden');
+            btn.classList.add('hidden');
+        };
+        document.body.appendChild(btn);
+    }
+    btn.classList.remove('hidden');
+    btn.innerText = 'Position für Event wählen'; // Ensure text is correct for event context
+}
+
 export function startStationPicker() {
     console.log("startStationPicker called");
 }
@@ -539,10 +767,39 @@ export function generateICS() {
 
     let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Lichternacht//DE\n";
     
+    // Determine Base Date
+    let year, month, day;
+    const configDate = state.downloads?.icsDate;
+    
+    if (configDate) {
+        // Try DD.MM.YYYY
+        const deMatch = configDate.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (deMatch) {
+            year = parseInt(deMatch[3]);
+            month = parseInt(deMatch[2]) - 1;
+            day = parseInt(deMatch[1]);
+        } else {
+            // Try YYYYMMDD
+            const isoMatch = configDate.match(/^(\d{4})(\d{2})(\d{2})$/);
+            if (isoMatch) {
+                year = parseInt(isoMatch[1]);
+                month = parseInt(isoMatch[2]) - 1;
+                day = parseInt(isoMatch[3]);
+            }
+        }
+    }
+
+    if (year === undefined) {
+         const now = new Date();
+         year = now.getFullYear();
+         month = now.getMonth();
+         day = now.getDate();
+    }
+    
     state.events.forEach(e => {
         const [h, m] = e.time.split(':');
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+        // use parsed date
+        const start = new Date(year, month, day, h, m);
         const end = new Date(start.getTime() + 30 * 60000); // 30 min default duration
         
         const format = (date) => date.toISOString().replace(/-|:|\.\d+/g, "");
@@ -624,7 +881,7 @@ export function renderTimeline() {
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${e.loc}</span>
-                    <button onclick="state.map.flyTo([${e.lat}, ${e.lng}], 18); switchTab('map');" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
+                    <button onclick="flyToStation(${e.lat}, ${e.lng})" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
                 </div>
             </div>
         </div>

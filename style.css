@@ -147,6 +147,12 @@ h3,
     border-top-color: #374151;
 }
 
+/* Header Override */
+.dark header {
+    background-color: rgba(17, 24, 39, 0.9) !important;
+    border-bottom-color: rgba(202, 138, 4, 0.2) !important;
+}
+
 .dark .bg-white {
     background-color: #1f2937;
     color: #f3f4f6;

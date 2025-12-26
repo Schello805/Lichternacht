@@ -1,6 +1,5 @@
 import { state } from './state.js';
 import { showToast, setLoading } from './utils.js';
-import { openModal } from './ui.js';
 import { saveData } from './data.js';
 
 let tileLayer;
@@ -11,12 +10,22 @@ export function initMap() {
 }
 
 export function updateMapTiles(isDark) {
+    if (!state.map) return;
     console.log('Update Map Tiles:', isDark ? 'DARK' : 'LIGHT');
-    if (tileLayer) state.map.removeLayer(tileLayer);
+    
+    if (tileLayer) {
+        state.map.removeLayer(tileLayer);
+        tileLayer = null; // Clear reference
+    }
+    
     const tileUrl = isDark
         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    tileLayer = L.tileLayer(tileUrl, { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }).addTo(state.map);
+        
+    tileLayer = L.tileLayer(tileUrl, { 
+        attribution: '&copy; OpenStreetMap &copy; CARTO', 
+        maxZoom: 19 
+    }).addTo(state.map);
 }
 
 export function refreshMapMarkers() {
@@ -39,7 +48,7 @@ export function refreshMapMarkers() {
         marker.on('click', () => {
             // Prevent click when dragging
             if (marker._isDragging) return;
-            openModal(s);
+            if (window.openModal) window.openModal(s);
         });
 
         if (isDraggable) {

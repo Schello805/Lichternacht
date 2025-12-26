@@ -3,7 +3,7 @@ import socketserver
 import os
 import cgi
 
-PORT = 8080
+PORT = 8000
 UPLOAD_DIR = 'downloads'
 
 if not os.path.exists(UPLOAD_DIR):

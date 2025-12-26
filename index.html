@@ -22,7 +22,7 @@
         };
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lichternacht Bechhofen 2025</title>
+    <title>Lichternacht Bechhofen</title>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#fbbf24">
@@ -32,7 +32,7 @@
     <meta name="apple-mobile-web-app-title" content="Lichternacht">
 
     <!-- Open Graph / Social Sharing -->
-    <meta property="og:title" content="Lichternacht Bechhofen 2025">
+    <meta property="og:title" content="Lichternacht Bechhofen">
     <meta property="og:description" content="Die offizielle App zur Lichternacht. Karte, Programm und Infos.">
     <meta property="og:image" content="icon.png">
     <meta property="og:url" content="https://lichternacht.bechhofen.de">
@@ -44,7 +44,7 @@
     <link rel="manifest" href="manifest.json">
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css" rel="stylesheet">
+    <link href="./dist/output.css?v=1.1.14" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -60,7 +60,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.1.14">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -129,19 +129,19 @@
         <div id="toast-container"></div>
 
         <!-- Header -->
-        <header
-            class="bg-white/90 backdrop-blur-md p-4 border-b border-yellow-600/30 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
+        <header id="main-header"
+            class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-4 border-b border-yellow-600/30 dark:border-yellow-600/20 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
             <div class="flex items-center gap-3">
                 <img src="icon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-yellow-500 shadow-sm">
                 <div>
-                    <h1 id="app-title" class="text-xl font-bold text-yellow-700 tracking-wider brand-font">LICHTERNACHT
+                    <h1 id="app-title" class="text-xl font-bold text-yellow-700 dark:text-yellow-500 tracking-wider brand-font">LICHTERNACHT
                     </h1>
-                    <p id="app-subtitle" class="text-xs text-yellow-800/70"></p>
+                    <p id="app-subtitle" class="text-xs text-yellow-800/70 dark:text-yellow-500/70"></p>
                 </div>
             </div>
             <div class="flex items-center gap-1">
                 <div id="status-indicator"
-                    class="hidden text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 font-medium mr-1">
+                    class="hidden text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 font-medium mr-1">
                     Starten...</div>
 
                 <!-- Notification Bell -->
@@ -262,7 +262,7 @@
                     <!-- ICS Date -->
                     <div class="flex gap-2 items-center">
                         <input id="admin-ics-date" type="text"
-                            placeholder="ICS Datum (YYYYMMDD, z.B. 20251122) oder leer lassen"
+                            placeholder="ICS Datum (z.B. 22.11.2025) oder leer lassen"
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                         <span class="text-[10px] text-gray-500 w-24">Leer = Ausgeblendet</span>
                     </div>
@@ -287,25 +287,6 @@
                 <p class="text-xs text-gray-500 mt-2">Erscheint sofort bei allen aktiven Nutzern.</p>
             </div>
 
-            <!-- System -->
-            <div
-                class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 border-t border-gray-200 dark:border-gray-600 pt-4">
-                <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">5. System & Datenbank</h4>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="uploadSeedData()"
-                        class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm flex items-center gap-2">
-                        <i class="ph ph-cloud-arrow-up"></i> Demo-Upload
-                    </button>
-                    <button onclick="changeYear()"
-                        class="bg-orange-600 text-white px-3 py-2 rounded hover:bg-orange-700 text-sm flex items-center gap-2">
-                        <i class="ph ph-calendar"></i> Jahr ändern
-                    </button>
-                    <button onclick="resetApp()"
-                        class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 text-sm flex items-center gap-2">
-                        <i class="ph ph-trash"></i> App Reset
-                    </button>
-                </div>
-            </div>
         </div>
 
         <!-- Floating Status Elements (Bottom Right) -->
@@ -343,7 +324,7 @@
 
             <!-- VIEW: KARTE -->
             <div id="view-map" class="view-section h-full w-full relative">
-                <div id="map" class="h-full w-full bg-gray-200"></div>
+                <div id="map" class="h-full w-full bg-gray-200 dark:bg-gray-800"></div>
 
                 <!-- Admin Export Panel -->
 
@@ -351,11 +332,11 @@
                 <!-- Map Controls -->
                 <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
                     <button onclick="locateUser()"
-                        class="bg-white text-yellow-600 p-3 rounded-full shadow-lg border border-gray-200 active:bg-gray-50 transition-colors">
+                        class="bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
                         <i class="ph ph-crosshair text-xl"></i>
                     </button>
                     <button onclick="resetMap()"
-                        class="bg-white text-gray-700 p-3 rounded-full shadow-lg border border-gray-200 active:bg-gray-50 transition-colors">
+                        class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
                         <i class="ph ph-house text-xl"></i>
                     </button>
                 </div>
@@ -381,19 +362,19 @@
                         <input type="text" id="search-input" placeholder="Suche..."
                             class="w-full bg-white text-gray-800 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-300 shadow-sm">
                     </div>
-                    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                        <button onclick="filterList('all')"
+                    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        <button onclick="filterList('all')" data-tag="all"
                             class="filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm">Alle</button>
-                        <button onclick="filterList('favorites')"
+                        <button onclick="filterList('favorites')" data-tag="favorites"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
                                 class="ph-fill ph-heart text-red-500 mr-1"></i>Favoriten</button>
-                        <button onclick="filterList('food')"
+                        <button onclick="filterList('food')" data-tag="food"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Essen</button>
-                        <button onclick="filterList('drink')"
+                        <button onclick="filterList('drink')" data-tag="drink"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Getränke</button>
-                        <button onclick="filterList('kids')"
+                        <button onclick="filterList('kids')" data-tag="kids"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Kinder</button>
-                        <button onclick="filterList('wc')"
+                        <button onclick="filterList('wc')" data-tag="wc"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">WC</button>
                     </div>
                 </div>
@@ -428,15 +409,15 @@
 
         <!-- Navigation -->
         <nav class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
-            <div id="nav-map" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
+            <div id="nav-map" onclick="window.switchTab('map')" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
                 <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Karte</span>
             </div>
-            <div id="nav-list" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            <div id="nav-list" onclick="window.switchTab('list')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
                 <i class="ph ph-list-dashes text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Stationen</span>
             </div>
-            <div id="nav-events" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            <div id="nav-events" onclick="window.switchTab('events')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
                 <i class="ph ph-calendar-star text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Programm</span>
             </div>
@@ -617,7 +598,10 @@
                         placeholder="Adresse suchen (optional, z.B. Kirche Bechhofen)">
                     <button onclick="searchAddress()"
                         class="w-full bg-gray-100 text-gray-700 text-xs py-1.5 rounded border border-gray-300 hover:bg-gray-200">
-                        Adresse suchen & Koordinaten übernehmen (ansonsten Karte + 📍 nutzen)
+                        Adresse suchen & Koordinaten übernehmen (ansonsten Karte + nutzen)
+                    </button>
+                    <button onclick="startEventPicker()" class="w-full mt-2 bg-blue-100 text-blue-700 text-xs py-1.5 rounded border border-blue-300 hover:bg-blue-200 font-bold">
+                        Karte wählen
                     </button>
                 </div>
 
@@ -856,7 +840,30 @@
 
     <script src="config.js"></script>
 
-    <script type="module" src="main.js?v=1.1.12"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    // NUCLEAR OPTION: Unregister all existing SWs first
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        console.log('Unregistering old SW:', registration);
+                        await registration.unregister();
+                    }
+                    
+                    // Register new SW
+                    const reg = await navigator.serviceWorker.register('./sw.js?v=1.4.5', {
+                        scope: './',
+                        updateViaCache: 'none'
+                    });
+                    console.log('SW registered via inline script', reg);
+                } catch (err) {
+                    console.log('SW registration failed', err);
+                }
+            });
+        }
+    </script>
+    <script type="module" src="main.js?v=1.4.5"></script>
 </body>
 
 </html>
