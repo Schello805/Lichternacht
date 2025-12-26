@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.9';
+const CACHE_NAME = 'lichternacht-v1.4.10';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -8,21 +8,20 @@ if (workbox) {
     // Precache & Route
     // Wir nutzen hier Runtime Caching für alles, da wir keine Build-Step haben.
 
+    // Explicitly deny caching for Firestore/Google APIs (Network Only)
+    workbox.routing.registerRoute(
+        ({ url }) => url.origin.includes('firestore.googleapis.com') || 
+                     url.origin.includes('googleapis.com') || 
+                     url.origin.includes('firebase'),
+        new workbox.strategies.NetworkOnly()
+    );
+
     // Cache HTML, CSS, JS (inkl. lokale Vendor-Files)
     workbox.routing.registerRoute(
-        ({ request, url }) => {
-            // Exclude Firestore/Google APIs from interception
-            if (url.origin.includes('firestore.googleapis.com') || 
-                url.origin.includes('googleapis.com') ||
-                url.origin.includes('firebase')) {
-                return false;
-            }
-
-            return request.destination === 'document' ||
-                request.destination === 'script' ||
-                request.destination === 'style' ||
-                request.destination === 'worker';
-        },
+        ({ request }) => request.destination === 'document' ||
+            request.destination === 'script' ||
+            request.destination === 'style' ||
+            request.destination === 'worker',
         new workbox.strategies.NetworkFirst({
             cacheName: CACHE_NAME,
             networkTimeoutSeconds: 3,
