@@ -647,7 +647,7 @@
     <div id="help-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeHelpModal()"></div>
         <div
-            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+            class="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
             <button onclick="closeHelpModal()"
                 class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <i class="ph ph-x text-2xl"></i>
@@ -745,7 +745,7 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
-                <p class="text-xs text-gray-400 mb-2">Version 1.0 • Made with ❤️</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.4.6 • Made with ❤️</p>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
@@ -852,7 +852,7 @@
                     }
                     
                     // Register new SW
-                    const reg = await navigator.serviceWorker.register('./sw.js?v=1.4.5', {
+                    const reg = await navigator.serviceWorker.register('./sw.js?v=1.4.6', {
                         scope: './',
                         updateViaCache: 'none'
                     });
@@ -863,7 +863,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.5"></script>
+    <script type="module" src="main.js?v=1.4.6"></script>
 </body>
 
 </html>
