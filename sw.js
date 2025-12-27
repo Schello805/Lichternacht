@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.14';
+const CACHE_NAME = 'lichternacht-v1.4.16';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -11,9 +11,16 @@ if (workbox) {
     // Explicitly deny caching for Firestore/Google APIs (Network Only)
     // We do NOT register a route for them, so they fall through to the browser network handler
     
-    // Cache HTML, CSS, JS (inkl. lokale Vendor-Files)
+    // Cache HTML, CSS, JS, Manifest (Same Origin Only)
     workbox.routing.registerRoute(
         ({ request, url }) => {
+            // REDUNDANT SAFETY: Explicitly exclude external APIs
+            if (url.href.includes('firestore.googleapis.com') || 
+                url.href.includes('googleapis.com') || 
+                url.href.includes('firebase')) {
+                return false;
+            }
+
             // STRICT SAFETY: Only cache same-origin requests
             if (url.origin !== self.location.origin) {
                 return false;
@@ -22,7 +29,8 @@ if (workbox) {
             return request.destination === 'document' ||
                 request.destination === 'script' ||
                 request.destination === 'style' ||
-                request.destination === 'worker';
+                request.destination === 'worker' ||
+                request.destination === 'manifest';
         },
         new workbox.strategies.NetworkFirst({
             cacheName: CACHE_NAME,
@@ -30,9 +38,22 @@ if (workbox) {
         })
     );
 
-    // Cache Images
+    // Cache Images (Same Origin Only)
     workbox.routing.registerRoute(
-        ({ request }) => request.destination === 'image',
+        ({ request, url }) => {
+            // REDUNDANT SAFETY: Explicitly exclude external APIs
+            if (url.href.includes('firestore.googleapis.com') || 
+                url.href.includes('googleapis.com') || 
+                url.href.includes('firebase')) {
+                return false;
+            }
+
+            // STRICT SAFETY: Only cache same-origin requests
+            if (url.origin !== self.location.origin) {
+                return false;
+            }
+            return request.destination === 'image';
+        },
         new workbox.strategies.CacheFirst({
             cacheName: 'images',
             plugins: [
