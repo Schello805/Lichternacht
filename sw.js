@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.13';
+const CACHE_NAME = 'lichternacht-v1.4.14';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -14,10 +14,8 @@ if (workbox) {
     // Cache HTML, CSS, JS (inkl. lokale Vendor-Files)
     workbox.routing.registerRoute(
         ({ request, url }) => {
-            // Safety: Exclude Firestore/Google APIs from ANY interception in this route
-            if (url.origin.includes('firestore.googleapis.com') || 
-                url.origin.includes('googleapis.com') || 
-                url.origin.includes('firebase')) {
+            // STRICT SAFETY: Only cache same-origin requests
+            if (url.origin !== self.location.origin) {
                 return false;
             }
 
