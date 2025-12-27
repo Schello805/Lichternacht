@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.16';
+const CACHE_NAME = 'lichternacht-v1.4.17';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -29,8 +29,7 @@ if (workbox) {
             return request.destination === 'document' ||
                 request.destination === 'script' ||
                 request.destination === 'style' ||
-                request.destination === 'worker' ||
-                request.destination === 'manifest';
+                request.destination === 'worker';
         },
         new workbox.strategies.NetworkFirst({
             cacheName: CACHE_NAME,
