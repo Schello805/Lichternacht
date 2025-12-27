@@ -18,8 +18,8 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 ```
 /
 ├── index.html          # Hauptseite (App Shell)
-├── app.js              # Einstiegspunkt (Main Entry)
-├── sw.js               # Service Worker (Offline-Fähigkeit & Caching)
+├── main.js             # Einstiegspunkt (Main Entry)
+├── service-worker.js   # Service Worker (Offline-Fähigkeit & Caching)
 ├── manifest.json       # PWA Konfiguration (Name, Icons, Farben)
 ├── firestore.rules     # Sicherheitsregeln für die Datenbank
 ├── deploy.sh           # Deployment-Skript für den Server
@@ -111,6 +111,6 @@ Stelle sicher, dass deine Firebase Security Rules (`firestore.rules`) in der Fir
 
 ## 🆘 Notfall-Hilfe
 
-*   **App lädt nicht?** Cache leeren oder `sw.js` unregisteren.
+*   **App lädt nicht?** Cache leeren oder `service-worker.js` unregisteren.
 *   **Keine Daten?** Prüfe die Browser-Konsole (F12) auf rote Fehler.
 *   **Login geht nicht?** Prüfe in der Firebase Console, ob "Email/Password" und "Anonymous" aktiviert sind.
