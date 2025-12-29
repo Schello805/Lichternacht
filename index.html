@@ -440,6 +440,9 @@
                     <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                         <button onclick="filterList('all')" data-tag="all"
                             class="filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm">Alle</button>
+                        <button onclick="filterList('proximity')" data-tag="proximity"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
+                                class="ph-fill ph-navigation-arrow text-blue-500 mr-1"></i>Nähe</button>
                         <button onclick="filterList('favorites')" data-tag="favorites"
                             class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
                                 class="ph-fill ph-heart text-red-500 mr-1"></i>Favoriten</button>
@@ -959,7 +962,7 @@
                     }
 
                     // Register NEW SW
-                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.33', {
+                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.34', {
                         scope: './',
                         updateViaCache: 'none'
                     });
@@ -989,7 +992,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.33"></script>
+    <script type="module" src="main.js?v=1.4.34"></script>
 </body>
 
 </html>
