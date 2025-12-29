@@ -167,54 +167,61 @@
 
         <!-- Admin Export Panel (Global) -->
         <div id="admin-panel"
-            class="hidden admin-panel absolute top-20 left-5 right-5 bg-white p-5 rounded-lg shadow-xl z-[5000] max-h-[80vh] overflow-y-auto">
+            class="hidden admin-panel absolute top-20 left-5 right-5 bg-white dark:bg-gray-800 dark:text-white p-5 rounded-lg shadow-xl z-[5000] max-h-[80vh] overflow-y-auto">
             <h3 class="font-bold text-lg mb-2">Admin Konsole</h3>
-            <p class="text-sm text-gray-600 mb-4">Verwalte hier Daten, Downloads und Nachrichten.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Verwalte hier Daten, Downloads und Nachrichten.</p>
 
-            <h4 class="font-bold text-sm mb-2 mt-4 border-b pb-1">1. Daten (Excel/Tabelle)</h4>
-            <textarea id="export-area"
-                class="w-full h-64 p-2 border rounded text-xs font-mono bg-gray-50 mb-4 whitespace-pre"></textarea>
-            <div class="flex justify-end gap-2 mb-6"></div>
-                <!-- JSON Dump -->
-                <div class="tooltip-container">
-                    <button onclick="dumpData()"
-                        class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">JSON
-                        Dump</button>
-                    <span class="tooltip-text">Erzeugt ein Backup aller Daten als JSON in der
-                        Konsole/Zwischenablage.</span>
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden" open>
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>1. Daten (Excel/Tabelle)</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <textarea id="export-area"
+                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-white dark:bg-gray-800 dark:text-white mb-4 whitespace-pre mt-3"></textarea>
+                    <div class="flex justify-end gap-2 flex-wrap">
+                        <!-- JSON Dump -->
+                        <div class="tooltip-container">
+                            <button onclick="dumpData()"
+                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-xs">JSON
+                                Dump</button>
+                            <span class="tooltip-text">Erzeugt ein Backup aller Daten als JSON in der
+                                Konsole/Zwischenablage.</span>
+                        </div>
+
+                        <!-- Download JS -->
+                        <div class="tooltip-container">
+                            <button onclick="downloadDataJs()"
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-xs">Download
+                                data.js</button>
+                            <span class="tooltip-text">Lädt eine fertige 'data.js' Datei mit den aktuellen Daten
+                                herunter. Ersetze damit die Datei in 'js/data.js'.</span>
+                        </div>
+
+                        <!-- Scripts -->
+                        <!-- Import -->
+                        <div class="tooltip-container">
+                            <button onclick="importData()"
+                                class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-xs">Importieren
+                                (Cloud)</button>
+                            <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
+                                Feld oben.</span>
+                        </div>
+
+                        <!-- Copy -->
+                        <div class="tooltip-container">
+                            <button
+                                onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-xs">Kopieren</button>
+                            <span class="tooltip-text">Kopiert die Daten (TSV) in die Zwischenablage für Excel/Google
+                                Sheets.</span>
+                        </div>
+
+                        <button onclick="toggleAdminPanel()"
+                            class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 text-xs">Schließen</button>
+                    </div>
                 </div>
-
-                <!-- Download JS -->
-                <div class="tooltip-container">
-                    <button onclick="downloadDataJs()"
-                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Download
-                        data.js</button>
-                    <span class="tooltip-text">Lädt eine fertige 'data.js' Datei mit den aktuellen Daten
-                        herunter. Ersetze damit die Datei in 'js/data.js'.</span>
-                </div>
-
-                <!-- Scripts -->
-                <!-- Import -->
-                <div class="tooltip-container">
-                    <button onclick="importData()"
-                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Importieren
-                        (Cloud)</button>
-                    <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
-                        Feld oben.</span>
-                </div>
-
-                <!-- Copy -->
-                <div class="tooltip-container">
-                    <button
-                        onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
-                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kopieren</button>
-                    <span class="tooltip-text">Kopiert die Daten (TSV) in die Zwischenablage für Excel/Google
-                        Sheets.</span>
-                </div>
-
-                <button onclick="toggleAdminPanel()"
-                    class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Schließen</button>
-            </div>
+            </details>
 
             <!-- App Config -->
             <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
