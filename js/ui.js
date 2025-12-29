@@ -257,13 +257,12 @@ export function renderList(stations) {
     const container = document.getElementById('stations-list');
     if (!container) return;
     
-    // Create a copy to avoid mutating the original if we sort
-    let listToRender = [...stations];
+    // Create a copy to avoid mutating the original if we sort, and add dist property safely
+    let listToRender = stations.map(s => ({...s}));
 
     // If we have a user location, calculate distances!
     if (state.userLocation) {
         listToRender.forEach(s => {
-            // Ensure coords are numbers
             const lat = parseFloat(s.lat);
             const lng = parseFloat(s.lng);
             if (!isNaN(lat) && !isNaN(lng)) {
@@ -280,8 +279,14 @@ export function renderList(stations) {
         // Sort by distance (nearest first)
         listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
     } else {
-        // Default Sort: ID (numeric)
-        listToRender.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+        // Default Sort: ID (numeric with string fallback)
+        listToRender.sort((a, b) => {
+            const idA = parseInt(a.id);
+            const idB = parseInt(b.id);
+            
+            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
+            return String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' });
+        });
     }
 
     container.innerHTML = listToRender.map(s => {
@@ -322,7 +327,8 @@ export function renderList(stations) {
 
 export function refreshStationList() {
     filterList(currentFilter);
-}
+}onsole.log("filterList called with:", tag);
+    c
 
 export function filterStations(query) {
     // Basic filter implementation
