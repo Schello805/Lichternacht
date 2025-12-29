@@ -19,7 +19,7 @@ import {
 } from './js/admin.js?v=1.4.22';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.24";
+const APP_VERSION = "1.4.25";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;

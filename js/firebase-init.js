@@ -37,6 +37,7 @@ export async function initFirebase() {
         state.fb.query = fbStore.query;
         state.fb.where = fbStore.where;
         state.fb.getCountFromServer = fbStore.getCountFromServer;
+        state.fb.writeBatch = fbStore.writeBatch;
 
         return true;
     } catch (e) {
