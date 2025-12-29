@@ -328,6 +328,3 @@ function sendLocalNotification(title, body) {
         showToast(title, 'info');
     }
 }
-ast(title, 'info');
-    }
-}
