@@ -931,13 +931,20 @@ export function startStationPicker() {
 }
 
 export function flyToStation(lat, lng) {
+    if (!lat || !lng || isNaN(lat) || isNaN(lng) || (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001)) {
+        showToast("Keine gültigen Koordinaten", 'error');
+        return;
+    }
+    
     switchTab('map');
     // Allow tab switch animation to start
     setTimeout(() => {
         if (state.map) {
             state.map.setView([lat, lng], 18, { animate: true });
-            // Optionally open popup if it's a station? 
-            // But flyToStation is used from Events which might just be a location.
+            
+            // Highlight a marker?
+            // Find marker with this pos
+            // ...
         }
     }, 100);
 }
@@ -1096,21 +1103,31 @@ export function renderTimeline() {
 
         // Calculate Distance if available
         let distInfo = '';
-        if (state.userLocation && e.lat && e.lng) {
+        let showMapBtn = '';
+        
+        if (e.lat && e.lng) {
              const lat = parseFloat(e.lat);
              const lng = parseFloat(e.lng);
-             if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                 const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
-                 const walkingDist = d * 1.3;
-                 const minutes = Math.ceil(walkingDist / 80);
-                 const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+             
+             // Check if valid coords (not 0,0 default)
+             if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001)) {
+                 // Distance
+                 if (state.userLocation) {
+                     const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+                     const walkingDist = d * 1.3;
+                     const minutes = Math.ceil(walkingDist / 80);
+                     const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+                     
+                     distInfo = `
+                        <span class="flex items-center gap-1 ml-3 pl-3 border-l border-gray-300 dark:border-gray-600">
+                            <i class="ph-fill ph-navigation-arrow text-blue-500"></i> ${distStr}
+                            <span class="text-[10px] text-gray-400">(${minutes} min)</span>
+                        </span>
+                     `;
+                 }
                  
-                 distInfo = `
-                    <span class="flex items-center gap-1 ml-3 pl-3 border-l border-gray-300 dark:border-gray-600">
-                        <i class="ph-fill ph-navigation-arrow text-blue-500"></i> ${distStr}
-                        <span class="text-[10px] text-gray-400">(${minutes} min)</span>
-                    </span>
-                 `;
+                 // Map Button
+                 showMapBtn = `<button onclick="flyToStation(${lat}, ${lng})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
              }
         }
 
@@ -1130,11 +1147,11 @@ export function renderTimeline() {
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${e.title}</h4>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${e.desc}</p>
-                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
+                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${e.loc}</span>
                     ${distInfo}
-                    <button onclick="flyToStation(${e.lat}, ${e.lng})" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
+                    ${showMapBtn}
                 </div>
             </div>
         </div>
