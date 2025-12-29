@@ -98,8 +98,35 @@ Um die App für ein neues Jahr fit zu machen:
 
 ## ⚙️ Konfiguration
 
-Die Konfiguration (API Keys) liegt in `js/firebase-init.js`.
-Stelle sicher, dass deine Firebase Security Rules (`firestore.rules`) in der Firebase Console veröffentlicht sind.
+Die App benötigt eine Konfigurationsdatei `config.js` im Hauptverzeichnis (dort wo auch `index.html` liegt). Diese Datei enthält sensible Daten (API Keys) und wird **nicht** mit Git übertragen (sie steht in `.gitignore`).
+
+### 1. `config.js` erstellen
+Erstelle lokal oder auf dem Server eine Datei `config.js` mit folgendem Inhalt:
+
+```javascript
+const __firebase_config = JSON.stringify({
+    apiKey: "DEIN_API_KEY",
+    authDomain: "dein-projekt.firebaseapp.com",
+    projectId: "dein-projekt",
+    storageBucket: "dein-projekt.firebasestorage.app",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef...",
+    measurementId: "G-XYZ..."
+});
+
+const __app_id = "lichternacht-2025";
+```
+
+### 2. Upload auf den Server
+Lade diese Datei manuell (per FTP/SFTP) auf deinen Server.
+
+**Wichtig:** Ohne diese Datei funktioniert der Login und der Zugriff auf die Datenbank nicht!
+
+### 3. Firebase Setup
+Stelle sicher, dass in der Firebase Console:
+*   **Authentication:** "Email/Password" und "Anonymous" aktiviert sind.
+*   **Firestore:** Die Datenbank erstellt ist.
+*   **Rules:** Die Regeln aus `firestore.rules` veröffentlicht sind.
 
 ## 📦 Tech Stack
 
