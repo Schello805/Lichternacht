@@ -233,6 +233,8 @@ export function renderFilterBar() {
     let html = `
         <button onclick="filterList('all')" data-tag="all" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
+        <button onclick="filterList('proximity')" data-tag="proximity" 
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-navigation-arrow ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
         <button onclick="filterList('favorites')" data-tag="favorites" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
     `;
@@ -258,9 +260,11 @@ export function renderList(stations) {
     // Create a copy to avoid mutating the original if we sort
     let listToRender = [...stations];
 
-    // Calculate distances if location is available
+    // If we have a user location, calculate distances and sort!
     if (state.userLocation) {
+        console.log("Rendering list with user location:", state.userLocation);
         listToRender.forEach(s => {
+            // Ensure coords are numbers
             const lat = parseFloat(s.lat);
             const lng = parseFloat(s.lng);
             if (!isNaN(lat) && !isNaN(lng)) {
@@ -270,16 +274,11 @@ export function renderList(stations) {
                 s._dist = null;
             }
         });
-    }
-
-    // Sort Logic
-    if (currentFilter === 'proximity' && state.userLocation) {
+        
         // Sort by distance (nearest first)
         listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
     } else {
-        // Default Sort: ID
-        // Assuming stations are already sorted by ID in state or we force it here
-        listToRender.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+        console.log("Rendering list without user location");
     }
 
     container.innerHTML = listToRender.map(s => {
@@ -345,23 +344,28 @@ export function filterList(tag) {
             // Update heart icon if it's favorites
             const icon = btn.querySelector('.ph-heart');
             if(icon) { icon.classList.remove('text-red-500'); icon.classList.add('text-white'); }
-            // Update nav icon if it's proximity
-            const navIcon = btn.querySelector('.ph-navigation-arrow');
-            if(navIcon) { navIcon.classList.remove('text-blue-500'); navIcon.classList.add('text-white'); }
         } else {
             btn.classList.remove('active', 'bg-yellow-600', 'text-white');
             btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
             // Reset heart icon
             const icon = btn.querySelector('.ph-heart');
             if(icon) { icon.classList.remove('text-white'); icon.classList.add('text-red-500'); }
-            // Reset nav icon
-            const navIcon = btn.querySelector('.ph-navigation-arrow');
-            if(navIcon) { navIcon.classList.remove('text-white'); navIcon.classList.add('text-blue-500'); }
         }
     });
 
     if (tag === 'all') {
         renderList(state.stations);
+        return;
+    }
+    
+    if (tag === 'proximity') {
+        if (!state.userLocation) {
+            showToast("Standort wird ermittelt...", 'info');
+            if (window.locateUser) window.locateUser(() => {
+                renderList(state.stations);
+            });
+        }
+        renderList(state.stations); // Render anyway, might sort later when loc is found
         return;
     }
     
