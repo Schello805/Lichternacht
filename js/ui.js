@@ -400,10 +400,12 @@ export async function saveStationChanges() {
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
     const idInput = document.getElementById('edit-id').value;
-    // Try to parse as int, if result is NaN use original string, or just use string?
-    // Current IDs are numbers. Let's try to keep them numbers.
-    let newId = parseInt(idInput);
-    if (isNaN(newId)) newId = idInput; // Fallback to string if not a number
+    
+    // Improved ID parsing: Only convert to number if it's purely numeric
+    let newId = idInput;
+    if (/^\d+$/.test(idInput)) {
+        newId = parseInt(idInput, 10);
+    }
 
     // Validation: Check if ID exists (and is not self)
     const exists = state.stations.some(x => x.id == newId && x.id != oldId);

@@ -21,6 +21,9 @@ export function toggleAdminPanel() {
             document.getElementById('admin-app-title').value = state.config.title || '';
             document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
 
+            // Pre-fill Tracking
+            document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
+
             // Pre-fill Downloads
             document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
             document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
@@ -313,6 +316,30 @@ export async function saveAppConfig() {
         // Update UI immediately
         if (title) document.getElementById('app-title').innerText = title;
         if (subtitle) document.getElementById('app-subtitle').innerText = subtitle;
+        
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Speichern", 'error');
+    }
+}
+
+export async function saveTrackingConfig() {
+    const trackingCode = document.getElementById('admin-tracking-code').value;
+    
+    // We just save it as string in the config
+    const config = { trackingCode };
+    
+    try {
+        if (state.useLocalStorage) {
+            const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+            localStorage.setItem('app_config', JSON.stringify({...old, ...config}));
+            state.config = {...state.config, ...config}; // Update state immediately
+        } else {
+            const { doc, setDoc } = state.fb;
+            await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+            state.config = {...state.config, ...config}; // Update state immediately
+        }
+        showToast("Tracking Code gespeichert (Neuladen erforderlich)", 'success');
         
     } catch (e) {
         console.error(e);

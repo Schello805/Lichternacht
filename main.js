@@ -15,7 +15,7 @@ import {
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker
 } from './js/ui.js?v=1.4.28';
 import {
-    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser
+    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig
 } from './js/admin.js?v=1.4.28';
 
 // Bind to Window for HTML access
@@ -43,6 +43,7 @@ window.downloadDataJs = downloadDataJs;
 window.uploadFlyer = uploadFlyer;
 window.saveDownloads = saveDownloads;
 window.saveAppConfig = saveAppConfig;
+window.saveTrackingConfig = saveTrackingConfig;
 window.sendBroadcast = sendBroadcast;
 window.resetLikes = resetLikes;
 window.deleteUser = deleteUser;
@@ -181,7 +182,40 @@ window.onload = async () => {
         document.getElementById('status-indicator').innerText = "Lokal";
         loadData();
     }
+
+    // Attempt to inject tracking code if present in config
+    if (state.config && state.config.trackingCode) {
+        injectTrackingCode(state.config.trackingCode);
+    }
 };
+
+function injectTrackingCode(codeHtml) {
+    if (!codeHtml) return;
+    console.log("Injecting Tracking Code...");
+    
+    // Create a dummy container to parse the HTML
+    const div = document.createElement('div');
+    div.innerHTML = codeHtml;
+    
+    // Extract script tags
+    const scripts = div.getElementsByTagName('script');
+    
+    Array.from(scripts).forEach(script => {
+        const newScript = document.createElement('script');
+        
+        // Copy attributes
+        Array.from(script.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        
+        // Copy content
+        if (script.innerHTML) {
+            newScript.innerHTML = script.innerHTML;
+        }
+        
+        document.head.appendChild(newScript);
+    });
+}
 
 function initBroadcastListener() {
     const { doc, onSnapshot } = state.fb;

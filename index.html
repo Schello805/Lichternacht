@@ -324,6 +324,18 @@
                 </div>
             </details>
 
+            <!-- Tracking -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>5. Tracking / Matomo</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <p class="text-xs text-gray-500 mt-3 mb-2">Hier kompletten Tracking-Code einfügen (wird beim Start geladen).</p>
+                    <textarea id="admin-tracking-code" class="w-full h-32 p-2 border rounded text-xs font-mono bg-gray-50 dark:bg-gray-800 dark:text-white mb-2" placeholder="<!-- Matomo Code -->..."></textarea>
+                    <button onclick="saveTrackingConfig()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                </div>
+            </details>
         </div>
 
         <!-- Floating Status Elements (Bottom Right) -->
