@@ -333,6 +333,9 @@ function renderTagPicker() {
     // Parse current input
     const currentTags = new Set(input.value.split(',').map(t => t.trim()).filter(t => t));
 
+    // Ensure currently selected tags are visible even if not in global list yet
+    currentTags.forEach(t => allTags.add(t));
+
     container.innerHTML = [...allTags].sort().map(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentTags.has(tag);
@@ -402,24 +405,38 @@ export function editStation(id) {
     renderTagPicker();
     document.getElementById('edit-tags').oninput = () => renderTagPicker();
 
-    // Image preview in edit mode (optional, maybe just text or reusing the main image container)
-    // For now we rely on the main image container being visible if set.
-    
-    // Ensure Modal is Open
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('modal-content');
-    if (modal && modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (content) content.classList.remove('translate-y-full');
-            });
-        });
-    }
+    // Image UI
+    updateImageUploadUI(s.image);
 
     // Toggle Views
     document.getElementById('modal-view-mode').classList.add('hidden');
     document.getElementById('modal-edit-mode').classList.remove('hidden');
+}
+
+function updateImageUploadUI(imageSrc) {
+    const btn = document.getElementById('image-upload-btn');
+    const removeBtn = document.getElementById('btn-remove-image');
+    
+    if (imageSrc) {
+        // Show Image Preview in Button
+        btn.className = "w-full h-48 relative rounded-lg overflow-hidden border border-gray-300 group cursor-pointer";
+        btn.innerHTML = `
+            <img src="${imageSrc}" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold gap-2">
+                <i class="ph ph-camera text-xl"></i>
+                <span>Ändern</span>
+            </div>
+        `;
+        if (removeBtn) removeBtn.classList.remove('hidden');
+    } else {
+        // Default Upload State
+        btn.className = "w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 hover:border-yellow-500 transition-colors flex items-center justify-center gap-2";
+        btn.innerHTML = `
+            <i class="ph ph-camera text-xl"></i>
+            <span>Foto hochladen / wählen</span>
+        `;
+        if (removeBtn) removeBtn.classList.add('hidden');
+    }
 }
 
 export async function saveStationChanges() {
@@ -565,10 +582,13 @@ export function handleImageUpload(input) {
             const s = state.stations.find(x => x.id == state.activeStationId);
             if (s) {
                 s.image = dataUrl;
-                // Update Preview
+                // Update Preview (Main)
                 const imgContainer = document.getElementById('modal-image-container');
                 imgContainer.innerHTML = `<img src="${s.image}" class="w-full h-48 object-cover rounded-t-2xl">`;
                 imgContainer.classList.remove('hidden');
+                
+                // Update Preview (Edit Button)
+                updateImageUploadUI(s.image);
             }
         };
         img.src = e.target.result;
@@ -581,6 +601,7 @@ export function clearStationImage() {
     if (s) {
         s.image = null;
         document.getElementById('modal-image-container').classList.add('hidden');
+        updateImageUploadUI(null);
     }
 }
 
