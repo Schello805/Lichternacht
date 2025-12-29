@@ -639,7 +639,9 @@
                             placeholder="Uhrzeit (z.B. 'ab 18:00')">
                         <div class="flex gap-2">
                             <button onclick="deleteStation()"
-                                class="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200">Löschen</button>
+                                class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
+                            <button onclick="document.getElementById('modal-edit-mode').classList.add('hidden'); document.getElementById('modal-view-mode').classList.remove('hidden');"
+                                class="flex-1 bg-gray-100 text-gray-600 py-2 rounded hover:bg-gray-200">Abbrechen</button>
                             <button onclick="saveStationChanges()"
                                 class="flex-1 bg-green-500 text-white py-2 rounded font-bold hover:bg-green-600">Speichern</button>
                         </div>
