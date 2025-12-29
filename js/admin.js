@@ -250,6 +250,13 @@ export async function saveAppConfig() {
 export async function resetLikes() {
     if (!confirm("WARNUNG: Möchtest du wirklich ALLE 'Likes' (Flammen) auf 0 zurücksetzen? Das kann nicht rückgängig gemacht werden.")) return;
 
+    // Safety check for writeBatch
+    if (!state.fb || !state.fb.writeBatch) {
+        showToast("Fehler: Firebase nicht vollständig geladen. Bitte Seite neu laden.", 'error');
+        console.error("writeBatch missing in state.fb", state.fb);
+        return;
+    }
+
     try {
         if (state.useLocalStorage) {
             // Local mode: Just update state and save

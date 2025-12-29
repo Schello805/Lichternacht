@@ -10,6 +10,7 @@ export async function initFirebase() {
         const fbApp = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
         const fbAuth = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
         const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
+        console.log("Firebase Firestore loaded:", Object.keys(fbStore));
 
         const firebaseConfig = JSON.parse(__firebase_config);
         if (firebaseConfig.apiKey === "API_KEY_HIER") throw new Error("No Configured API Key");
