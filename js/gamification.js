@@ -112,8 +112,8 @@ export async function checkIn(id) {
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-    if (dist > 0.03) { // 30m radius
-        showToast(`Du bist zu weit weg! (${(dist * 1000).toFixed(0)}m)`, 'error');
+    if (dist > 50) { // 50m radius (increased from 30m for better UX)
+        showToast(`Du bist zu weit weg! (${dist.toFixed(0)}m)`, 'error');
         return;
     }
 
