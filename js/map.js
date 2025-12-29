@@ -80,23 +80,58 @@ export function refreshMapMarkers() {
 
 export function locateUser(cb) {
     if (!navigator.geolocation) { showToast("Kein GPS verfügbar", 'error'); return; }
+    
+    // If already watching, just trigger cb if needed, but we want to force update?
+    // Let's just set loading and rely on watcher or get current once.
+    
     setLoading(true, "Suche GPS...");
     document.getElementById('status-indicator').innerText = "Suche...";
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        setLoading(false);
-        const userLat = pos.coords.latitude;
-        const userLng = pos.coords.longitude;
-        state.userLocation = { lat: userLat, lng: userLng };
-        if (state.userMarker) state.userMarker.setLatLng([userLat, userLng]);
-        else { const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); state.userMarker = L.marker([userLat, userLng], { icon: icon }).addTo(state.map); }
-        if (!state.routingControl) state.map.setView([userLat, userLng], 18);
-        document.getElementById('status-indicator').innerText = "Verbunden"; if (cb) cb();
-        showToast("Standort gefunden", 'success');
-    }, err => {
-        setLoading(false);
-        showToast("GPS Fehler: " + err.message, 'error');
-        document.getElementById('status-indicator').innerText = "GPS Fehler";
-    }, { enableHighAccuracy: true, timeout: 10000 });
+    
+    // Use watchPosition for continuous updates
+    if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
+    
+    state.watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            setLoading(false);
+            const userLat = pos.coords.latitude;
+            const userLng = pos.coords.longitude;
+            
+            // Update State
+            state.userLocation = { lat: userLat, lng: userLng };
+            
+            // Update Marker
+            if (state.userMarker) {
+                state.userMarker.setLatLng([userLat, userLng]);
+            } else { 
+                const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); 
+                state.userMarker = L.marker([userLat, userLng], { icon: icon }).addTo(state.map); 
+            }
+            
+            // Center map ONLY on first find or if requested? 
+            // Better: only if it's the first time we locate or user requested "Locate Me"
+            if (!state.hasLocatedUser) {
+                 state.map.setView([userLat, userLng], 18);
+                 state.hasLocatedUser = true;
+            }
+
+            document.getElementById('status-indicator').innerText = "Verbunden"; 
+            
+            // Check Proximity
+            if (window.checkProximity) window.checkProximity(userLat, userLng);
+            
+            if (cb) { cb(); cb = null; } // Only call cb once
+        }, 
+        (err) => {
+            setLoading(false);
+            console.warn("GPS Watch Error", err);
+            // Don't show toast on every error in watcher
+            if (cb) {
+                 showToast("GPS Fehler: " + err.message, 'error');
+                 document.getElementById('status-indicator').innerText = "GPS Fehler";
+            }
+        }, 
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+    );
 }
 
 export function calculateRoute(destLat, destLng) {

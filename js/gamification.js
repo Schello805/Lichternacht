@@ -190,6 +190,12 @@ export async function checkIn(id) {
 
     updateCheckInBtn(id);
     showToast('Check-in erfolgreich! 🏆', 'success');
+    
+    // Hide smart button if it was for this station
+    if (state.smartActionStationId === id) {
+        document.getElementById('smart-action-btn').classList.add('hidden');
+        state.smartActionStationId = null;
+    }
 }
 
 export function updateCheckInBtn(id) {
@@ -273,4 +279,55 @@ export function initPresence() {
     updateUserCount();
     setInterval(sendHeartbeat, 60 * 1000);
     setInterval(updateUserCount, 60 * 1000);
+}
+
+export function checkProximity(lat, lng) {
+    // Only check if we have stations
+    if (!state.stations || state.stations.length === 0) return;
+
+    // Get visited stations
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+
+    // Find nearest unvisited station
+    let nearest = null;
+    let minDist = Infinity;
+    const DETECT_RADIUS = 30; // 30m detection radius (slightly larger than check-in)
+
+    state.stations.forEach(s => {
+        if (visitedStations.has(s.id)) return; // Skip visited
+
+        const dist = getDistance(lat, lng, s.lat, s.lng);
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = s;
+        }
+    });
+
+    const btn = document.getElementById('smart-action-btn');
+    if (!btn) return;
+
+    if (nearest && minDist <= DETECT_RADIUS) {
+        // Show Smart Button
+        state.smartActionStationId = nearest.id;
+        document.getElementById('smart-action-text').innerText = nearest.name;
+        btn.classList.remove('hidden');
+        // Add minimal bounce if it just appeared? (Handled by CSS animation class)
+    } else {
+        // Hide
+        state.smartActionStationId = null;
+        btn.classList.add('hidden');
+    }
+}
+
+export function executeSmartAction() {
+    if (state.smartActionStationId) {
+        // Open the station modal
+        if (window.openStation) {
+            window.openStation(state.smartActionStationId);
+        }
+    }
 }

@@ -4,7 +4,7 @@ import { initFirebase } from './js/firebase-init.js?v=1.4.28';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.28';
 import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.28';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.29';
-import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js?v=1.4.28';
+import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction } from './js/gamification.js?v=1.4.28';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -49,6 +49,8 @@ window.deleteUser = deleteUser;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
+window.checkProximity = checkProximity;
+window.executeSmartAction = executeSmartAction;
 window.openModal = openModal;
 window.closeModal = closeModal;
 
@@ -161,10 +163,15 @@ window.onload = async () => {
     const fbReady = await initFirebase();
 
     if (fbReady) {
+        // 1. Set Default App ID
         state.appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'lichternacht';
-        console.log("Using App ID:", state.appId);
+        console.log("Using Initial App ID:", state.appId);
         
+        // 2. Sync Config (might override App ID)
         await syncGlobalConfig();
+        console.log("Using Final App ID:", state.appId);
+
+        // 3. Init Listeners
         initPresence();
         initAuthListener(); // Loads data on auth state change
         initBroadcastListener();

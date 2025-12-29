@@ -3,8 +3,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper functions
+    function isSuperAdmin() {
+       return request.auth != null && request.auth.token.email == 'michael@schellenberger.biz';
+    }
+
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'michael@schellenberger.biz';
+      // Allow Super Admin OR anyone in the 'users' collection of the CURRENT app (derived from path)
+      return isSuperAdmin() || (
+        request.auth != null && 
+        request.path.size() > 5 &&
+        request.path[3] == 'artifacts' &&
+        exists(/databases/$(database)/documents/artifacts/$(request.path[4])/public/data/users/$(request.auth.uid))
+      );
     }
     
     function isIncrement(field) {
@@ -14,14 +24,14 @@ service cloud.firestore {
     // Global Config
     match /global/config {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSuperAdmin();
     }
 
     // Global Stats (Champions)
     match /global/stats {
       allow read: if true;
       allow create: if true; // Allow creating if not exists
-      allow update: if isAdmin() || (
+      allow update: if isSuperAdmin() || (
         // Allow updating stats fields (simplified check)
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['championsCount', 'count_bronze', 'count_silver', 'count_gold', 'count_diamond'])
       );
@@ -30,6 +40,15 @@ service cloud.firestore {
     // Artifacts (App Data)
     match /artifacts/{appId}/public/data {
       
+      // Users (Admins)
+      match /users/{userId} {
+        // Any authenticated user can read the user list (needed for UI) or at least admins
+        allow read: if request.auth != null; 
+        
+        // Only Super Admin can delete/manage users, OR a user can update their own 'lastSeen'
+        allow write: if isSuperAdmin() || (request.auth.uid == userId);
+      }
+
       // Stations
       match /stations/{stationId} {
         allow read: if true;
