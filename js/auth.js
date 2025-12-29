@@ -40,6 +40,19 @@ export async function logoutAdmin() {
     }
 }
 
+export async function createNewUser(email, pass) {
+    if (!confirm(`Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`)) return;
+
+    try {
+        await state.fb.createUserWithEmailAndPassword(state.auth, email, pass);
+        showToast(`Benutzer ${email} erstellt und eingeloggt`, 'success');
+        // Admin state will automatically update via onAuthStateChanged
+    } catch (e) {
+        console.error("Create User Error:", e);
+        showToast('Fehler: ' + e.message, 'error');
+    }
+}
+
 export function setAdminState(admin) {
     state.isAdmin = admin;
     if (state.isAdmin) {

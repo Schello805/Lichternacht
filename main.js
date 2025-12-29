@@ -3,7 +3,7 @@ import { shareStation, showToast } from './js/utils.js?v=1.4.28';
 import { initFirebase } from './js/firebase-init.js?v=1.4.28';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.28';
 import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.28';
-import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js?v=1.4.28';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.29';
 import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js?v=1.4.28';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
@@ -33,6 +33,7 @@ if (lastVersion !== APP_VERSION) {
 }
 window.performLogin = performLogin;
 window.logoutAdmin = logoutAdmin;
+window.createNewUser = createNewUser;
 window.uploadSeedData = uploadSeedData;
 window.toggleAdminPanel = toggleAdminPanel;
 window.importData = importData;

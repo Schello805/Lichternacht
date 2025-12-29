@@ -21,6 +21,7 @@ export async function initFirebase() {
 
         // Bind functions to state.fb
         state.fb.signInWithEmailAndPassword = fbAuth.signInWithEmailAndPassword;
+        state.fb.createUserWithEmailAndPassword = fbAuth.createUserWithEmailAndPassword;
         state.fb.signInAnonymously = fbAuth.signInAnonymously;
         state.fb.signOut = fbAuth.signOut;
         state.fb.onAuthStateChanged = fbAuth.onAuthStateChanged;
