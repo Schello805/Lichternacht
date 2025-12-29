@@ -305,6 +305,8 @@ export async function saveAppConfig() {
     const planningMode = document.getElementById('admin-planning-mode').checked;
     const planningText = document.getElementById('admin-planning-text').value;
     
+    console.log("Saving App Config:", { title, subtitle, planningMode, planningText });
+
     const config = { title, subtitle, planningMode, planningText };
     
     try {
