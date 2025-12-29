@@ -19,7 +19,7 @@ import {
 } from './js/admin.js?v=1.4.37';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.37";
+const APP_VERSION = "1.4.38";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -225,6 +225,10 @@ window.onload = async () => {
     if (state.config && state.config.trackingCode) {
         injectTrackingCode(state.config.trackingCode);
     }
+
+    // Auto-Locate on Start (User Request)
+    // This prompts for permission immediately and ensures distances are shown.
+    locateUser();
 };
 
 function injectTrackingCode(codeHtml) {
