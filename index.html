@@ -227,6 +227,11 @@
                         class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                     <button onclick="saveAppConfig()"
                         class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                    
+                    <button onclick="resetLikes()"
+                        class="w-full mt-2 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 font-bold text-xs border border-red-200">
+                        <i class="ph ph-fire mr-1"></i> Alle Likes zurücksetzen (0)
+                    </button>
                 </div>
             </div>
 
@@ -747,7 +752,7 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
-                <p class="text-xs text-gray-400 mb-2">Version 1.4.19 • Made with ❤️</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.4.22 • Made with ❤️</p>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
@@ -856,7 +861,7 @@
                     }
 
                     // Register NEW SW
-                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.21', {
+                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.22', {
                         scope: './',
                         updateViaCache: 'none'
                     });
@@ -883,7 +888,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.21"></script>
+    <script type="module" src="main.js?v=1.4.22"></script>
 </body>
 
 </html>

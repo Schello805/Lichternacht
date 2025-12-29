@@ -247,6 +247,44 @@ export async function saveAppConfig() {
     }
 }
 
+export async function resetLikes() {
+    if (!confirm("WARNUNG: Möchtest du wirklich ALLE 'Likes' (Flammen) auf 0 zurücksetzen? Das kann nicht rückgängig gemacht werden.")) return;
+
+    try {
+        if (state.useLocalStorage) {
+            // Local mode: Just update state and save
+            state.stations.forEach(s => s.likes = 0);
+            localStorage.setItem('stations_data', JSON.stringify(state.stations));
+        } else {
+            // Firebase mode: Batch update
+            // Note: Firestore Batch limit is 500. We might need chunks if stations > 500.
+            const { writeBatch, doc } = state.fb;
+            const batch = writeBatch(state.db);
+            
+            state.stations.forEach(s => {
+                const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'stations', s.id.toString());
+                batch.update(ref, { likes: 0 });
+                // Also update local state optimistically
+                s.likes = 0;
+            });
+            
+            await batch.commit();
+        }
+        
+        showToast("Alle Likes wurden zurückgesetzt.", 'success');
+        // Refresh UI
+        if (window.renderList) window.renderList(state.stations);
+        if (window.openStation && state.activeStationId) {
+             const s = state.stations.find(x => x.id == state.activeStationId);
+             if(s) window.openStation(s.id); // Refresh Modal
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Zurücksetzen der Likes", 'error');
+    }
+}
+
 export function resetApp() {
     console.warn("resetApp is deprecated");
     localStorage.clear();
