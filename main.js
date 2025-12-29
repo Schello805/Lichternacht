@@ -150,6 +150,17 @@ window.toggleAdminLogin = () => {
 };
 
 window.onload = async () => {
+    // Try to load config.js dynamically to avoid 404 console spam if missing
+    try {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'config.js';
+            script.onload = resolve;
+            script.onerror = () => { console.log('config.js not found (using local/defaults)'); resolve(); }; // Resolve anyway to continue
+            document.body.appendChild(script);
+        });
+    } catch (e) { console.log('Config load skipped'); }
+
     // Load Favorites
     const savedFavs = localStorage.getItem('favorites');
     if (savedFavs) state.favorites = new Set(JSON.parse(savedFavs));
