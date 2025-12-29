@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error('Global Error:', msg, url, lineNo, error);
+            // Zeige nur Toast/Alert wenn UI geladen, sonst Fallback
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.className = 'p-4 mb-2 rounded shadow-lg text-white bg-red-600';
+                toast.textContent = 'Ein Fehler ist aufgetreten: ' + msg;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+            } else {
+                // Fallback für ganz frühe Fehler
+                // alert('Fehler: ' + msg); 
+            }
+            return false;
+        };
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lichternacht Bechhofen</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#fbbf24">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lichternacht">
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:title" content="Lichternacht Bechhofen">
+    <meta property="og:description" content="Die offizielle App zur Lichternacht. Karte, Programm und Infos.">
+    <meta property="og:image" content="icon.png">
+    <meta property="og:url" content="https://lichternacht.bechhofen.de">
+    <meta property="og:type" content="website">
+
+    <!-- Icons & Manifest -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Tailwind CSS (Static) -->
+    <link href="./dist/output.css?v=1.1.14" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet-routing-machine.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="vendor/phosphor/phosphor.js"></script>
+
+    <!-- ==========================================
+       CSS STYLES
+       ========================================== -->
+    <link rel="stylesheet" href="style.css?v=1.1.14">
+    <style>
+        /* Custom Tooltip CSS */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10000;
+            /* Very high z-index */
+            top: 120%;
+            /* Position below */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+        }
+
+        .tooltip-container .tooltip-text::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            /* Arrow points up */
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #000 transparent;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body
+    class="overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+
+    <!-- App Container -->
+    <!-- App Container -->
+    <div id="app" class="h-[100dvh] flex flex-col relative">
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay"
+            class="hidden absolute inset-0 z-[9999] bg-white/50 flex items-center justify-center flex-col">
+            <div class="spinner mb-2"></div>
+            <span class="text-xs font-bold text-yellow-700" id="loading-text">Lade...</span>
+        </div>
+
+        <!-- Toast Container for Notifications -->
+        <div id="toast-container"></div>
+
+        <!-- Header -->
+        <header id="main-header"
+            class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-4 border-b border-yellow-600/30 dark:border-yellow-600/20 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <img src="icon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-yellow-500 shadow-sm">
+                <div>
+                    <h1 id="app-title" class="text-xl font-bold text-yellow-700 dark:text-yellow-500 tracking-wider brand-font">LICHTERNACHT
+                    </h1>
+                    <p id="app-subtitle" class="text-xs text-yellow-800/70 dark:text-yellow-500/70"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <div id="status-indicator"
+                    class="hidden text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 font-medium mr-1">
+                    Starten...</div>
+
+                <!-- Notification Bell -->
+                <button id="notification-btn" onclick="showLastBroadcast()"
+                    class="hidden text-gray-400 hover:text-red-500 transition-colors p-2 relative">
+                    <i class="ph ph-bell text-xl"></i>
+                    <span
+                        class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                </button>
+
+                <button onclick="openHelpModal()"
+                    class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
+                    <i class="ph ph-info text-xl"></i>
+                </button>
+                <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-2">
+                    <i class="ph ph-moon text-xl" id="dark-mode-icon"></i>
+                </button>
+                <button onclick="toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-2">
+                    <i class="ph ph-lock-key text-xl" id="lock-icon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Admin Export Panel (Global) -->
+        <div id="admin-panel"
+            class="hidden admin-panel absolute top-20 left-5 right-5 bg-white dark:bg-gray-800 dark:text-white p-5 rounded-lg shadow-xl z-[5000] max-h-[80vh] overflow-y-auto">
+            <h3 class="font-bold text-lg mb-2">Admin Konsole</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Verwalte hier Daten, Downloads und Nachrichten.</p>
+
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600">
+                <div class="font-bold text-sm p-4 bg-gray-100 dark:bg-gray-600 dark:text-white rounded-t-lg border-b dark:border-gray-600 flex justify-between items-center">
+                    <span>1. Daten (Excel/Tabelle)</span>
+                </div>
+                <div class="p-4">
+                    <textarea id="export-area"
+                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-white dark:bg-gray-800 dark:text-white mb-4 whitespace-pre"></textarea>
+                    <div class="flex justify-end gap-2 flex-wrap">
+                        <!-- JSON Dump -->
+                        <div class="tooltip-container">
+                            <button onclick="dumpData()"
+                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-xs">JSON
+                                Dump</button>
+                            <span class="tooltip-text">Erzeugt ein Backup aller Daten als JSON in der
+                                Konsole/Zwischenablage.</span>
+                        </div>
+
+                        <!-- Download JS -->
+                        <div class="tooltip-container">
+                            <button onclick="downloadDataJs()"
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-xs">Download
+                                data.js</button>
+                            <span class="tooltip-text">Lädt eine fertige 'data.js' Datei mit den aktuellen Daten
+                                herunter. Ersetze damit die Datei in 'js/data.js'.</span>
+                        </div>
+
+                        <!-- Scripts -->
+                        <!-- Import -->
+                        <div class="tooltip-container">
+                            <button onclick="importData()"
+                                class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-xs">Importieren
+                                (Cloud)</button>
+                            <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
+                                Feld oben.</span>
+                        </div>
+
+                        <!-- Copy -->
+                        <div class="tooltip-container">
+                            <button
+                                onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-xs">Kopieren</button>
+                            <span class="tooltip-text">Kopiert die Daten (TSV) in die Zwischenablage für Excel/Google
+                                Sheets.</span>
+                        </div>
+
+                        <button onclick="toggleAdminPanel()"
+                            class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 text-xs">Schließen</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Config -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>2. App Titel & Untertitel</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
+                    <input id="admin-app-title" type="text" placeholder="Titel (z.B. LICHTERNACHT)"
+                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-3">
+                    <input id="admin-app-subtitle" type="text" placeholder="Untertitel (z.B. Bechhofen | Datum)"
+                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                    <button onclick="saveAppConfig()"
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                    
+                    <button onclick="resetLikes()"
+                        class="w-full mt-2 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 font-bold text-xs border border-red-200">
+                        <i class="ph ph-fire mr-1"></i> Alle Likes zurücksetzen (0)
+                    </button>
+                </div>
+            </details>
+
+            <!-- User Management -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>3. User Management</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
+                    <input type="email" id="new-user-email" placeholder="Email für neuen Admin" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-3">
+                    <input type="password" id="new-user-pass" placeholder="Passwort" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                    
+                    <button onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold text-sm">
+                        Nutzer anlegen
+                    </button>
+                    <p class="text-xs text-red-500 mt-1">⚠️ Achtung: Du wirst sofort als dieser neue Nutzer eingeloggt!</p>
+                </div>
+                
+                <!-- List of Users -->
+                <div class="mt-4 pt-4 border-t dark:border-gray-600">
+                    <h5 class="font-bold text-xs mb-2 uppercase text-gray-500">Aktive Admins</h5>
+                    <div id="user-list" class="space-y-1 max-h-40 overflow-y-auto">
+                        <!-- User list rendered by JS -->
+                    </div>
+                </div>
+            </details>
+
+            <!-- Downloads -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>4. Downloads & ICS</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
+                    <!-- Flyer 1 -->
+                    <div class="flex gap-2 mt-3">
+                        <input id="admin-flyer1" type="text" placeholder="URL zu Flyer 1 (PDF)"
+                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        <label
+                            class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
+                            <i class="ph ph-upload"></i>
+                            <input type="file" id="upload-flyer1" class="hidden" accept=".pdf"
+                                onchange="uploadFlyer('upload-flyer1', 'admin-flyer1')">
+                        </label>
+                    </div>
+
+                    <!-- Flyer 2 -->
+                    <div class="flex gap-2">
+                        <input id="admin-flyer2" type="text" placeholder="URL zu Flyer 2 (PDF)"
+                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        <label
+                            class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
+                            <i class="ph ph-upload"></i>
+                            <input type="file" id="upload-flyer2" class="hidden" accept=".pdf"
+                                onchange="uploadFlyer('upload-flyer2', 'admin-flyer2')">
+                        </label>
+                    </div>
+
+                    <!-- ICS Date -->
+                    <div class="flex gap-2 items-center">
+                        <input id="admin-ics-date" type="text"
+                            placeholder="ICS Datum (z.B. 22.11.2025) oder leer lassen"
+                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        <span class="text-[10px] text-gray-500 w-24">Leer = Ausgeblendet</span>
+                    </div>
+
+                    <button onclick="saveDownloads()"
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                </div>
+            </details>
+
+            <!-- Broadcast -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>5. Nachricht an alle (Live)</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <div class="flex gap-2 mt-3">
+                        <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
+                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        <button onclick="sendBroadcast()"
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm"><i
+                                class="ph ph-paper-plane-right"></i></button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Erscheint sofort bei allen aktiven Nutzern.</p>
+                </div>
+            </details>
+
+            <!-- Tracking -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>6. Tracking / Matomo</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <p class="text-xs text-gray-500 mt-3 mb-2">Hier kompletten Tracking-Code einfügen (wird beim Start geladen).</p>
+                    <textarea id="admin-tracking-code" class="w-full h-32 p-2 border rounded text-xs font-mono bg-gray-50 dark:bg-gray-800 dark:text-white mb-2" placeholder="<!-- Matomo Code -->..."></textarea>
+                    <button onclick="saveTrackingConfig()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                </div>
+            </details>
+        </div>
+
+        <!-- Floating Status Elements (Bottom Right) -->
+        <div class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2 pointer-events-none">
+            <!-- Smart Action Button (Proximity) -->
+            <button id="smart-action-btn" onclick="executeSmartAction()"
+                class="hidden pointer-events-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 rounded-full shadow-xl border-2 border-blue-500 animate-bounce-slow flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95">
+                <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full text-blue-600 dark:text-blue-300">
+                    <i class="ph-fill ph-map-pin text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">In der Nähe</div>
+                    <div class="font-bold text-sm leading-none" id="smart-action-text">Station Name</div>
+                </div>
+                <i class="ph-bold ph-caret-right text-gray-400"></i>
+            </button>
+
+            <!-- User Count -->
+            <div id="user-count"
+                title="Anzahl der Nutzer, die gerade die App offen haben"
+                onclick="showToast('So viele Leute nutzen gerade die App! 👋', 'info')"
+                class="hidden pointer-events-auto items-center text-xs px-3 py-1.5 rounded-full bg-blue-500/90 text-white font-bold shadow-lg backdrop-blur-sm animate-fade-in cursor-pointer hover:scale-105 transition-transform">
+                <i class="ph-fill ph-users mr-1.5"></i><span>0</span>
+            </div>
+            <!-- Lichter Pass Progress -->
+            <div id="pass-progress"
+                class="pointer-events-auto flex items-center text-xs bg-yellow-500/90 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm cursor-pointer"
+                onclick="openHelpModal()">
+                <i class="ph-fill ph-trophy mr-1.5"></i><span class="font-bold">0</span>
+            </div>
+        </div>
+
+        <!-- Admin Bar (Logged in) -->
+        <div id="admin-bar"
+            class="hidden bg-yellow-500 text-black px-4 py-2 text-xs font-bold flex justify-between items-center z-50 shadow-md">
+            <span>🔧 ADMIN (Lokal)</span>
+            <span class="text-[10px] text-black/70 uppercase tracking-wide">Verschiebe die Station einfach auf der
+                Karte</span>
+            <div class="flex gap-2">
+                <button onclick="handleAdminAdd()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
+                        class="ph ph-plus"></i> Neu</button>
+                <button onclick="toggleAdminPanel()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
+                        class="ph ph-toolbox"></i> Tools</button>
+                <button onclick="logoutAdmin()" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40">Exit</button>
+            </div>
+        </div>
+
+        <!-- Main Content Views -->
+        <main class="flex-grow relative bg-gray-50 overflow-hidden">
+
+            <!-- VIEW: KARTE -->
+            <div id="view-map" class="view-section h-full w-full relative">
+                <div id="map" class="h-full w-full bg-gray-200 dark:bg-gray-800"></div>
+
+                <!-- Admin Export Panel -->
+
+
+                <!-- Map Controls -->
+                <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+                    <button onclick="locateUser()"
+                        class="bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
+                        <i class="ph ph-crosshair text-xl"></i>
+                    </button>
+                    <button onclick="resetMap()"
+                        class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
+                        <i class="ph ph-house text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Routing Info -->
+                <div id="route-info"
+                    class="hidden absolute top-4 left-4 right-16 z-[400] bg-white/90 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs font-bold text-yellow-600 uppercase">Route aktiv</span>
+                        <div class="text-sm font-bold">Ziel wird angezeigt</div>
+                    </div>
+                    <button onclick="clearRoute()"
+                        class="bg-gray-200 hover:bg-gray-300 rounded-full p-2 text-gray-600"><i
+                            class="ph ph-x"></i></button>
+                </div>
+            </div>
+
+            <!-- VIEW: LISTE -->
+            <div id="view-list" class="view-section h-full w-full hidden flex flex-col">
+                <div class="p-4 bg-gray-50 sticky top-0 z-10 border-b border-gray-200 shadow-sm flex-shrink-0">
+                    <div class="relative mb-3">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="search-input" placeholder="Suche..."
+                            class="w-full bg-white text-gray-800 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-300 shadow-sm">
+                    </div>
+                    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        <button onclick="filterList('all')" data-tag="all"
+                            class="filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm">Alle</button>
+                        <button onclick="filterList('favorites')" data-tag="favorites"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
+                                class="ph-fill ph-heart text-red-500 mr-1"></i>Favoriten</button>
+                        <button onclick="filterList('food')" data-tag="food"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Essen</button>
+                        <button onclick="filterList('drink')" data-tag="drink"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Getränke</button>
+                        <button onclick="filterList('kids')" data-tag="kids"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Kinder</button>
+                        <button onclick="filterList('wc')" data-tag="wc"
+                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">WC</button>
+                    </div>
+                </div>
+                <div id="stations-list" class="scroll-container p-4 space-y-3 flex-grow overflow-y-auto"></div>
+            </div>
+
+            <!-- VIEW: PROGRAMM -->
+            <div id="view-events" class="view-section h-full w-full hidden bg-gray-50">
+                <div class="scroll-container p-4 h-full overflow-y-auto">
+                    <div
+                        class="mb-6 p-5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-lg relative overflow-hidden">
+                        <div class="absolute -top-6 -right-6 p-4 opacity-5 rotate-12"><i
+                                class="ph ph-star-four text-9xl"></i>
+                        </div>
+                        <h2 class="font-bold text-lg mb-1 brand-font text-white">Aktuell & Demnächst</h2>
+                        <div id="current-event-display" class="mt-2">
+                            <div class="animate-pulse flex gap-3">
+                                <div class="bg-white/20 w-10 h-10 rounded-lg"></div>
+                                <div class="flex-1 space-y-2 py-1">
+                                    <div class="h-4 bg-white/20 rounded w-3/4"></div>
+                                    <div class="h-3 bg-white/20 rounded w-1/2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
+                    <div id="timeline-container" class="space-y-0 relative border-l-2 border-gray-300 ml-3 pl-6 pb-24">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Navigation -->
+        <nav class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
+            <div id="nav-map" onclick="window.switchTab('map')" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
+                <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Karte</span>
+            </div>
+            <div id="nav-list" onclick="window.switchTab('list')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+                <i class="ph ph-list-dashes text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Stationen</span>
+            </div>
+            <div id="nav-events" onclick="window.switchTab('events')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+                <i class="ph ph-calendar-star text-2xl mb-1 nav-icon"></i>
+                <span class="nav-text">Programm</span>
+            </div>
+        </nav>
+
+        <!-- Login Modal -->
+        <div id="login-modal"
+            class="hidden fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-80 dark:bg-gray-800 dark:text-white">
+                <h2 class="text-xl font-bold mb-4">Über die App</h2>
+                <p class="mb-2">Version: 1.4.32</p>
+                <form onsubmit="event.preventDefault(); performLogin();">
+                    <input type="email" id="admin-email"
+                        class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Email"
+                        autocomplete="username">
+                    <input type="password" id="admin-pass"
+                        class="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                        placeholder="Passwort" autocomplete="current-password">
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="toggleAdminLogin()"
+                            class="text-gray-500 px-3 py-2 hover:bg-gray-100 rounded dark:hover:bg-gray-700">Abbrechen</button>
+                        <button type="submit"
+                            class="bg-yellow-600 text-white px-4 py-2 rounded font-bold shadow-md hover:bg-yellow-700">Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Station Detail/Edit Modal -->
+        <div id="detail-modal"
+            class="fixed inset-0 z-[2000] hidden flex items-end sm:items-center justify-center pointer-events-none">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto" onclick="closeModal()"></div>
+            <div class="bg-white w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-0 relative z-10 transform transition-transform duration-300 translate-y-full pointer-events-auto shadow-2xl max-h-[90vh] overflow-y-auto pb-6 sm:pb-0"
+                id="modal-content">
+
+                <!-- Image Display Header -->
+                <div id="modal-image-container" class="w-full hidden relative"></div>
+                <div id="modal-drag-handle" class="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-4 mb-2"></div>
+
+                <div class="p-6 pt-0">
+                    <!-- View Mode -->
+                    <div id="modal-view-mode">
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <span id="modal-number"
+                                class="bg-yellow-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-md">1</span>
+                            <div>
+                                <button onclick="createEventForStation()"
+                                    class="admin-badge bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold mr-2 hover:bg-green-200"><i
+                                        class="ph ph-calendar-plus"></i> Programmpunkt</button>
+                                <button onclick="editStation()"
+                                    class="admin-badge bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold mr-2 hover:bg-blue-200"><i
+                                        class="ph ph-pencil-simple"></i> Bearbeiten</button>
+                                <button onclick="closeModal()"
+                                    class="text-gray-400 hover:text-gray-800 bg-gray-100 rounded-full p-1"><i
+                                        class="ph ph-x text-xl"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
+                                <p id="modal-subtitle"
+                                    class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
+                                </p>
+                            </div>
+                            <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
+                                class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors">
+                                <i class="ph ph-fire text-xl text-gray-400"></i>
+                            </button>
+                            <button id="modal-fav-btn" onclick="toggleFavorite(window.activeStationId, true)"
+                                class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-red-500 transition-colors">
+                                <i class="ph ph-heart text-2xl"></i>
+                            </button>
+                        </div>
+
+                        <!-- Check-In Button -->
+                        <button id="checkin-btn" onclick="checkIn(window.activeStationId)"
+                            class="w-full mb-4 py-3 rounded-xl bg-gray-900 text-white shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 hover:bg-black">
+                            <i class="ph ph-map-pin text-xl"></i>
+                            <span>Einchecken</span>
+                        </button>
+                        <p class="text-center text-xs text-gray-400 italic mb-4">Sammle Stationen für deinen
+                            Lichter-Pass (GPS erforderlich).</p>
+
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
+                            <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button onclick="shareStation(window.activeStationId)"
+                                class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600"><i
+                                    class="ph ph-share-network text-lg"></i></button>
+                            <button id="btn-internal-route"
+                                class="flex-1 bg-yellow-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:bg-yellow-600 shadow-md"><i
+                                    class="ph ph-path text-lg"></i> Route</button>
+                            <button id="btn-route"
+                                class="flex-1 bg-gray-900 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:bg-gray-700 shadow-lg dark:bg-gray-800"><i
+                                    class="ph ph-google-logo text-lg"></i> Maps</button>
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div id="modal-edit-mode" class="hidden">
+                        <h3 class="font-bold mb-3 text-lg">Station bearbeiten</h3>
+                        <div class="flex gap-2 mb-2">
+                            <div class="w-1/4">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Nr.</label>
+                                <input id="edit-id" class="w-full p-2 border rounded font-mono font-bold" placeholder="ID" autocomplete="off" autocorrect="off" autocapitalize="off">
+                            </div>
+                            <div class="w-3/4">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Name</label>
+                                <input id="edit-name" class="w-full p-2 border rounded" placeholder="Name" autocomplete="off">
+                            </div>
+                        </div>
+                        
+                        <label class="text-xs font-bold text-gray-500 uppercase">Adresse / Ort</label>
+                        <textarea id="edit-desc"
+                            class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="Adresse / Ort"></textarea>
+                        <input id="edit-lat" type="hidden">
+                        <input id="edit-lng" type="hidden">
+
+                        <p class="text-[11px] text-gray-400 italic mb-3">Tipp: Als Admin kannst du die Marker direkt auf
+                            der Karte verschieben.</p>
+                        <p class="text-[11px] text-gray-400 italic mb-3">Als Admin kannst du auch die Marker direkt auf
+                            der Karte ziehen, sobald du eingeloggt bist – die Anzeige hilft dir, die Station
+                            wiederzufinden.</p>
+
+                        <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
+                        <textarea id="edit-offer"
+                            class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="Was wird angeboten?"></textarea>
+
+                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Bild</label>
+                        <div class="flex gap-2 mb-2">
+                            <input type="file" id="image-upload" accept="image/*" class="hidden"
+                                onchange="handleImageUpload(this)">
+                            <button id="image-upload-btn" onclick="document.getElementById('image-upload').click()"
+                                class="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 hover:border-yellow-500 transition-colors flex items-center justify-center gap-2">
+                                <i class="ph ph-camera text-xl"></i>
+                                <span>Foto hochladen / wählen</span>
+                            </button>
+                        </div>
+                        <div class="flex justify-end mb-2">
+                            <button type="button" id="btn-remove-image" onclick="clearStationImage()"
+                                class="text-xs text-red-600 hover:text-red-800 hidden">Bild entfernen</button>
+                        </div>
+                        <input id="edit-image" type="hidden" class="hidden" aria-hidden="true" readonly>
+
+                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Tags / Filter</label>
+                        <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
+                        <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
+
+
+
+                        <input id="edit-time" class="w-full mb-4 p-2 border rounded"
+                            placeholder="Uhrzeit (z.B. 'ab 18:00')">
+                        <div class="flex gap-2">
+                            <button onclick="deleteStation()"
+                                class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
+                            <button onclick="document.getElementById('modal-edit-mode').classList.add('hidden'); document.getElementById('modal-view-mode').classList.remove('hidden');"
+                                class="flex-1 bg-gray-100 text-gray-600 py-2 rounded hover:bg-gray-200">Abbrechen</button>
+                            <button onclick="saveStationChanges()"
+                                class="flex-1 bg-green-500 text-white py-2 rounded font-bold hover:bg-green-600">Speichern</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Edit Modal -->
+        <div id="event-modal"
+            class="fixed inset-0 z-[1050] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div class="bg-white rounded-xl p-6 w-96 shadow-2xl m-4">
+                <h3 class="font-bold mb-3 text-lg">Programm bearbeiten</h3>
+                <input id="evt-time" class="w-full mb-2 p-2 border rounded" placeholder="Uhrzeit (z.B. 17:00)">
+                <input id="evt-title" class="w-full mb-2 p-2 border rounded" placeholder="Titel">
+                <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)">
+                <input id="evt-loc" class="w-full mb-2 p-2 border rounded"
+                    placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)">
+
+                <div class="mb-2">
+                    <label for="evt-linked-station" class="text-[10px] font-bold uppercase text-gray-400">Station wählen
+                        (optional)</label>
+                    <select id="evt-linked-station" onchange="applyStationToEvent(this.value)"
+                        class="w-full mt-1 p-2 border rounded text-xs">
+                        <option value="">Keine Station</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <input id="evt-address-search" class="w-full mb-1 p-2 border rounded text-xs"
+                        placeholder="Adresse suchen (optional, z.B. Kirche Bechhofen)">
+                    <button onclick="searchAddress()"
+                        class="w-full bg-gray-100 text-gray-700 text-xs py-1.5 rounded border border-gray-300 hover:bg-gray-200">
+                        Adresse suchen & Koordinaten übernehmen (ansonsten Karte + nutzen)
+                    </button>
+                    <button onclick="startEventPicker()" class="w-full mt-2 bg-blue-100 text-blue-700 text-xs py-1.5 rounded border border-blue-300 hover:bg-blue-200 font-bold">
+                        Karte wählen
+                    </button>
+                </div>
+
+                <div class="flex gap-2 mb-2">
+                    <input id="evt-lat" class="w-1/2 p-2 border rounded text-xs" placeholder="Lat (49...)">
+                    <input id="evt-lng" class="w-1/2 p-2 border rounded text-xs" placeholder="Lng (10...)">
+                    <button onclick="fillEventCoords()" class="bg-gray-200 px-2 rounded"
+                        title="Nimm Kartenmitte">📍</button>
+                </div>
+
+                <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Farbe</label>
+                <select id="evt-color" class="w-full mb-4 p-2 border rounded">
+                    <option value="yellow">Gelb (Standard)</option>
+                    <option value="red">Rot</option>
+                    <option value="blue">Blau</option>
+                    <option value="purple">Lila</option>
+                    <option value="gray">Grau</option>
+                </select>
+
+                <div class="flex gap-2">
+                    <button onclick="deleteEvent()" id="btn-delete-event"
+                        class="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 hidden">Löschen</button>
+                    <button onclick="closeEventModal()"
+                        class="flex-1 bg-gray-200 text-gray-800 py-2 rounded">Abbruch</button>
+                    <button onclick="saveEventChanges()"
+                        class="flex-1 bg-green-500 text-white py-2 rounded font-bold hover:bg-green-600">Speichern</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+       JAVASCRIPT LOGIC
+       ========================================== -->
+
+    <!-- Firebase Libraries -->
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/leaflet/leaflet-routing-machine.js"></script>
+
+    <!-- Config -->
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeHelpModal()"></div>
+        <div
+            class="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button onclick="closeHelpModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="ph ph-x text-2xl"></i>
+            </button>
+
+            <h2 class="text-2xl font-bold font-serif mb-6 text-center dark:text-white">Anleitung</h2>
+
+            <div class="space-y-6">
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
+                        <i class="ph-fill ph-map-trifold text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in
+                            der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Für Orte ohne exakte Adresse (z.B. eine
+                            Wiese) kannst du die Karte an die richtige Stelle schieben, im Programm-Editor den 📍-Button
+                            "Kartenmitte" nutzen und im Feld "Ort" eine freie Beschreibung eintragen (z.B. "Wiese hinter
+                            dem Sportplatz").</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-500">
+                        <i class="ph-fill ph-heart text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Favoriten</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Herz, um dir
+                            deinen persönlichen Plan zusammenzustellen. Filter in der Liste nach "Favoriten".</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-500">
+                        <i class="ph-fill ph-fire text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Voting</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Gefällt dir eine Station besonders gut? Gib
+                            ihr eine Flamme! Das hilft anderen Besuchern und freut den Veranstalter.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600">
+                        <i class="ph-fill ph-trophy text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche die
+                            Stationen. Wenn du in unmittelbarer Nähe (ca. 30m) bist, kannst du 'Einchecken'. Sammle
+                            Stempel für deinen digitalen Lichter-Pass und erreiche Level von Bronze bis Diamant!</p>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div
+                                class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800 flex items-center justify-between">
+                                <span class="flex items-center text-orange-700 dark:text-orange-400 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Bronze (10)</span>
+                                <span id="count-bronze" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                <span class="flex items-center text-gray-600 dark:text-gray-300 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Silber (20)</span>
+                                <span id="count-silver" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-100 dark:border-yellow-800 flex items-center justify-between">
+                                <span class="flex items-center text-yellow-600 dark:text-yellow-400 font-bold"><i
+                                        class="ph-fill ph-medal mr-1"></i> Gold (30)</span>
+                                <span id="count-gold" class="font-bold">0</span>
+                            </div>
+                            <div
+                                class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                <span class="flex items-center text-blue-600 dark:text-blue-300 font-bold"><i
+                                        class="ph-fill ph-diamond mr-1"></i> Alle</span>
+                                <span id="count-diamond" class="font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                <div class="mb-4">
+                    <button onclick="openBugReportModal()"
+                        class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                        <i class="ph ph-bug"></i> Fehler melden
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.4.22 • Made with ❤️</p>
+                <a href="https://github.com/Schello805/Lichternacht" target="_blank"
+                    class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug Report Modal -->
+    <div id="bug-report-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onclick="document.getElementById('bug-report-modal').classList.add('hidden')"></div>
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative z-10">
+            <h2 class="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+                <i class="ph-fill ph-bug text-red-500"></i> Fehler melden
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Beschreibe das Problem kurz. Wir speichern automatisch dein Gerätemodell, um den Fehler besser zu
+                finden.
+            </p>
+            <textarea id="bug-desc" rows="4"
+                class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                placeholder="Was hat nicht funktioniert?"></textarea>
+
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('bug-report-modal').classList.add('hidden')"
+                    class="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                    Abbrechen
+                </button>
+                <button onclick="submitBugReport()"
+                    class="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
+                    Senden
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorial-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div
+            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
+
+            <div class="text-center mb-6">
+                <div
+                    class="w-16 h-16 bg-yellow-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4">
+                    <i class="ph-fill ph-star text-3xl text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold font-serif dark:text-white">Willkommen!</h2>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Lichternacht Bechhofen App</p>
+            </div>
+
+            <div class="space-y-6 mb-8">
+                <!-- PWA Hint -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center"><i
+                            class="ph-fill ph-download-simple mr-2"></i>App installieren</h3>
+                    
+                    <!-- Android / Chrome Install Button -->
+                    <button id="btn-pwa-install" class="hidden w-full bg-blue-600 text-white font-bold py-2 rounded-lg mb-3 shadow-md hover:bg-blue-700 transition-colors">
+                        Jetzt installieren (1-Klick)
+                    </button>
+
+                    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">Für das beste Erlebnis (Vollbild, Offline):
+                    </p>
+                    <ol class="text-sm text-blue-700 dark:text-blue-400 list-decimal list-inside space-y-1 ml-1">
+                        <li>Tippe unten auf <span class="font-bold"><i class="ph ph-export"></i> Teilen</span> (iOS)
+                            oder Menü (Android).</li>
+                        <li>Wähle <span class="font-bold">"Zum Home-Bildschirm"</span>.</li>
+                    </ol>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <i class="ph-fill ph-map-trifold text-2xl text-yellow-500 mt-1"></i>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Entdecken</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte. Tippe
+                            auf Marker für Details.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <i class="ph-fill ph-trophy text-2xl text-green-500 mt-1"></i>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Besuche Stationen und checke ein. Sammle
+                            alle Trophäen!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeTutorial()"
+                class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95">
+                Los geht's! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Update Toast -->
+    <div id="update-toast" class="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 md:w-80 bg-gray-900 text-white p-4 rounded-xl shadow-2xl z-[3000] hidden flex justify-between items-center animate-fade-in-up border border-gray-700">
+        <div>
+            <p class="font-bold text-sm text-yellow-500">Update verfügbar! 🚀</p>
+            <p class="text-xs text-gray-300">Neue Funktionen laden.</p>
+        </div>
+        <button onclick="window.location.reload()" class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-xs uppercase shadow-lg transition-colors">
+            Neu laden
+        </button>
+    </div>
+
+    <script src="config.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    // NUCLEAR: Explicitly unregister the OLD 'sw.js' if it exists
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        if (registration.active && registration.active.scriptURL.includes('sw.js')) {
+                            console.log('Unregistering OLD sw.js:', registration);
+                            await registration.unregister();
+                        }
+                    }
+
+                    // Register NEW SW
+                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.33', {
+                        scope: './',
+                        updateViaCache: 'none'
+                    });
+                    
+                    // Check for updates
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        if (installingWorker == null) return;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    console.log('New content is available; please refresh.');
+                                    // Show Update Toast
+                                    const toast = document.getElementById('update-toast');
+                                    if (toast) toast.classList.remove('hidden');
+                                } else {
+                                    console.log('Content is cached for offline use.');
+                                }
+                            }
+                        };
+                    };
+                    
+                    console.log('New Service Worker registered', reg);
+                } catch (err) {
+                    console.log('SW registration failed', err);
+                }
+            });
+        }
+    </script>
+    <script type="module" src="main.js?v=1.4.33"></script>
+</body>
+
+</html>
