@@ -122,8 +122,8 @@ export function locateUser(cb) {
             // Update List View Button State (if exists)
             const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
             if (listLocateBtn) {
-                listLocateBtn.classList.remove('bg-white', 'text-yellow-600');
-                listLocateBtn.classList.add('bg-blue-600', 'text-white', 'border-blue-700');
+                // User requirement: Hide button if GPS is active/granted
+                listLocateBtn.classList.add('hidden');
             }
             
             // Check Proximity
@@ -137,6 +137,13 @@ export function locateUser(cb) {
         (err) => {
             setLoading(false);
             console.warn("GPS Watch Error", err);
+            
+            // User requirement: Show button if GPS denied/error
+            const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
+            if (listLocateBtn) {
+                listLocateBtn.classList.remove('hidden');
+            }
+
             // Don't show toast on every error in watcher
             if (cb) {
                  showToast("GPS Fehler: " + err.message, 'error');
