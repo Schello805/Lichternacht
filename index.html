@@ -171,13 +171,14 @@
             <h3 class="font-bold text-lg mb-2">Admin Konsole</h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Verwalte hier Daten, Downloads und Nachrichten.</p>
 
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600">
-                <div class="font-bold text-sm p-4 bg-gray-100 dark:bg-gray-600 dark:text-white rounded-t-lg border-b dark:border-gray-600 flex justify-between items-center">
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden" open>
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
                     <span>1. Daten (Excel/Tabelle)</span>
-                </div>
-                <div class="p-4">
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
                     <textarea id="export-area"
-                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-white dark:bg-gray-800 dark:text-white mb-4 whitespace-pre"></textarea>
+                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-white dark:bg-gray-800 dark:text-white mb-4 whitespace-pre mt-3"></textarea>
                     <div class="flex justify-end gap-2 flex-wrap">
                         <!-- JSON Dump -->
                         <div class="tooltip-container">
@@ -220,7 +221,7 @@
                             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 text-xs">Schließen</button>
                     </div>
                 </div>
-            </div>
+            </details>
 
             <!-- App Config -->
             <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
