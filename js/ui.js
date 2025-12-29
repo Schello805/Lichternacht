@@ -839,10 +839,40 @@ export function openBugReportModal() {
     openModal('bug-report-modal');
 }
 
-export function submitBugReport() {
-    console.log("submitBugReport called");
-    closeModal('bug-report-modal');
-    showToast('Bug gemeldet!', 'success');
+export async function submitBugReport() {
+    const desc = document.getElementById('bug-desc').value;
+    if (!desc) { 
+        showToast("Bitte Beschreibung eingeben", 'error'); 
+        return; 
+    }
+
+    const report = {
+        description: desc,
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleString(),
+        userAgent: navigator.userAgent,
+        user: (state.auth && state.auth.currentUser) ? state.auth.currentUser.email : 'anonymous',
+        appId: state.appId || 'unknown'
+    };
+
+    try {
+        if (!state.useLocalStorage && state.fb) {
+             const { collection, addDoc } = state.fb;
+             // Save to 'reports' collection
+             const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'reports');
+             await addDoc(colRef, report);
+             console.log("Bug report saved", report);
+        } else {
+            console.warn("Offline/Local mode: Bug report not sent", report);
+        }
+        
+        document.getElementById('bug-desc').value = '';
+        closeModal('bug-report-modal');
+        showToast('Bug gemeldet! Vielen Dank.', 'success');
+    } catch(e) {
+        console.error("Error submitting bug report:", e);
+        showToast('Fehler beim Senden', 'error');
+    }
 }
 
 export function openEventModal() {
