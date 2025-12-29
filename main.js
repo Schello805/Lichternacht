@@ -19,7 +19,7 @@ import {
 } from './js/admin.js?v=1.4.22';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.22";
+const APP_VERSION = "1.4.23";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -43,6 +43,7 @@ window.uploadFlyer = uploadFlyer;
 window.saveDownloads = saveDownloads;
 window.saveAppConfig = saveAppConfig;
 window.sendBroadcast = sendBroadcast;
+window.resetLikes = resetLikes;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
