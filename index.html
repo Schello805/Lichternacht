@@ -217,12 +217,14 @@
             </div>
 
             <!-- App Config -->
-            <div
-                class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-                <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">2. App Titel & Untertitel</h4>
-                <div class="space-y-3">
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>2. App Titel & Untertitel</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
                     <input id="admin-app-title" type="text" placeholder="Titel (z.B. LICHTERNACHT)"
-                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-3">
                     <input id="admin-app-subtitle" type="text" placeholder="Untertitel (z.B. Bechhofen | Datum)"
                         class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                     <button onclick="saveAppConfig()"
@@ -233,13 +235,16 @@
                         <i class="ph ph-fire mr-1"></i> Alle Likes zurücksetzen (0)
                     </button>
                 </div>
-            </div>
+            </details>
 
             <!-- User Management -->
-            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-                <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">User Management</h4>
-                <div class="space-y-3">
-                    <input type="email" id="new-user-email" placeholder="Email für neuen Admin" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>User Management</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
+                    <input type="email" id="new-user-email" placeholder="Email für neuen Admin" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-3">
                     <input type="password" id="new-user-pass" placeholder="Passwort" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                     
                     <button onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold text-sm">
@@ -247,15 +252,17 @@
                     </button>
                     <p class="text-xs text-red-500 mt-1">⚠️ Achtung: Du wirst sofort als dieser neue Nutzer eingeloggt!</p>
                 </div>
-            </div>
+            </details>
 
             <!-- Downloads -->
-            <div
-                class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-                <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">3. Downloads & ICS</h4>
-                <div class="space-y-3">
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>3. Downloads & ICS</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
                     <!-- Flyer 1 -->
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 mt-3">
                         <input id="admin-flyer1" type="text" placeholder="URL zu Flyer 1 (PDF)"
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                         <label
@@ -289,22 +296,25 @@
                     <button onclick="saveDownloads()"
                         class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
                 </div>
-            </div>
+            </details>
 
             <!-- Broadcast -->
-            <div
-                class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 border-t border-gray-200 dark:border-gray-600 pt-4">
-                <h4 class="font-bold text-sm mb-3 border-b pb-1 dark:text-white">4. Nachricht an alle (Live)
-                </h4>
-                <div class="flex gap-2">
-                    <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
-                        class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                    <button onclick="sendBroadcast()"
-                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm"><i
-                            class="ph ph-paper-plane-right"></i></button>
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>4. Nachricht an alle (Live)</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <div class="flex gap-2 mt-3">
+                        <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
+                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        <button onclick="sendBroadcast()"
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm"><i
+                                class="ph ph-paper-plane-right"></i></button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Erscheint sofort bei allen aktiven Nutzern.</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Erscheint sofort bei allen aktiven Nutzern.</p>
-            </div>
+            </details>
 
         </div>
 
@@ -449,7 +459,7 @@
             class="hidden fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div class="bg-white p-6 rounded-xl shadow-2xl w-80 dark:bg-gray-800 dark:text-white">
                 <h2 class="text-xl font-bold mb-4">Über die App</h2>
-                <p class="mb-2">Version: 1.4.30</p>
+                <p class="mb-2">Version: 1.4.31</p>
                 <form onsubmit="event.preventDefault(); performLogin();">
                     <input type="email" id="admin-email"
                         class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Email"

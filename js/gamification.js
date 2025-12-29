@@ -112,8 +112,38 @@ export async function checkIn(id) {
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-    if (dist > 50) { // 50m radius (increased from 30m for better UX)
-        showToast(`Du bist zu weit weg! (${dist.toFixed(0)}m)`, 'error');
+    const ALLOWED_RADIUS = 20; // 20m
+
+    if (dist > ALLOWED_RADIUS) {
+        showToast(`Zu weit weg! (${dist.toFixed(0)}m / ${ALLOWED_RADIUS}m)`, 'error');
+        
+        // Visual Feedback: Show circle on map
+        if (state.map && window.L) {
+            // Remove old temp circle if exists
+            if (state.tempCircle) state.map.removeLayer(state.tempCircle);
+            
+            state.tempCircle = L.circle([s.lat, s.lng], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2,
+                radius: ALLOWED_RADIUS
+            }).addTo(state.map);
+
+            // Zoom to show both user and station
+            const group = L.featureGroup([
+                L.marker([state.userLocation.lat, state.userLocation.lng]),
+                L.marker([s.lat, s.lng])
+            ]);
+            state.map.fitBounds(group.getBounds(), { padding: [50, 50] });
+
+            // Remove circle after 5s
+            setTimeout(() => {
+                if (state.tempCircle) {
+                    state.map.removeLayer(state.tempCircle);
+                    state.tempCircle = null;
+                }
+            }, 5000);
+        }
         return;
     }
 

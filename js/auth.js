@@ -102,6 +102,27 @@ export function initAuthListener() {
     });
 }
 
+let logoutTimer;
+function resetLogoutTimer() {
+    if (!state.isAdmin) return;
+    
+    if (logoutTimer) clearTimeout(logoutTimer);
+    
+    // Auto-logout after 60 minutes (3600000 ms)
+    logoutTimer = setTimeout(() => {
+        if (state.isAdmin) {
+            console.log("Auto-logout due to inactivity");
+            logoutAdmin();
+            alert("Du wurdest automatisch ausgeloggt (60 Min. Inaktivität).");
+        }
+    }, 60 * 60 * 1000);
+}
+
+// Attach listeners for activity
+['click', 'mousemove', 'keydown', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, resetLogoutTimer);
+});
+
 function enableOfflineMode(btn) {
     state.useLocalStorage = true;
     btn.innerText = "Lokal";
