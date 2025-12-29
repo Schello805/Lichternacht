@@ -84,17 +84,27 @@ Die generierte Datei liegt unter `dist/output.css`.
 
 Um die App für ein neues Jahr fit zu machen:
 
-1.  **Admin-Login:** Logge dich in der App als Admin ein (Schloss-Icon).
-2.  **Daten bearbeiten:** Lösche alte Events/Stationen, lege neue an.
-3.  **Backup erstellen:**
+1.  **Planungs-Modus aktivieren:**
+    *   Gehe ins Admin-Panel -> "App Titel & Untertitel".
+    *   Aktiviere "🚧 Planungs-Modus aktiv".
+    *   Dies zeigt Besuchern ein Banner, dass die Daten noch nicht aktuell sind.
+
+2.  **Daten bearbeiten:**
+    *   Logge dich als Admin ein.
+    *   Lösche alte Events/Stationen und lege neue an.
+    *   Änderungen sind sofort live.
+
+3.  **Backup erstellen (Seed-Daten):**
     *   Gehe ins Admin-Panel.
     *   Klicke auf **"Download data.js"**.
-4.  **Code updaten:**
-    *   Nimm die heruntergeladene `data.js`.
-    *   Ersetze damit die Datei `js/data.js` im Projektordner.
-    *   Commit & Push zu GitHub.
-5.  **Reset (Optional):**
-    *   Klicke auf "Jahr ändern" oder "Reset", um die Datenbank für alle Nutzer sauber zu starten.
+    *   Ersetze damit die Datei `js/data.js` im Projektordner und lade es zu GitHub hoch.
+    *   *Dies dient als Backup, falls die App offline genutzt wird.*
+
+4.  **Likes zurücksetzen (Optional):**
+    *   Im Admin-Panel unter "App Titel & Untertitel" kannst du alle Likes (Flammen) auf 0 setzen.
+
+5.  **Planungs-Modus beenden:**
+    *   Sobald alles fertig ist, deaktiviere den Planungs-Modus wieder.
 
 ## ⚙️ Konfiguration
 
