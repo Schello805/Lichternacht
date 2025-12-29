@@ -12,7 +12,7 @@ import {
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
-    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker
+    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList
 } from './js/ui.js?v=1.4.28';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig
@@ -326,5 +326,8 @@ function sendLocalNotification(title, body) {
     } else {
         // Fallback: Toast inside app if open
         showToast(title, 'info');
+    }
+}
+ast(title, 'info');
     }
 }

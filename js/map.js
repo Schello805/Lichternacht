@@ -122,6 +122,9 @@ export function locateUser(cb) {
             // Check Proximity
             if (window.checkProximity) window.checkProximity(userLat, userLng);
             
+            // Refresh List (to show distances)
+            if (window.refreshStationList) window.refreshStationList();
+
             if (cb) { cb(); cb = null; } // Only call cb once
         }, 
         (err) => {
