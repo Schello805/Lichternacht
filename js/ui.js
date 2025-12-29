@@ -256,6 +256,10 @@ export function renderFilterBar() {
 export function checkPlanningMode() {
     const banner = document.getElementById('planning-banner');
     const textEl = document.getElementById('planning-text');
+    
+    // Debug Logging
+    // console.log("checkPlanningMode", { config: state.config, bannerFound: !!banner });
+
     if (!banner || !textEl) return;
 
     if (state.config && state.config.planningMode) {
@@ -926,6 +930,18 @@ export function startStationPicker() {
     console.log("startStationPicker called");
 }
 
+export function flyToStation(lat, lng) {
+    switchTab('map');
+    // Allow tab switch animation to start
+    setTimeout(() => {
+        if (state.map) {
+            state.map.setView([lat, lng], 18, { animate: true });
+            // Optionally open popup if it's a station? 
+            // But flyToStation is used from Events which might just be a location.
+        }
+    }, 100);
+}
+
 export function openBugReportModal() {
     openModal('bug-report-modal');
 }
@@ -1078,6 +1094,26 @@ export function renderTimeline() {
                           e.color === 'red' ? 'bg-red-500' : 
                           e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
 
+        // Calculate Distance if available
+        let distInfo = '';
+        if (state.userLocation && e.lat && e.lng) {
+             const lat = parseFloat(e.lat);
+             const lng = parseFloat(e.lng);
+             if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                 const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+                 const walkingDist = d * 1.3;
+                 const minutes = Math.ceil(walkingDist / 80);
+                 const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+                 
+                 distInfo = `
+                    <span class="flex items-center gap-1 ml-3 pl-3 border-l border-gray-300 dark:border-gray-600">
+                        <i class="ph-fill ph-navigation-arrow text-blue-500"></i> ${distStr}
+                        <span class="text-[10px] text-gray-400">(${minutes} min)</span>
+                    </span>
+                 `;
+             }
+        }
+
         return `
         <div class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''}">
             <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125' : ''}">
@@ -1097,6 +1133,7 @@ export function renderTimeline() {
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${e.loc}</span>
+                    ${distInfo}
                     <button onclick="flyToStation(${e.lat}, ${e.lng})" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
                 </div>
             </div>
