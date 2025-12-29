@@ -1,10 +1,10 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.26';
-import { initFirebase } from './js/firebase-init.js?v=1.4.26';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.26';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.26';
-import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js?v=1.4.26';
-import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js?v=1.4.26';
+import { shareStation, showToast } from './js/utils.js?v=1.4.27';
+import { initFirebase } from './js/firebase-init.js?v=1.4.27';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.27';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.27';
+import { initAuthListener, performLogin, logoutAdmin } from './js/auth.js?v=1.4.27';
+import { initPresence, toggleLike, toggleFavorite, checkIn } from './js/gamification.js?v=1.4.27';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -13,13 +13,13 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker
-} from './js/ui.js?v=1.4.26';
+} from './js/ui.js?v=1.4.27';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes
-} from './js/admin.js?v=1.4.26';
+} from './js/admin.js?v=1.4.27';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.27";
+const APP_VERSION = "1.4.28";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;

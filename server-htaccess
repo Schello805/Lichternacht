@@ -29,8 +29,8 @@
 # | Cache-Control Headers                                              |
 # ----------------------------------------------------------------------
 <IfModule mod_headers.c>
-  # Never cache Service Worker & Config
-  <FilesMatch "^(service-worker\.js|sw\.js|config\.js|manifest\.json)$">
+  # Never cache Service Worker, Config, Manifest & HTML
+  <FilesMatch "^(service-worker\.js|sw\.js|config\.js|manifest\.json|.*\.html|.*\.htm|.*\.xml)$">
     Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
