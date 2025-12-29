@@ -119,6 +119,13 @@ export function locateUser(cb) {
 
             document.getElementById('status-indicator').innerText = "Verbunden"; 
             
+            // Update List View Button State (if exists)
+            const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
+            if (listLocateBtn) {
+                listLocateBtn.classList.remove('bg-white', 'text-yellow-600');
+                listLocateBtn.classList.add('bg-blue-600', 'text-white', 'border-blue-700');
+            }
+            
             // Check Proximity
             if (window.checkProximity) window.checkProximity(userLat, userLng);
             

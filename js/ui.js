@@ -258,30 +258,36 @@ export function renderList(stations) {
     // Create a copy to avoid mutating the original if we sort
     let listToRender = [...stations];
 
-    // If we have a user location, calculate distances and sort!
+    // Calculate distances if location is available
     if (state.userLocation) {
-        console.log("Rendering list with user location:", state.userLocation);
         listToRender.forEach(s => {
-            // Ensure coords are numbers
             const lat = parseFloat(s.lat);
             const lng = parseFloat(s.lng);
             if (!isNaN(lat) && !isNaN(lng)) {
                 const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
                 s._dist = d; 
+            } else {
+                s._dist = null;
             }
         });
-        
+    }
+
+    // Sort Logic
+    if (currentFilter === 'proximity' && state.userLocation) {
         // Sort by distance (nearest first)
         listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
     } else {
-        console.log("Rendering list without user location");
+        // Default Sort: ID
+        // Assuming stations are already sorted by ID in state or we force it here
+        listToRender.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
     }
 
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         
         let distInfo = '';
-        if (s._dist !== undefined && s._dist !== null) {
+        // Only show distance if user location is active AND distance is calculated
+        if (state.userLocation && s._dist !== undefined && s._dist !== null) {
             // Factor 1.3 for walking detour (not straight line)
             const walkingDist = s._dist * 1.3;
             const minutes = Math.ceil(walkingDist / 80); // ~4.8 km/h
@@ -339,12 +345,18 @@ export function filterList(tag) {
             // Update heart icon if it's favorites
             const icon = btn.querySelector('.ph-heart');
             if(icon) { icon.classList.remove('text-red-500'); icon.classList.add('text-white'); }
+            // Update nav icon if it's proximity
+            const navIcon = btn.querySelector('.ph-navigation-arrow');
+            if(navIcon) { navIcon.classList.remove('text-blue-500'); navIcon.classList.add('text-white'); }
         } else {
             btn.classList.remove('active', 'bg-yellow-600', 'text-white');
             btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
             // Reset heart icon
             const icon = btn.querySelector('.ph-heart');
             if(icon) { icon.classList.remove('text-white'); icon.classList.add('text-red-500'); }
+            // Reset nav icon
+            const navIcon = btn.querySelector('.ph-navigation-arrow');
+            if(navIcon) { navIcon.classList.remove('text-white'); navIcon.classList.add('text-blue-500'); }
         }
     });
 
