@@ -11,6 +11,12 @@ export async function performLogin() {
 
     if (!email || !pass) { showToast('Bitte Email und Passwort eingeben', 'error'); return; }
 
+    if (!state.fb || typeof state.fb.signInWithEmailAndPassword !== 'function') {
+        showToast('Fehler: Firebase nicht initialisiert (config.js fehlt?)', 'error');
+        console.error("Firebase auth functions missing in state.fb");
+        return;
+    }
+
     try {
         console.log("Attempting sign in...");
         await state.fb.signInWithEmailAndPassword(state.auth, email, pass);

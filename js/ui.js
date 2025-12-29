@@ -327,8 +327,7 @@ export function renderList(stations) {
 
 export function refreshStationList() {
     filterList(currentFilter);
-}onsole.log("filterList called with:", tag);
-    c
+}
 
 export function filterStations(query) {
     // Basic filter implementation
