@@ -1078,6 +1078,22 @@ export function renderTimeline() {
                           e.color === 'red' ? 'bg-red-500' : 
                           e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
 
+        // Calculate Distance
+        let distInfo = '';
+        if (state.userLocation && e.lat && e.lng) {
+             const lat = parseFloat(e.lat);
+             const lng = parseFloat(e.lng);
+             if (!isNaN(lat) && !isNaN(lng)) {
+                 const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+                 if (d !== null) {
+                     const walkingDist = d * 1.3;
+                     const minutes = Math.ceil(walkingDist / 80);
+                     const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+                     distInfo = `<span class="mx-1 opacity-50">|</span> <span class="text-blue-600 dark:text-blue-400 font-medium"><i class="ph-fill ph-person-simple-walk"></i> ${minutes} min (${distStr})</span>`;
+                 }
+             }
+        }
+
         return `
         <div class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''}">
             <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125' : ''}">
@@ -1094,10 +1110,10 @@ export function renderTimeline() {
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${e.title}</h4>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${e.desc}</p>
-                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1">
+                <div class="flex flex-wrap items-center text-xs text-gray-500 dark:text-gray-500 gap-1 mt-1">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${e.loc}</span>
-                    <button onclick="flyToStation(${e.lat}, ${e.lng})" class="ml-2 text-yellow-600 hover:underline">Zeigen</button>
+                    ${distInfo}
                 </div>
             </div>
         </div>

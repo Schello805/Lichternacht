@@ -52,6 +52,19 @@ export async function loadData() {
         state.stations = sData ? JSON.parse(sData) : seedStations;
         const eData = localStorage.getItem('events_data');
         state.events = eData ? JSON.parse(eData) : seedEvents;
+        
+        // Load Local Config
+        const cData = localStorage.getItem('app_config');
+        if (cData) {
+            state.config = { ...state.config, ...JSON.parse(cData) };
+            
+            // Apply Config to UI
+            if (state.config.title) {
+                document.getElementById('app-title').innerText = state.config.title;
+                document.title = state.config.title;
+            }
+            if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
+        }
     } else {
         try {
             const { collection, getDocs, doc, getDoc } = state.fb;
