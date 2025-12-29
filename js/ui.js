@@ -394,9 +394,23 @@ export function editStation(id) {
 }
 
 export async function saveStationChanges() {
-    const id = state.activeStationId;
-    const s = state.stations.find(x => x.id == id);
+    const oldId = state.activeStationId;
+    const s = state.stations.find(x => x.id == oldId);
     if (!s) return;
+
+    // Read ID (and ensure it's treated consistently, likely number for stations)
+    const idInput = document.getElementById('edit-id').value;
+    // Try to parse as int, if result is NaN use original string, or just use string?
+    // Current IDs are numbers. Let's try to keep them numbers.
+    let newId = parseInt(idInput);
+    if (isNaN(newId)) newId = idInput; // Fallback to string if not a number
+
+    // Validation: Check if ID exists (and is not self)
+    const exists = state.stations.some(x => x.id == newId && x.id != oldId);
+    if (exists) {
+        showToast(`Fehler: Die Nummer ${newId} ist bereits vergeben!`, 'error');
+        return;
+    }
 
     const newName = document.getElementById('edit-name').value;
     const newDesc = document.getElementById('edit-desc').value;
@@ -415,6 +429,14 @@ export async function saveStationChanges() {
     }
 
     // Update Local Object
+    // If ID changed, we need to handle that carefully
+    const idChanged = (newId != oldId);
+    
+    if (idChanged) {
+        if (!confirm(`Möchtest du die Station wirklich von Nr. ${oldId} in Nr. ${newId} umbenennen?`)) return;
+    }
+
+    s.id = newId;
     s.name = newName;
     s.desc = newDesc;
     s.offer = newOffer;
@@ -422,26 +444,32 @@ export async function saveStationChanges() {
     s.lng = newLng;
     s.tags = newTags;
     s.time = document.getElementById('edit-time').value;
-    
-    // Image is handled by handleImageUpload directly updating the object temporarily or we grab it from a temp var?
-    // Actually handleImageUpload updates the object directly in memory? Let's assume we update s.image there.
-    // If not, we might need a hidden field for image data too. 
-    // Let's implement handleImageUpload to update s.image directly on the active station object in state.
 
     try {
+        // If ID changed, we must DELETE the old doc first (or after) to avoid duplicates
+        if (idChanged) {
+            await deleteData('station', oldId);
+            console.log(`Old station ${oldId} deleted`);
+        }
+
         await saveData('station', s);
         showToast("Station gespeichert", 'success');
         
+        // Update State references
+        state.activeStationId = newId;
+        window.activeStationId = newId;
+
         // Refresh UI
         renderList(state.stations);
         renderFilterBar();
-        if (window.refreshMapMarkers) window.refreshMapMarkers(); // Need to import or availability check
+        if (window.refreshMapMarkers) window.refreshMapMarkers(); 
         
-        // Go back to view mode
+        // Go back to view mode (with new ID)
         openModal(s); 
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
+        // Revert ID if save failed? Complex.
     }
 }
 
