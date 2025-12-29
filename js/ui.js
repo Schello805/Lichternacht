@@ -255,26 +255,46 @@ export function renderList(stations) {
     const container = document.getElementById('stations-list');
     if (!container) return;
     
-    container.innerHTML = stations.map(s => {
+    // Create a copy to avoid mutating the original if we sort
+    let listToRender = [...stations];
+
+    // If we have a user location, calculate distances and sort!
+    if (state.userLocation) {
+        console.log("Rendering list with user location:", state.userLocation);
+        listToRender.forEach(s => {
+            // Ensure coords are numbers
+            const lat = parseFloat(s.lat);
+            const lng = parseFloat(s.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+                s._dist = d; 
+            }
+        });
+        
+        // Sort by distance (nearest first)
+        listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
+    } else {
+        console.log("Rendering list without user location");
+    }
+
+    container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         
         let distInfo = '';
-        if (state.userLocation) {
-            const d = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-            if (d) {
-                // Factor 1.3 for walking detour (not straight line)
-                const walkingDist = d * 1.3;
-                const minutes = Math.ceil(walkingDist / 80); // ~4.8 km/h
-                
-                const distStr = d > 1000 ? (d/1000).toFixed(1) + ' km' : Math.round(d) + ' m';
-                
-                distInfo = `
-                    <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 font-medium border-t border-gray-100 pt-2 dark:border-gray-700">
-                        <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ph-fill ph-navigation-arrow"></i> ${distStr}</span>
-                        <span class="flex items-center gap-1"><i class="ph-fill ph-person-simple-walk"></i> ca. ${minutes} min</span>
-                    </div>
-                `;
-            }
+        if (s._dist !== undefined && s._dist !== null) {
+            // Factor 1.3 for walking detour (not straight line)
+            const walkingDist = s._dist * 1.3;
+            const minutes = Math.ceil(walkingDist / 80); // ~4.8 km/h
+            
+            // Use walkingDist for display to satisfy "not air line" request
+            const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+            
+            distInfo = `
+                <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 font-medium border-t border-gray-100 pt-2 dark:border-gray-700">
+                    <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ph-fill ph-navigation-arrow"></i> ${distStr}</span>
+                    <span class="flex items-center gap-1"><i class="ph-fill ph-person-simple-walk"></i> ca. ${minutes} min</span>
+                </div>
+            `;
         }
 
         return `
