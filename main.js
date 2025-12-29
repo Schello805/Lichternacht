@@ -55,6 +55,28 @@ window.executeSmartAction = executeSmartAction;
 window.openModal = openModal;
 window.closeModal = closeModal;
 
+// PWA Install Prompt Logic
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show Install Button in Tutorial/Header if applicable
+    const installBtn = document.getElementById('btn-pwa-install');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.onclick = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+                installBtn.classList.add('hidden');
+            }
+        };
+    }
+    console.log("PWA Install Prompt captured");
+});
+
 // Navigation Bindings (Robust)
 window.switchTab = (tab) => {
     console.log("window.switchTab called", tab);
