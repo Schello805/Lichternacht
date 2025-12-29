@@ -913,6 +913,17 @@
         </div>
     </div>
 
+    <!-- Update Toast -->
+    <div id="update-toast" class="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 md:w-80 bg-gray-900 text-white p-4 rounded-xl shadow-2xl z-[3000] hidden flex justify-between items-center animate-fade-in-up border border-gray-700">
+        <div>
+            <p class="font-bold text-sm text-yellow-500">Update verfügbar! 🚀</p>
+            <p class="text-xs text-gray-300">Neue Funktionen laden.</p>
+        </div>
+        <button onclick="window.location.reload()" class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-xs uppercase shadow-lg transition-colors">
+            Neu laden
+        </button>
+    </div>
+
     <script src="config.js"></script>
 
     <script>
@@ -929,7 +940,7 @@
                     }
 
                     // Register NEW SW
-                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.32', {
+                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.33', {
                         scope: './',
                         updateViaCache: 'none'
                     });
@@ -942,6 +953,9 @@
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
                                     console.log('New content is available; please refresh.');
+                                    // Show Update Toast
+                                    const toast = document.getElementById('update-toast');
+                                    if (toast) toast.classList.remove('hidden');
                                 } else {
                                     console.log('Content is cached for offline use.');
                                 }
@@ -956,7 +970,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.32"></script>
+    <script type="module" src="main.js?v=1.4.33"></script>
 </body>
 
 </html>
