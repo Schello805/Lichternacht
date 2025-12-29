@@ -15,7 +15,7 @@ import {
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker
 } from './js/ui.js?v=1.4.28';
 import {
-    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes
+    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser
 } from './js/admin.js?v=1.4.28';
 
 // Bind to Window for HTML access
@@ -45,6 +45,7 @@ window.saveDownloads = saveDownloads;
 window.saveAppConfig = saveAppConfig;
 window.sendBroadcast = sendBroadcast;
 window.resetLikes = resetLikes;
+window.deleteUser = deleteUser;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;

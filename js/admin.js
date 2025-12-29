@@ -25,9 +25,73 @@ export function toggleAdminPanel() {
             document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
             document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
             document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
+
+            // Load Users
+            loadUsers();
         }
     }
 }
+
+export async function loadUsers() {
+    if (!state.fb || !state.fb.getDocs) return;
+    const listEl = document.getElementById('user-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '<div class="text-xs text-gray-500">Lade Nutzer...</div>';
+
+    try {
+        const { collection, getDocs } = state.fb;
+        const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'users');
+        const snap = await getDocs(colRef);
+        
+        const users = [];
+        snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+        
+        renderUserList(users);
+    } catch (e) {
+        console.error("Load Users Error", e);
+        listEl.innerHTML = '<div class="text-xs text-red-500">Fehler beim Laden</div>';
+    }
+}
+
+function renderUserList(users) {
+    const listEl = document.getElementById('user-list');
+    if (!listEl) return;
+
+    if (users.length === 0) {
+        listEl.innerHTML = '<div class="text-xs text-gray-500">Keine Nutzer gefunden.</div>';
+        return;
+    }
+
+    listEl.innerHTML = users.map(u => `
+        <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 text-sm mb-1">
+            <div class="overflow-hidden">
+                <div class="font-bold truncate" title="${u.email}">${u.email}</div>
+                <div class="text-[10px] text-gray-400 truncate">${u.id}</div>
+            </div>
+            ${u.email === 'michael@schellenberger.biz' 
+                ? '<span class="text-[10px] bg-blue-100 text-blue-800 px-1 rounded">Super Admin</span>' 
+                : `<button onclick="deleteUser('${u.id}', '${u.email}')" class="text-red-500 hover:bg-red-50 p-1 rounded" title="Löschen"><i class="ph ph-trash"></i></button>`
+            }
+        </div>
+    `).join('');
+}
+
+export async function deleteUser(uid, email) {
+    if (!confirm(`Soll der Nutzer "${email}" wirklich gelöscht werden? Er verliert dadurch sofort den Zugriff.`)) return;
+    
+    try {
+        const { doc, deleteDoc } = state.fb;
+        const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', uid);
+        await deleteDoc(userRef);
+        showToast(`Nutzer ${email} gelöscht`, 'success');
+        loadUsers(); // Refresh list
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Löschen", 'error');
+    }
+}
+
 
 export async function uploadSeedData() {
     if (!confirm("ACHTUNG: Dies überschreibt/ergänzt die Datenbank mit den Demo-Daten. Fortfahren?")) return;

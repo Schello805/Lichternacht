@@ -75,20 +75,57 @@ export function initAuthListener() {
 
     state.fb.onAuthStateChanged(state.auth, async (user) => {
         if (user) {
+            // Anonymous users are always allowed (read-only usually)
             if (user.isAnonymous) {
                 console.log("User is anonymous");
                 setAdminState(false);
-            } else if (user.email === "michael@schellenberger.biz") {
-                console.log("User is admin (" + user.email + ")");
-                setAdminState(true);
-            } else {
-                console.log("User is authenticated but not admin");
-                setAdminState(false);
+                btn.innerText = "Online";
+                btn.classList.replace('text-gray-500', 'text-green-500');
+                showToast('Online-Modus aktiviert', 'success');
+                await loadData();
+                return;
             }
-            btn.innerText = "Online";
-            btn.classList.replace('text-gray-500', 'text-green-500');
-            showToast('Online-Modus aktiviert', 'success');
-            await loadData();
+
+            // Authenticated Users (Admins)
+            const { doc, getDoc, setDoc, serverTimestamp } = state.fb;
+            const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', user.uid);
+            
+            // Super Admin Hardcoded Bypass
+            const isSuperAdmin = (user.email === "michael@schellenberger.biz");
+            
+            try {
+                const userSnap = await getDoc(userRef);
+                
+                if (isSuperAdmin || userSnap.exists()) {
+                    // Valid User -> Update Metadata
+                    await setDoc(userRef, {
+                        email: user.email,
+                        lastSeen: serverTimestamp(),
+                        uid: user.uid
+                    }, { merge: true });
+
+                    console.log(`User ${user.email} logged in.`);
+                    setAdminState(true);
+                    
+                    btn.innerText = "Admin";
+                    btn.classList.replace('text-gray-500', 'text-green-500');
+                    showToast(`Hallo ${user.email}!`, 'success');
+                    await loadData();
+                } else {
+                    // Invalid User (Not in Firestore whitelist)
+                    console.warn("User not found in whitelist. Logging out.");
+                    await state.fb.signOut(state.auth);
+                    showToast("Zugriff verweigert (Nicht autorisiert)", 'error');
+                }
+            } catch (e) {
+                console.error("Auth Check Error", e);
+                // Fallback for safety
+                if(isSuperAdmin) {
+                     setAdminState(true);
+                     await loadData();
+                }
+            }
+
         } else {
             // No user, reset admin state immediately
             setAdminState(false);
