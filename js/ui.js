@@ -338,8 +338,33 @@ function renderTagPicker() {
         const isActive = currentTags.has(tag);
         const bg = isActive ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
         return `<span onclick="toggleEditTag('${tag}')" class="cursor-pointer px-2 py-1 rounded text-xs select-none transition-colors ${bg}">${label}</span>`;
-    }).join('');
+    }).join('') + 
+    `<span onclick="addNewTag()" class="cursor-pointer px-2 py-1 rounded text-xs select-none transition-colors bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300 font-bold flex items-center gap-1"><i class="ph ph-plus"></i> Neu</span>`;
 }
+
+window.addNewTag = () => {
+    const newTag = prompt("Neuer Tag Name (z.B. 'pizza'):");
+    if (!newTag) return;
+    
+    const cleanTag = newTag.toLowerCase().trim();
+    if (!cleanTag) return;
+    
+    // Add to input if not exists
+    const input = document.getElementById('edit-tags');
+    let tags = input.value.split(',').map(t => t.trim()).filter(t => t);
+    
+    if (!tags.includes(cleanTag)) {
+        tags.push(cleanTag);
+        input.value = tags.join(', ');
+        
+        // Also add to global translations if simple? Or just let it be.
+        // It will appear in allTags next render because we add it to input.
+        // But for it to persist in "allTags" across stations, it needs to be saved to a station.
+        // That happens when we save this station.
+        
+        renderTagPicker();
+    }
+};
 
 window.toggleEditTag = (tag) => {
     const input = document.getElementById('edit-tags');

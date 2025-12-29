@@ -34,9 +34,12 @@ export function refreshMapMarkers() {
     state.stations.forEach(s => {
         const isActive = state.activeStationId && state.activeStationId === s.id;
         const color = isActive ? '#1d4ed8' : '#f59e0b';
+        const idStr = s.id.toString();
+        const fontSize = idStr.length > 3 ? '10px' : '14px';
+        
         const icon = L.divIcon({
             className: 'custom-pin',
-            html: `<div style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif;">${s.id}</div>`,
+            html: `<div style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16]
         });

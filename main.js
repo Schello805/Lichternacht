@@ -109,6 +109,10 @@ window.renderTimeline = renderTimeline;
 window.renderFilterBar = renderFilterBar;
 window.openStation = openStation;
 window.startEventPicker = startEventPicker;
+window.addNewTag = window.addNewTag; // Already on window from ui.js, but for completeness/clarity if we move to exports later.
+// Actually ui.js assigns it to window.addNewTag.
+// Let's just ensuring it's not overridden or lost.
+
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');
