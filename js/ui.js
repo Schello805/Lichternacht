@@ -260,9 +260,8 @@ export function renderList(stations) {
     // Create a copy to avoid mutating the original if we sort
     let listToRender = [...stations];
 
-    // If we have a user location, calculate distances and sort!
+    // If we have a user location, calculate distances!
     if (state.userLocation) {
-        console.log("Rendering list with user location:", state.userLocation);
         listToRender.forEach(s => {
             // Ensure coords are numbers
             const lat = parseFloat(s.lat);
@@ -274,11 +273,15 @@ export function renderList(stations) {
                 s._dist = null;
             }
         });
-        
+    }
+
+    // Sort Logic
+    if (currentFilter === 'proximity' && state.userLocation) {
         // Sort by distance (nearest first)
         listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
     } else {
-        console.log("Rendering list without user location");
+        // Default Sort: ID (numeric)
+        listToRender.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
     }
 
     container.innerHTML = listToRender.map(s => {
