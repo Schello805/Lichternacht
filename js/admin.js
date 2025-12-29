@@ -20,6 +20,8 @@ export function toggleAdminPanel() {
             // Pre-fill App Config
             document.getElementById('admin-app-title').value = state.config.title || '';
             document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
+            document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
+            document.getElementById('admin-planning-text').value = state.config.planningText || '';
 
             // Pre-fill Tracking
             document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
@@ -300,8 +302,10 @@ export async function sendBroadcast() {
 export async function saveAppConfig() {
     const title = document.getElementById('admin-app-title').value;
     const subtitle = document.getElementById('admin-app-subtitle').value;
+    const planningMode = document.getElementById('admin-planning-mode').checked;
+    const planningText = document.getElementById('admin-planning-text').value;
     
-    const config = { title, subtitle };
+    const config = { title, subtitle, planningMode, planningText };
     
     try {
         if (state.useLocalStorage) {
@@ -316,6 +320,12 @@ export async function saveAppConfig() {
         // Update UI immediately
         if (title) document.getElementById('app-title').innerText = title;
         if (subtitle) document.getElementById('app-subtitle').innerText = subtitle;
+        
+        // Update State
+        state.config = { ...state.config, ...config };
+        
+        // Update Banner Visibility immediately
+        if (window.checkPlanningMode) window.checkPlanningMode();
         
     } catch (e) {
         console.error(e);

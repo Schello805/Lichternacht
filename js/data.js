@@ -105,6 +105,7 @@ export async function loadData() {
     if (window.renderList) window.renderList(state.stations);
     if (window.renderTimeline) window.renderTimeline();
     if (window.renderFilterBar) window.renderFilterBar();
+    if (window.checkPlanningMode) window.checkPlanningMode();
 }
 
 export async function saveData(type, item) {

@@ -253,6 +253,21 @@ export function renderFilterBar() {
     container.innerHTML = html;
 }
 
+export function checkPlanningMode() {
+    const banner = document.getElementById('planning-banner');
+    const textEl = document.getElementById('planning-text');
+    if (!banner || !textEl) return;
+
+    if (state.config && state.config.planningMode) {
+        banner.classList.remove('hidden');
+        if (state.config.planningText) {
+            textEl.innerText = state.config.planningText;
+        }
+    } else {
+        banner.classList.add('hidden');
+    }
+}
+
 export function renderList(stations) {
     const container = document.getElementById('stations-list');
     if (!container) return;

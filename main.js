@@ -12,7 +12,7 @@ import {
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
-    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList
+    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode
 } from './js/ui.js?v=1.4.37';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig
@@ -129,6 +129,7 @@ window.submitBugReport = submitBugReport;
 window.renderList = renderList;
 window.renderTimeline = renderTimeline;
 window.renderFilterBar = renderFilterBar;
+window.checkPlanningMode = checkPlanningMode;
 window.openStation = openStation;
 window.startEventPicker = startEventPicker;
 window.addNewTag = window.addNewTag; // Already on window from ui.js, but for completeness/clarity if we move to exports later.
