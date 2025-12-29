@@ -154,7 +154,16 @@ export function handleAdminAdd(type) {
     // Let's create a new Station at map center.
     
     const center = state.map.getCenter();
-    const newId = Date.now(); // Simple ID
+    
+    // Better ID generation: Max existing ID + 1 to avoid conflicts and keep it numeric if possible, 
+    // or fallback to timestamp if we want safe unique IDs.
+    // The user mentioned "cannot assign station number", which implies they want to set the ID.
+    // We should probably allow editing the ID or just picking a free one.
+    // Let's pick a high number for new stations to avoid collision with manual IDs (usually 1-50).
+    // Or just find the first gap? No, gaps are confusing.
+    // Let's use max + 1.
+    const maxId = state.stations.reduce((max, s) => Math.max(max, parseInt(s.id) || 0), 0);
+    const newId = maxId + 1;
     
     const newStation = {
         id: newId,
@@ -174,7 +183,7 @@ export function handleAdminAdd(type) {
     if (window.editStation) {
         // Add to local state first so find works
         window.editStation(newId);
-        showToast("Neue Station erstellt (noch nicht gespeichert)", 'info');
+        showToast(`Neue Station (${newId}) erstellt`, 'info');
     }
 }
 

@@ -572,7 +572,17 @@
                     <!-- Edit Mode -->
                     <div id="modal-edit-mode" class="hidden">
                         <h3 class="font-bold mb-3 text-lg">Station bearbeiten</h3>
-                        <input id="edit-name" class="w-full mb-2 p-2 border rounded" placeholder="Name">
+                        <div class="flex gap-2 mb-2">
+                            <div class="w-1/4">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Nr.</label>
+                                <input id="edit-id" class="w-full p-2 border rounded bg-gray-100 text-gray-600 cursor-not-allowed" readonly title="ID kann nicht geändert werden (Datenbank-Schlüssel)">
+                            </div>
+                            <div class="w-3/4">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Name</label>
+                                <input id="edit-name" class="w-full p-2 border rounded" placeholder="Name">
+                            </div>
+                        </div>
+                        
                         <label class="text-xs font-bold text-gray-500 uppercase">Adresse / Ort</label>
                         <textarea id="edit-desc"
                             class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"

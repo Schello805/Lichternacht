@@ -360,6 +360,7 @@ export function editStation(id) {
     window.activeStationId = s.id;
 
     // Populate fields
+    document.getElementById('edit-id').value = s.id;
     document.getElementById('edit-name').value = s.name;
     document.getElementById('edit-desc').value = s.desc || '';
     document.getElementById('edit-offer').value = s.offer || '';
@@ -403,6 +404,10 @@ export async function saveStationChanges() {
     // Lat/Lng might have been updated by dragging (we need to ensure drag updates the hidden fields)
     const newLat = parseFloat(document.getElementById('edit-lat').value);
     const newLng = parseFloat(document.getElementById('edit-lng').value);
+    
+    // Parse Tags
+    const tagsInput = document.getElementById('edit-tags').value;
+    const newTags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
     if (!newName) {
         showToast("Name darf nicht leer sein", 'error');
@@ -415,6 +420,8 @@ export async function saveStationChanges() {
     s.offer = newOffer;
     s.lat = newLat;
     s.lng = newLng;
+    s.tags = newTags;
+    s.time = document.getElementById('edit-time').value;
     
     // Image is handled by handleImageUpload directly updating the object temporarily or we grab it from a temp var?
     // Actually handleImageUpload updates the object directly in memory? Let's assume we update s.image there.
