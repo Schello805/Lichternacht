@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { showToast } from './utils.js';
+import { showToast, getDistance } from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 
@@ -258,15 +258,42 @@ export function renderList(stations) {
     container.innerHTML = stations.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         
+        let distInfo = '';
+        if (state.userLocation) {
+            const d = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
+            if (d) {
+                // Factor 1.3 for walking detour (not straight line)
+                const walkingDist = d * 1.3;
+                const minutes = Math.ceil(walkingDist / 80); // ~4.8 km/h
+                
+                const distStr = d > 1000 ? (d/1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+                
+                distInfo = `
+                    <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 font-medium border-t border-gray-100 pt-2 dark:border-gray-700">
+                        <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ph-fill ph-navigation-arrow"></i> ${distStr}</span>
+                        <span class="flex items-center gap-1"><i class="ph-fill ph-person-simple-walk"></i> ca. ${minutes} min</span>
+                    </div>
+                `;
+            }
+        }
+
         return `
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4" onclick="openStation('${s.id}')">
-            <h3 class="font-bold text-lg">${s.name}</h3>
+            <div class="flex justify-between items-start">
+                <h3 class="font-bold text-lg">${s.name}</h3>
+                <span class="text-xs font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">#${s.id}</span>
+            </div>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
             <div class="mt-2 flex gap-2 flex-wrap">
                 ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">${t}</span>`).join('')}
             </div>
+            ${distInfo}
         </div>
     `}).join('');
+}
+
+export function refreshStationList() {
+    filterList(currentFilter);
 }
 
 export function filterStations(query) {
