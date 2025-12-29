@@ -22,6 +22,10 @@ export function openModal(target) {
         document.getElementById('modal-subtitle').innerText = s.desc || '';
         document.getElementById('modal-desc').innerText = s.offer || s.desc || 'Keine Beschreibung verfügbar.';
         
+        // Fix ID Display
+        const numEl = document.getElementById('modal-number');
+        if (numEl) numEl.innerText = s.id;
+        
         // Image
         const imgContainer = document.getElementById('modal-image-container');
         if (s.image) {
