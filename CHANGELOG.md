@@ -1,20 +1,12 @@
 # Changelog
 
 ## [1.4.38] - 2025-12-29
-### Added
-- **GPS:** App prompts for GPS location immediately on startup to ensure walking distances are displayed in all lists.
-- **UI:** Station list GPS button is now hidden when GPS is active and visible if GPS is denied/errored.
-- **Timeline:** Program timeline now also shows estimated walking time and distance to event locations (if GPS active).
-
-## [1.4.37] - 2025-12-29
-### Added
-- **Planning Mode:** Admin feature to activate a "Under Construction" banner for the app.
-- **Config:** Added detailed README instructions for `config.js` and Firebase setup.
-
-### Fixed
-- **System:** Fixed crash on login when `config.js` was missing (now fails gracefully).
-- **System:** Bumped all version numbers to force cache refresh for users.
-- **UI:** Fixed typo in `ui.js`.
+### Changed
+- **GPS:** Die App fragt nun sofort beim Start nach dem Standort, damit Entfernungen direkt sichtbar sind.
+- **UI:** Entfernungsangaben werden nun auch im **Programm-Tab (Timeline)** angezeigt (sofern Koordinaten vorhanden sind).
+- **UI:** Standort-Button ("Fadenkreuz") in Listenansicht wird ausgeblendet, wenn GPS bereits aktiv ist (nur bei Fehler sichtbar).
+- **System:** Planungs-Modus Banner wird nun zuverlässiger geladen (auch bei lokalem Fallback).
+- **Config:** App-Konfiguration (Titel, Planungs-Modus) wird nun auch im lokalen Modus korrekt gespeichert und geladen.
 
 ## [1.1.12] - 2025-12-24
 ### Changed
