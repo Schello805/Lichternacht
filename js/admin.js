@@ -486,3 +486,28 @@ export function resetApp() {
     location.reload();
 }
 
+export function testPlanningBanner() {
+    const banner = document.getElementById('planning-banner');
+    const textEl = document.getElementById('planning-text');
+    const inputTextArea = document.getElementById('admin-planning-text');
+    
+    console.log("Testing Planning Banner...");
+
+    if (!banner) {
+        showToast("Fehler: Banner-Element nicht gefunden!", 'error');
+        return;
+    }
+
+    // Update text from textarea for preview
+    if (textEl && inputTextArea) {
+        const customText = inputTextArea.value;
+        if (customText) textEl.innerText = customText;
+    }
+
+    // Force show
+    banner.classList.remove('hidden');
+    banner.style.display = 'flex';
+    
+    showToast("Banner-Vorschau aktiviert", 'info');
+}
+

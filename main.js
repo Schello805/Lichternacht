@@ -15,7 +15,7 @@ import {
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation
 } from './js/ui.js?v=1.4.39';
 import {
-    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear
+    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear, testPlanningBanner
 } from './js/admin.js?v=1.4.39';
 
 // Bind to Window for HTML access
@@ -48,6 +48,7 @@ window.saveTrackingConfig = saveTrackingConfig;
 window.sendBroadcast = sendBroadcast;
 window.deleteBroadcast = deleteBroadcast;
 window.startNewYear = startNewYear;
+window.testPlanningBanner = testPlanningBanner;
 window.resetLikes = resetLikes;
 window.deleteUser = deleteUser;
 window.toggleLike = toggleLike;
