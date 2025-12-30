@@ -491,35 +491,39 @@ export function testPlanningBanner() {
     const textEl = document.getElementById('planning-text');
     const inputTextArea = document.getElementById('admin-planning-text');
     
-    console.log("Testing Planning Banner...");
-
     if (!banner) {
-        showToast("Fehler: Banner-Element nicht gefunden!", 'error');
+        alert("CRITICAL ERROR: Banner element #planning-banner not found in DOM!");
         return;
     }
 
-    // Update text from textarea for preview
+    // Move banner to end of body to ensure it's on top of everything
+    document.body.appendChild(banner);
+
+    // Update text
     if (textEl && inputTextArea) {
         const customText = inputTextArea.value;
         if (customText) textEl.innerText = customText;
     }
 
-    // Force show with extreme prejudice
+    // Force styles inline
     banner.classList.remove('hidden');
-    banner.style.display = 'flex';
-    banner.style.setProperty('display', 'flex', 'important');
-    banner.style.zIndex = '99999';
-    banner.style.visibility = 'visible';
-    banner.style.opacity = '1';
+    banner.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.8);';
     
-    // Debug output
-    console.log("Banner state:", {
-        display: banner.style.display,
-        zIndex: banner.style.zIndex,
-        classList: banner.classList.toString(),
-        rect: banner.getBoundingClientRect()
+    // Debug Alert to user
+    const rect = banner.getBoundingClientRect();
+    const computed = window.getComputedStyle(banner);
+    
+    console.log("Banner Debug:", {
+        rect,
+        display: computed.display,
+        visibility: computed.visibility,
+        zIndex: computed.zIndex
     });
-    
-    showToast("Banner-Vorschau aktiviert (Check Console)", 'info');
+
+    if (rect.width === 0 || rect.height === 0 || computed.display === 'none') {
+        alert(`FEHLER: Banner ist unsichtbar!\nDisplay: ${computed.display}\nSize: ${rect.width}x${rect.height}`);
+    } else {
+        showToast("Banner sollte jetzt sichtbar sein (Layer ganz oben).", 'success');
+    }
 }
 

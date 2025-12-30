@@ -1,10 +1,10 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.40';
-import { initFirebase } from './js/firebase-init.js?v=1.4.40';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.40';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.40';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.40';
-import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction } from './js/gamification.js?v=1.4.40';
+import { shareStation, showToast } from './js/utils.js?v=1.4.41';
+import { initFirebase } from './js/firebase-init.js?v=1.4.41';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.41';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.41';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.41';
+import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction } from './js/gamification.js?v=1.4.41';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -13,13 +13,13 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation
-} from './js/ui.js?v=1.4.40';
+} from './js/ui.js?v=1.4.41';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.40';
+} from './js/admin.js?v=1.4.41';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.40";
+const APP_VERSION = "1.4.41";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;

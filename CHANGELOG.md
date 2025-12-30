@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.41] - 2025-12-30
+### Fixed
+- **Admin:** "Banner testen" repariert: Das Banner wird nun im DOM ganz nach unten verschoben und mit Inline-Styles (`!important`, `z-index: 2147483647`) zur Anzeige gezwungen, um Überlagerungsprobleme sicher auszuschließen.
+
 ## [1.4.40] - 2025-12-30
 ### Fixed
 - **Admin:** "Banner testen" Funktion erzwingt nun aggressiv die Sichtbarkeit (`display: flex !important`, `z-index: 99999`), falls das Overlay von anderen Elementen überdeckt wurde.
