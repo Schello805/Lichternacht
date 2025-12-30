@@ -234,7 +234,7 @@ export function renderFilterBar() {
         <button onclick="filterList('all')" data-tag="all" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
         <button onclick="filterList('proximity')" data-tag="proximity" 
-            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
         <button onclick="filterList('favorites')" data-tag="favorites" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
         <button onclick="filterList('visited')" data-tag="visited" 
