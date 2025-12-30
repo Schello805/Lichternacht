@@ -48,6 +48,18 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+
+    <style>
+        /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+
     <link rel="stylesheet" href="vendor/leaflet/leaflet-routing-machine.css" />
 
     <!-- Google Fonts -->
@@ -991,7 +1003,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.59"></script>
+    <script type="module" src="main.js?v=1.4.60"></script>
 </body>
 
 </html>

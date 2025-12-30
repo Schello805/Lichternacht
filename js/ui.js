@@ -232,31 +232,32 @@ export function renderFilterBar() {
     
     const sortedTags = [...allTags].sort();
 
-    // Row 1: Main Filters
+    // Row 1: Main Filters (Prominent, Pill-shaped)
     let row1 = `
-        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-1">
+        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-4">
             <button onclick="filterList('all')" data-tag="all" 
-                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
+                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'all' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}">Alle</button>
             <button onclick="filterList('proximity')" data-tag="proximity" 
-                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
+                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'proximity' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
             <button onclick="filterList('favorites')" data-tag="favorites" 
-                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
+                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'favorites' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
             <button onclick="filterList('visited')" data-tag="visited" 
-                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
+                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'visited' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
         </div>
     `;
 
-    // Row 2: Tags (Smaller, Compact)
-    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-1">`;
+    // Row 2: Tags (Subtle Chips style)
+    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-4 mt-1">`;
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentFilter === tag;
+        // Chip Style: Light gray bg, darker text, no border unless active
         const classes = isActive 
-            ? 'active bg-yellow-600 text-white' 
-            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'; // Lighter border for tags
+            ? 'bg-gray-800 text-white shadow-md transform scale-105' 
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'; 
             
         row2 += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
-            class="filter-btn px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
+            class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${classes}">${label}</button>`;
     });
     row2 += `</div>`;
 

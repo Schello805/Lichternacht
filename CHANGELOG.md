@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.60] - 2025-12-30
+### Improved
+- **UI Makeover (Profi-Look):**
+    - **Scrollbars entfernt:** Die hässlichen grauen Scrollbalken sind nun via CSS (`no-scrollbar`) erzwungen ausgeblendet.
+    - **Hierarchie:** Die Hauptfilter (oben) sind nun prominente "Pills" mit Schatten, die Tags (unten) sind dezente, abgerundete "Chips" (hellgrau, eckiger).
+    - **Spacing:** Linkes Padding (`px-4`) hinzugefügt, damit die Elemente nicht am Bildschirmrand kleben.
+    - **Visuals:** Hover-Effekte und Active-States verfeinert (dunkelgrau für Tags bei Aktivierung).
+
+## [1.4.59] - 2025-12-30
+### Improved
+- **UI:** Weitere Verfeinerung der Filterleiste:
+    - Text "in der Nähe" auf "**Nähe**" verkürzt, um Platz zu sparen.
+    - **Scrollbars ausgeblendet:** Die Scrollbalken in den Filterzeilen sind nun unsichtbar (`no-scrollbar`).
+    - **Tags kompakter:** Die zweite Zeile (Tags) hat nun kleinere Buttons (`text-xs`) und weniger Abstand, um eine visuelle Hierarchie zu schaffen.
+    - Zeilenabstand verringert (`gap-1.5`), damit weniger vertikaler Platz verbraucht wird.
+
 ## [1.4.58] - 2025-12-30
 ### Changed
 - **UI:** Komplett neues Layout der Filterleiste:
