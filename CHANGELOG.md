@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.65] - 2025-12-30
+### Improved
+- **UI:** Dropdown-Design komplett an die Buttons angepasst:
+    - Verwendet nun exakt denselben Container (Wrapper) mit `rounded-full`, Schatten und Rahmen.
+    - Das Icon befindet sich nun **neben** dem Text (im gleichen Flex-Container), nicht mehr überlagert oder absolut positioniert.
+    - Aktiv-Status (Gelb) wird auch auf das Dropdown angewendet, wenn eine Kategorie gewählt ist.
+
 ## [1.4.64] - 2025-12-30
 ### Improved
 - **UI:** Pfeil im Dropdown-Menü entfernt für einen noch cleaneren Look ("Was soll der Pfeil?"). Das Dropdown sieht nun fast aus wie ein normaler Button, öffnet aber bei Klick die Auswahl.

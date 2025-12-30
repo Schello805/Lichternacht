@@ -249,24 +249,31 @@ export function renderFilterBar() {
     // Row 2: Dropdown (Select Menu)
     const isTagActive = sortedTags.includes(currentFilter);
     
+    // Style matches the buttons above exactly
+    const wrapperBase = "relative flex items-center w-full rounded-full shadow-sm px-4 py-2 transition-all";
+    const wrapperState = isTagActive
+        ? "bg-yellow-500 ring-2 ring-yellow-300"
+        : "bg-white border border-gray-200 hover:bg-gray-50";
+        
+    const iconColor = isTagActive ? "text-white" : "text-gray-400";
+    const textColor = isTagActive ? "text-white" : "text-gray-700";
+
     let row2 = `
         <div class="px-4 mt-2">
-            <div class="relative">
-                <!-- Filter Icon (Left) -->
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">
-                    <i class="ph ph-funnel text-lg"></i>
-                </div>
+            <div class="${wrapperBase} ${wrapperState}">
+                <!-- Filter Icon (Next to Dropdown) -->
+                <i class="ph ph-funnel text-lg mr-2 ${iconColor} flex-shrink-0"></i>
 
-                <!-- Select Input -->
+                <!-- Select Input (Transparent, Button-like text) -->
                 <select onchange="filterList(this.value)" 
-                    class="appearance-none w-full bg-white border border-gray-200 text-gray-700 py-2.5 pl-11 pr-10 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent cursor-pointer shadow-sm transition-colors hover:bg-gray-50">
-                    <option value="" disabled ${!isTagActive ? 'selected' : ''}>Kategorie filtern...</option>
+                    class="appearance-none bg-transparent border-none w-full text-sm font-bold focus:outline-none cursor-pointer ${textColor}">
+                    <option value="" disabled ${!isTagActive ? 'selected' : ''} class="text-gray-900 bg-white">Kategorie filtern...</option>
     `;
 
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const selected = currentFilter === tag ? 'selected' : '';
-        row2 += `<option value="${tag}" ${selected}>${label}</option>`;
+        row2 += `<option value="${tag}" ${selected} class="text-gray-900 bg-white">${label}</option>`;
     });
 
     row2 += `
