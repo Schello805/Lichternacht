@@ -521,7 +521,6 @@
             class="hidden fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div class="bg-white p-6 rounded-xl shadow-2xl w-80 dark:bg-gray-800 dark:text-white">
                 <h2 class="text-xl font-bold mb-4">Über die App</h2>
-                <p class="mb-2">Version: 1.4.32</p>
                 <form onsubmit="event.preventDefault(); performLogin();">
                     <input type="email" id="admin-email"
                         class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Email"
@@ -978,7 +977,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.61', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.56', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1003,7 +1002,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.60"></script>
+    <script type="module" src="main.js?v=1.4.62"></script>
 </body>
 
 </html>

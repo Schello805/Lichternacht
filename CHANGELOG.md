@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.61] - 2025-12-30
+### Improved
+- **UI:** Weitere Verbesserung der Filterleiste basierend auf User-Feedback:
+    - **Dropdown statt Buttons:** Die Tag-Leiste (zweite Zeile) wurde durch ein sauberes Dropdown-Menü ersetzt ("Kategorie filtern...").
+    - **Text-Korrektur:** "Nähe" wurde wieder zu "**in der Nähe**" geändert, da dies verständlicher ist.
+    - **Design:** Das Dropdown fügt sich nahtlos in das moderne Design ein (grauer Hintergrund, abgerundet).
+
 ## [1.4.60] - 2025-12-30
 ### Improved
 - **UI Makeover (Profi-Look):**
