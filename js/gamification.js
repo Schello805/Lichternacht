@@ -23,9 +23,9 @@ export async function toggleLike(id) {
     if (s) {
         s.likes = (s.likes || 0) + 1;
         updateLikeBtn(id, s.likes);
-        // Update list item count if visible
-        const listEl = document.getElementById(`like-count-${id}`);
-        if (listEl) listEl.innerHTML = `<i class="ph-fill ph-fire text-orange-500 text-xs mr-0.5"></i>${s.likes}`;
+        
+        // Refresh list to show updated like count
+        if (window.refreshStationList) window.refreshStationList();
     }
 
     showToast('Danke für deine Stimme!', 'success');
