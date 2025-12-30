@@ -446,8 +446,8 @@ export function renderList(stations) {
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
                 <div class="flex flex-col items-end gap-1">
-                    <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-16' : ''}">#${s.id}</span>
-                    ${likeCount > 0 ? `<span class="text-xs text-gray-400 flex items-center gap-1 ${isVisited ? 'mr-16' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>` : ''}
+                    <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${s.id}</span>
+                    ${likeCount > 0 ? `<span class="text-xs text-gray-400 flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>` : ''}
                 </div>
             </div>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
