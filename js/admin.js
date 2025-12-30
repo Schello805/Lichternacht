@@ -523,7 +523,7 @@ export function testPlanningBanner() {
     if (rect.width === 0 || rect.height === 0 || computed.display === 'none') {
         alert(`FEHLER: Banner ist unsichtbar!\nDisplay: ${computed.display}\nSize: ${rect.width}x${rect.height}`);
     } else {
-        showToast("Banner sollte jetzt sichtbar sein (Layer ganz oben).", 'success');
+        showToast("Banner v1.4.41 sollte jetzt sichtbar sein.", 'success');
     }
 }
 
