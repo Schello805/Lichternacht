@@ -232,21 +232,22 @@ export function renderFilterBar() {
     
     const sortedTags = [...allTags].sort();
 
-    let html = `
-        <button onclick="filterList('all')" data-tag="all" 
-            class="filter-btn px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
-        <button onclick="filterList('proximity')" data-tag="proximity" 
-            class="filter-btn px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
-        <button onclick="filterList('favorites')" data-tag="favorites" 
-            class="filter-btn px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
-        <button onclick="filterList('visited')" data-tag="visited" 
-            class="filter-btn px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
-        
-        <!-- SEPARATOR (Inline Styles for safety) -->
-        <div style="width: 2px; height: 24px; background-color: #9ca3af; margin: 0 3px; flex-shrink: 0; align-self: center; border-radius: 99px;"></div>
-
+    // Row 1: Main Filters
+    let row1 = `
+        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center">
+            <button onclick="filterList('all')" data-tag="all" 
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
+            <button onclick="filterList('proximity')" data-tag="proximity" 
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
+            <button onclick="filterList('favorites')" data-tag="favorites" 
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
+            <button onclick="filterList('visited')" data-tag="visited" 
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
+        </div>
     `;
 
+    // Row 2: Tags
+    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center">`;
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentFilter === tag;
@@ -254,11 +255,12 @@ export function renderFilterBar() {
             ? 'active bg-yellow-600 text-white' 
             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50';
             
-        html += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
-            class="filter-btn px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
+        row2 += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
+            class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
     });
+    row2 += `</div>`;
 
-    container.innerHTML = html;
+    container.innerHTML = row1 + row2;
 }
 
 export function checkPlanningMode() {

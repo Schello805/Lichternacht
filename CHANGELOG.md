@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.58] - 2025-12-30
+### Changed
+- **UI:** Komplett neues Layout der Filterleiste:
+    - **Zweizeilige Darstellung:** Die Hauptfilter (Alle, Nähe, Favoriten, Besucht) befinden sich nun in einer eigenen, fixierten Zeile oben.
+    - **Scrollbare Tags:** Die Kategorie-Tags (Essen, Trinken, etc.) sind in einer zweiten, scrollbaren Zeile darunter angeordnet.
+    - Dies löst das Platzproblem auf Smartphones endgültig.
+
+## [1.4.57] - 2025-12-30
+### Improved
+- **UI:** Platzoptimierung in der Filterleiste, damit auf Smartphones die Hauptfilter wieder ohne Scrollen sichtbar sind.
+    - Padding der Buttons leicht reduziert (`px-3` statt `px-4`).
+    - Abstand der Trennlinie minimiert (`mx-1` statt `mx-2`).
+    - Dies spart insgesamt ca. 40px Platz ein.
+
 ## [1.4.56] - 2025-12-30
 ### Fixed
 - **UI:** Filter-Trennlinie verwendet nun Inline-Styles, um sicherzustellen, dass sie auch ohne CSS-Rebuild korrekt angezeigt wird.
