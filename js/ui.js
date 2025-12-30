@@ -321,6 +321,7 @@ export function renderList(stations) {
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         const isVisited = visitedStations.has(s.id);
+        const likeCount = s.likes || 0;
         
         let distInfo = '';
         // Only show distance if user location is active AND distance is calculated
@@ -345,7 +346,10 @@ export function renderList(stations) {
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
-                <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-16' : ''}">#${s.id}</span>
+                <div class="flex flex-col items-end gap-1">
+                    <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-16' : ''}">#${s.id}</span>
+                    ${likeCount > 0 ? `<span class="text-xs text-gray-400 flex items-center gap-1 ${isVisited ? 'mr-16' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>` : ''}
+                </div>
             </div>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
             <div class="mt-2 flex gap-2 flex-wrap">

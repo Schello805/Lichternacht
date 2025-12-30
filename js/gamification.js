@@ -72,13 +72,19 @@ export function updateLikeBtn(id, count) {
     if (!btn) return;
     const isLiked = localStorage.getItem(`liked_${id}`);
     const iconHtml = isLiked
-        ? `<i class="ph-fill ph-fire text-xl text-orange-500"></i>`
-        : `<i class="ph ph-fire text-xl text-gray-400"></i>`;
+        ? `<i class="ph-fill ph-thumbs-up text-xl text-orange-500"></i>`
+        : `<i class="ph ph-thumbs-up text-xl text-gray-400"></i>`;
 
     const countClass = isLiked ? 'text-orange-600' : 'text-gray-500';
 
-    btn.innerHTML = `${iconHtml}<span class="ml-1 text-xs font-bold ${countClass}">${count || 0}</span>`;
-    if (isLiked) btn.classList.add('bg-orange-50', 'border-orange-200');
+    btn.innerHTML = `${iconHtml}<span class="ml-1 text-sm font-bold text-gray-600 dark:text-gray-300">Like</span><span class="ml-1 text-xs font-bold ${countClass}">${count || 0}</span>`;
+    if (isLiked) {
+        btn.classList.add('bg-orange-50', 'border-orange-200');
+        btn.classList.remove('bg-gray-100', 'border-gray-200');
+    } else {
+        btn.classList.remove('bg-orange-50', 'border-orange-200');
+        btn.classList.add('bg-gray-100', 'border-gray-200');
+    }
 }
 
 export function updateModalFavBtn(id) {
