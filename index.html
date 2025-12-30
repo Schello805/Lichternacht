@@ -932,80 +932,76 @@
                     <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center"><i
                             class="ph-fill ph-download-simple mr-2"></i>App installieren</h3>
                     
-                    <!-- Android / Chrome Install Button -->
-                    <button id="btn-pwa-install" class="hidden w-full bg-blue-600 text-white font-bold py-2 rounded-lg mb-3 shadow-md hover:bg-blue-700 transition-colors">
-                        Jetzt installieren (1-Klick)
-                    </button>
-
-                    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">Für das beste Erlebnis (Vollbild, Offline):
-                    </p>
-                    <ol class="text-sm text-blue-700 dark:text-blue-400 list-decimal list-inside space-y-1 ml-1">
-                        <li>Tippe unten auf <span class="font-bold"><i class="ph ph-export"></i> Teilen</span> (iOS)
-                            oder Menü (Android).</li>
-                        <li>Wähle <span class="font-bold">"Zum Home-Bildschirm"</span>.</li>
-                    </ol>
-                </div>
-
-                <div class="flex gap-4 items-start">
-                    <i class="ph-fill ph-map-trifold text-2xl text-yellow-500 mt-1"></i>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Entdecken</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte. Tippe
-                            auf Marker für Details.</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 items-start">
-                    <i class="ph-fill ph-trophy text-2xl text-green-500 mt-1"></i>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Besuche Stationen und checke ein. Sammle
-                            alle Trophäen!</p>
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="closeTutorial()"
-                class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95">
-                Los geht's! 🚀
-            </button>
         </div>
     </div>
 
+    <!-- PWA Install Button (Hidden by default) -->
+    <button id="btn-pwa-install" class="hidden fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[5000] bg-yellow-500 text-white px-6 py-3 rounded-full shadow-2xl font-bold animate-bounce flex items-center gap-2">
+        <i class="ph-fill ph-download-simple text-xl"></i> App installieren
+    </button>
+
     <!-- Update Toast -->
-    <div id="update-toast" class="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 md:w-80 bg-gray-900 text-white p-4 rounded-xl shadow-2xl z-[3000] hidden flex justify-between items-center animate-fade-in-up border border-gray-700">
-        <div>
-            <p class="font-bold text-sm text-yellow-500">Update verfügbar! 🚀</p>
-            <p class="text-xs text-gray-300">Neue Funktionen laden.</p>
+    <div id="update-toast" class="hidden fixed bottom-4 left-4 right-4 z-[9999] bg-blue-600 text-white p-4 rounded-xl shadow-2xl flex justify-between items-center animate-slide-up">
+        <div class="flex items-center gap-3">
+            <i class="ph-fill ph-arrows-clockwise text-2xl animate-spin"></i>
+            <div>
+                <p class="font-bold text-sm">Update verfügbar!</p>
+                <p class="text-xs opacity-90">Neue Version wird geladen...</p>
+            </div>
         </div>
-        <button onclick="window.location.reload()" class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-xs uppercase shadow-lg transition-colors">
+        <button onclick="window.location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-50">
             Neu laden
         </button>
     </div>
 
-    <!-- Script loading: Config is optional/environment specific -->
-    <!-- <script src="config.js"></script> -->
+    <script>
+        // Init Global Utils
+        window.switchTab = function(tabId) {
+            console.log("Switch Tab Native:", tabId);
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            
+            // Nav Active State
+            document.querySelectorAll('.bottom-nav > div').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('tab-inactive');
+            });
+            document.getElementById('nav-' + tabId).classList.remove('tab-inactive');
+            document.getElementById('nav-' + tabId).classList.add('tab-active');
 
+            if(window.state) window.state.activeTab = tabId;
+        }
+    </script>
+
+    <!-- Main App Script (Module) with Cache Busting -->
+    <script type="module" src="main.js?v=1.4.42"></script>
+
+    <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                try {
-                    // NUCLEAR: Explicitly unregister the OLD 'sw.js' if it exists
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (const registration of registrations) {
+            window.addEventListener('load', () => {
+                // Remove Old Caches if needed (Manual Nuke)
+                if (localStorage.getItem('app_version') !== '1.4.42') {
+                     // Optionally clear caches via SW logic
+                }
+
+                // NUCLEAR: Explicitly unregister the OLD 'sw.js' if it exists
+                const registrations = navigator.serviceWorker.getRegistrations().then(regs => {
+                    for (const registration of regs) {
                         if (registration.active && registration.active.scriptURL.includes('sw.js')) {
                             console.log('Unregistering OLD sw.js:', registration);
-                            await registration.unregister();
+                            registration.unregister();
                         }
                     }
+                });
 
-                    // Register NEW SW
-                    const reg = await navigator.serviceWorker.register('./service-worker.js?v=1.4.42', {
-                        scope: './',
-                        updateViaCache: 'none'
-                    });
+                // Register NEW SW
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.42', {
+                    scope: './',
+                    updateViaCache: 'none'
+                }).then(reg => {
+                    console.log('New Service Worker registered', reg);
                     
-                    // Check for updates
                     reg.onupdatefound = () => {
                         const installingWorker = reg.installing;
                         if (installingWorker == null) return;
@@ -1013,20 +1009,15 @@
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
                                     console.log('New content is available; please refresh.');
-                                    // Show Update Toast
                                     const toast = document.getElementById('update-toast');
                                     if (toast) toast.classList.remove('hidden');
-                                } else {
-                                    console.log('Content is cached for offline use.');
                                 }
                             }
                         };
                     };
-                    
-                    console.log('New Service Worker registered', reg);
-                } catch (err) {
+                }).catch(err => {
                     console.log('SW registration failed', err);
-                }
+                });
             });
         }
     </script>

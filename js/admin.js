@@ -487,6 +487,7 @@ export function resetApp() {
 }
 
 export function testPlanningBanner() {
+    alert("Test-Funktion aufgerufen!"); // DEBUG
     console.log("Testing Planning Banner (Dynamic Mode)...");
 
     // Remove any existing test banner
