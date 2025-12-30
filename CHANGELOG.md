@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.54] - 2025-12-30
+### Improved
+- **UI:** Filter-Trennlinie (Separator) deutlich verstärkt (dicker, höher, mehr Abstand), damit sie auf allen Displays gut sichtbar ist.
+- **System:** Bereinigung von alten statischen HTML-Elementen im Ladevorgang.
+
 ## [1.4.53] - 2025-12-30
 ### Improved
 - **UI:** Visuelle Trennung (vertikaler Strich) zwischen den Hauptfiltern (Alle, Nähe, Favoriten, Besucht) und den dynamischen Tags (Essen, Trinken, etc.) hinzugefügt.
