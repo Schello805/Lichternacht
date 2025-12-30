@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.47] - 2025-12-30
+### Improved
+- **UI:** Umbenennung des Filters "Nähe" zu "in der Nähe" für bessere Verständlichkeit.
+
 ## [1.4.46] - 2025-12-30
 ### Added
 - **Feature:** Neuer Filter-Button "Besucht" in der Leiste oben. Damit kannst du nun einfach alle Stationen filtern, bei denen du bereits eingecheckt hast.

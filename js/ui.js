@@ -442,7 +442,7 @@ export function renderList(stations) {
 
         return `
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4 relative overflow-hidden" onclick="openStation('${s.id}')">
-            ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
+            ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1" style="position: absolute; top: 0; right: 0; font-size: 10px;"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
                 <div class="flex flex-col items-end gap-1">
