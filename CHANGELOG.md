@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.64] - 2025-12-30
+### Improved
+- **UI:** Pfeil im Dropdown-Menü entfernt für einen noch cleaneren Look ("Was soll der Pfeil?"). Das Dropdown sieht nun fast aus wie ein normaler Button, öffnet aber bei Klick die Auswahl.
+- **Fix:** Korrektur einer veralteten Versionsreferenz im Service-Worker-Loader.
+
 ## [1.4.63] - 2025-12-30
 ### Improved
 - **UI:** Dropdown-Menü "hübscher" gemacht:
