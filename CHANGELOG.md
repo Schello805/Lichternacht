@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.63] - 2025-12-30
+### Improved
+- **UI:** Dropdown-Menü "hübscher" gemacht:
+    - **Form:** Nun ebenfalls stark abgerundet (`rounded-full`), passend zu den oberen Buttons.
+    - **Icon:** Ein Trichter-Icon (`ph-funnel`) links hinzugefügt, um die Funktion "Filtern" zu verdeutlichen.
+    - **Pfeil:** Der Pfeil nach unten wurde dezenter gestaltet (dünner, heller), damit er nicht so "klotzig" wirkt.
+
 ## [1.4.62] - 2025-12-30
 ### Fixed
 - **Login-Modal:** Veraltete Versionsnummer entfernt, die im Login-Dialog noch angezeigt wurde.
