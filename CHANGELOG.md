@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.68] - 2025-12-30
+### Feature
+- **Karten-Highlight:** Beim Klick auf "Zeigen" (bei Events) oder "Karte" (bei Stationen) wird die Zielstation auf der Karte nun für 5 Sekunden deutlich pulsierend hervorgehoben. So findet man die gesuchte Nummer sofort, auch wenn viele Marker nebeneinander liegen.
+
+## [1.4.67] - 2025-12-30
+### Feature
+- **LIVE-Modus:** Wenn ein Programmpunkt gerade läuft, wird er im Header nun prominent als **"JETZT LIVE"** (pulsierend) angezeigt, statt nur "Demnächst".
+- **Auto-Scroll:** Die Programm-Timeline merkt sich nun den aktuell relevanten Event und ermöglicht das Springen dorthin (Klick auf den Header).
+- **On-Site UX:** Das aktuelle Event wird in der Liste deutlicher hervorgehoben (gelber Ring).
+
 ## [1.4.66] - 2025-12-30
 ### Fixed
 - **Toast entfernt:** Die Meldung "Sortierung: Standard (Nummer)" beim Klick auf "Alle" wurde entfernt, da sie unnötig war.

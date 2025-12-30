@@ -19,7 +19,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.67";
+const APP_VERSION = "1.4.68";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -88,15 +88,6 @@ window.switchTab = (tab) => {
     switchTab(tab);
 };
 window.appSwitchTab = window.switchTab; // Alias for safety
-
-window.flyToStation = (lat, lng) => {
-    if (state.map) {
-        state.map.flyTo([lat, lng], 18);
-        window.switchTab('map');
-    } else {
-        console.error("Map not initialized");
-    }
-};
 
 window.toggleDarkMode = () => {
     toggleDarkMode();

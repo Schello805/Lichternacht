@@ -1096,7 +1096,7 @@ export function startStationPicker() {
     console.log("startStationPicker called");
 }
 
-export function flyToStation(lat, lng) {
+export function flyToStation(lat, lng, id = null) {
     if (!lat || !lng || isNaN(lat) || isNaN(lng) || (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001)) {
         showToast("Keine gültigen Koordinaten", 'error');
         return;
@@ -1108,11 +1108,30 @@ export function flyToStation(lat, lng) {
         if (state.map) {
             state.map.setView([lat, lng], 18, { animate: true });
             
-            // Highlight a marker?
-            // Find marker with this pos
-            // ...
+            // Highlight Marker if ID is provided
+            if (id) {
+                // Clear previous highlights
+                document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
+
+                const entry = state.markers.find(m => m.id == id);
+                if (entry && entry.marker) {
+                    const iconDiv = entry.marker.getElement();
+                    if (iconDiv) {
+                        const innerDiv = iconDiv.querySelector('div');
+                        if (innerDiv) {
+                            innerDiv.classList.add('highlight-pin');
+                            
+                            // Remove highlight after 5 seconds or on next click
+                            setTimeout(() => {
+                                innerDiv.classList.remove('highlight-pin');
+                            }, 5000);
+                        }
+                    }
+                    entry.marker.openPopup(); // Also open popup if relevant? Or mostly just highlight.
+                }
+            }
         }
-    }, 100);
+    }, 300); // Slightly longer delay to ensure map is rendered
 }
 
 export function openBugReportModal() {
