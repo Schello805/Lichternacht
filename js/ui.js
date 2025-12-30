@@ -234,11 +234,11 @@ export function renderFilterBar() {
 
     // Row 1: Main Filters
     let row1 = `
-        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center">
+        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-1">
             <button onclick="filterList('all')" data-tag="all" 
                 class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'all' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}">Alle</button>
             <button onclick="filterList('proximity')" data-tag="proximity" 
-                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
+                class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
             <button onclick="filterList('favorites')" data-tag="favorites" 
                 class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
             <button onclick="filterList('visited')" data-tag="visited" 
@@ -246,17 +246,17 @@ export function renderFilterBar() {
         </div>
     `;
 
-    // Row 2: Tags
-    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center">`;
+    // Row 2: Tags (Smaller, Compact)
+    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-1">`;
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentFilter === tag;
         const classes = isActive 
             ? 'active bg-yellow-600 text-white' 
-            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50';
+            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'; // Lighter border for tags
             
         row2 += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
-            class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
+            class="filter-btn px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm ${classes}">${label}</button>`;
     });
     row2 += `</div>`;
 
