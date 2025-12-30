@@ -282,6 +282,8 @@ export function checkPlanningMode() {
         justify-content: center;
         backdrop-filter: blur(8px);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        opacity: 0;
+        transition: opacity 0.3s ease-out;
     `;
 
     const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
@@ -297,6 +299,8 @@ export function checkPlanningMode() {
             position: relative; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255,255,255,0.1);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         ">
             <button onclick="closePlanningBanner()" style="
                 position: absolute; 
@@ -314,7 +318,8 @@ export function checkPlanningMode() {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-            ">&times;</button>
+                transition: background 0.2s;
+            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">&times;</button>
             
             <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
             
@@ -346,7 +351,7 @@ export function checkPlanningMode() {
                 width: 100%; 
                 font-size: 16px; 
                 box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.3);
-                transition: transform 0.1s;
+                transition: transform 0.1s, box-shadow 0.1s;
             " onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
                 Verstanden
             </button>
@@ -354,6 +359,12 @@ export function checkPlanningMode() {
     `;
 
     document.body.appendChild(overlay);
+
+    // Trigger Animation
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        overlay.firstElementChild.style.transform = 'scale(1)';
+    });
 }
 
 export function closePlanningBanner() {

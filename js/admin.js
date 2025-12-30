@@ -509,6 +509,8 @@ export function testPlanningBanner() {
         justify-content: center;
         backdrop-filter: blur(8px);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        opacity: 0;
+        transition: opacity 0.3s ease-out;
     `;
 
     // Create content card
@@ -529,6 +531,8 @@ export function testPlanningBanner() {
             position: relative; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255,255,255,0.1);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         ">
             <button id="close-test-banner" style="
                 position: absolute; 
@@ -546,7 +550,8 @@ export function testPlanningBanner() {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-            ">&times;</button>
+                transition: background 0.2s;
+            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">&times;</button>
             
             <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
             
@@ -587,10 +592,21 @@ export function testPlanningBanner() {
 
     document.body.appendChild(overlay);
 
+    // Trigger Animation
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        overlay.firstElementChild.style.transform = 'scale(1)';
+    });
+
     // Event Listener for Close (both X and Button)
-    const closer = () => overlay.remove();
+    const closer = () => {
+        // Fade out
+        overlay.style.opacity = '0';
+        overlay.firstElementChild.style.transform = 'scale(0.95)';
+        setTimeout(() => overlay.remove(), 300);
+    };
     document.getElementById('close-test-banner').addEventListener('click', closer);
     document.getElementById('close-test-btn-main').addEventListener('click', closer);
     
-    showToast("Design-Update v1.4.44 geladen", 'success');
+    showToast("Design-Update v1.4.45 geladen", 'success');
 }

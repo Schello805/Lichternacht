@@ -112,27 +112,6 @@
 <body
     class="overflow-hidden bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
 
-    <!-- Planning Mode Banner / Overlay -->
-    <div id="planning-banner" class="fixed inset-0 z-[6000] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center relative border-4 border-yellow-500">
-            <button onclick="closePlanningBanner()" 
-                class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2">
-                <i class="ph ph-x text-2xl"></i>
-            </button>
-            <div class="mb-4 text-yellow-500">
-                <i class="ph-fill ph-cone text-6xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">In Planung! 🚧</h2>
-            <p id="planning-text" class="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.
-            </p>
-            <button onclick="closePlanningBanner()"
-                class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform active:scale-95">
-                Verstanden
-            </button>
-        </div>
-    </div>
-
     <!-- App Container -->
     <div id="app" class="h-[100dvh] flex flex-col relative">
 
@@ -873,7 +852,7 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
-                <p class="text-xs text-gray-400 mb-2">Version 1.4.43 • Made with ❤️</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.4.45 • Made with ❤️</p>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
@@ -1021,7 +1000,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.43"></script>
+    <script type="module" src="main.js?v=1.4.45"></script>
 </body>
 
 </html>
