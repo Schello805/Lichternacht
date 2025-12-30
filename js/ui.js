@@ -238,7 +238,7 @@ export function renderFilterBar() {
             <button onclick="filterList('all')" data-tag="all" 
                 class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'all' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}">Alle</button>
             <button onclick="filterList('proximity')" data-tag="proximity" 
-                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'proximity' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
+                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'proximity' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
             <button onclick="filterList('favorites')" data-tag="favorites" 
                 class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'favorites' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
             <button onclick="filterList('visited')" data-tag="visited" 
@@ -246,20 +246,31 @@ export function renderFilterBar() {
         </div>
     `;
 
-    // Row 2: Tags (Subtle Chips style)
-    let row2 = `<div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-4 mt-1">`;
+    // Row 2: Dropdown (Select Menu)
+    const isTagActive = sortedTags.includes(currentFilter);
+    
+    let row2 = `
+        <div class="px-4 mt-2">
+            <div class="relative">
+                <select onchange="filterList(this.value)" 
+                    class="appearance-none w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 pr-8 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent cursor-pointer shadow-sm transition-colors hover:bg-gray-100">
+                    <option value="" disabled ${!isTagActive ? 'selected' : ''}>Kategorie filtern...</option>
+    `;
+
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
-        const isActive = currentFilter === tag;
-        // Chip Style: Light gray bg, darker text, no border unless active
-        const classes = isActive 
-            ? 'bg-gray-800 text-white shadow-md transform scale-105' 
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'; 
-            
-        row2 += `<button onclick="filterList('${tag}')" data-tag="${tag}" 
-            class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${classes}">${label}</button>`;
+        const selected = currentFilter === tag ? 'selected' : '';
+        row2 += `<option value="${tag}" ${selected}>${label}</option>`;
     });
-    row2 += `</div>`;
+
+    row2 += `
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                    <i class="ph-bold ph-caret-down"></i>
+                </div>
+            </div>
+        </div>
+    `;
 
     container.innerHTML = row1 + row2;
 }
