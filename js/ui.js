@@ -1252,22 +1252,35 @@ export function renderTimeline() {
     const currentTimeVal = currentHours * 60 + currentMinutes;
 
     let nextEvent = null;
+    let currentActiveEvent = null; // Store currently running event for header
+    let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
     container.innerHTML = sorted.map((e, index) => {
         const [h, m] = e.time.split(':').map(Number);
         const eventTimeVal = h * 60 + m;
-        const isPast = eventTimeVal < currentTimeVal - 30; // 30 min buffer
-        const isCurrent = eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45; // Roughly current
         
-        if (!nextEvent && eventTimeVal > currentTimeVal) {
+        // Logic: Event is "active" if we are within -15 min to +45 min window
+        const isCurrent = eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45; 
+        
+        // Logic: Event is "past" if it started more than 30 mins ago AND we are not in the "current" window
+        // (Adjusted to ensure no gap between current and past)
+        const isPast = eventTimeVal < currentTimeVal - 30 && !isCurrent;
+
+        // Find Next Event (first one in future)
+        if (!nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
             nextEvent = e;
+        }
+
+        // Find Current Event (first one that is active)
+        if (!currentActiveEvent && isCurrent) {
+            currentActiveEvent = e;
         }
 
         const colorClass = e.color === 'yellow' ? 'bg-yellow-500' : 
                           e.color === 'red' ? 'bg-red-500' : 
                           e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
 
-        // Calculate Distance if available
+        // ... Distance & Map Btn Logic ...
         let distInfo = '';
         let showMapBtn = '';
         
@@ -1297,9 +1310,16 @@ export function renderTimeline() {
              }
         }
 
+        // Scroll Target Logic: The first "Current" or "Next" event gets the ID
+        let scrollId = '';
+        if (!hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
+            scrollId = 'id="timeline-scroll-target"';
+            hasSetScrollTarget = true;
+        }
+
         return `
-        <div class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''}">
-            <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125' : ''}">
+        <div ${scrollId} class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500">
+            <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700">
@@ -1327,9 +1347,27 @@ export function renderTimeline() {
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
-        if (nextEvent) {
+        // PRIORITY 1: Currently Active Event
+        if (currentActiveEvent) {
+             headerDisplay.innerHTML = `
+                <div class="flex gap-3 items-center" onclick="document.getElementById('timeline-scroll-target')?.scrollIntoView({behavior: 'smooth', block: 'center'})">
+                    <div class="bg-red-500 text-white p-2 rounded-lg text-center min-w-[50px] animate-pulse">
+                        <span class="block font-bold text-sm leading-tight">LIVE</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-red-200 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                            <span class="w-2 h-2 bg-red-500 rounded-full animate-ping inline-block"></span> Jetzt läuft
+                        </p>
+                        <p class="font-bold text-white leading-tight">${currentActiveEvent.title}</p>
+                        <p class="text-xs text-white/80 truncate">${currentActiveEvent.loc}</p>
+                    </div>
+                </div>
+            `;
+        } 
+        // PRIORITY 2: Next Event
+        else if (nextEvent) {
             headerDisplay.innerHTML = `
-                <div class="flex gap-3 items-center">
+                <div class="flex gap-3 items-center" onclick="document.getElementById('timeline-scroll-target')?.scrollIntoView({behavior: 'smooth', block: 'center'})">
                     <div class="bg-white/20 p-2 rounded-lg text-center min-w-[50px]">
                         <span class="block font-bold text-sm leading-tight">${nextEvent.time}</span>
                     </div>
@@ -1343,5 +1381,27 @@ export function renderTimeline() {
         } else {
             headerDisplay.innerHTML = `<p class="text-white/80 text-sm">Heute keine weiteren Programmpunkte.</p>`;
         }
+    }
+
+    // Auto-Scroll to relevant event (only if we just rendered and it's not already visible)
+    // Simple check: if we are in "events" tab (which we are if calling renderTimeline usually), scroll.
+    // We add a small delay to ensure DOM is ready.
+    if(hasSetScrollTarget) {
+        setTimeout(() => {
+            const el = document.getElementById('timeline-scroll-target');
+            if(el) {
+                // Only scroll if strictly needed? For now, always scroll to give "Live" feel.
+                // Use scrollIntoView with block: 'center' to center it.
+                // But don't be annoying if user scrolled away? 
+                // Since renderTimeline is called mostly on data refresh or tab switch, it's fine.
+                // el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // EDIT: ScrollIntoView might be too aggressive on every render.
+                // Let's only do it if the user just switched tabs (handled by tab switch logic? No.)
+                // Let's leave it manual via click on header, OR just do it once on load.
+                // Actually, the user specifically asked for "what to expect".
+                // Let's enable it for now.
+                // el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
     }
 }

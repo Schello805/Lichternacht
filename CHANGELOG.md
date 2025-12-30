@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.66] - 2025-12-30
+### Fixed
+- **Toast entfernt:** Die Meldung "Sortierung: Standard (Nummer)" beim Klick auf "Alle" wurde entfernt, da sie unnötig war.
+
 ## [1.4.65] - 2025-12-30
 ### Improved
 - **UI:** Dropdown-Design komplett an die Buttons angepasst:
