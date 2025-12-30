@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.56] - 2025-12-30
+### Fixed
+- **UI:** Filter-Trennlinie verwendet nun Inline-Styles, um sicherzustellen, dass sie auch ohne CSS-Rebuild korrekt angezeigt wird.
+- **Debug:** Konsolenausgabe beim Rendern der Filterleiste hinzugefügt.
+
 ## [1.4.55] - 2025-12-30
 ### Improved
 - **UI:** Filter-Trennlinie nochmals verstärkt (Dunkelgrau `bg-gray-400`, 2px Breite), um die Sichtbarkeit sicherzustellen.
