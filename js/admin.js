@@ -3,6 +3,8 @@ import { state } from './state.js';
 import { showToast } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
 
+console.log("js/admin.js module loaded"); // DEBUG
+
 export function toggleAdminPanel() {
     const panel = document.getElementById('admin-panel');
     if (panel) {
