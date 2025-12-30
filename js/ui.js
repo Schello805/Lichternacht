@@ -217,6 +217,8 @@ let currentFilter = 'all';
 export function renderFilterBar() {
     const container = document.getElementById('filter-bar');
     if (!container) return;
+    
+    console.log("Rendering Filter Bar v1.4.56");
 
     // Collect all tags from stations
     const allTags = new Set();
@@ -240,8 +242,8 @@ export function renderFilterBar() {
         <button onclick="filterList('visited')" data-tag="visited" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
         
-        <!-- SEPARATOR -->
-        <div class="h-6 w-[2px] bg-gray-400 dark:bg-gray-500 mx-2 flex-shrink-0 self-center rounded-full"></div>
+        <!-- SEPARATOR (Inline Styles for safety) -->
+        <div style="width: 2px; height: 24px; background-color: #9ca3af; margin: 0 8px; flex-shrink: 0; align-self: center; border-radius: 99px;"></div>
 
     `;
 
