@@ -264,6 +264,9 @@ function initBroadcastListener() {
     const { doc, onSnapshot } = state.fb;
 
     onSnapshot(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'), (snap) => {
+        const btn = document.getElementById('notification-btn');
+        const badge = btn.querySelector('span');
+
         if (snap.exists()) {
             const data = snap.data();
             state.lastBroadcast = data; // Store globally
@@ -272,9 +275,6 @@ function initBroadcastListener() {
             const fourHoursAgo = Date.now() - (1000 * 60 * 60 * 4);
 
             // Show Bell if recent message exists
-            const btn = document.getElementById('notification-btn');
-            const badge = btn.querySelector('span');
-
             if (data.timestamp > fourHoursAgo) {
                 btn.classList.remove('hidden');
 
@@ -294,6 +294,10 @@ function initBroadcastListener() {
                 sendLocalNotification('Nachricht vom Team', data.text);
                 alert(`NACHRICHT VOM TEAM:\n\n${data.text}`);
             }
+        } else {
+            // Document deleted -> Hide Bell
+            state.lastBroadcast = null;
+            if (btn) btn.classList.add('hidden');
         }
     });
 }
