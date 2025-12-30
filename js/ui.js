@@ -252,8 +252,14 @@ export function renderFilterBar() {
     let row2 = `
         <div class="px-4 mt-2">
             <div class="relative">
+                <!-- Filter Icon (Left) -->
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">
+                    <i class="ph ph-funnel text-lg"></i>
+                </div>
+
+                <!-- Select Input -->
                 <select onchange="filterList(this.value)" 
-                    class="appearance-none w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 pr-8 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent cursor-pointer shadow-sm transition-colors hover:bg-gray-100">
+                    class="appearance-none w-full bg-white border border-gray-200 text-gray-700 py-2.5 pl-11 pr-10 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent cursor-pointer shadow-sm transition-colors hover:bg-gray-50">
                     <option value="" disabled ${!isTagActive ? 'selected' : ''}>Kategorie filtern...</option>
     `;
 
@@ -265,8 +271,10 @@ export function renderFilterBar() {
 
     row2 += `
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                    <i class="ph-bold ph-caret-down"></i>
+                
+                <!-- Dropdown Arrow (Right) -->
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                    <i class="ph ph-caret-down text-base"></i>
                 </div>
             </div>
         </div>
