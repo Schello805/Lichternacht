@@ -12,7 +12,7 @@ import {
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
-    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation
+    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
 } from './js/ui.js?v=1.4.41';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear, testPlanningBanner
@@ -24,6 +24,7 @@ console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
 window.flyToStation = flyToStation;
+window.closePlanningBanner = closePlanningBanner;
 
 // Forced Reload Mechanism for Major Updates
 const lastVersion = localStorage.getItem('app_version');
