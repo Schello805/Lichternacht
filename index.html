@@ -453,22 +453,8 @@
                         </button>
                     </div>
                     <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                        <button onclick="filterList('all')" data-tag="all"
-                            class="filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm">Alle</button>
-                        <button onclick="filterList('proximity')" data-tag="proximity"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
-                                class="ph-fill ph-compass text-blue-500 mr-1"></i>Nähe</button>
-                        <button onclick="filterList('favorites')" data-tag="favorites"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap"><i
-                                class="ph-fill ph-heart text-red-500 mr-1"></i>Favoriten</button>
-                        <button onclick="filterList('food')" data-tag="food"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Essen</button>
-                        <button onclick="filterList('drink')" data-tag="drink"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Getränke</button>
-                        <button onclick="filterList('kids')" data-tag="kids"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Kinder</button>
-                        <button onclick="filterList('wc')" data-tag="wc"
-                            class="filter-btn px-4 py-1 rounded-full text-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 whitespace-nowrap">WC</button>
+                        <!-- Filters rendered by JS -->
+                        <button class="filter-btn active px-4 py-1 rounded-full text-sm bg-yellow-600 text-white font-medium whitespace-nowrap shadow-sm">Lade...</button>
                     </div>
                 </div>
                 <div id="stations-list" class="scroll-container p-4 space-y-3 flex-grow overflow-y-auto"></div>
@@ -978,7 +964,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.43', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.53', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {

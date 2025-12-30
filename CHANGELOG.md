@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.53] - 2025-12-30
+### Improved
+- **UI:** Visuelle Trennung (vertikaler Strich) zwischen den Hauptfiltern (Alle, Nähe, Favoriten, Besucht) und den dynamischen Tags (Essen, Trinken, etc.) hinzugefügt.
+
 ## [1.4.51] - 2025-12-30
 ### Fixed
 - **Bugfix:** Die Stationsliste zeigt nun sofort nach dem Start die Entfernungen (und Minuten) an, sobald das GPS ein Signal hat. Zuvor wurde die Liste nicht automatisch aktualisiert (im Gegensatz zum Programm).
