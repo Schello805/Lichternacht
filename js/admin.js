@@ -554,5 +554,5 @@ export function testPlanningBanner() {
         overlay.remove();
     });
     
-    showToast("Dynamisches Test-Banner erzeugt (v1.4.42)", 'success');
+    showToast("Dynamisches Test-Banner erzeugt (v1.4.43)", 'success');
 }
