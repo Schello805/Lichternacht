@@ -258,16 +258,28 @@ export function checkPlanningMode() {
     const textEl = document.getElementById('planning-text');
     
     // Debug Logging
-    console.log("checkPlanningMode", { config: state.config, bannerFound: !!banner });
+    console.log("checkPlanningMode DEBUG:", { 
+        config: state.config, 
+        planningModeValue: state.config?.planningMode,
+        planningModeType: typeof state.config?.planningMode,
+        bannerFound: !!banner,
+        textElFound: !!textEl
+    });
 
     if (!banner || !textEl) return;
 
-    // Ensure we handle boolean or string "true" (from legacy/weird storage)
-    const isActive = state.config && (state.config.planningMode === true || state.config.planningMode === "true");
+    // Robust check for various truthy values
+    let isActive = false;
+    const mode = state.config?.planningMode;
+    if (mode === true || mode === 'true' || mode === 'on' || mode === 1) {
+        isActive = true;
+    }
+
+    console.log("checkPlanningMode isActive:", isActive);
 
     if (isActive) {
         banner.classList.remove('hidden');
-        banner.style.display = 'flex'; // Force flex display
+        banner.style.display = 'flex'; // Force flex display to override any CSS issues
         if (state.config.planningText) {
             textEl.innerText = state.config.planningText;
         }
