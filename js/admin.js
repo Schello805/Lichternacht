@@ -507,52 +507,90 @@ export function testPlanningBanner() {
         display: flex;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(5px);
-        font-family: sans-serif;
+        backdrop-filter: blur(8px);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     `;
 
     // Create content card
-    const card = document.createElement('div');
-    card.style.cssText = `
-        background: white;
-        padding: 40px;
-        border-radius: 20px;
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        border: 4px solid #eab308; /* yellow-500 */
-        color: #111827;
-    `;
-
+    // Note: We use innerHTML for simplicity as we did in ui.js to match exact structure
+    
     // Content
     const inputTextArea = document.getElementById('admin-planning-text');
     const customText = inputTextArea && inputTextArea.value ? inputTextArea.value : "Dies ist ein Test für den Planungs-Modus.";
 
-    card.innerHTML = `
-        <div style="color: #eab308; font-size: 60px; margin-bottom: 20px;">🚧</div>
-        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px;">Vorschau Modus</h2>
-        <p style="font-size: 18px; color: #4b5563; margin-bottom: 24px; line-height: 1.5;">${customText}</p>
-        <button id="close-test-banner" style="
-            background-color: #eab308; 
-            color: white; 
-            font-weight: bold; 
-            padding: 12px 32px; 
-            border: none; 
-            border-radius: 12px; 
-            font-size: 16px; 
-            cursor: pointer;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        ">Schließen</button>
+    overlay.innerHTML = `
+        <div style="
+            background: white; 
+            padding: 32px; 
+            border-radius: 24px; 
+            max-width: 400px; 
+            width: 90%; 
+            text-align: center; 
+            position: relative; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        ">
+            <button id="close-test-banner" style="
+                position: absolute; 
+                top: 16px; 
+                right: 16px; 
+                background: #f3f4f6; 
+                border: none; 
+                width: 32px; 
+                height: 32px; 
+                border-radius: 50%; 
+                font-size: 20px; 
+                line-height: 1;
+                cursor: pointer; 
+                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">&times;</button>
+            
+            <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
+            
+            <h2 style="
+                font-size: 24px; 
+                font-weight: 800; 
+                margin: 0 0 12px 0; 
+                color: #111827; 
+                font-family: inherit;
+            ">Vorschau Modus</h2>
+            
+            <p style="
+                font-size: 16px; 
+                color: #4b5563; 
+                margin-bottom: 24px; 
+                line-height: 1.6;
+            ">
+                ${customText}
+            </p>
+            
+            <button id="close-test-btn-main" style="
+                background-color: #eab308; 
+                color: white; 
+                font-weight: bold; 
+                padding: 14px 32px; 
+                border-radius: 12px; 
+                border: none; 
+                cursor: pointer; 
+                width: 100%; 
+                font-size: 16px; 
+                box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.3);
+                transition: transform 0.1s;
+            " onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
+                Schließen
+            </button>
+        </div>
     `;
 
-    overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    // Event Listener for Close
-    document.getElementById('close-test-banner').addEventListener('click', () => {
-        overlay.remove();
-    });
+    // Event Listener for Close (both X and Button)
+    const closer = () => overlay.remove();
+    document.getElementById('close-test-banner').addEventListener('click', closer);
+    document.getElementById('close-test-btn-main').addEventListener('click', closer);
     
-    showToast("Dynamisches Test-Banner erzeugt (v1.4.43)", 'success');
+    showToast("Design-Update v1.4.44 geladen", 'success');
 }

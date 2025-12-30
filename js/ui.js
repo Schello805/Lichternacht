@@ -254,49 +254,111 @@ export function renderFilterBar() {
 }
 
 export function checkPlanningMode() {
-    const banner = document.getElementById('planning-banner');
-    const textEl = document.getElementById('planning-text');
-    
-    // Debug Logging
-    console.log("checkPlanningMode DEBUG:", { 
-        config: state.config, 
-        planningModeValue: state.config?.planningMode,
-        planningModeType: typeof state.config?.planningMode,
-        bannerFound: !!banner,
-        textElFound: !!textEl
-    });
-
-    if (!banner || !textEl) return;
-
-    // Robust check for various truthy values
+    // 1. Check Config
     let isActive = false;
     const mode = state.config?.planningMode;
     if (mode === true || mode === 'true' || mode === 'on' || mode === 1) {
         isActive = true;
     }
-
     console.log("checkPlanningMode isActive:", isActive);
 
-    if (isActive) {
-        banner.classList.remove('hidden');
-        banner.style.display = 'flex'; // Force flex display to override any CSS issues
-        if (state.config.planningText) {
-            textEl.innerText = state.config.planningText;
-        }
-    } else {
-        banner.classList.add('hidden');
-        banner.style.display = 'none';
-    }
+    // 2. Remove EXISTING banner (static or dynamic) to ensure clean slate
+    const existing = document.getElementById('planning-banner');
+    if (existing) existing.remove();
+
+    // 3. If NOT active, we are done (banner removed above)
+    if (!isActive) return;
+
+    // 4. Create NEW Dynamic Banner (Robuste Methode)
+    const overlay = document.createElement('div');
+    overlay.id = 'planning-banner';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    `;
+
+    const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
+
+    overlay.innerHTML = `
+        <div style="
+            background: white; 
+            padding: 32px; 
+            border-radius: 24px; 
+            max-width: 400px; 
+            width: 90%; 
+            text-align: center; 
+            position: relative; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        ">
+            <button onclick="closePlanningBanner()" style="
+                position: absolute; 
+                top: 16px; 
+                right: 16px; 
+                background: #f3f4f6; 
+                border: none; 
+                width: 32px; 
+                height: 32px; 
+                border-radius: 50%; 
+                font-size: 20px; 
+                line-height: 1;
+                cursor: pointer; 
+                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">&times;</button>
+            
+            <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
+            
+            <h2 style="
+                font-size: 24px; 
+                font-weight: 800; 
+                margin: 0 0 12px 0; 
+                color: #111827; 
+                font-family: inherit;
+            ">In Planung!</h2>
+            
+            <p id="planning-text" style="
+                font-size: 16px; 
+                color: #4b5563; 
+                margin-bottom: 24px; 
+                line-height: 1.6;
+            ">
+                ${text}
+            </p>
+            
+            <button onclick="closePlanningBanner()" style="
+                background-color: #eab308; 
+                color: white; 
+                font-weight: bold; 
+                padding: 14px 32px; 
+                border-radius: 12px; 
+                border: none; 
+                cursor: pointer; 
+                width: 100%; 
+                font-size: 16px; 
+                box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.3);
+                transition: transform 0.1s;
+            " onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
+                Verstanden
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
 }
 
 export function closePlanningBanner() {
     const banner = document.getElementById('planning-banner');
-    if (!banner) return;
-    
-    // Reset styles forced by test function (remove !important overrides)
-    banner.style.cssText = ''; 
-    banner.style.display = 'none';
-    banner.classList.add('hidden');
+    if (banner) banner.remove();
 }
 
 export function renderList(stations) {
