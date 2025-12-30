@@ -78,9 +78,8 @@
             padding: 8px;
             position: absolute;
             z-index: 10000;
-            /* Very high z-index */
-            top: 120%;
-            /* Position below */
+            /* Position ABOVE */
+            bottom: 125%; 
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
@@ -95,13 +94,12 @@
         .tooltip-container .tooltip-text::after {
             content: "";
             position: absolute;
-            bottom: 100%;
-            /* Arrow points up */
+            top: 100%; /* Arrow points down */
             left: 50%;
             margin-left: -5px;
             border-width: 5px;
             border-style: solid;
-            border-color: transparent transparent #000 transparent;
+            border-color: #000 transparent transparent transparent;
         }
 
         .tooltip-container:hover .tooltip-text {

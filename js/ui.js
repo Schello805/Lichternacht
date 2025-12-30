@@ -267,11 +267,13 @@ export function checkPlanningMode() {
 
     if (isActive) {
         banner.classList.remove('hidden');
+        banner.style.display = 'flex'; // Force flex display
         if (state.config.planningText) {
             textEl.innerText = state.config.planningText;
         }
     } else {
         banner.classList.add('hidden');
+        banner.style.display = 'none';
     }
 }
 
