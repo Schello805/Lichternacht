@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.62] - 2025-12-30
+### Fixed
+- **Login-Modal:** Veraltete Versionsnummer entfernt, die im Login-Dialog noch angezeigt wurde.
+
 ## [1.4.61] - 2025-12-30
 ### Improved
 - **UI:** Weitere Verbesserung der Filterleiste basierend auf User-Feedback:
