@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.40] - 2025-12-30
+### Fixed
+- **Admin:** "Banner testen" Funktion erzwingt nun aggressiv die Sichtbarkeit (`display: flex !important`, `z-index: 99999`), falls das Overlay von anderen Elementen überdeckt wurde.
+
 ## [1.4.39] - 2025-12-30
 ### Changed
 - **UI:** Admin-Panel Layout verbessert:

@@ -504,10 +504,22 @@ export function testPlanningBanner() {
         if (customText) textEl.innerText = customText;
     }
 
-    // Force show
+    // Force show with extreme prejudice
     banner.classList.remove('hidden');
     banner.style.display = 'flex';
+    banner.style.setProperty('display', 'flex', 'important');
+    banner.style.zIndex = '99999';
+    banner.style.visibility = 'visible';
+    banner.style.opacity = '1';
     
-    showToast("Banner-Vorschau aktiviert", 'info');
+    // Debug output
+    console.log("Banner state:", {
+        display: banner.style.display,
+        zIndex: banner.style.zIndex,
+        classList: banner.classList.toString(),
+        rect: banner.getBoundingClientRect()
+    });
+    
+    showToast("Banner-Vorschau aktiviert (Check Console)", 'info');
 }
 
