@@ -344,6 +344,10 @@ export async function saveAppConfig() {
         // Update Banner Visibility immediately
         if (window.checkPlanningMode) window.checkPlanningMode();
         
+        if (planningMode) {
+            showToast("⚠️ Planungs-Modus AKTIV", 'info');
+        }
+
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
