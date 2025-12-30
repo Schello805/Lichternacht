@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.50] - 2025-12-30
+### Added
+- **Credits:** Hinweis auf der Hilfeseite hinzugefügt, dass das Projekt von Michael Schellenberger zu 100% mit KI erstellt wurde.
+
 ## [1.4.49] - 2025-12-30
 ### Fixed
 - **UI:** Weitere Verbesserung der Abstände für den "BESUCHT"-Stempel. Die ID-Nummer rückt nun weiter nach links, damit sie nicht vom Stempel verdeckt wird.

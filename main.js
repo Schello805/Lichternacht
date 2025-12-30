@@ -19,7 +19,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.50";
+const APP_VERSION = "1.4.51";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -138,6 +138,7 @@ window.checkPlanningMode = checkPlanningMode;
 window.closePlanningBanner = closePlanningBanner;
 window.openStation = openStation;
 window.startEventPicker = startEventPicker;
+window.refreshStationList = refreshStationList;
 window.addNewTag = window.addNewTag; // Already on window from ui.js, but for completeness/clarity if we move to exports later.
 // Actually ui.js assigns it to window.addNewTag.
 // Let's just ensuring it's not overridden or lost.
