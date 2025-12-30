@@ -553,4 +553,3 @@ export function testPlanningBanner() {
     
     showToast("Dynamisches Test-Banner erzeugt (v1.4.42)", 'success');
 }
-
