@@ -239,6 +239,7 @@ export function renderFilterBar() {
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
         <button onclick="filterList('visited')" data-tag="visited" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
+        <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1 flex-shrink-0 self-center"></div>
     `;
 
     sortedTags.forEach(tag => {
