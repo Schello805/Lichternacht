@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.39] - 2025-12-30
+### Changed
+- **UI:** Admin-Panel Layout verbessert:
+    - "Importieren"-Button ist nun weniger dominant (weiß mit rotem Rand).
+    - Tooltips erscheinen nun oberhalb der Buttons und verdecken nichts.
+    - "Schließen"-Button befindet sich nun ganz unten im Panel.
+- **Admin:** Neuer Button **"Banner testen (Vorschau)"** im Planungs-Modus Bereich, um das Popup sofort zu prüfen.
+- **System:** Robustere Erkennung des Planungs-Modus (`checkPlanningMode`), um sicherzustellen, dass der Banner erscheint.
+- **System:** Version Bump auf 1.4.39 für Cache-Invalidierung.
+
 ## [1.4.38] - 2025-12-29
 ### Changed
 - **GPS:** Die App fragt nun sofort beim Start nach dem Standort, damit Entfernungen direkt sichtbar sind.

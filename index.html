@@ -256,6 +256,11 @@
                         </label>
                         <textarea id="admin-planning-text" placeholder="Text für das Popup (z.B. 'Die nächste Lichternacht ist in Planung...')"
                             class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm h-20"></textarea>
+                        
+                        <button onclick="document.getElementById('planning-banner').classList.remove('hidden'); document.getElementById('planning-banner').style.display='flex';" 
+                            class="text-xs text-yellow-600 hover:text-yellow-700 underline mt-1">
+                            Banner testen (Vorschau)
+                        </button>
                     </div>
 
                     <button onclick="saveAppConfig()"
@@ -868,7 +873,7 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
-                <p class="text-xs text-gray-400 mb-2">Version 1.4.38 • Made with ❤️</p>
+                <p class="text-xs text-gray-400 mb-2">Version 1.4.39 • Made with ❤️</p>
                 <a href="https://github.com/Schello805/Lichternacht" target="_blank"
                     class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
