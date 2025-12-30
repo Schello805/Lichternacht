@@ -191,6 +191,9 @@ export async function checkIn(id) {
     updateCheckInBtn(id);
     showToast('Check-in erfolgreich! 🏆', 'success');
     
+    // Refresh list to show "BESUCHT" badge immediately
+    if (window.refreshStationList) window.refreshStationList();
+    
     // Hide smart button if it was for this station
     if (state.smartActionStationId === id) {
         document.getElementById('smart-action-btn').classList.add('hidden');

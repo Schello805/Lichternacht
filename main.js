@@ -46,6 +46,7 @@ window.saveDownloads = saveDownloads;
 window.saveAppConfig = saveAppConfig;
 window.saveTrackingConfig = saveTrackingConfig;
 window.sendBroadcast = sendBroadcast;
+window.deleteBroadcast = deleteBroadcast;
 window.resetLikes = resetLikes;
 window.deleteUser = deleteUser;
 window.toggleLike = toggleLike;
