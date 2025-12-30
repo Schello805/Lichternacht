@@ -487,43 +487,70 @@ export function resetApp() {
 }
 
 export function testPlanningBanner() {
-    const banner = document.getElementById('planning-banner');
-    const textEl = document.getElementById('planning-text');
+    console.log("Testing Planning Banner (Dynamic Mode)...");
+
+    // Remove any existing test banner
+    const existing = document.getElementById('test-planning-overlay');
+    if (existing) existing.remove();
+
+    // Create container
+    const overlay = document.createElement('div');
+    overlay.id = 'test-planning-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
+        font-family: sans-serif;
+    `;
+
+    // Create content card
+    const card = document.createElement('div');
+    card.style.cssText = `
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 4px solid #eab308; /* yellow-500 */
+        color: #111827;
+    `;
+
+    // Content
     const inputTextArea = document.getElementById('admin-planning-text');
-    
-    if (!banner) {
-        alert("CRITICAL ERROR: Banner element #planning-banner not found in DOM!");
-        return;
-    }
+    const customText = inputTextArea && inputTextArea.value ? inputTextArea.value : "Dies ist ein Test für den Planungs-Modus.";
 
-    // Move banner to end of body to ensure it's on top of everything
-    document.body.appendChild(banner);
+    card.innerHTML = `
+        <div style="color: #eab308; font-size: 60px; margin-bottom: 20px;">🚧</div>
+        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px;">Vorschau Modus</h2>
+        <p style="font-size: 18px; color: #4b5563; margin-bottom: 24px; line-height: 1.5;">${customText}</p>
+        <button id="close-test-banner" style="
+            background-color: #eab308; 
+            color: white; 
+            font-weight: bold; 
+            padding: 12px 32px; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        ">Schließen</button>
+    `;
 
-    // Update text
-    if (textEl && inputTextArea) {
-        const customText = inputTextArea.value;
-        if (customText) textEl.innerText = customText;
-    }
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
 
-    // Force styles inline
-    banner.classList.remove('hidden');
-    banner.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.8);';
-    
-    // Debug Alert to user
-    const rect = banner.getBoundingClientRect();
-    const computed = window.getComputedStyle(banner);
-    
-    console.log("Banner Debug:", {
-        rect,
-        display: computed.display,
-        visibility: computed.visibility,
-        zIndex: computed.zIndex
+    // Event Listener for Close
+    document.getElementById('close-test-banner').addEventListener('click', () => {
+        overlay.remove();
     });
-
-    if (rect.width === 0 || rect.height === 0 || computed.display === 'none') {
-        alert(`FEHLER: Banner ist unsichtbar!\nDisplay: ${computed.display}\nSize: ${rect.width}x${rect.height}`);
-    } else {
-        showToast("Banner v1.4.41 sollte jetzt sichtbar sein.", 'success');
-    }
+    
+    showToast("Dynamisches Test-Banner erzeugt (v1.4.42)", 'success');
 }
 
