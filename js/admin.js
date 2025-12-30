@@ -419,6 +419,63 @@ export async function resetLikes() {
     }
 }
 
+export async function startNewYear() {
+    if (!confirm("⚠️ ACHTUNG: 'Neues Jahr starten' führt folgende Aktionen aus:\n\n1. Alle Likes auf 0 setzen.\n2. Aktuelle Broadcast-Nachricht löschen.\n3. Medaillen-Statistiken zurücksetzen.\n4. ALLE Besucher-Listen auf den Handys der Nutzer löschen (beim nächsten Start).\n\nWirklich fortfahren?")) return;
+    
+    const code = prompt("Bitte 'RESET' eingeben zur Bestätigung:");
+    if (code !== 'RESET') return;
+
+    showToast("Starte Reset... Bitte warten.", 'info');
+
+    try {
+        const { writeBatch, doc, deleteDoc, setDoc } = state.fb;
+        const batch = writeBatch(state.db);
+
+        // 1. Reset Likes (Batch)
+        state.stations.forEach(s => {
+            const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'stations', s.id.toString());
+            batch.update(ref, { likes: 0 });
+            s.likes = 0; // Optimistic local update
+        });
+
+        // 2. Reset Global Stats (Batch)
+        const statsRef = doc(state.db, 'global', 'stats');
+        batch.set(statsRef, { 
+            count_bronze: 0, 
+            count_silver: 0, 
+            count_gold: 0, 
+            count_diamond: 0 
+        });
+
+        // Commit Batch
+        await batch.commit();
+
+        // 3. Delete Broadcast (Single Op)
+        const broadcastRef = doc(state.db, 'artifacts', state.appId, 'public', 'broadcast');
+        await deleteDoc(broadcastRef).catch(() => {}); // Ignore if not exists
+
+        // 4. Update Global Config to trigger Client Wipe
+        const globalConfigRef = doc(state.db, 'global', 'config');
+        await setDoc(globalConfigRef, { 
+            resetToken: Date.now() 
+        }, { merge: true });
+
+        showToast("✅ Neues Jahr erfolgreich gestartet!", 'success');
+        
+        // Refresh UI
+        if (window.renderList) window.renderList(state.stations);
+        if (window.openStation && state.activeStationId) {
+             const s = state.stations.find(x => x.id == state.activeStationId);
+             if(s) window.openStation(s.id);
+        }
+        document.getElementById('admin-broadcast-text').value = '';
+
+    } catch (e) {
+        console.error("New Year Reset Error", e);
+        showToast("Fehler beim Reset: " + e.message, 'error');
+    }
+}
+
 export function resetApp() {
     console.warn("resetApp is deprecated");
     localStorage.clear();

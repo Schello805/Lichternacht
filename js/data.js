@@ -164,6 +164,36 @@ export async function syncGlobalConfig() {
                 console.log("Configured Year:", data.activeYear);
                 document.querySelectorAll('.year-display').forEach(el => el.innerText = data.activeYear);
             }
+
+            // Check for Reset Token (Client Wipe)
+            if (data.resetToken) {
+                const lastToken = localStorage.getItem('last_reset_token');
+                if (!lastToken || Number(data.resetToken) > Number(lastToken)) {
+                    console.log("Reset Token triggered! Wiping client data...");
+                    
+                    // Wipe specific keys
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith('liked_') || key.startsWith('reached_')) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                    
+                    localStorage.removeItem('visited_stations');
+                    localStorage.removeItem('favorites');
+                    localStorage.removeItem('last_broadcast_seen');
+                    
+                    // Save new token
+                    localStorage.setItem('last_reset_token', data.resetToken);
+                    
+                    showToast("🎉 Neues Jahr! Deine Liste wurde zurückgesetzt.", 'info');
+                    
+                    // Refresh if needed (though usually this runs on startup)
+                    if (window.refreshStationList) window.refreshStationList();
+                }
+            }
         } else {
             console.log("No global config found, using default:", state.appId);
         }
