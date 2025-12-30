@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.51] - 2025-12-30
+### Fixed
+- **Bugfix:** Die Stationsliste zeigt nun sofort nach dem Start die Entfernungen (und Minuten) an, sobald das GPS ein Signal hat. Zuvor wurde die Liste nicht automatisch aktualisiert (im Gegensatz zum Programm).
+
 ## [1.4.50] - 2025-12-30
 ### Added
 - **Credits:** Hinweis auf der Hilfeseite hinzugefügt, dass das Projekt von Michael Schellenberger zu 100% mit KI erstellt wurde.
