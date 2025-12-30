@@ -4,7 +4,7 @@ import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
-import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction } from './js/gamification.js';
+import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -19,7 +19,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.45";
+const APP_VERSION = "1.4.46";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -198,6 +198,7 @@ window.onload = async () => {
 
     // Init
     initMap();
+    updatePassProgress(); // FIX: Show correct pass progress on load
 
     // Tutorial Check
     if (!localStorage.getItem('tutorial_seen')) {

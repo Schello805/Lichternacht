@@ -237,6 +237,8 @@ export function renderFilterBar() {
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'proximity' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>Nähe</button>
         <button onclick="filterList('favorites')" data-tag="favorites" 
             class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'favorites' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
+        <button onclick="filterList('visited')" data-tag="visited" 
+            class="filter-btn px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap shadow-sm ${currentFilter === 'visited' ? 'active bg-yellow-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
     `;
 
     sortedTags.forEach(tag => {
@@ -485,6 +487,9 @@ export function filterList(tag) {
             // Update nav icon if it's proximity
             const navIcon = btn.querySelector('.ph-compass');
             if(navIcon) { navIcon.classList.remove('text-blue-500'); navIcon.classList.add('text-white'); }
+            // Update check icon if it's visited
+            const checkIcon = btn.querySelector('.ph-check-circle');
+            if(checkIcon) { checkIcon.classList.remove('text-green-500'); checkIcon.classList.add('text-white'); }
         } else {
             btn.classList.remove('active', 'bg-yellow-600', 'text-white');
             btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
@@ -494,6 +499,9 @@ export function filterList(tag) {
             // Reset nav icon
             const navIcon = btn.querySelector('.ph-compass');
             if(navIcon) { navIcon.classList.remove('text-white'); navIcon.classList.add('text-blue-500'); }
+            // Reset check icon
+            const checkIcon = btn.querySelector('.ph-check-circle');
+            if(checkIcon) { checkIcon.classList.remove('text-white'); checkIcon.classList.add('text-green-500'); }
         }
     });
 
@@ -519,6 +527,22 @@ export function filterList(tag) {
         renderList(favs);
         if (favs.length === 0) {
             showToast("Keine Favoriten markiert", 'info');
+        }
+        return;
+    }
+
+    if (tag === 'visited') {
+        let visitedStations = new Set();
+        try {
+            const saved = localStorage.getItem('visited_stations');
+            if (saved) visitedStations = new Set(JSON.parse(saved));
+        } catch (e) { }
+        
+        const visited = state.stations.filter(s => visitedStations.has(s.id));
+        renderList(visited);
+        
+        if (visited.length === 0) {
+            showToast("Noch keine Stationen besucht", 'info');
         }
         return;
     }
