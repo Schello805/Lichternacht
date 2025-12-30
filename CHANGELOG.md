@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.49] - 2025-12-30
+### Fixed
+- **UI:** Weitere Verbesserung der Abstände für den "BESUCHT"-Stempel. Die ID-Nummer rückt nun weiter nach links, damit sie nicht vom Stempel verdeckt wird.
+
 ## [1.4.48] - 2025-12-30
 ### Fixed
 - **UI:** Der "BESUCHT"-Stempel wird nun korrekt rechts oben auf der Karte positioniert und überlappt nicht mehr den Titel. (Fallback für fehlende CSS-Klassen hinzugefügt).
