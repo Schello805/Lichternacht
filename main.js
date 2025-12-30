@@ -134,6 +134,7 @@ window.renderList = renderList;
 window.renderTimeline = renderTimeline;
 window.renderFilterBar = renderFilterBar;
 window.checkPlanningMode = checkPlanningMode;
+window.closePlanningBanner = closePlanningBanner;
 window.openStation = openStation;
 window.startEventPicker = startEventPicker;
 window.addNewTag = window.addNewTag; // Already on window from ui.js, but for completeness/clarity if we move to exports later.

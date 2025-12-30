@@ -289,6 +289,16 @@ export function checkPlanningMode() {
     }
 }
 
+export function closePlanningBanner() {
+    const banner = document.getElementById('planning-banner');
+    if (!banner) return;
+    
+    // Reset styles forced by test function (remove !important overrides)
+    banner.style.cssText = ''; 
+    banner.style.display = 'none';
+    banner.classList.add('hidden');
+}
+
 export function renderList(stations) {
     const container = document.getElementById('stations-list');
     if (!container) return;
