@@ -131,6 +131,8 @@ export function locateUser(cb) {
             
             // Refresh List (to show distances)
             if (window.refreshStationList) window.refreshStationList();
+            // Refresh Timeline (to show distances)
+            if (window.renderTimeline) window.renderTimeline();
 
             if (cb) { cb(); cb = null; } // Only call cb once
         }, 

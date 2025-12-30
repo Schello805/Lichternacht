@@ -353,8 +353,11 @@
                         <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                         <button onclick="sendBroadcast()"
-                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm"><i
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm" title="Senden"><i
                                 class="ph ph-paper-plane-right"></i></button>
+                        <button onclick="deleteBroadcast()"
+                            class="bg-gray-200 text-gray-600 px-3 py-2 rounded hover:bg-gray-300 font-bold text-sm" title="Löschen"><i
+                                class="ph ph-trash"></i></button>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">Erscheint sofort bei allen aktiven Nutzern.</p>
                 </div>

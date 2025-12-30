@@ -299,6 +299,21 @@ export async function sendBroadcast() {
     }
 }
 
+export async function deleteBroadcast() {
+    if (!confirm("Wirklich die aktuelle Nachricht löschen?")) return;
+
+    try {
+        const { doc, deleteDoc } = state.fb;
+        await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'));
+        
+        showToast("Nachricht gelöscht!", 'success');
+        document.getElementById('admin-broadcast-text').value = '';
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Löschen (nur Online)", 'error');
+    }
+}
+
 export async function saveAppConfig() {
     const title = document.getElementById('admin-app-title').value;
     const subtitle = document.getElementById('admin-app-subtitle').value;
