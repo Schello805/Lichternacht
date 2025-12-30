@@ -311,8 +311,16 @@ export function renderList(stations) {
         });
     }
 
+    // Get visited stations
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
+        const isVisited = visitedStations.has(s.id);
         
         let distInfo = '';
         // Only show distance if user location is active AND distance is calculated
@@ -333,10 +341,11 @@ export function renderList(stations) {
         }
 
         return `
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4" onclick="openStation('${s.id}')">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4 relative overflow-hidden" onclick="openStation('${s.id}')">
+            ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex justify-between items-start">
-                <h3 class="font-bold text-lg">${s.name}</h3>
-                <span class="text-xs font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">#${s.id}</span>
+                <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
+                <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-16' : ''}">#${s.id}</span>
             </div>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
             <div class="mt-2 flex gap-2 flex-wrap">
