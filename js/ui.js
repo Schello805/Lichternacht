@@ -536,7 +536,6 @@ export function filterList(tag) {
     });
 
     if (tag === 'all') {
-        if (state.userLocation) showToast("Sortierung: Standard (Nummer)", 'info');
         renderList(state.stations);
         return;
     }
