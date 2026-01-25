@@ -955,14 +955,12 @@
     </script>
 
     <!-- Main App Script (Module) with Cache Busting -->
-    <script type="module" src="main.js?v=1.4.42"></script>
-
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // Remove Old Caches if needed (Manual Nuke)
-                if (localStorage.getItem('app_version') !== '1.4.42') {
+                if (localStorage.getItem('app_version') !== '1.4.69') {
                      // Optionally clear caches via SW logic
                 }
 
@@ -977,7 +975,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.56', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.69', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1002,7 +1000,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.68"></script>
+    <script type="module" src="main.js?v=1.4.69"></script>
 </body>
 
 </html>

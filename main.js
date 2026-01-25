@@ -19,7 +19,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.68";
+const APP_VERSION = "1.4.69";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -320,6 +320,12 @@ function checkUpcomingEvents() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
+
+    const icsDate = state.downloads && state.downloads.icsDate;
+    if (!icsDate || !/^\d{8}$/.test(icsDate)) return;
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const icsKey = `${icsDate.slice(0, 4)}-${icsDate.slice(4, 6)}-${icsDate.slice(6, 8)}`;
+    if (todayKey !== icsKey) return;
 
     state.events.forEach(e => {
         const [h, m] = e.time.split(':').map(Number);

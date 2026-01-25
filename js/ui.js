@@ -320,9 +320,17 @@ export function checkPlanningMode() {
 
     const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
 
+    const isDark = document.documentElement.classList.contains('dark');
+    const cardBg = isDark ? '#111827' : 'white';
+    const titleColor = isDark ? '#f9fafb' : '#111827';
+    const bodyColor = isDark ? '#d1d5db' : '#4b5563';
+    const closeBg = isDark ? '#1f2937' : '#f3f4f6';
+    const closeHoverBg = isDark ? '#374151' : '#e5e7eb';
+    const closeColor = isDark ? '#e5e7eb' : '#6b7280';
+
     overlay.innerHTML = `
         <div style="
-            background: white; 
+            background: ${cardBg}; 
             padding: 32px; 
             border-radius: 24px; 
             max-width: 400px; 
@@ -338,7 +346,7 @@ export function checkPlanningMode() {
                 position: absolute; 
                 top: 16px; 
                 right: 16px; 
-                background: #f3f4f6; 
+                background: ${closeBg}; 
                 border: none; 
                 width: 32px; 
                 height: 32px; 
@@ -346,12 +354,12 @@ export function checkPlanningMode() {
                 font-size: 20px; 
                 line-height: 1;
                 cursor: pointer; 
-                color: #6b7280;
+                color: ${closeColor};
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: background 0.2s;
-            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">&times;</button>
+            " onmouseover="this.style.background='${closeHoverBg}'" onmouseout="this.style.background='${closeBg}'">&times;</button>
             
             <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
             
@@ -359,13 +367,13 @@ export function checkPlanningMode() {
                 font-size: 24px; 
                 font-weight: 800; 
                 margin: 0 0 12px 0; 
-                color: #111827; 
+                color: ${titleColor}; 
                 font-family: inherit;
             ">In Planung!</h2>
             
             <p id="planning-text" style="
                 font-size: 16px; 
-                color: #4b5563; 
+                color: ${bodyColor}; 
                 margin-bottom: 24px; 
                 line-height: 1.6;
             ">
