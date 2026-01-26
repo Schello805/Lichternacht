@@ -105,6 +105,7 @@ export function locateUser(cb) {
     // Use watchPosition for continuous updates
     if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
     
+    let cbCalled = false;
     state.watchId = navigator.geolocation.watchPosition(
         (pos) => {
             setLoading(false);
@@ -113,6 +114,12 @@ export function locateUser(cb) {
             
             // Update State
             state.userLocation = { lat: userLat, lng: userLng };
+
+            // If a callback was provided (e.g. check-in retry), run it once after we have a fix
+            if (cb && !cbCalled) {
+                cbCalled = true;
+                try { cb(); } catch (e) { }
+            }
             
             // Update Marker
             if (state.userMarker) {
@@ -146,25 +153,23 @@ export function locateUser(cb) {
             // Refresh Timeline (to show distances)
             if (window.renderTimeline) window.renderTimeline();
 
-            if (cb) { cb(); cb = null; } // Only call cb once
-        }, 
+        },
         (err) => {
             setLoading(false);
             console.warn("GPS Watch Error", err);
-            
+
             // User requirement: Show button if GPS denied/error
             const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
-            if (listLocateBtn) {
-                listLocateBtn.classList.remove('hidden');
-            }
+            if (listLocateBtn) listLocateBtn.classList.remove('hidden');
 
-            // Don't show toast on every error in watcher
-            if (cb) {
-                 showToast("GPS Fehler: " + err.message, 'error');
-                 document.getElementById('status-indicator').innerText = "GPS Fehler";
-            }
-        }, 
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+            document.getElementById('status-indicator').innerText = "GPS Fehler";
+            showToast("GPS Fehler: " + (err?.message || err), 'error');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
     );
 }
 
