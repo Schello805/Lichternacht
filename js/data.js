@@ -114,6 +114,7 @@ export async function loadData() {
             state.events = seedEvents;
         }
     }
+    if (window.updatePassProgress) window.updatePassProgress();
     if (window.refreshMapMarkers) window.refreshMapMarkers();
     if (window.renderList) window.renderList(state.stations);
     if (window.renderTimeline) window.renderTimeline();

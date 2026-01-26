@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.4.70] - 2026-01-26
+### Added
+- **Mini-Tour:** Dezenter Hinweis „Kurze Tour (5 Punkte)“ + Tour-Overlay mit Fokus-Hervorhebung (ohne Abdunkeln). Tour führt auch durch **Stationen** und **Programm**.
+- **Hilfe:** Button „Tour erneut anzeigen“ in der Anleitung.
+
+### Improved
+- **Pass-Zähler:** Anzeige jetzt als **🏆 besucht/gesamt** (z.B. 1/38) und verständliche Info beim Tippen.
+- **User-Zähler:** Wird immer sichtbar angezeigt (Online: echte Zahl / Offline: 1 Gerät) und erklärt sich per Tippen.
+- **Likes:** Likes werden in der Stationsliste jetzt immer angezeigt (auch 0), damit die Funktion sichtbar ist.
+- **PWA Install UX:** Im Willkommens-Modal genügt ein Install-Button (kein doppelter Floating-Install-Button).
+
+### Fixed
+- **Admin Broadcast:** Robust gegen fehlende Firebase-Funktionen (Lazy Import), kein „doc is not a function“ Crash.
+- **Route:** Route aus Stationsliste/Modal funktioniert stabil (Tab-Wechsel + GPS Auto-Start).
+- **Check-in Undo:** Check-in kann per „X“ rückgängig gemacht werden.
+- **Update Toast:** HTML-Struktur repariert (klickbar/sauber).
+
+### Changed
+- **Check-in Radius:** 50m → **25m**.
+
 ## [1.4.68] - 2025-12-30
 ### Feature
 - **Karten-Highlight:** Beim Klick auf "Zeigen" (bei Events) oder "Karte" (bei Stationen) wird die Zielstation auf der Karte nun für 5 Sekunden deutlich pulsierend hervorgehoben. So findet man die gesuchte Nummer sofort, auch wenn viele Marker nebeneinander liegen.

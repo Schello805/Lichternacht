@@ -186,12 +186,14 @@ export function handleAdminAdd(type) {
     // Refresh Map to show new pin immediately
     if (window.refreshMapMarkers) window.refreshMapMarkers();
 
-    // Open Modal for this new station
-    if (window.editStation) {
-        // Add to local state first so find works
-        window.editStation(newId);
-        showToast(`Neue Station (${newId}) erstellt`, 'info');
+    // Open Modal immediately for this new station and jump into edit mode
+    if (window.openModal) {
+        window.openModal(newStation);
     }
+    if (window.editStation) {
+        window.editStation(newId);
+    }
+    showToast(`Neue Station (${newId}) erstellt`, 'info');
 }
 
 export function dumpData() {
@@ -287,7 +289,21 @@ export async function sendBroadcast() {
     if (!confirm(`Nachricht senden an alle?\n"${text}"`)) return;
 
     try {
+        if (state.useLocalStorage || !state.db) {
+            showToast("Sendefehler (nur Online)", 'error');
+            return;
+        }
+
+        if (!state.fb?.doc || !state.fb?.setDoc) {
+            const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
+            Object.assign(state.fb, fbStore);
+        }
+
         const { doc, setDoc } = state.fb;
+        if (typeof doc !== 'function' || typeof setDoc !== 'function') {
+            showToast("Sendefehler (Firebase nicht bereit)", 'error');
+            return;
+        }
         await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'), {
             text: text,
             timestamp: Date.now()
@@ -305,7 +321,21 @@ export async function deleteBroadcast() {
     if (!confirm("Wirklich die aktuelle Nachricht löschen?")) return;
 
     try {
+        if (state.useLocalStorage || !state.db) {
+            showToast("Fehler beim Löschen (nur Online)", 'error');
+            return;
+        }
+
+        if (!state.fb?.doc || !state.fb?.deleteDoc) {
+            const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
+            Object.assign(state.fb, fbStore);
+        }
+
         const { doc, deleteDoc } = state.fb;
+        if (typeof doc !== 'function' || typeof deleteDoc !== 'function') {
+            showToast("Fehler beim Löschen (Firebase nicht bereit)", 'error');
+            return;
+        }
         await deleteDoc(doc(state.db, 'artifacts', state.appId, 'public', 'broadcast'));
         
         showToast("Nachricht gelöscht!", 'success');

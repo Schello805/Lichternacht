@@ -371,8 +371,8 @@
             </button>
         </div>
 
-        <!-- Floating Status Elements (Bottom Right) -->
-        <div class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2 pointer-events-none">
+        <!-- Floating Quick Action (Bottom Left) -->
+        <div id="smart-action-container" style="z-index: 1200;" class="absolute bottom-20 left-4 z-[400] flex flex-col items-start gap-2 pointer-events-none">
             <!-- Smart Action Button (Proximity) -->
             <button id="smart-action-btn" onclick="executeSmartAction()"
                 class="hidden pointer-events-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 rounded-full shadow-xl border-2 border-blue-500 animate-bounce-slow flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95">
@@ -385,18 +385,30 @@
                 </div>
                 <i class="ph-bold ph-caret-right text-gray-400"></i>
             </button>
+        </div>
 
+        <!-- Floating Status (Bottom Right) -->
+        <div style="z-index: 1200;" class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2">
+            <!-- Mini Tour Prompt (optional) -->
+            <div id="mini-tour-prompt" style="display:none" class="hidden pointer-events-auto tour-prompt">
+                <div class="tour-prompt-title">Kurze Tour</div>
+                <div class="tour-prompt-text">5 Punkte · 40 Sekunden</div>
+                <div class="tour-prompt-actions">
+                    <button type="button" id="mini-tour-start" class="tour-prompt-btn primary">Tour starten</button>
+                    <button type="button" id="mini-tour-dismiss" class="tour-prompt-btn">Nicht jetzt</button>
+                </div>
+            </div>
             <!-- User Count -->
             <div id="user-count"
                 title="Anzahl der Nutzer, die gerade die App offen haben"
-                onclick="showToast('So viele Leute nutzen gerade die App! 👋', 'info')"
-                class="hidden pointer-events-auto items-center text-xs px-3 py-1.5 rounded-full bg-blue-500/90 text-white font-bold shadow-lg backdrop-blur-sm animate-fade-in cursor-pointer hover:scale-105 transition-transform">
+                onclick="showUserCountInfo()"
+                class="pointer-events-auto flex items-center text-xs px-3 py-1.5 rounded-full bg-blue-500/90 text-white font-bold shadow-lg backdrop-blur-sm animate-fade-in cursor-pointer hover:scale-105 transition-transform">
                 <i class="ph-fill ph-users mr-1.5"></i><span>0</span>
             </div>
             <!-- Lichter Pass Progress -->
             <div id="pass-progress"
                 class="pointer-events-auto flex items-center text-xs bg-yellow-500/90 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm cursor-pointer"
-                onclick="openHelpModal()">
+                onclick="showPassInfo()">
                 <i class="ph-fill ph-trophy mr-1.5"></i><span class="font-bold">0</span>
             </div>
         </div>
@@ -494,7 +506,7 @@
                         </div>
                     </div>
                     <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
-                    <div id="timeline-container" class="space-y-0 relative border-l-2 border-gray-300 ml-3 pl-6 pb-24">
+                    <div id="timeline-container" class="space-y-6 relative ml-3 pl-6 pb-24">
                     </div>
                 </div>
             </div>
@@ -759,7 +771,12 @@
                 <i class="ph ph-x text-2xl"></i>
             </button>
 
-            <h2 class="text-2xl font-bold font-serif mb-6 text-center dark:text-white">Anleitung</h2>
+            <h2 class="text-2xl font-bold font-serif mb-2 text-center dark:text-white">Anleitung</h2>
+
+            <button onclick="restartMiniTour()"
+                class="w-full mb-6 py-2.5 rounded-xl font-bold text-gray-800 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">
+                Tour erneut anzeigen
+            </button>
 
             <div class="space-y-6">
                 <div class="flex gap-4">
@@ -894,7 +911,7 @@
 
     <!-- Tutorial Modal -->
     <div id="tutorial-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeTutorial()"></div>
         <div
             class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
 
@@ -912,24 +929,24 @@
                 <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
                     <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center"><i
                             class="ph-fill ph-download-simple mr-2"></i>App installieren</h3>
-                    
+                    <p class="text-sm text-blue-700 dark:text-blue-200 opacity-90">Installiere die App für schnelleren Zugriff und Offline-Nutzung.</p>
+                    <button onclick="window.triggerPwaInstall && window.triggerPwaInstall()"
+                        class="mt-4 w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20">
+                        App installieren
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeTutorial()"
+                class="w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200">
+                Weiter
+            </button>
         </div>
     </div>
 
-    <!-- PWA Install Button (Hidden by default) -->
-    <button id="btn-pwa-install" class="hidden fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[5000] bg-yellow-500 text-white px-6 py-3 rounded-full shadow-2xl font-bold animate-bounce flex items-center gap-2">
-        <i class="ph-fill ph-download-simple text-xl"></i> App installieren
-    </button>
-
     <!-- Update Toast -->
-    <div id="update-toast" class="hidden fixed bottom-4 left-4 right-4 z-[9999] bg-blue-600 text-white p-4 rounded-xl shadow-2xl flex justify-between items-center animate-slide-up">
-        <div class="flex items-center gap-3">
-            <i class="ph-fill ph-arrows-clockwise text-2xl animate-spin"></i>
-            <div>
-                <p class="font-bold text-sm">Update verfügbar!</p>
-                <p class="text-xs opacity-90">Neue Version wird geladen...</p>
-            </div>
-        </div>
+    <div id="update-toast" class="hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[5000] bg-yellow-500 text-black px-6 py-3 rounded-full shadow-2xl font-bold animate-slide-up flex items-center gap-3">
+        <span>Neues Update verfügbar! Bitte neu laden.</span>
         <button onclick="window.location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-50">
             Neu laden
         </button>
@@ -960,7 +977,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // Remove Old Caches if needed (Manual Nuke)
-                if (localStorage.getItem('app_version') !== '1.4.69') {
+                if (localStorage.getItem('app_version') !== '1.4.70') {
                      // Optionally clear caches via SW logic
                 }
 
@@ -975,7 +992,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.69', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.70', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1000,7 +1017,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.69"></script>
+    <script type="module" src="main.js?v=1.4.70"></script>
 </body>
 
 </html>

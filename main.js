@@ -4,7 +4,7 @@ import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
-import { initPresence, toggleLike, toggleFavorite, checkIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -19,7 +19,7 @@ import {
 } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.69";
+const APP_VERSION = "1.4.70";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -55,10 +55,326 @@ window.deleteUser = deleteUser;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
+window.undoCheckIn = undoCheckIn;
 window.checkProximity = checkProximity;
 window.executeSmartAction = executeSmartAction;
 window.openModal = openModal;
 window.closeModal = closeModal;
+
+window.showUserCountInfo = () => {
+    const el = document.getElementById('user-count');
+    const count = el?.querySelector('span')?.innerText ?? '0';
+    if (state.useLocalStorage) {
+        showToast(`Aktive Nutzer: ${count} (Offline: nur dieses Gerät)`, 'info');
+    } else {
+        showToast(`Aktive Nutzer gerade: ${count}`, 'info');
+    }
+};
+
+window.showPassInfo = () => {
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+    const visited = visitedStations.size;
+    const total = Array.isArray(state.stations) ? state.stations.length : 0;
+    showToast(`Lichter-Pass: ${visited}/${total} Stationen besucht. Sammle alle Stationen!`, 'info');
+};
+
+function setTourFlag(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        // ignore
+    }
+    try {
+        const maxAge = 60 * 60 * 24 * 365; // 1 year
+        document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/`;
+    } catch (e) { }
+}
+
+function getTourFlag(key) {
+    try {
+        const v = localStorage.getItem(key);
+        if (v !== null) return v;
+    } catch (e) { }
+    try {
+        const needle = `${encodeURIComponent(key)}=`;
+        const parts = (document.cookie || '').split(';').map(s => s.trim());
+        const hit = parts.find(p => p.startsWith(needle));
+        if (!hit) return null;
+        return decodeURIComponent(hit.substring(needle.length));
+    } catch (e) { }
+    return null;
+}
+
+function hideMiniTourPromptEl() {
+    const el = document.getElementById('mini-tour-prompt');
+    if (!el) return;
+    el.classList.add('hidden');
+    el.style.display = 'none';
+}
+
+window.startMiniTour = (force = false) => {
+    const key = 'mini_tour_seen_v1';
+    if (!force && getTourFlag(key) === 'true') return;
+
+    const steps = [
+        {
+            elId: 'user-count',
+            title: 'Aktive Nutzer',
+            text: 'Zeigt, wie viele Leute die App gerade aktiv nutzen.'
+        },
+        {
+            elId: 'pass-progress',
+            title: 'Lichter‑Pass',
+            text: 'Dein Fortschritt: besucht/gesamt. Einchecken klappt nur in der Nähe einer Station.'
+        },
+        {
+            elId: 'smart-action-container',
+            title: 'In der Nähe',
+            text: 'Wenn du nah genug an einer Station bist, erscheint hier ein Quick‑Button zum direkten Einchecken.'
+        },
+        {
+            tab: 'list',
+            elId: 'nav-list',
+            title: 'Stationen',
+            text: 'Über das Menü unten kommst du zur Stationsliste. Dort kannst du suchen und filtern.'
+        },
+        {
+            tab: 'events',
+            elId: 'nav-events',
+            title: 'Programm',
+            text: 'Über das Menü unten kommst du zum Programm. Mit „Zeigen“ springst du zur passenden Station auf der Karte.'
+        }
+    ];
+
+    let idx = 0;
+    let tooltip = null;
+    let activeTarget = null;
+    let onResize = null;
+
+    const clearTargetHighlight = () => {
+        if (activeTarget) {
+            activeTarget.classList.remove('tour-target-pulse');
+            activeTarget = null;
+        }
+    };
+
+    const cleanup = () => {
+        clearTargetHighlight();
+        if (tooltip) tooltip.remove();
+        tooltip = null;
+        if (onResize) {
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('orientationchange', onResize);
+            onResize = null;
+        }
+    };
+
+    const finish = () => {
+        setTourFlag(key, 'true');
+        // Once completed, never show prompt again
+        setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+        cleanup();
+    };
+
+    const render = () => {
+        const step = steps[idx];
+
+        // Switch to required tab first (keeps tour working across sections)
+        if (step.tab && window.switchTab) {
+            // Only switch if target is currently not available
+            const alreadyThere = document.getElementById(step.elId);
+            if (!alreadyThere) {
+                window.switchTab(step.tab);
+                setTimeout(() => render(), 320);
+                return;
+            }
+        }
+
+        const target = document.getElementById(step.elId);
+        if (!target) {
+            finish();
+            return;
+        }
+
+        clearTargetHighlight();
+        activeTarget = target;
+        activeTarget.classList.add('tour-target-pulse');
+
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.className = 'tour-tooltip';
+            document.body.appendChild(tooltip);
+        }
+
+        const isLast = idx === steps.length - 1;
+        tooltip.innerHTML = `
+            <div class="tour-title">${step.title} <span style="opacity:.75;font-weight:700">(${idx + 1}/${steps.length})</span></div>
+            <div class="tour-text">${step.text}</div>
+            <div class="tour-actions">
+                <button class="tour-btn" type="button" id="tour-skip">Überspringen</button>
+                <button class="tour-btn primary" type="button" id="tour-next">${isLast ? 'Fertig' : 'Weiter'}</button>
+            </div>
+        `;
+
+        tooltip.querySelector('#tour-skip').onclick = finish;
+        tooltip.querySelector('#tour-next').onclick = () => {
+            if (isLast) finish();
+            else {
+                idx += 1;
+                render();
+            }
+        };
+
+        const positionTooltip = () => {
+            const r = target.getBoundingClientRect();
+            const pad = 10;
+
+            // Measure tooltip after content has been injected
+            const t = tooltip.getBoundingClientRect();
+
+            // Prefer above-right of target (like a callout)
+            let x = r.right;
+            let y = r.top;
+
+            // Place tooltip above the target if there's room, else below
+            const preferAbove = (r.top - t.height - 12) > pad;
+            y = preferAbove ? (r.top - 12) : (r.bottom + 12);
+
+            // Align to the right edge of target, but keep within screen
+            x = r.right;
+
+            // Convert to top-left by subtracting tooltip size (anchor at top-right)
+            let left = x - t.width;
+            let top = y;
+            if (preferAbove) top = y - t.height;
+
+            // Clamp into viewport
+            left = Math.min(window.innerWidth - pad - t.width, Math.max(pad, left));
+            top = Math.min(window.innerHeight - pad - t.height, Math.max(pad, top));
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.style.transform = 'none';
+        };
+
+        // Initial position after layout
+        requestAnimationFrame(positionTooltip);
+
+        if (!onResize) {
+            onResize = () => requestAnimationFrame(positionTooltip);
+            window.addEventListener('resize', onResize);
+            window.addEventListener('orientationchange', onResize);
+        }
+    };
+
+    try {
+        render();
+    } catch (e) {
+        cleanup();
+    }
+};
+
+window.showMiniTourPrompt = () => {
+    const seenKey = 'mini_tour_seen_v1';
+    const dismissedKey = 'mini_tour_prompt_dismissed_v1';
+    const seen = getTourFlag(seenKey);
+    const dismissed = getTourFlag(dismissedKey);
+    if (seen === 'true' || dismissed === 'true') {
+        hideMiniTourPromptEl();
+        return;
+    }
+
+    const tutorialModal = document.getElementById('tutorial-modal');
+    if (tutorialModal && !tutorialModal.classList.contains('hidden')) return;
+
+    const el = document.getElementById('mini-tour-prompt');
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.style.display = ''; // CSS-independent
+
+    // Robust binding (Safari + cached HTML edge cases)
+    const startBtn = document.getElementById('mini-tour-start');
+    const dismissBtn = document.getElementById('mini-tour-dismiss');
+    if (startBtn) {
+        startBtn.onclick = (e) => {
+            try { e.stopPropagation(); } catch (err) { }
+            window.startMiniTourFromPrompt();
+        };
+    }
+    if (dismissBtn) {
+        dismissBtn.onclick = (e) => {
+            try { e.stopPropagation(); } catch (err) { }
+            window.dismissMiniTourPrompt();
+        };
+    }
+};
+
+window.dismissMiniTourPrompt = () => {
+    setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+    const el = document.getElementById('mini-tour-prompt');
+    if (el) {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+    }
+};
+
+window.startMiniTourFromPrompt = () => {
+    const el = document.getElementById('mini-tour-prompt');
+    if (el) {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+    }
+    // Also hide prompt for this session so it doesn't reappear
+    setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+    if (window.startMiniTour) setTimeout(() => window.startMiniTour(true), 0);
+};
+
+// Safari/Leaflet safety: ensure prompt buttons work even if clicks are swallowed/stopped
+if (!window.__miniTourPromptHandlerBound) {
+    window.__miniTourPromptHandlerBound = true;
+
+    let lastHandledAt = 0;
+
+    const handler = (e) => {
+        const now = Date.now();
+        if (now - lastHandledAt < 250) return;
+
+        // Safari sometimes reports a text node as target; normalize to an Element
+        let t = e.target;
+        if (t && t.nodeType === 3) t = t.parentElement; // TEXT_NODE
+
+        // Prefer composedPath() when available
+        const path = (typeof e.composedPath === 'function') ? e.composedPath() : null;
+        const pathEl = Array.isArray(path) ? path.find(n => n && n.nodeType === 1) : null;
+        const base = (t && t.nodeType === 1) ? t : pathEl;
+
+        const start = base?.closest?.('#mini-tour-start') || (Array.isArray(path) ? path.find(n => n && n.id === 'mini-tour-start') : null);
+        const dismiss = base?.closest?.('#mini-tour-dismiss') || (Array.isArray(path) ? path.find(n => n && n.id === 'mini-tour-dismiss') : null);
+        if (!start && !dismiss) return;
+
+        lastHandledAt = now;
+
+        try { e.preventDefault(); } catch (err) { }
+        try { e.stopPropagation(); } catch (err) { }
+
+        try {
+            if (start) {
+                window.startMiniTourFromPrompt();
+            }
+            if (dismiss) {
+                window.dismissMiniTourPrompt();
+            }
+        } catch (err) {
+            // ignore
+        }
+    };
+
+    document.addEventListener('pointerdown', handler, true);
+}
 
 // PWA Install Prompt Logic
 let deferredPrompt;
@@ -81,6 +397,38 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
     console.log("PWA Install Prompt captured");
 });
+
+// Provide a stable API for inline HTML buttons (e.g. tutorial modal)
+window.triggerPwaInstall = async () => {
+    if (!deferredPrompt) {
+        // Not available on all browsers (e.g. Safari) or if already installed
+        showToast('Installation ist in diesem Browser gerade nicht verfügbar. Nutze ggf. "Zum Home-Bildschirm" im Browser-Menü.', 'info');
+        return;
+    }
+    try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to install prompt: ${outcome}`);
+        deferredPrompt = null;
+    } catch (e) {
+        console.log('PWA install prompt failed', e);
+        showToast('Installation konnte nicht gestartet werden.', 'error');
+    }
+};
+
+window.restartMiniTour = () => {
+    try {
+        localStorage.removeItem('mini_tour_seen_v1');
+        localStorage.removeItem('mini_tour_prompt_dismissed_v1');
+    } catch (e) { }
+    try {
+        document.cookie = "mini_tour_seen_v1=; Max-Age=0; Path=/";
+        document.cookie = "mini_tour_prompt_dismissed_v1=; Max-Age=0; Path=/";
+    } catch (e) { }
+
+    if (window.showMiniTourPrompt) window.showMiniTourPrompt();
+    showToast('Tour kann erneut gestartet werden.', 'info');
+};
 
 // Navigation Bindings (Robust)
 window.switchTab = (tab) => {
@@ -201,6 +549,15 @@ window.onload = async () => {
     const fbReady = await initFirebase();
 
     if (fbReady) {
+        state.useLocalStorage = false;
+
+        // Ensure active user counter is visible immediately in online mode
+        const userCountEl = document.getElementById('user-count');
+        if (userCountEl) {
+            userCountEl.classList.remove('hidden');
+            userCountEl.classList.add('flex');
+        }
+
         // 1. Set Default App ID
         state.appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'lichternacht';
         console.log("Using Initial App ID:", state.appId);
@@ -217,6 +574,16 @@ window.onload = async () => {
         // Offline / No Config
         state.useLocalStorage = true;
         document.getElementById('status-indicator').innerText = "Lokal";
+
+        // Fallback: show badge even without Firebase (only this device)
+        const userCountEl = document.getElementById('user-count');
+        if (userCountEl) {
+            const span = userCountEl.querySelector('span');
+            if (span) span.innerText = '1';
+            userCountEl.classList.remove('hidden');
+            userCountEl.classList.add('flex');
+            userCountEl.title = 'Aktive Nutzer: nur dieses Gerät (Offline)';
+        }
         loadData();
     }
 
@@ -228,6 +595,20 @@ window.onload = async () => {
     // Auto-Locate on Start (User Request)
     // This prompts for permission immediately and ensures distances are shown.
     locateUser();
+
+    // Offer mini-tour (user decides)
+    setTimeout(() => {
+        if (window.showMiniTourPrompt) window.showMiniTourPrompt();
+    }, 900);
+
+    // Defensive: if flags already set, ensure prompt is not visible
+    try {
+        const seen = getTourFlag('mini_tour_seen_v1');
+        const dismissed = getTourFlag('mini_tour_prompt_dismissed_v1');
+        if (seen === 'true' || dismissed === 'true') {
+            hideMiniTourPromptEl();
+        }
+    } catch (e) { }
 };
 
 function injectTrackingCode(codeHtml) {

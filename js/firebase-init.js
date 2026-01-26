@@ -6,14 +6,29 @@ export async function initFirebase() {
         return false;
     }
 
+    let firebaseConfig;
+    try {
+        firebaseConfig = JSON.parse(__firebase_config);
+    } catch (e) {
+        console.warn("Invalid Firebase Config (JSON parse failed).");
+        return false;
+    }
+
+    const apiKey = (firebaseConfig && typeof firebaseConfig.apiKey === 'string') ? firebaseConfig.apiKey.trim() : '';
+    const isPlaceholderKey = apiKey === '' || apiKey === 'API_KEY_HIER' || apiKey === 'DEIN_API_KEY';
+    if (isPlaceholderKey) {
+        console.warn("Firebase Config present, but apiKey is not configured. Skipping Firebase init.");
+        return false;
+    }
+
     try {
         const fbApp = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
         const fbAuth = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
         const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
         console.log("Firebase Firestore loaded:", Object.keys(fbStore));
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        if (firebaseConfig.apiKey === "API_KEY_HIER") throw new Error("No Configured API Key");
+        // Make all Firebase exports available (avoids missing functions like doc/query in some call sites)
+        Object.assign(state.fb, fbAuth, fbStore);
 
         const app = fbApp.initializeApp(firebaseConfig);
         state.auth = fbAuth.getAuth(app);
@@ -40,6 +55,8 @@ export async function initFirebase() {
         state.fb.where = fbStore.where;
         state.fb.getCountFromServer = fbStore.getCountFromServer;
         state.fb.writeBatch = fbStore.writeBatch;
+
+        state.useLocalStorage = false;
 
         return true;
     } catch (e) {

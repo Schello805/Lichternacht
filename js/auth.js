@@ -12,6 +12,18 @@ export async function performLogin() {
     if (!email || !pass) { showToast('Bitte Email und Passwort eingeben', 'error'); return; }
 
     if (!state.fb || typeof state.fb.signInWithEmailAndPassword !== 'function') {
+        // Local-dev fallback: allow enabling admin mode without Firebase so you can test station creation.
+        // This is intentionally limited to localhost environments.
+        const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocalhost) {
+            state.useLocalStorage = true;
+            setAdminState(true);
+            const modal = document.getElementById('login-modal');
+            if (modal) modal.classList.add('hidden');
+            showToast('Lokaler Admin-Modus aktiviert (ohne Firebase Sync)', 'info');
+            return;
+        }
+
         showToast('Fehler: Firebase nicht initialisiert (config.js fehlt?)', 'error');
         console.error("Firebase auth functions missing in state.fb");
         return;
@@ -39,6 +51,11 @@ export async function performLogin() {
 
 export async function logoutAdmin() {
     try {
+        if (!state.fb || typeof state.fb.signOut !== 'function') {
+            setAdminState(false);
+            showToast('Abgemeldet', 'info');
+            return;
+        }
         await state.fb.signOut(state.auth);
         showToast('Abgemeldet', 'info');
     } catch (e) {
@@ -48,6 +65,11 @@ export async function logoutAdmin() {
 
 export async function createNewUser(email, pass) {
     if (!confirm(`Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`)) return;
+
+    if (!state.fb || typeof state.fb.createUserWithEmailAndPassword !== 'function') {
+        showToast('Nicht verfügbar ohne Firebase (config.js fehlt?)', 'error');
+        return;
+    }
 
     try {
         await state.fb.createUserWithEmailAndPassword(state.auth, email, pass);
@@ -78,6 +100,11 @@ export function setAdminState(admin) {
 
 export function initAuthListener() {
     const btn = document.getElementById('status-indicator');
+
+    if (!state.fb || typeof state.fb.onAuthStateChanged !== 'function') {
+        enableOfflineMode(btn);
+        return;
+    }
 
     state.fb.onAuthStateChanged(state.auth, async (user) => {
         if (user) {
@@ -171,5 +198,14 @@ function enableOfflineMode(btn) {
     btn.innerText = "Lokal";
     btn.title = "Daten werden nur im Browser gespeichert";
     showToast('Lokal-Modus (kein Server)', 'info');
+
+    const userCountEl = document.getElementById('user-count');
+    if (userCountEl) {
+        const span = userCountEl.querySelector('span');
+        if (span) span.innerText = '1';
+        userCountEl.classList.remove('hidden');
+        userCountEl.classList.add('flex');
+        userCountEl.title = 'Aktive Nutzer: nur dieses Gerät (Offline)';
+    }
     loadData();
 }

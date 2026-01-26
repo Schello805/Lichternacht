@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { showToast, getDistance } from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
+import { updateCheckInBtn } from './gamification.js';
 
 // --- Modal & Tab Handling ---
 
@@ -42,7 +43,14 @@ export function openModal(target) {
         if (btnRoute) {
             btnRoute.onclick = () => {
                 closeModal();
-                if (window.calculateRoute) window.calculateRoute(s.lat, s.lng);
+                switchTab('map');
+                // Wait for tab switch animation/layout so Leaflet can render routing correctly
+                setTimeout(() => {
+                    try {
+                        if (state.map) state.map.invalidateSize();
+                    } catch (e) { }
+                    if (window.calculateRoute) window.calculateRoute(s.lat, s.lng);
+                }, 250);
             };
         }
         
@@ -67,6 +75,9 @@ export function openModal(target) {
             // Reset view mode
             document.getElementById('modal-view-mode').classList.remove('hidden');
             document.getElementById('modal-edit-mode').classList.add('hidden');
+
+            // Ensure check-in button reflects visited state immediately
+            try { updateCheckInBtn(s.id); } catch (e) { }
         }
     }
 }
@@ -485,7 +496,7 @@ export function renderList(stations) {
                 <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
                 <div class="flex flex-col items-end gap-1">
                     <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${s.id}</span>
-                    ${likeCount > 0 ? `<span class="text-xs text-gray-400 flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>` : ''}
+                    <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
                 </div>
             </div>
             <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
@@ -1121,6 +1132,8 @@ export function flyToStation(lat, lng, id = null) {
                 // Clear previous highlights
                 document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
 
+                showToast("Station auf der Karte markiert", 'info');
+
                 const entry = state.markers.find(m => m.id == id);
                 if (entry && entry.marker) {
                     const iconDiv = entry.marker.getElement();
@@ -1129,10 +1142,10 @@ export function flyToStation(lat, lng, id = null) {
                         if (innerDiv) {
                             innerDiv.classList.add('highlight-pin');
                             
-                            // Remove highlight after 5 seconds or on next click
+                            // Remove highlight after a few seconds
                             setTimeout(() => {
                                 innerDiv.classList.remove('highlight-pin');
-                            }, 5000);
+                            }, 6500);
                         }
                     }
                     entry.marker.openPopup(); // Also open popup if relevant? Or mostly just highlight.
@@ -1310,6 +1323,7 @@ export function renderTimeline() {
         // ... Distance & Map Btn Logic ...
         let distInfo = '';
         let showMapBtn = '';
+        let highlightStationId = null;
         
         if (e.lat && e.lng) {
              const lat = parseFloat(e.lat);
@@ -1317,6 +1331,19 @@ export function renderTimeline() {
              
              // Check if valid coords (not 0,0 default)
              if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001)) {
+                 // Try to resolve a station ID for marker highlighting
+                 const coordMatch = state.stations && state.stations.find(s => {
+                    const sLat = parseFloat(s.lat);
+                    const sLng = parseFloat(s.lng);
+                    if (isNaN(sLat) || isNaN(sLng)) return false;
+                    return Math.abs(sLat - lat) < 0.00001 && Math.abs(sLng - lng) < 0.00001;
+                 });
+                 const nameMatch = (!coordMatch && state.stations) ? state.stations.find(s =>
+                    typeof s.name === 'string' && typeof e.loc === 'string' &&
+                    s.name.trim().toLowerCase() === e.loc.trim().toLowerCase()
+                 ) : null;
+                 highlightStationId = (coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null;
+
                  // Distance
                  if (state.userLocation) {
                      const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
@@ -1333,7 +1360,8 @@ export function renderTimeline() {
                  }
                  
                  // Map Button
-                 showMapBtn = `<button onclick="flyToStation(${lat}, ${lng})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
+                 const idArg = highlightStationId ? `, '${highlightStationId}'` : '';
+                 showMapBtn = `<button onclick="flyToStation(${lat}, ${lng}${idArg})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
              }
         }
 
@@ -1345,7 +1373,8 @@ export function renderTimeline() {
         }
 
         return `
-        <div ${scrollId} class="mb-8 relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500">
+        <div ${scrollId} class="relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500">
+            <div class="absolute -left-[23px] w-[2px] timeline-line ${index === 0 ? 'top-4' : 'top-0'} bottom-0"></div>
             <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>

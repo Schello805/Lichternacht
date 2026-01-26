@@ -8,6 +8,7 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 *   **Offline-First (PWA):** Funktioniert dank Service Worker und Caching auch bei schlechtem Netz komplett offline.
 *   **Interaktive Karte:** Leaflet-Karte mit Standort-Tracking und Routing.
 *   **Gamification:** Lichter-Pass, Check-Ins, Likes und Favoriten.
+*   **Onboarding:** Mini-Tour (Kurze Tour) für neue Nutzer; kann über die Hilfe („Tour erneut anzeigen“) erneut gestartet werden.
 *   **Live-Updates:** Änderungen an Stationen/Events sind sofort bei allen Nutzern sichtbar (Firestore Realtime).
 *   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
 *   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
@@ -151,3 +152,7 @@ Stelle sicher, dass in der Firebase Console:
 *   **App lädt nicht?** Cache leeren oder `service-worker.js` unregisteren.
 *   **Keine Daten?** Prüfe die Browser-Konsole (F12) auf rote Fehler.
 *   **Login geht nicht?** Prüfe in der Firebase Console, ob "Email/Password" und "Anonymous" aktiviert sind.
+
+## 📲 Installation (PWA)
+
+Die Installation wird im Willkommens-Dialog über einen einzelnen Button **„App installieren“** angeboten. In Browsern ohne Install-Prompt (z.B. Safari) nutzt man stattdessen die System-Funktion „Zum Home-Bildschirm“.

@@ -1,6 +1,38 @@
 import { state } from './state.js';
 import { showToast, getDistance } from './utils.js';
 
+export function undoCheckIn(id) {
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+
+    if (!visitedStations.has(id)) {
+        showToast('Station war nicht als besucht markiert.', 'info');
+        return;
+    }
+
+    visitedStations.delete(id);
+    localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
+
+    const lastChecked = localStorage.getItem('last_checked_station');
+    if (lastChecked && lastChecked.toString() === id.toString()) {
+        localStorage.removeItem('last_checked_station');
+        state.lastCheckedStationId = null;
+    }
+
+    updatePassProgress();
+    updateCheckInBtn(id);
+    showToast('Check-in rückgängig gemacht.', 'success');
+
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+    if (window.refreshStationList) window.refreshStationList();
+}
+
+// Make available for inline onclick handlers even if main.js is cached/stale
+window.undoCheckIn = undoCheckIn;
+
 export async function toggleLike(id) {
     // event is global, but better pass it or stop propagation in UI
     if (window.event) window.event.stopPropagation();
@@ -101,7 +133,10 @@ export async function checkIn(id) {
         if (saved) visitedStations = new Set(JSON.parse(saved));
     } catch (e) { }
 
-    if (visitedStations.has(id)) return;
+    if (visitedStations.has(id)) {
+        showToast('Diese Station ist bereits als besucht markiert.', 'info');
+        return;
+    }
 
     if (!state.userLocation) {
         // Auto-locate
@@ -118,7 +153,7 @@ export async function checkIn(id) {
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-    const ALLOWED_RADIUS = 20; // 20m
+    const ALLOWED_RADIUS = 25; // 25m
 
     if (dist > ALLOWED_RADIUS) {
         showToast(`Zu weit weg! (${dist.toFixed(0)}m / ${ALLOWED_RADIUS}m)`, 'error');
@@ -155,6 +190,9 @@ export async function checkIn(id) {
 
     visitedStations.add(id);
     localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
+
+    state.lastCheckedStationId = id;
+    localStorage.setItem('last_checked_station', id.toString());
 
     updatePassProgress();
 
@@ -196,6 +234,22 @@ export async function checkIn(id) {
 
     updateCheckInBtn(id);
     showToast('Check-in erfolgreich! 🏆', 'success');
+
+    // Update map marker styles (visited ring / last-checked pulse)
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+
+    // Briefly highlight the station so the user immediately sees what happened
+    try {
+        const entry = Array.isArray(state.markers) ? state.markers.find(m => m.id == id) : null;
+        if (entry && entry.marker) {
+            const iconDiv = entry.marker.getElement();
+            const innerDiv = iconDiv?.querySelector('div');
+            if (innerDiv) {
+                innerDiv.classList.add('highlight-pin');
+                setTimeout(() => innerDiv.classList.remove('highlight-pin'), 3500);
+            }
+        }
+    } catch (e) { }
     
     // Refresh list to show "BESUCHT" badge immediately
     if (window.refreshStationList) window.refreshStationList();
@@ -218,7 +272,18 @@ export function updateCheckInBtn(id) {
     } catch (e) { }
 
     if (visitedStations.has(id)) {
-        btn.innerHTML = `<i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i><span class="text-green-600 font-bold">Besucht</span>`;
+        btn.innerHTML = `
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center">
+                    <i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i>
+                    <span class="text-green-600 font-bold">Besucht</span>
+                </div>
+                <button type="button" onclick="window.undoCheckIn(${JSON.stringify(id)})" aria-label="Check-in rückgängig" title="Rückgängig"
+                    class="ml-3 w-9 h-9 rounded-full border border-red-200 bg-white text-red-600 flex items-center justify-center shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow active:scale-95 transition">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+        `;
         btn.disabled = true;
         btn.classList.add('bg-green-50', 'border', 'border-green-200');
         btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
@@ -237,15 +302,28 @@ export function updatePassProgress() {
         if (saved) visitedStations = new Set(JSON.parse(saved));
     } catch (e) { }
     const count = visitedStations.size;
+    const total = Array.isArray(state.stations) ? state.stations.length : 0;
     const el = document.getElementById('pass-progress');
-    if (el) el.innerHTML = `<i class="ph-fill ph-trophy text-yellow-500 mr-1"></i><span class="font-bold">${count}</span>`;
+    if (el) el.innerHTML = `<i class="ph-fill ph-trophy mr-1"></i><span class="font-bold">${count}/${total}</span>`;
 }
+
+// Allow other modules to refresh the badge after async data loads
+window.updatePassProgress = updatePassProgress;
 
 // Presence
 const sessionId = crypto.randomUUID();
 
 export function initPresence() {
     if (state.useLocalStorage) return;
+
+    // Ensure badge is visible immediately in online mode (even before first successful count)
+    const el = document.getElementById('user-count');
+    if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        const span = el.querySelector('span');
+        if (span && !span.innerText) span.innerText = '0';
+    }
 
     const sendHeartbeat = async () => {
         try {
@@ -266,7 +344,8 @@ export function initPresence() {
 
             const el = document.getElementById('user-count');
             if (el) {
-                el.querySelector('span').innerText = count;
+                const span = el.querySelector('span');
+                if (span) span.innerText = count;
                 el.classList.remove('hidden');
                 el.classList.add('flex');
             }
@@ -281,7 +360,15 @@ export function initPresence() {
                 if (document.getElementById('count-gold')) document.getElementById('count-gold').innerText = d.count_gold || 0;
                 if (document.getElementById('count-diamond')) document.getElementById('count-diamond').innerText = d.count_diamond || 0;
             }
-        } catch (e) { console.warn("Count failed", e); }
+        } catch (e) {
+            console.warn("Count failed", e);
+            // Keep badge visible even if count fails
+            const el = document.getElementById('user-count');
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        }
     };
 
     sendHeartbeat();
@@ -301,15 +388,19 @@ export function checkProximity(lat, lng) {
         if (saved) visitedStations = new Set(JSON.parse(saved));
     } catch (e) { }
 
-    // Find nearest unvisited station
+    // Find nearest unvisited station (and keep all candidates within radius)
     let nearest = null;
     let minDist = Infinity;
-    const DETECT_RADIUS = 30; // 30m detection radius (slightly larger than check-in)
+    const DETECT_RADIUS = 25; // 25m detection radius
+    const candidates = [];
 
     state.stations.forEach(s => {
         if (visitedStations.has(s.id)) return; // Skip visited
 
         const dist = getDistance(lat, lng, s.lat, s.lng);
+        if (dist <= DETECT_RADIUS) {
+            candidates.push({ station: s, dist });
+        }
         if (dist < minDist) {
             minDist = dist;
             nearest = s;
@@ -319,10 +410,11 @@ export function checkProximity(lat, lng) {
     const btn = document.getElementById('smart-action-btn');
     if (!btn) return;
 
-    if (nearest && minDist <= DETECT_RADIUS) {
+    if (candidates.length > 0 && nearest && minDist <= DETECT_RADIUS) {
         // Show Smart Button
         state.smartActionStationId = nearest.id;
-        document.getElementById('smart-action-text').innerText = nearest.name;
+        const extraCount = candidates.length - 1;
+        document.getElementById('smart-action-text').innerText = extraCount > 0 ? `${nearest.name} (+${extraCount})` : nearest.name;
         btn.classList.remove('hidden');
         // Add minimal bounce if it just appeared? (Handled by CSS animation class)
     } else {
@@ -334,9 +426,9 @@ export function checkProximity(lat, lng) {
 
 export function executeSmartAction() {
     if (state.smartActionStationId) {
-        // Open the station modal
-        if (window.openStation) {
-            window.openStation(state.smartActionStationId);
+        // Quick check-in
+        if (window.checkIn) {
+            window.checkIn(state.smartActionStationId);
         }
     }
 }

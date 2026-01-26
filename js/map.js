@@ -31,15 +31,27 @@ export function updateMapTiles(isDark) {
 export function refreshMapMarkers() {
     state.markers.forEach(m => state.map.removeLayer(m.marker));
     state.markers = [];
+
+    let visitedStations = new Set();
+    try {
+        const saved = localStorage.getItem('visited_stations');
+        if (saved) visitedStations = new Set(JSON.parse(saved));
+    } catch (e) { }
+
+    const lastChecked = localStorage.getItem('last_checked_station');
+
     state.stations.forEach(s => {
         const isActive = state.activeStationId && state.activeStationId === s.id;
-        const color = isActive ? '#1d4ed8' : '#f59e0b';
+        const isVisited = visitedStations.has(s.id);
+        const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
+        const color = (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
         const idStr = s.id.toString();
         const fontSize = idStr.length > 3 ? '10px' : '14px';
+        const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         
         const icon = L.divIcon({
             className: 'custom-pin',
-            html: `<div style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`,
+            html: `<div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16]
         });
@@ -107,7 +119,7 @@ export function locateUser(cb) {
                 state.userMarker.setLatLng([userLat, userLng]);
             } else { 
                 const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); 
-                state.userMarker = L.marker([userLat, userLng], { icon: icon }).addTo(state.map); 
+                state.userMarker = L.marker([userLat, userLng], { icon: icon, interactive: false, keyboard: false }).addTo(state.map);
             }
             
             // Center map ONLY on first find or if requested? 
@@ -157,7 +169,11 @@ export function locateUser(cb) {
 }
 
 export function calculateRoute(destLat, destLng) {
-    if (!state.userLocation) { showToast("Bitte erst Standort aktivieren!", 'error'); return; }
+    if (!state.userLocation) {
+        showToast("GPS wird benötigt – Standort wird aktiviert...", 'info');
+        locateUser(() => calculateRoute(destLat, destLng));
+        return;
+    }
     if (state.routingControl) { state.map.removeControl(state.routingControl); state.routingControl = null; }
     state.routingControl = L.Routing.control({
         waypoints: [L.latLng(state.userLocation.lat, state.userLocation.lng), L.latLng(destLat, destLng)],
