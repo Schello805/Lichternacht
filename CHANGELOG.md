@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.71] - 2026-01-26
+### Fixed
+- **PWA Cache:** Versions-/Cache-Bump, damit Service Worker und ES-Module immer konsistent neu geladen werden (Fix für „Importing binding name 'undoCheckIn' is not found“).
+
 ## [1.4.70] - 2026-01-26
 ### Added
 - **Mini-Tour:** Dezenter Hinweis „Kurze Tour (5 Punkte)“ + Tour-Overlay mit Fokus-Hervorhebung (ohne Abdunkeln). Tour führt auch durch **Stationen** und **Programm**.
