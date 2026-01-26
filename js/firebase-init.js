@@ -32,7 +32,9 @@ export async function initFirebase() {
 
         const app = fbApp.initializeApp(firebaseConfig);
         state.auth = fbAuth.getAuth(app);
-        state.db = fbStore.getFirestore(app);
+        state.db = (typeof fbStore.initializeFirestore === 'function')
+            ? fbStore.initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false })
+            : fbStore.getFirestore(app);
 
         // Bind functions to state.fb
         state.fb.signInWithEmailAndPassword = fbAuth.signInWithEmailAndPassword;

@@ -3,7 +3,7 @@ import { state } from './state.js';
 import { showToast, getDistance } from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
-import { updateCheckInBtn } from './gamification.js';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
 
 // --- Modal & Tab Handling ---
 
@@ -78,6 +78,9 @@ export function openModal(target) {
 
             // Ensure check-in button reflects visited state immediately
             try { updateCheckInBtn(s.id); } catch (e) { }
+
+            // Ensure like button reflects liked state + count immediately
+            try { updateLikeBtn(s.id, s.likes || 0); } catch (e) { }
         }
     }
 }

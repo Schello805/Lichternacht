@@ -44,6 +44,12 @@ export async function toggleLike(id) {
 
     const likedKey = `liked_${id}`;
     if (localStorage.getItem(likedKey)) {
+        // Ensure modal UI is in sync even if the user already voted
+        try {
+            const s = state.stations.find(x => x.id == id);
+            updateLikeBtn(id, s?.likes || 0);
+            if (window.refreshStationList) window.refreshStationList();
+        } catch (e) { }
         showToast('Du hast bereits abgestimmt!', 'info');
         return;
     }
