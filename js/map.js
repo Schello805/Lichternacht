@@ -94,11 +94,18 @@ export function refreshMapMarkers() {
 }
 
 export function locateUser(cb) {
-    if (!navigator.geolocation) { showToast("Kein GPS verfügbar", 'error'); return; }
-    
-    // If already watching, just trigger cb if needed, but we want to force update?
-    // Let's just set loading and rely on watcher or get current once.
-    
+    if (!navigator.geolocation) {
+        showToast('GPS nicht verfügbar (Browser)', 'error');
+        return;
+    }
+
+    const forceCenter = !cb;
+
+    // Fresh locate attempt: allow one timeout-retry
+    if (!cb) {
+        state._gpsTimeoutRetried = false;
+    }
+
     setLoading(true, "Suche GPS...");
     document.getElementById('status-indicator').innerText = "Suche...";
     
@@ -109,6 +116,10 @@ export function locateUser(cb) {
     state.watchId = navigator.geolocation.watchPosition(
         (pos) => {
             setLoading(false);
+
+            // We got a fix again -> reset timeout retry flag
+            state._gpsTimeoutRetried = false;
+
             const userLat = pos.coords.latitude;
             const userLng = pos.coords.longitude;
             
@@ -131,7 +142,7 @@ export function locateUser(cb) {
             
             // Center map ONLY on first find or if requested? 
             // Better: only if it's the first time we locate or user requested "Locate Me"
-            if (!state.hasLocatedUser) {
+            if (!state.hasLocatedUser || forceCenter) {
                  state.map.setView([userLat, userLng], 18);
                  state.hasLocatedUser = true;
             }
@@ -158,6 +169,22 @@ export function locateUser(cb) {
             setLoading(false);
             console.warn("GPS Watch Error", err);
 
+            // TIMEOUT is common (indoors/first fix). Retry once with relaxed settings.
+            if (err && err.code === 3) {
+                document.getElementById('status-indicator').innerText = "GPS Timeout";
+
+                if (!state._gpsTimeoutRetried) {
+                    state._gpsTimeoutRetried = true;
+                    showToast('GPS Timeout – versuche es erneut (ggf. nach draußen gehen)...', 'info');
+                    try { if (state.watchId) navigator.geolocation.clearWatch(state.watchId); } catch (e) { }
+                    setTimeout(() => locateUser(cb), 400);
+                    return;
+                }
+
+                showToast('GPS Timeout – kein Signal. Bitte Standort prüfen.', 'error');
+                return;
+            }
+
             // User requirement: Show button if GPS denied/error
             const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
             if (listLocateBtn) listLocateBtn.classList.remove('hidden');
@@ -166,9 +193,9 @@ export function locateUser(cb) {
             showToast("GPS Fehler: " + (err?.message || err), 'error');
         },
         {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
+            enableHighAccuracy: state._gpsTimeoutRetried ? false : true,
+            timeout: state._gpsTimeoutRetried ? 20000 : 15000,
+            maximumAge: state._gpsTimeoutRetried ? 30000 : 5000
         }
     );
 }
