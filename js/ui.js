@@ -99,6 +99,23 @@ export function closeModal(id) {
         // Default to detail modal if no ID passed (e.g. from X button)
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
+
+        // If the active station is a draft, ask before discarding it
+        try {
+            const sId = state.activeStationId;
+            const s = state.stations.find(x => x.id == sId);
+            if (s && s.__draft) {
+                const ok = confirm('Neue Station verwerfen? (Nicht gespeichert)');
+                if (!ok) return;
+
+                state.stations = state.stations.filter(x => x.id != sId);
+                state.activeStationId = null;
+                window.activeStationId = null;
+                if (window.renderList) window.renderList(state.stations);
+                if (window.renderFilterBar) window.renderFilterBar();
+                if (window.refreshMapMarkers) window.refreshMapMarkers();
+            }
+        } catch (e) { }
         
         // Reset active station highlight
         if (state.activeStationId) {
@@ -759,6 +776,11 @@ export async function saveStationChanges() {
         return;
     }
 
+    if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
+        showToast("Fehler: Ungültige Koordinaten (lat/lng)", 'error');
+        return;
+    }
+
     // Update Local Object
     // If ID changed, we need to handle that carefully
     const idChanged = (newId != oldId);
@@ -784,6 +806,7 @@ export async function saveStationChanges() {
         }
 
         await saveData('station', s);
+        if (s.__draft) delete s.__draft;
         showToast("Station gespeichert", 'success');
         
         // Update State references

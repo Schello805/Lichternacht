@@ -18,6 +18,8 @@ import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear, testPlanningBanner
 } from './js/admin.js';
 
+import { updateAdminUiAvailability } from './js/admin.js';
+
 // Bind to Window for HTML access
 const APP_VERSION = "1.4.72";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
@@ -52,6 +54,9 @@ window.startNewYear = startNewYear;
 window.testPlanningBanner = testPlanningBanner;
 window.resetLikes = resetLikes;
 window.deleteUser = deleteUser;
+
+// Admin UI availability helper
+window.updateAdminUiAvailability = updateAdminUiAvailability;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;

@@ -94,6 +94,7 @@ export function setAdminState(admin) {
         document.getElementById('lock-icon').classList.replace('ph-lock-key-open', 'ph-lock-key');
         document.getElementById('lock-icon').classList.remove('text-green-500');
     }
+    if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
     refreshMapMarkers();
     renderTimeline();
 }
@@ -198,6 +199,8 @@ function enableOfflineMode(btn) {
     btn.innerText = "Lokal";
     btn.title = "Daten werden nur im Browser gespeichert";
     showToast('Lokal-Modus (kein Server)', 'info');
+
+    if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
 
     const userCountEl = document.getElementById('user-count');
     if (userCountEl) {

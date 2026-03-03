@@ -35,8 +35,36 @@ export function toggleAdminPanel() {
 
             // Load Users
             loadUsers();
+
+            // Update Online/Lokal availability
+            if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
         }
     }
+}
+
+export function updateAdminUiAvailability() {
+    const label = document.getElementById('admin-mode-label');
+    if (label) {
+        label.innerText = state.useLocalStorage ? '🔧 ADMIN (Lokal)' : '🔧 ADMIN (Online)';
+    }
+
+    const userList = document.getElementById('user-list');
+    if (userList && state.useLocalStorage) {
+        userList.innerHTML = '<div class="text-xs text-gray-500">Nur im Online-Modus verfügbar.</div>';
+    }
+
+    const onlineOnly = document.querySelectorAll('[data-online-only="true"]');
+    onlineOnly.forEach((el) => {
+        const isOnline = !state.useLocalStorage;
+        el.disabled = !isOnline;
+        if (!isOnline) {
+            el.classList.add('opacity-50', 'cursor-not-allowed');
+            el.title = 'Nur im Online-Modus verfügbar';
+        } else {
+            el.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (el.title === 'Nur im Online-Modus verfügbar') el.title = '';
+        }
+    });
 }
 
 export async function loadUsers() {
@@ -178,7 +206,8 @@ export function handleAdminAdd(type) {
         desc: "Beschreibung hier...",
         lat: center.lat,
         lng: center.lng,
-        tags: []
+        tags: [],
+        __draft: true
     };
     
     state.stations.push(newStation);
@@ -193,7 +222,7 @@ export function handleAdminAdd(type) {
     if (window.editStation) {
         window.editStation(newId);
     }
-    showToast(`Neue Station (${newId}) erstellt`, 'info');
+    showToast(`Neue Station (${newId}) erstellt (Entwurf)`, 'info');
 }
 
 export function dumpData() {
@@ -259,11 +288,22 @@ export async function saveDownloads() {
     const flyer2 = document.getElementById('admin-flyer2').value;
     const icsDate = document.getElementById('admin-ics-date').value;
 
+    const isValidUrlOrEmpty = (v) => {
+        const s = (v || '').trim();
+        if (!s) return true;
+        return /^https?:\/\//i.test(s);
+    };
+
+    if (!isValidUrlOrEmpty(flyer1) || !isValidUrlOrEmpty(flyer2)) {
+        showToast('Bitte bei Flyer-URLs nur http(s):// Links verwenden (oder leer lassen).', 'error');
+        return;
+    }
+
     const config = {
         downloads: {
-            flyer1,
-            flyer2,
-            icsDate
+            flyer1: (flyer1 || '').trim(),
+            flyer2: (flyer2 || '').trim(),
+            icsDate: (icsDate || '').trim()
         }
     };
     

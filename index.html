@@ -210,6 +210,7 @@
                         <!-- Import -->
                         <div class="tooltip-container">
                             <button onclick="importData()"
+                                data-online-only="true"
                                 class="bg-white border border-red-500 text-red-600 px-4 py-2 rounded hover:bg-red-50 text-xs font-bold">Importieren
                                 (Cloud)</button>
                             <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
@@ -258,10 +259,12 @@
                         class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm mt-2">Speichern</button>
                     
                     <button onclick="resetLikes()"
+                        data-online-only="true"
                         class="w-full mb-3 bg-orange-100 text-orange-700 font-bold py-2 rounded-lg hover:bg-orange-200 mt-4">
                         <i class="ph ph-fire"></i> Likes zurücksetzen (0)
                     </button>
                     <button onclick="startNewYear()"
+                        data-online-only="true"
                         class="w-full mb-6 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 shadow-md">
                         <i class="ph ph-rocket-launch"></i> Neues Jahr starten
                     </button>
@@ -271,7 +274,7 @@
                         <h5 class="font-bold text-xs mb-2 uppercase text-gray-500">Neuen Admin anlegen</h5>
                         <input type="email" id="new-user-email" placeholder="Email für neuen Admin" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-1">
                         <input type="password" id="new-user-pass" placeholder="Passwort" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-2 mb-2">
-                        <button onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold text-sm">
+                        <button data-online-only="true" onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold text-sm">
                             Nutzer anlegen
                         </button>
                         <p class="text-xs text-red-500 mt-1">⚠️ Achtung: Du wirst sofort als dieser neue Nutzer eingeloggt!</p>
@@ -298,24 +301,20 @@
                     <div class="flex gap-2 mt-3">
                         <input id="admin-flyer1" type="text" placeholder="URL zu Flyer 1 (PDF)"
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                        <label
-                            class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
-                            <i class="ph ph-upload"></i>
-                            <input type="file" id="upload-flyer1" class="hidden" accept=".pdf"
-                                onchange="uploadFlyer('upload-flyer1', 'admin-flyer1')">
-                        </label>
+                        <button type="button" onclick="window.open(document.getElementById('admin-flyer1').value, '_blank')"
+                            class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center" title="Öffnen">
+                            <i class="ph ph-arrow-square-out"></i>
+                        </button>
                     </div>
 
                     <!-- Flyer 2 -->
                     <div class="flex gap-2">
                         <input id="admin-flyer2" type="text" placeholder="URL zu Flyer 2 (PDF)"
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                        <label
-                            class="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center">
-                            <i class="ph ph-upload"></i>
-                            <input type="file" id="upload-flyer2" class="hidden" accept=".pdf"
-                                onchange="uploadFlyer('upload-flyer2', 'admin-flyer2')">
-                        </label>
+                        <button type="button" onclick="window.open(document.getElementById('admin-flyer2').value, '_blank')"
+                            class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center" title="Öffnen">
+                            <i class="ph ph-arrow-square-out"></i>
+                        </button>
                     </div>
 
                     <!-- ICS Date -->
@@ -341,10 +340,10 @@
                     <div class="flex gap-2 mt-3">
                         <input id="admin-broadcast-text" type="text" placeholder="Nachricht eingeben..."
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                        <button onclick="sendBroadcast()"
+                        <button id="admin-broadcast-send" data-online-only="true" onclick="sendBroadcast()"
                             class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold text-sm" title="Senden"><i
                                 class="ph ph-paper-plane-right"></i></button>
-                        <button onclick="deleteBroadcast()"
+                        <button id="admin-broadcast-delete" data-online-only="true" onclick="deleteBroadcast()"
                             class="bg-gray-200 text-gray-600 px-3 py-2 rounded hover:bg-gray-300 font-bold text-sm" title="Löschen"><i
                                 class="ph ph-trash"></i></button>
                     </div>
@@ -416,7 +415,7 @@
         <!-- Admin Bar (Logged in) -->
         <div id="admin-bar"
             class="hidden bg-yellow-500 text-black px-4 py-2 text-xs font-bold flex justify-between items-center z-50 shadow-md">
-            <span>🔧 ADMIN (Lokal)</span>
+            <span id="admin-mode-label">🔧 ADMIN</span>
             <span class="text-[10px] text-black/70 uppercase tracking-wide">Verschiebe die Station einfach auf der
                 Karte</span>
             <div class="flex gap-2">
