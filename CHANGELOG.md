@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.73] - 2026-03-03
+### Added
+- **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
+- **Admin Workflow:** Neue Stationen werden als **Entwurf** angelegt und erst beim Speichern persistiert (Abbrechen verwirft den Entwurf).
+- **Admin Downloads:** Flyer-URLs können direkt per Button geöffnet werden (Preview).
+
+### Fixed
+- **Admin Downloads:** Validierung für Flyer-URLs (nur leer oder `http(s)://...`), verhindert fehlerhafte Einträge.
+
 ## [1.4.71] - 2026-01-26
 ### Fixed
 - **PWA Cache:** Versions-/Cache-Bump, damit Service Worker und ES-Module immer konsistent neu geladen werden (Fix für „Importing binding name 'undoCheckIn' is not found“).
