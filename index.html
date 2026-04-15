@@ -779,6 +779,28 @@
 
             <div class="space-y-6">
                 <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                        <i class="ph-fill ph-shield-check text-xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <h3 class="font-bold text-gray-900 dark:text-white">Datenschutz & Tracking</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Hier kannst du Tracking (Matomo) erlauben oder ablehnen. Die App funktioniert auch ohne Tracking.
+                        </p>
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" id="tracking-settings-deny"
+                                class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Ablehnen
+                            </button>
+                            <button type="button" id="tracking-settings-allow"
+                                class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
+                                Erlauben
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
                     <div
                         class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
                         <i class="ph-fill ph-map-trifold text-xl"></i>
@@ -815,6 +837,26 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Voting</h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400">Gefällt dir eine Station besonders gut? Gib
                             ihr eine Flamme! Das hilft anderen Besuchern und freut den Veranstalter.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                        <i class="ph-fill ph-file-text text-xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <h3 class="font-bold text-gray-900 dark:text-white">Impressum & Datenschutz</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Hier findest du die rechtlichen Hinweise zu dieser App.</p>
+                        <div class="flex gap-2 mt-3">
+                            <a href="./impressum.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Impressum
+                            </a>
+                            <a href="./datenschutz.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Datenschutz
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -951,6 +993,42 @@
         </button>
     </div>
 
+    <!-- Tracking Consent (Bottom Sheet, mobile-friendly) -->
+    <div id="tracking-consent" class="hidden fixed inset-0 z-[6000]">
+        <div class="absolute inset-0 bg-black/50" id="tracking-consent-backdrop"></div>
+        <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-t-2xl shadow-2xl p-5 pb-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-sm font-extrabold tracking-wide">Datenschutz: Tracking</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Wir würden gern Matomo nutzen, um die App zu verbessern (anonymisierte Statistik). Du kannst zustimmen oder ablehnen.
+                    </div>
+                </div>
+                <button type="button" id="tracking-consent-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="flex gap-2 mt-4">
+                <button type="button" id="tracking-consent-decline" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-3 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-700">
+                    Ablehnen
+                </button>
+                <button type="button" id="tracking-consent-accept" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm">
+                    Zustimmen
+                </button>
+            </div>
+
+            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-3 leading-snug">
+                Du kannst deine Entscheidung jederzeit in der Hilfe ändern: <span class="font-bold">„Datenschutz & Tracking“</span>.
+            </div>
+            <div class="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+                <a href="./datenschutz.html" class="underline font-bold">Datenschutz</a>
+                <span class="opacity-60 mx-1">·</span>
+                <a href="./impressum.html" class="underline font-bold">Impressum</a>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Init Global Utils
         window.switchTab = function(tabId) {
@@ -972,6 +1050,9 @@
 
     <!-- Main App Script (Module) with Cache Busting -->
     <!-- Service Worker Registration -->
+    <!-- Tracking Consent + Matomo (loaded by main.js only after consent) -->
+    <script src="./js/tracking-consent.js?v=1.0.0"></script>
+    <script src="./js/matomo-tag-manager.js?v=1.0.0"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

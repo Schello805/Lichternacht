@@ -501,6 +501,71 @@ window.toggleAdminLogin = () => {
     document.getElementById('login-modal').classList.toggle('hidden');
 };
 
+function startTrackingIfConsented() {
+    const hasConsent = (typeof window.hasTrackingConsent === 'function') ? window.hasTrackingConsent() : false;
+    if (!hasConsent) return;
+
+    // Priority: Admin-configured trackingCode (dynamic) > bundled Matomo file.
+    if (state.config && state.config.trackingCode) {
+        injectTrackingCode(state.config.trackingCode);
+    } else if (typeof window.loadMatomoTagManager === 'function') {
+        window.loadMatomoTagManager();
+    }
+}
+
+function initTrackingConsentUi() {
+    const consentState = (typeof window.getTrackingConsentState === 'function')
+        ? window.getTrackingConsentState()
+        : null;
+
+    const modal = document.getElementById('tracking-consent');
+    if (!modal) return;
+
+    const acceptBtn = document.getElementById('tracking-consent-accept');
+    const declineBtn = document.getElementById('tracking-consent-decline');
+    const closeBtn = document.getElementById('tracking-consent-close');
+    const backdrop = document.getElementById('tracking-consent-backdrop');
+
+    const hide = () => modal.classList.add('hidden');
+    const show = () => modal.classList.remove('hidden');
+
+    if (acceptBtn) {
+        acceptBtn.onclick = () => {
+            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(true);
+            hide();
+            startTrackingIfConsented();
+        };
+    }
+    if (declineBtn) {
+        declineBtn.onclick = () => {
+            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(false);
+            hide();
+        };
+    }
+    if (closeBtn) closeBtn.onclick = () => hide();
+    if (backdrop) backdrop.onclick = () => hide();
+
+    // Help modal buttons (allow changing later)
+    const allowSettingsBtn = document.getElementById('tracking-settings-allow');
+    const denySettingsBtn = document.getElementById('tracking-settings-deny');
+    if (allowSettingsBtn) {
+        allowSettingsBtn.onclick = () => {
+            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(true);
+            showToast('Tracking erlaubt', 'success');
+            startTrackingIfConsented();
+        };
+    }
+    if (denySettingsBtn) {
+        denySettingsBtn.onclick = () => {
+            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(false);
+            showToast('Tracking abgelehnt', 'info');
+        };
+    }
+
+    // Show banner only on first visit / no decision yet.
+    if (consentState === null) show();
+}
+
 window.onload = async () => {
     // Try to load config.js dynamically to avoid 404 console spam if missing
     try {
@@ -527,6 +592,9 @@ window.onload = async () => {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => filterStations(e.target.value));
     }
+
+    // Tracking consent UI (mobile bottom sheet)
+    initTrackingConsentUi();
 
     // Notifications: Request permission on first user interaction
     const requestNotif = () => {
@@ -592,9 +660,11 @@ window.onload = async () => {
         loadData();
     }
 
-    // Attempt to inject tracking code if present in config
-    if (state.config && state.config.trackingCode) {
-        injectTrackingCode(state.config.trackingCode);
+    // Tracking: only load after explicit user consent.
+    if (typeof window.hasTrackingConsent === 'function' && window.hasTrackingConsent()) {
+        startTrackingIfConsented();
+    } else if (state.config && state.config.trackingCode) {
+        console.log("Tracking code configured, but consent missing. Not injecting.");
     }
 
     // Auto-Locate on Start (User Request)
