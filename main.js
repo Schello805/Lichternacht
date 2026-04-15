@@ -505,11 +505,9 @@ function startTrackingIfConsented() {
     const hasConsent = (typeof window.hasTrackingConsent === 'function') ? window.hasTrackingConsent() : false;
     if (!hasConsent) return;
 
-    // Priority: Admin-configured trackingCode (dynamic) > bundled Matomo file.
+    // Tracking is loaded only from admin-configured trackingCode (stored outside the git repo).
     if (state.config && state.config.trackingCode) {
         injectTrackingCode(state.config.trackingCode);
-    } else if (typeof window.loadMatomoTagManager === 'function') {
-        window.loadMatomoTagManager();
     }
 }
 
