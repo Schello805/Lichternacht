@@ -23,6 +23,8 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lichternacht Bechhofen</title>
+    <meta name="description" content="Die offizielle App zur Lichternacht Bechhofen: Karte, Programm, Stationen, Favoriten und Offline-Modus (PWA).">
+    <link rel="canonical" href="https://lichternacht.bechhofen.de/">
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#fbbf24">
@@ -34,14 +36,31 @@
     <!-- Open Graph / Social Sharing -->
     <meta property="og:title" content="Lichternacht Bechhofen">
     <meta property="og:description" content="Die offizielle App zur Lichternacht. Karte, Programm und Infos.">
-    <meta property="og:image" content="icon.png">
+    <meta property="og:image" content="https://lichternacht.bechhofen.de/icon.png">
     <meta property="og:url" content="https://lichternacht.bechhofen.de">
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="de_DE">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Lichternacht Bechhofen">
+    <meta name="twitter:description" content="Karte, Programm und Infos – als Offline-fähige Web-App (PWA).">
+    <meta name="twitter:image" content="https://lichternacht.bechhofen.de/icon.png">
 
     <!-- Icons & Manifest -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
+
+    <!-- Structured data (basic) -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Lichternacht Bechhofen",
+            "url": "https://lichternacht.bechhofen.de/",
+            "inLanguage": "de-DE"
+        }
+    </script>
 
     <!-- Tailwind CSS (Static) -->
     <link href="./dist/output.css?v=1.1.14" rel="stylesheet">
