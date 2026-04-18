@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lichternacht.bechhofen.de/sitemap.xml
-
+Sitemap: https://lichternacht-bechhofen.de/sitemap.xml
