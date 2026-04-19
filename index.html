@@ -718,9 +718,9 @@
                             <button id="btn-internal-route"
                                 class="flex-1 bg-yellow-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:bg-yellow-600 shadow-md"><i
                                     class="ph ph-path text-lg"></i> Route</button>
-                            <button id="btn-route"
-                                class="flex-1 bg-gray-900 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:bg-gray-700 shadow-lg dark:bg-gray-800"><i
-                                    class="ph ph-google-logo text-lg"></i> Maps</button>
+	                            <button id="btn-route"
+	                                class="flex-1 bg-gray-900 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 active:bg-gray-700 shadow-lg dark:bg-gray-800"><i
+	                                    class="ph ph-google-logo text-lg"></i> Navigation starten</button>
                         </div>
                     </div>
 
@@ -1015,7 +1015,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.82', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.83', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1040,7 +1040,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.82"></script>
+    <script type="module" src="main.js?v=1.4.83"></script>
 </body>
 
 </html>
