@@ -27,9 +27,9 @@ export function toggleAdminPanel() {
             const thresholds = rewards.thresholds || {};
             const prizes = rewards.prizes || {};
             document.getElementById('admin-rewards-enabled').checked = rewards.enabled || false;
-            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 10;
-            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 20;
-            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 30;
+            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 40;
+            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 60;
+            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 80;
             document.getElementById('admin-reward-bronze-prize').value = prizes.bronze || '';
             document.getElementById('admin-reward-silver-prize').value = prizes.silver || '';
             document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
@@ -625,12 +625,13 @@ export async function saveTrackingConfig() {
 export async function saveRewardsConfig() {
     const enabled = !!document.getElementById('admin-rewards-enabled')?.checked;
 
-    const bronze = Number(document.getElementById('admin-reward-bronze-threshold')?.value || 10);
-    const silver = Number(document.getElementById('admin-reward-silver-threshold')?.value || 20);
-    const gold = Number(document.getElementById('admin-reward-gold-threshold')?.value || 30);
+    const bronze = Number(document.getElementById('admin-reward-bronze-threshold')?.value || 40);
+    const silver = Number(document.getElementById('admin-reward-silver-threshold')?.value || 60);
+    const gold = Number(document.getElementById('admin-reward-gold-threshold')?.value || 80);
 
-    if (!Number.isFinite(bronze) || !Number.isFinite(silver) || !Number.isFinite(gold) || bronze < 1 || silver < 1 || gold < 1) {
-        showToast("Bitte gültige Zahlen für Bronze/Silber/Gold eingeben.", 'error');
+    const isValidPercent = (v) => Number.isFinite(v) && v >= 1 && v <= 100;
+    if (!isValidPercent(bronze) || !isValidPercent(silver) || !isValidPercent(gold)) {
+        showToast("Bitte gültige Prozentwerte (1–100) für Bronze/Silber/Gold eingeben.", 'error');
         return;
     }
     if (!(bronze < silver && silver < gold)) {

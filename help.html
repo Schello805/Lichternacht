@@ -20,7 +20,7 @@
 </head>
 
 <body class="min-h-screen bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
-    <div class="max-w-2xl mx-auto p-4 pb-10">
+    <div class="max-w-5xl mx-auto p-4 pb-10">
         <header class="flex items-center gap-3 mb-4">
             <a href="./index.html"
                 class="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -51,21 +51,24 @@
                         <i class="ph-fill ph-shield-check text-xl"></i>
                     </div>
                     <div class="w-full">
-                        <h2 class="font-bold text-gray-900 dark:text-white">Datenschutz & Tracking</h2>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Datenschutz & Cookies</h2>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Hier kannst du Tracking (Matomo) erlauben oder ablehnen. Die App funktioniert auch ohne Tracking.
+                            Tracking (Matomo) wird nur nach Einwilligung aktiviert. Deine Entscheidung änderst du über den Cookie‑Banner in der App.
                         </p>
+                        <a href="./index.html?cookies=1"
+                            class="inline-flex items-center justify-center gap-2 mt-3 w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
+                            Cookie‑Einstellungen öffnen
+                        </a>
                         <div class="flex gap-2 mt-3">
-                            <button type="button" id="tracking-settings-deny"
-                                class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
-                                Ablehnen
-                            </button>
-                            <button type="button" id="tracking-settings-allow"
-                                class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
-                                Erlauben
-                            </button>
+                            <a href="./datenschutz.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Datenschutz
+                            </a>
+                            <a href="./impressum.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Impressum
+                            </a>
                         </div>
-                        <div id="tracking-settings-status" class="text-[11px] text-gray-500 dark:text-gray-400 mt-2"></div>
                     </div>
                 </div>
 
@@ -127,23 +130,8 @@
                     <div>
                         <h2 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h2>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche Stationen. Einchecken klappt in der Nähe.</p>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800 flex items-center justify-between">
-                                <span class="flex items-center text-orange-700 dark:text-orange-400 font-bold"><i class="ph-fill ph-medal mr-1"></i> Bronze</span>
-                                <span class="font-bold">10</span>
-                            </div>
-                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                                <span class="flex items-center text-gray-600 dark:text-gray-300 font-bold"><i class="ph-fill ph-medal mr-1"></i> Silber</span>
-                                <span class="font-bold">20</span>
-                            </div>
-                            <div class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-100 dark:border-yellow-800 flex items-center justify-between">
-                                <span class="flex items-center text-yellow-600 dark:text-yellow-400 font-bold"><i class="ph-fill ph-medal mr-1"></i> Gold</span>
-                                <span class="font-bold">30</span>
-                            </div>
-                            <div class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 flex items-center justify-between">
-                                <span class="flex items-center text-blue-600 dark:text-blue-300 font-bold"><i class="ph-fill ph-diamond mr-1"></i> Alle</span>
-                                <span class="font-bold">Alle</span>
-                            </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            Bronze/Silber/Gold hängen von den aktuellen Einstellungen ab (Prozent der Stationen).
                         </div>
                     </div>
                 </div>
@@ -159,7 +147,6 @@
         </main>
     </div>
 
-    <script src="./js/tracking-consent.js?v=1.0.0"></script>
     <script>
         // Dark mode in sync with app
         try {
@@ -167,28 +154,7 @@
                 document.documentElement.classList.add('dark');
             }
         } catch (e) { }
-
-        function renderTrackingStatus() {
-            const el = document.getElementById('tracking-settings-status');
-            if (!el || typeof window.getTrackingConsentState !== 'function') return;
-            const v = window.getTrackingConsentState();
-            if (v === 'granted') el.textContent = 'Status: erlaubt';
-            else if (v === 'denied') el.textContent = 'Status: abgelehnt';
-            else el.textContent = 'Status: noch nicht entschieden';
-        }
-
-        document.getElementById('tracking-settings-allow')?.addEventListener('click', () => {
-            window.setTrackingConsent?.(true);
-            renderTrackingStatus();
-        });
-        document.getElementById('tracking-settings-deny')?.addEventListener('click', () => {
-            window.setTrackingConsent?.(false);
-            renderTrackingStatus();
-        });
-
-        renderTrackingStatus();
     </script>
 </body>
 
 </html>
-

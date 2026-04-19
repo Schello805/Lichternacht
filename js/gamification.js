@@ -12,21 +12,29 @@ function getRewardConfig() {
         return Math.max(1, Math.floor(n));
     };
 
-    const thresholds = {
-        bronze: asIntOr(rawThresholds.bronze, 10),
-        silver: asIntOr(rawThresholds.silver, 20),
-        gold: asIntOr(rawThresholds.gold, 30),
+    const thresholdsPercent = {
+        bronze: Math.min(100, asIntOr(rawThresholds.bronze, 40)),
+        silver: Math.min(100, asIntOr(rawThresholds.silver, 60)),
+        gold: Math.min(100, asIntOr(rawThresholds.gold, 80)),
     };
 
     return {
         enabled: rewards.enabled === true,
-        thresholds,
+        thresholdsPercent,
         prizes: {
             bronze: String(rawPrizes.bronze || '').trim(),
             silver: String(rawPrizes.silver || '').trim(),
             gold: String(rawPrizes.gold || '').trim(),
         }
     };
+}
+
+function percentToCount(percent, total) {
+    const t = Number.isFinite(Number(total)) ? Number(total) : 0;
+    if (t <= 0) return 0;
+    const p = Math.min(100, Math.max(1, Math.floor(Number(percent) || 0)));
+    // DSG: Abrunden wie gewünscht
+    return Math.max(1, Math.floor((p / 100) * t));
 }
 
 function showRewardModal(level, prizeText) {
@@ -295,9 +303,15 @@ export async function checkIn(id) {
     if (count === state.stations.length && count > 0) newLevel = 'diamond';
     else {
         const cfg = getRewardConfig();
-        if (count === cfg.thresholds.gold) newLevel = 'gold';
-        else if (count === cfg.thresholds.silver) newLevel = 'silver';
-        else if (count === cfg.thresholds.bronze) newLevel = 'bronze';
+        const total = Array.isArray(state.stations) ? state.stations.length : 0;
+        const goldCount = percentToCount(cfg.thresholdsPercent.gold, total);
+        const silverCount = percentToCount(cfg.thresholdsPercent.silver, total);
+        const bronzeCount = percentToCount(cfg.thresholdsPercent.bronze, total);
+
+        // Use >= so changes in station count still award once (guarded by reached_* keys).
+        if (goldCount > 0 && count >= goldCount) newLevel = 'gold';
+        else if (silverCount > 0 && count >= silverCount) newLevel = 'silver';
+        else if (bronzeCount > 0 && count >= bronzeCount) newLevel = 'bronze';
     }
 
     if (newLevel) {

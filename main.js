@@ -95,15 +95,15 @@ window.showPassInfo = () => {
     const thresholds = rewards.thresholds || {};
     const prizes = rewards.prizes || {};
 
-    const bronzeT = Number.isFinite(Number(thresholds.bronze)) ? Number(thresholds.bronze) : 10;
-    const silverT = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 20;
-    const goldT = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 30;
+    const bronzePercent = Number.isFinite(Number(thresholds.bronze)) ? Number(thresholds.bronze) : 40;
+    const silverPercent = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 60;
+    const goldPercent = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 80;
 
-    const bronzeP = String(prizes.bronze || '').trim();
-    const silverP = String(prizes.silver || '').trim();
-    const goldP = String(prizes.gold || '').trim();
+    const bronzePrize = String(prizes.bronze || '').trim();
+    const silverPrize = String(prizes.silver || '').trim();
+    const goldPrize = String(prizes.gold || '').trim();
 
-    const hasAnyPrize = Boolean(bronzeP || silverP || goldP);
+    const hasAnyPrize = Boolean(bronzePrize || silverPrize || goldPrize);
     if (!enabled || !hasAnyPrize) {
         showToast(`Lichter-Pass: ${visited}/${total} Stationen besucht. Sammle alle Stationen!`, 'info');
         return;
@@ -119,12 +119,20 @@ window.showPassInfo = () => {
             .replaceAll('>', '&gt;');
     }
 
-    function renderPrizeRow(label, icon, threshold, prize, current) {
+    function pctToCount(pct, tot) {
+        const p = Math.min(100, Math.max(1, Math.floor(Number(pct) || 0)));
+        if (!Number.isFinite(Number(tot)) || Number(tot) <= 0) return 0;
+        return Math.max(1, Math.floor((p / 100) * Number(tot)));
+    }
+
+    function renderPrizeRow(label, icon, percent, prize, current, tot) {
         if (!prize) return '';
-        const reached = current >= threshold;
+        const p = Math.min(100, Math.max(1, Math.floor(Number(percent) || 0)));
+        const thresholdCount = pctToCount(p, tot);
+        const reached = thresholdCount > 0 && current >= thresholdCount;
         const badge = reached
             ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 font-bold">Erreicht</span>`
-            : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200 font-bold">ab ${threshold}</span>`;
+            : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200 font-bold">ab ${p}% (${thresholdCount})</span>`;
         return `
             <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
                 <div class="flex items-center justify-between gap-2">
@@ -153,9 +161,9 @@ window.showPassInfo = () => {
             </div>
 
             <div class="mt-4 space-y-3">
-                ${renderPrizeRow('Bronze', '🥉', bronzeT, bronzeP, visited)}
-                ${renderPrizeRow('Silber', '🥈', silverT, silverP, visited)}
-                ${renderPrizeRow('Gold', '🥇', goldT, goldP, visited)}
+                ${renderPrizeRow('Bronze', '🥉', bronzePercent, bronzePrize, visited, total)}
+                ${renderPrizeRow('Silber', '🥈', silverPercent, silverPrize, visited, total)}
+                ${renderPrizeRow('Gold', '🥇', goldPercent, goldPrize, visited, total)}
             </div>
 
             <div class="mt-5 flex gap-2">
@@ -178,9 +186,9 @@ window.showPassInfo = () => {
     if (copyBtn) {
         copyBtn.addEventListener('click', async () => {
             const lines = [];
-            if (bronzeP) lines.push(`Bronze (${bronzeT}): ${bronzeP}`);
-            if (silverP) lines.push(`Silber (${silverT}): ${silverP}`);
-            if (goldP) lines.push(`Gold (${goldT}): ${goldP}`);
+            if (bronzePrize) lines.push(`Bronze (${Math.floor(bronzePercent)}% = ${pctToCount(bronzePercent, total)}): ${bronzePrize}`);
+            if (silverPrize) lines.push(`Silber (${Math.floor(silverPercent)}% = ${pctToCount(silverPercent, total)}): ${silverPrize}`);
+            if (goldPrize) lines.push(`Gold (${Math.floor(goldPercent)}% = ${pctToCount(goldPercent, total)}): ${goldPrize}`);
             const text = lines.join('\n');
             try {
                 await navigator.clipboard.writeText(text);
@@ -632,6 +640,10 @@ function initTrackingConsentUi() {
     const hide = () => modal.classList.add('hidden');
     const show = () => modal.classList.remove('hidden');
 
+    // Allow opening the cookie banner from other pages/links.
+    window.openCookieBanner = show;
+    window.closeCookieBanner = hide;
+
     if (acceptBtn) {
         acceptBtn.onclick = () => {
             if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(true);
@@ -666,6 +678,18 @@ function initTrackingConsentUi() {
     }
 
     // Show banner only on first visit / no decision yet.
+    // Also allow deep-linking via ?cookies=1 (to change consent later).
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('cookies') === '1') {
+            show();
+            params.delete('cookies');
+            const newQuery = params.toString();
+            const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '') + window.location.hash;
+            history.replaceState(null, '', newUrl);
+            return;
+        }
+    } catch (e) { }
     if (consentState === null) show();
 }
 
