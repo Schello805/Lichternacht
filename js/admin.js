@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
+import { parseCsv, toCsv } from './csv.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -12,13 +13,6 @@ export function toggleAdminPanel() {
         
         // If panel is now visible, pre-fill with data
         if (!panel.classList.contains('hidden')) {
-            const data = {
-                stations: state.stations,
-                events: state.events
-            };
-            const json = JSON.stringify(data, null, 2);
-            document.getElementById('export-area').value = json;
-
             // Pre-fill App Config
             document.getElementById('admin-app-title').value = state.config.title || '';
             document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
@@ -164,7 +158,12 @@ export async function uploadSeedData() {
 
 
 export async function importData() {
-    const json = document.getElementById('export-area').value;
+    const el = document.getElementById('export-area');
+    if (!el) {
+        showToast("JSON-Import wurde entfernt. Bitte CSV Import nutzen.", 'info');
+        return;
+    }
+    const json = el.value;
     if (!json) {
         showToast("Kein JSON im Textfeld!", 'error');
         return;
@@ -189,6 +188,160 @@ export async function importData() {
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Import: " + e.message, 'error');
+    }
+}
+
+function downloadTextFile(filename, content, mime = 'text/plain') {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function normalizeTags(tagsValue) {
+    if (!tagsValue) return [];
+    // Prefer pipe-separated list inside CSV cell, fallback to comma.
+    const raw = String(tagsValue);
+    const parts = raw.includes('|') ? raw.split('|') : raw.split(',');
+    return parts.map(s => s.trim()).filter(Boolean);
+}
+
+export function exportStationsCsv() {
+    const rows = (state.stations || []).map(s => ({
+        id: s.id ?? '',
+        name: s.name ?? '',
+        desc: s.desc ?? '',
+        lat: s.lat ?? '',
+        lng: s.lng ?? '',
+        tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
+        image: s.image ?? '',
+        time: s.time ?? '',
+        likes: s.likes ?? ''
+    }));
+    const csv = toCsv(rows, ['id', 'name', 'desc', 'lat', 'lng', 'tags', 'image', 'time', 'likes']);
+    downloadTextFile('stations.csv', csv, 'text/csv');
+    showToast('stations.csv heruntergeladen', 'success');
+}
+
+export function exportEventsCsv() {
+    const rows = (state.events || []).map(e => ({
+        id: e.id ?? '',
+        time: e.time ?? '',
+        title: e.title ?? '',
+        desc: e.desc ?? '',
+        loc: e.loc ?? '',
+        lat: e.lat ?? '',
+        lng: e.lng ?? '',
+        color: e.color ?? ''
+    }));
+    const csv = toCsv(rows, ['id', 'time', 'title', 'desc', 'loc', 'lat', 'lng', 'color']);
+    downloadTextFile('events.csv', csv, 'text/csv');
+    showToast('events.csv heruntergeladen', 'success');
+}
+
+async function importCsvGeneric(file, kind) {
+    if (!file) return;
+    const text = await file.text();
+    const rows = parseCsv(text);
+    if (!rows.length) {
+        showToast('CSV ist leer oder ungültig.', 'error');
+        return;
+    }
+
+    if (kind === 'stations') {
+        const mapped = rows.map((r, idx) => {
+            const idRaw = (r.id ?? '').toString().trim();
+            const id = idRaw ? Number(idRaw) : null;
+            const station = {
+                id: Number.isFinite(id) ? id : null,
+                name: (r.name ?? '').toString().trim(),
+                desc: (r.desc ?? '').toString().trim(),
+                lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
+                lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
+                tags: normalizeTags(r.tags),
+            };
+            const image = (r.image ?? '').toString().trim();
+            if (image) station.image = image;
+            const time = (r.time ?? '').toString().trim();
+            if (time) station.time = time;
+            const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
+            if (Number.isFinite(likes)) station.likes = likes;
+
+            if (!station.name) {
+                throw new Error(`Station: name fehlt in Zeile ${idx + 2}`);
+            }
+            return station;
+        });
+
+        // Auto-fill missing ids (max+1)
+        let maxId = (state.stations || []).reduce((max, s) => Math.max(max, Number(s.id) || 0), 0);
+        for (const s of mapped) {
+            if (s.id === null) {
+                maxId += 1;
+                s.id = maxId;
+            }
+        }
+
+        if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.`)) return;
+        for (const s of mapped) await saveData('station', s);
+        showToast('Stationen importiert', 'success');
+        setTimeout(() => location.reload(), 800);
+        return;
+    }
+
+    if (kind === 'events') {
+        const mapped = rows.map((r, idx) => {
+            const idRaw = (r.id ?? '').toString().trim();
+            const evt = {
+                id: idRaw || ('evt_' + Date.now() + '_' + idx),
+                time: (r.time ?? '').toString().trim(),
+                title: (r.title ?? '').toString().trim(),
+                desc: (r.desc ?? '').toString().trim(),
+                loc: (r.loc ?? '').toString().trim(),
+                lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
+                lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
+                color: (r.color ?? '').toString().trim() || 'yellow'
+            };
+            if (!evt.time || !evt.title) {
+                throw new Error(`Event: time/title fehlt in Zeile ${idx + 2}`);
+            }
+            return evt;
+        });
+
+        if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.`)) return;
+        for (const e of mapped) await saveData('event', e);
+        showToast('Events importiert', 'success');
+        setTimeout(() => location.reload(), 800);
+        return;
+    }
+}
+
+export async function importStationsCsv() {
+    const input = document.getElementById('admin-stations-csv');
+    const file = input?.files?.[0];
+    try {
+        await importCsvGeneric(file, 'stations');
+    } catch (e) {
+        console.error(e);
+        showToast('Import Fehler: ' + e.message, 'error');
+    } finally {
+        if (input) input.value = '';
+    }
+}
+
+export async function importEventsCsv() {
+    const input = document.getElementById('admin-events-csv');
+    const file = input?.files?.[0];
+    try {
+        await importCsvGeneric(file, 'events');
+    } catch (e) {
+        console.error(e);
+        showToast('Import Fehler: ' + e.message, 'error');
+    } finally {
+        if (input) input.value = '';
     }
 }
 
@@ -238,16 +391,23 @@ export function handleAdminAdd(type) {
 }
 
 export function dumpData() {
+    const el = document.getElementById('export-area');
+    if (!el) {
+        showToast("JSON Export wurde entfernt. Bitte CSV Export nutzen.", 'info');
+        return;
+    }
     const data = {
         stations: state.stations,
         events: state.events
     };
     const json = JSON.stringify(data, null, 2);
-    document.getElementById('export-area').value = json;
+    el.value = json;
     showToast("Daten in Textfeld exportiert", 'success');
 }
 
 export function downloadDataJs() {
+    showToast("data.js Export wurde entfernt. Bitte CSV Export nutzen.", 'info');
+    return;
     const data = {
         stations: state.stations,
         events: state.events

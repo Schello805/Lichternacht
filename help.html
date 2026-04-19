@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hilfe – Lichternacht Bechhofen</title>
+    <meta name="description" content="Hilfe/Anleitung zur privaten Web-App Lichternacht Bechhofen (Karte, Favoriten, Lichter-Pass, Tracking-Einstellung).">
+    <link rel="canonical" href="https://lichternacht-bechhofen.de/help.html">
+
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="theme-color" content="#fbbf24">
+
+    <link href="./dist/output.css?v=1.1.14" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1.1.14">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <script src="vendor/phosphor/phosphor.js"></script>
+</head>
+
+<body class="min-h-screen bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div class="max-w-2xl mx-auto p-4 pb-10">
+        <header class="flex items-center gap-3 mb-4">
+            <a href="./index.html"
+                class="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <i class="ph ph-arrow-left text-xl"></i>
+            </a>
+            <div class="flex items-center gap-3">
+                <img src="icon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-yellow-500 shadow-sm">
+                <div>
+                    <div class="text-sm font-extrabold tracking-wide text-yellow-700 dark:text-yellow-500 brand-font">
+                        LICHTERNACHT
+                    </div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">Hilfe</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="bg-white dark:bg-gray-800 w-full rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <h1 class="text-2xl font-bold font-serif mb-2 text-center dark:text-white">Anleitung</h1>
+
+            <a href="./index.html?tour=1"
+                class="block w-full mb-6 py-2.5 rounded-xl font-bold text-center text-gray-800 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">
+                Tour erneut anzeigen
+            </a>
+
+            <div class="space-y-6">
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                        <i class="ph-fill ph-shield-check text-xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <h2 class="font-bold text-gray-900 dark:text-white">Datenschutz & Tracking</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Hier kannst du Tracking (Matomo) erlauben oder ablehnen. Die App funktioniert auch ohne Tracking.
+                        </p>
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" id="tracking-settings-deny"
+                                class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Ablehnen
+                            </button>
+                            <button type="button" id="tracking-settings-allow"
+                                class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
+                                Erlauben
+                            </button>
+                        </div>
+                        <div id="tracking-settings-status" class="text-[11px] text-gray-500 dark:text-gray-400 mt-2"></div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
+                        <i class="ph-fill ph-map-trifold text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Für Orte ohne exakte Adresse (z.B. eine Wiese) kannst du die Karte an die richtige Stelle schieben und im Programm-Editor den 📍-Button "Kartenmitte" nutzen.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-500">
+                        <i class="ph-fill ph-heart text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Favoriten</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Herz, um dir deinen persönlichen Plan zusammenzustellen. Filter in der Liste nach "Favoriten".</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-500">
+                        <i class="ph-fill ph-fire text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Voting</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Gib Stationen eine Flamme, wenn sie dir gefallen.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                        <i class="ph-fill ph-file-text text-xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <h2 class="font-bold text-gray-900 dark:text-white">Impressum & Datenschutz</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Rechtliche Hinweise zu dieser privaten App.</p>
+                        <div class="flex gap-2 mt-3">
+                            <a href="./impressum.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Impressum
+                            </a>
+                            <a href="./datenschutz.html"
+                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
+                                Datenschutz
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600">
+                        <i class="ph-fill ph-trophy text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche Stationen. Einchecken klappt in der Nähe.</p>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800 flex items-center justify-between">
+                                <span class="flex items-center text-orange-700 dark:text-orange-400 font-bold"><i class="ph-fill ph-medal mr-1"></i> Bronze</span>
+                                <span class="font-bold">10</span>
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                <span class="flex items-center text-gray-600 dark:text-gray-300 font-bold"><i class="ph-fill ph-medal mr-1"></i> Silber</span>
+                                <span class="font-bold">20</span>
+                            </div>
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-100 dark:border-yellow-800 flex items-center justify-between">
+                                <span class="flex items-center text-yellow-600 dark:text-yellow-400 font-bold"><i class="ph-fill ph-medal mr-1"></i> Gold</span>
+                                <span class="font-bold">30</span>
+                            </div>
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                <span class="flex items-center text-blue-600 dark:text-blue-300 font-bold"><i class="ph-fill ph-diamond mr-1"></i> Alle</span>
+                                <span class="font-bold">Alle</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                <a href="./index.html?bug=1"
+                    class="inline-flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+                    <i class="ph ph-bug"></i> Fehler melden
+                </a>
+                <p class="text-xs text-gray-400 mt-6">Private Web-App von Michael Schellenberger</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="./js/tracking-consent.js?v=1.0.0"></script>
+    <script>
+        // Dark mode in sync with app
+        try {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { }
+
+        function renderTrackingStatus() {
+            const el = document.getElementById('tracking-settings-status');
+            if (!el || typeof window.getTrackingConsentState !== 'function') return;
+            const v = window.getTrackingConsentState();
+            if (v === 'granted') el.textContent = 'Status: erlaubt';
+            else if (v === 'denied') el.textContent = 'Status: abgelehnt';
+            else el.textContent = 'Status: noch nicht entschieden';
+        }
+
+        document.getElementById('tracking-settings-allow')?.addEventListener('click', () => {
+            window.setTrackingConsent?.(true);
+            renderTrackingStatus();
+        });
+        document.getElementById('tracking-settings-deny')?.addEventListener('click', () => {
+            window.setTrackingConsent?.(false);
+            renderTrackingStatus();
+        });
+
+        renderTrackingStatus();
+    </script>
+</body>
+
+</html>
+

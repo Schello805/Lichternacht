@@ -181,10 +181,10 @@
                         class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
                 </button>
 
-                <button onclick="openHelpModal()"
+                <a href="./help.html"
                     class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-2">
                     <i class="ph ph-info text-xl"></i>
-                </button>
+                </a>
                 <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-2">
                     <i class="ph ph-moon text-xl" id="dark-mode-icon"></i>
                 </button>
@@ -205,45 +205,39 @@
                     <span>1. Daten (Excel/Tabelle)</span>
                 </div>
                 <div class="p-4">
-                    <textarea id="export-area"
-                        class="w-full h-64 p-2 border rounded text-xs font-mono bg-white dark:bg-gray-800 dark:text-white mb-4 whitespace-pre"></textarea>
-                    <div class="flex justify-end gap-2 flex-wrap">
-                        <!-- JSON Dump -->
-                        <div class="tooltip-container">
-                            <button onclick="dumpData()"
-                                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-xs">JSON
-                                Dump</button>
-                            <span class="tooltip-text">Erzeugt ein Backup aller Daten als JSON in der
-                                Konsole/Zwischenablage.</span>
+                    <p class="text-xs text-gray-500 mt-3 mb-4">
+                        Export/Import als CSV (z.B. für Excel). Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <div class="font-bold text-sm mb-2">Stationen</div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="exportStationsCsv()"
+                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
+                            </div>
+                            <input id="admin-stations-csv" type="file" accept=".csv,text/csv"
+                                class="w-full mt-2 text-xs" />
+                            <button type="button" onclick="importStationsCsv()" data-online-only="true"
+                                class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
+                                Import CSV (Cloud)
+                            </button>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID.</div>
                         </div>
 
-                        <!-- Download JS -->
-                        <div class="tooltip-container">
-                            <button onclick="downloadDataJs()"
-                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-xs">Download
-                                data.js</button>
-                            <span class="tooltip-text">Lädt eine fertige 'data.js' Datei mit den aktuellen Daten
-                                herunter. Ersetze damit die Datei in 'js/data.js'.</span>
-                        </div>
-
-                        <!-- Scripts -->
-                        <!-- Import -->
-                        <div class="tooltip-container">
-                            <button onclick="importData()"
-                                data-online-only="true"
-                                class="bg-white border border-red-500 text-red-600 px-4 py-2 rounded hover:bg-red-50 text-xs font-bold">Importieren
-                                (Cloud)</button>
-                            <span class="tooltip-text">ACHTUNG: Überschreibt die LIVE-Datenbank mit dem Text aus dem
-                                Feld oben.</span>
-                        </div>
-
-                        <!-- Copy -->
-                        <div class="tooltip-container">
-                            <button
-                                onclick="document.getElementById('export-area').select(); document.execCommand('copy'); showToast('Kopiert', 'success');"
-                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-xs">Kopieren</button>
-                            <span class="tooltip-text">Kopiert die Daten (TSV) in die Zwischenablage für Excel/Google
-                                Sheets.</span>
+                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                            <div class="font-bold text-sm mb-2">Events</div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="exportEventsCsv()"
+                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
+                            </div>
+                            <input id="admin-events-csv" type="file" accept=".csv,text/csv"
+                                class="w-full mt-2 text-xs" />
+                            <button type="button" onclick="importEventsCsv()" data-online-only="true"
+                                class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
+                                Import CSV (Cloud)
+                            </button>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Events mit gleicher ID.</div>
                         </div>
                     </div>
                 </div>
@@ -837,166 +831,7 @@
     <script src="vendor/leaflet/leaflet-routing-machine.js"></script>
 
     <!-- Config -->
-    <!-- Help Modal -->
-    <div id="help-modal" class="fixed inset-0 z-[1000] hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeHelpModal()"></div>
-        <div
-            class="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <button onclick="closeHelpModal()"
-                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <i class="ph ph-x text-2xl"></i>
-            </button>
-
-            <h2 class="text-2xl font-bold font-serif mb-2 text-center dark:text-white">Anleitung</h2>
-
-            <button onclick="restartMiniTour()"
-                class="w-full mb-6 py-2.5 rounded-xl font-bold text-gray-800 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">
-                Tour erneut anzeigen
-            </button>
-
-            <div class="space-y-6">
-                <div class="flex gap-4">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
-                        <i class="ph-fill ph-shield-check text-xl"></i>
-                    </div>
-                    <div class="w-full">
-                        <h3 class="font-bold text-gray-900 dark:text-white">Datenschutz & Tracking</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Hier kannst du Tracking (Matomo) erlauben oder ablehnen. Die App funktioniert auch ohne Tracking.
-                        </p>
-                        <div class="flex gap-2 mt-3">
-                            <button type="button" id="tracking-settings-deny"
-                                class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
-                                Ablehnen
-                            </button>
-                            <button type="button" id="tracking-settings-allow"
-                                class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
-                                Erlauben
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
-                        <i class="ph-fill ph-map-trifold text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in
-                            der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Für Orte ohne exakte Adresse (z.B. eine
-                            Wiese) kannst du die Karte an die richtige Stelle schieben, im Programm-Editor den 📍-Button
-                            "Kartenmitte" nutzen und im Feld "Ort" eine freie Beschreibung eintragen (z.B. "Wiese hinter
-                            dem Sportplatz").</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-500">
-                        <i class="ph-fill ph-heart text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Favoriten</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Herz, um dir
-                            deinen persönlichen Plan zusammenzustellen. Filter in der Liste nach "Favoriten".</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-500">
-                        <i class="ph-fill ph-fire text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Voting</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Gefällt dir eine Station besonders gut? Gib
-                            ihr eine Flamme! Das hilft anderen Besuchern und freut den Veranstalter.</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
-                        <i class="ph-fill ph-file-text text-xl"></i>
-                    </div>
-                    <div class="w-full">
-                        <h3 class="font-bold text-gray-900 dark:text-white">Impressum & Datenschutz</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Hier findest du die rechtlichen Hinweise zu dieser App.</p>
-                        <div class="flex gap-2 mt-3">
-                            <a href="./impressum.html"
-                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
-                                Impressum
-                            </a>
-                            <a href="./datenschutz.html"
-                                class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600">
-                                Datenschutz
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600">
-                        <i class="ph-fill ph-trophy text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche die
-                            Stationen. Wenn du in unmittelbarer Nähe (ca. 30m) bist, kannst du 'Einchecken'. Sammle
-                            Stempel für deinen digitalen Lichter-Pass und erreiche Level von Bronze bis Diamant!</p>
-
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div
-                                class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800 flex items-center justify-between">
-                                <span class="flex items-center text-orange-700 dark:text-orange-400 font-bold"><i
-                                        class="ph-fill ph-medal mr-1"></i> Bronze (10)</span>
-                                <span id="count-bronze" class="font-bold">0</span>
-                            </div>
-                            <div
-                                class="bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                                <span class="flex items-center text-gray-600 dark:text-gray-300 font-bold"><i
-                                        class="ph-fill ph-medal mr-1"></i> Silber (20)</span>
-                                <span id="count-silver" class="font-bold">0</span>
-                            </div>
-                            <div
-                                class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-100 dark:border-yellow-800 flex items-center justify-between">
-                                <span class="flex items-center text-yellow-600 dark:text-yellow-400 font-bold"><i
-                                        class="ph-fill ph-medal mr-1"></i> Gold (30)</span>
-                                <span id="count-gold" class="font-bold">0</span>
-                            </div>
-                            <div
-                                class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 flex items-center justify-between">
-                                <span class="flex items-center text-blue-600 dark:text-blue-300 font-bold"><i
-                                        class="ph-fill ph-diamond mr-1"></i> Alle</span>
-                                <span id="count-diamond" class="font-bold">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
-                <div class="mb-4">
-                    <button onclick="openBugReportModal()"
-                        class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                        <i class="ph ph-bug"></i> Fehler melden
-                    </button>
-                </div>
-                <p class="text-xs text-gray-400 mb-2">Lichternacht Bechhofen App</p>
-                <p class="text-xs text-gray-400 mb-2">Version 1.4.66 • Made with ❤️</p>
-                <a href="https://github.com/Schello805/Lichternacht" target="_blank"
-                    class="inline-flex items-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                    <i class="ph ph-github-logo mr-1 text-lg"></i> Source Code
-                </a>
-                <p class="text-[10px] text-gray-400 mt-4 italic">
-                    Das Projekt wurde von Michael Schellenberger zu 100% mit KI erstellt.
-                </p>
-            </div>
-        </div>
-    </div>
+    <!-- Hilfe ist jetzt eine eigene Seite: help.html -->
 
     <!-- Bug Report Modal -->
     <div id="bug-report-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">

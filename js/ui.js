@@ -223,11 +223,12 @@ export function updateDarkModeIcon(isDark) {
 }
 
 export function openHelpModal() {
-    openModal('help-modal');
+    window.location.href = './help.html';
 }
 
 export function closeHelpModal() {
-    closeModal('help-modal');
+    // Kept for backwards compatibility (used by old cached HTML). On help page the back button is used.
+    try { history.back(); } catch (e) { }
 }
 
 // --- Rendering ---
