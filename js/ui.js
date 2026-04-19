@@ -1201,54 +1201,31 @@ export async function submitBugReport() {
         userAgent: navigator.userAgent,
         user: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.email || 'anonymous') : 'anonymous',
         userId: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.uid || '') : '',
-        appId: state.appId || 'unknown'
+        appId: state.appId || 'unknown',
+        url: window.location.href
     };
 
     const reportText = [
         `App: ${report.appId}`,
         `Zeit: ${report.dateStr}`,
+        `URL: ${report.url}`,
         `User: ${report.user} (${report.userId || 'n/a'})`,
         `Browser: ${report.userAgent}`,
         '',
         report.description
     ].join('\n');
 
-    try {
-        if (!state.useLocalStorage && state.fb) {
-             const { collection, addDoc } = state.fb;
-             // Save to 'reports' collection
-             const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'reports');
-             await addDoc(colRef, report);
-             console.log("Bug report saved", report);
-             document.getElementById('bug-desc').value = '';
-             closeModal('bug-report-modal');
-             showToast('Bug gemeldet! Vielen Dank.', 'success');
-             return;
-        } else {
-            console.warn("Offline/Local mode: Bug report not sent", report);
-        }
-    } catch (e) {
-        console.error("Error submitting bug report:", e);
-    }
+    // Send via email (mailto) instead of Firestore.
+    const to = 'info@schellenberger.biz';
+    const subject = `Feedback Lichternacht App (${report.appId})`;
+    const body = reportText;
 
-    // Fallback: store locally + copy to clipboard so the user can send it per mail/message.
-    try {
-        const key = 'bug_reports_local_queue';
-        const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        existing.push(report);
-        localStorage.setItem(key, JSON.stringify(existing));
-    } catch (e) { }
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
 
-    try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(reportText);
-            showToast('Online nicht verfügbar – Bericht gespeichert & kopiert. Bitte per Mail senden.', 'info');
-        } else {
-            alert('Online nicht verfügbar. Bitte kopiere diesen Bericht und sende ihn per Mail:\n\n' + reportText);
-        }
-    } catch (e) {
-        alert('Online nicht verfügbar. Bitte kopiere diesen Bericht und sende ihn per Mail:\n\n' + reportText);
-    }
+    document.getElementById('bug-desc').value = '';
+    closeModal('bug-report-modal');
+    showToast('E-Mail-Entwurf geöffnet.', 'success');
 }
 
 export function openEventModal() {

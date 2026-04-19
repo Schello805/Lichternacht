@@ -396,7 +396,14 @@ export function runDataValidation() {
     const more = total > 20 ? `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">… weitere Probleme vorhanden (gekürzt).</div>` : '';
     el.innerHTML = header + details + more;
 
-    showToast(`Datencheck: ${total} Problem(e) gefunden`, stationErr + eventErr > 0 ? 'error' : 'info');
+    // Toast only inside the admin panel (avoid showing this to normal users).
+    try {
+        const adminPanel = document.getElementById('admin-panel');
+        const isAdminPanelOpen = !!adminPanel && !adminPanel.classList.contains('hidden');
+        if (state.isAdmin && isAdminPanelOpen) {
+            showToast(`Datencheck: ${total} Problem(e) gefunden`, stationErr + eventErr > 0 ? 'error' : 'info');
+        }
+    } catch (e) { }
 }
 
 export function handleAdminAdd(type) {

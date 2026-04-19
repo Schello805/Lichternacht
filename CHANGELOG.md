@@ -26,6 +26,12 @@
 ### Improved
 - **Bug melden:** Fallback wenn Firestore blockiert ist (lokal speichern + in Zwischenablage kopieren).
 
+## [1.4.80] - 2026-04-19
+### Changed
+- **Bug melden:** Öffnet jetzt immer einen E-Mail-Entwurf (statt Firestore).
+### Fixed
+- **Admin:** Datencheck-Toast erscheint nur im Adminpanel.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
