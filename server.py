@@ -14,6 +14,38 @@ UPLOAD_DIR = 'downloads'
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
+def load_dotenv(path='.env'):
+    """
+    Minimal .env loader (no external deps).
+    - Supports KEY=VALUE (optional quotes)
+    - Ignores empty lines and comments starting with '#'
+    - Does not override existing environment variables
+    """
+    try:
+        if not os.path.isfile(path):
+            return
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith('#'):
+                    continue
+                if '=' not in s:
+                    continue
+                key, value = s.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                if not key or key in os.environ:
+                    continue
+                if (len(value) >= 2) and ((value[0] == value[-1] == '"') or (value[0] == value[-1] == "'")):
+                    value = value[1:-1]
+                os.environ[key] = value
+    except Exception:
+        # Silent by design; server should still start without .env
+        return
+
+
+load_dotenv()
+
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _send_json(self, status, payload):
         self.send_response(status)
