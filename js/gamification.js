@@ -1,6 +1,93 @@
 import { state } from './state.js';
 import { showToast, getDistance } from './utils.js';
 
+function getRewardConfig() {
+    const rewards = state.config?.rewards || {};
+    const rawThresholds = rewards.thresholds || {};
+    const rawPrizes = rewards.prizes || {};
+
+    const asIntOr = (value, fallback) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(1, Math.floor(n));
+    };
+
+    const thresholds = {
+        bronze: asIntOr(rawThresholds.bronze, 10),
+        silver: asIntOr(rawThresholds.silver, 20),
+        gold: asIntOr(rawThresholds.gold, 30),
+    };
+
+    return {
+        enabled: rewards.enabled === true,
+        thresholds,
+        prizes: {
+            bronze: String(rawPrizes.bronze || '').trim(),
+            silver: String(rawPrizes.silver || '').trim(),
+            gold: String(rawPrizes.gold || '').trim(),
+        }
+    };
+}
+
+function showRewardModal(level, prizeText) {
+    if (!prizeText) return;
+
+    const existing = document.getElementById('reward-modal');
+    if (existing) existing.remove();
+
+    const titleMap = {
+        bronze: 'Bronze erreicht 🥉',
+        silver: 'Silber erreicht 🥈',
+        gold: 'Gold erreicht 🥇',
+        diamond: 'Diamant erreicht 💎'
+    };
+    const title = titleMap[level] || 'Preis';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'reward-modal';
+    overlay.className = 'fixed inset-0 z-[6500] flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-3">
+                <h2 class="text-xl font-extrabold">${title}</h2>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Dein Preis:</p>
+            <div class="mt-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm whitespace-pre-wrap" id="reward-text"></div>
+            <div class="flex gap-2 mt-4">
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="reward-copy">
+                    Kopieren
+                </button>
+                <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
+                    OK
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const rewardTextEl = document.getElementById('reward-text');
+    if (rewardTextEl) rewardTextEl.textContent = prizeText;
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+
+    const copyBtn = document.getElementById('reward-copy');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(prizeText);
+                showToast('Preis kopiert', 'success');
+            } catch (e) {
+                showToast('Kopieren nicht möglich', 'error');
+            }
+        });
+    }
+}
 export function undoCheckIn(id) {
     let visitedStations = new Set();
     try {
@@ -206,9 +293,12 @@ export async function checkIn(id) {
     const count = visitedStations.size;
     let newLevel = null;
     if (count === state.stations.length && count > 0) newLevel = 'diamond';
-    else if (count === 30) newLevel = 'gold';
-    else if (count === 20) newLevel = 'silver';
-    else if (count === 10) newLevel = 'bronze';
+    else {
+        const cfg = getRewardConfig();
+        if (count === cfg.thresholds.gold) newLevel = 'gold';
+        else if (count === cfg.thresholds.silver) newLevel = 'silver';
+        else if (count === cfg.thresholds.bronze) newLevel = 'bronze';
+    }
 
     if (newLevel) {
         const key = `reached_${newLevel}`;
@@ -222,6 +312,15 @@ export async function checkIn(id) {
             if (newLevel === 'diamond') { msg = 'Diamant Champion! 💎'; field = 'count_diamond'; }
 
             showToast(msg, 'success');
+
+            // Show configured prize (if enabled)
+            try {
+                const cfg = getRewardConfig();
+                if (cfg.enabled && (newLevel === 'bronze' || newLevel === 'silver' || newLevel === 'gold')) {
+                    const prize = cfg.prizes?.[newLevel];
+                    if (prize) showRewardModal(newLevel, prize);
+                }
+            } catch (e) { }
 
             try {
                 const { doc, updateDoc, setDoc, increment } = state.fb;

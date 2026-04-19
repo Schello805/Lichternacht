@@ -15,7 +15,7 @@ import {
     renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
 } from './js/ui.js';
 import {
-    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, deleteBroadcast, startNewYear, testPlanningBanner
+    uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, saveRewardsConfig, deleteBroadcast, startNewYear, testPlanningBanner
 } from './js/admin.js';
 
 import { updateAdminUiAvailability } from './js/admin.js';
@@ -48,6 +48,7 @@ window.uploadFlyer = uploadFlyer;
 window.saveDownloads = saveDownloads;
 window.saveAppConfig = saveAppConfig;
 window.saveTrackingConfig = saveTrackingConfig;
+window.saveRewardsConfig = saveRewardsConfig;
 window.sendBroadcast = sendBroadcast;
 window.deleteBroadcast = deleteBroadcast;
 window.startNewYear = startNewYear;

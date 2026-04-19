@@ -28,6 +28,18 @@ export function toggleAdminPanel() {
             // Pre-fill Tracking
             document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
 
+            // Pre-fill Rewards/Prizes
+            const rewards = state.config.rewards || {};
+            const thresholds = rewards.thresholds || {};
+            const prizes = rewards.prizes || {};
+            document.getElementById('admin-rewards-enabled').checked = rewards.enabled || false;
+            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 10;
+            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 20;
+            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 30;
+            document.getElementById('admin-reward-bronze-prize').value = prizes.bronze || '';
+            document.getElementById('admin-reward-silver-prize').value = prizes.silver || '';
+            document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
+
             // Pre-fill Downloads
             document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
             document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
@@ -444,6 +456,53 @@ export async function saveTrackingConfig() {
         }
         showToast("Tracking Code gespeichert (Neuladen erforderlich)", 'success');
         
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Speichern", 'error');
+    }
+}
+
+export async function saveRewardsConfig() {
+    const enabled = !!document.getElementById('admin-rewards-enabled')?.checked;
+
+    const bronze = Number(document.getElementById('admin-reward-bronze-threshold')?.value || 10);
+    const silver = Number(document.getElementById('admin-reward-silver-threshold')?.value || 20);
+    const gold = Number(document.getElementById('admin-reward-gold-threshold')?.value || 30);
+
+    if (!Number.isFinite(bronze) || !Number.isFinite(silver) || !Number.isFinite(gold) || bronze < 1 || silver < 1 || gold < 1) {
+        showToast("Bitte gültige Zahlen für Bronze/Silber/Gold eingeben.", 'error');
+        return;
+    }
+    if (!(bronze < silver && silver < gold)) {
+        showToast("Schwellen müssen aufsteigend sein: Bronze < Silber < Gold.", 'error');
+        return;
+    }
+
+    const prizes = {
+        bronze: (document.getElementById('admin-reward-bronze-prize')?.value || '').trim(),
+        silver: (document.getElementById('admin-reward-silver-prize')?.value || '').trim(),
+        gold: (document.getElementById('admin-reward-gold-prize')?.value || '').trim()
+    };
+
+    const rewards = {
+        enabled,
+        thresholds: { bronze, silver, gold },
+        prizes
+    };
+
+    const config = { rewards };
+
+    try {
+        if (state.useLocalStorage) {
+            const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+            localStorage.setItem('app_config', JSON.stringify({ ...old, ...config }));
+            state.config = { ...state.config, ...config };
+        } else {
+            const { doc, setDoc } = state.fb;
+            await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+            state.config = { ...state.config, ...config };
+        }
+        showToast("Preise gespeichert", 'success');
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
