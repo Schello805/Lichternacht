@@ -8,7 +8,8 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
-PORT = 8000
+HOST = os.environ.get('BIND_HOST', '127.0.0.1')
+PORT = int(os.environ.get('PORT', '8000'))
 UPLOAD_DIR = 'downloads'
 
 if not os.path.exists(UPLOAD_DIR):
@@ -194,8 +195,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(404)
         self.end_headers()
 
-print(f"Server läuft auf http://localhost:{PORT}")
+print(f"Server läuft auf http://{HOST}:{PORT}")
 print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
 
-with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
+with socketserver.TCPServer((HOST, PORT), CustomHandler) as httpd:
     httpd.serve_forever()
