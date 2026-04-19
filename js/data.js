@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
+import { validateStations, validateEvents } from './validate.js';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -120,6 +121,20 @@ export async function loadData() {
     if (window.renderTimeline) window.renderTimeline();
     if (window.renderFilterBar) window.renderFilterBar();
     if (window.checkPlanningMode) window.checkPlanningMode();
+
+    // Lightweight auto-validation for stability (does not spam normal visitors)
+    try {
+        const stationIssues = validateStations(state.stations);
+        const eventIssues = validateEvents(state.events);
+        state.validation = { stations: stationIssues, events: eventIssues };
+
+        const totalIssues = stationIssues.length + eventIssues.length;
+        const totalErrors = stationIssues.filter(i => i.severity === 'error').length + eventIssues.filter(i => i.severity === 'error').length;
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal && totalIssues > 0) {
+            showToast(`Datencheck: ${totalIssues} Problem(e) (${totalErrors} Errors)`, totalErrors > 0 ? 'error' : 'info');
+        }
+    } catch (e) { }
 }
 
 export async function saveData(type, item) {
@@ -206,4 +221,3 @@ export async function syncGlobalConfig() {
 export function changeYear() {
     console.warn("changeYear is deprecated");
 }
-

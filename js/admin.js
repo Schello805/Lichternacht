@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { showToast } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
 import { parseCsv, toCsv } from './csv.js';
+import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -41,6 +42,9 @@ export function toggleAdminPanel() {
 
             // Load Users
             loadUsers();
+
+            // Run quick data validation for stability
+            try { runDataValidation(); } catch (e) { }
 
             // Update Online/Lokal availability
             if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
@@ -343,6 +347,50 @@ export async function importEventsCsv() {
     } finally {
         if (input) input.value = '';
     }
+}
+
+export function runDataValidation() {
+    const stationIssues = validateStations(state.stations);
+    const eventIssues = validateEvents(state.events);
+
+    state.validation = {
+        stations: stationIssues,
+        events: eventIssues
+    };
+
+    const el = document.getElementById('admin-validation-results');
+    if (!el) return;
+
+    const total = stationIssues.length + eventIssues.length;
+    if (total === 0) {
+        el.innerHTML = `<div class="text-green-600 font-bold">✅ Keine Probleme gefunden.</div>`;
+        return;
+    }
+
+    const renderIssue = (issue) => {
+        const color = issue.severity === 'error' ? 'text-red-600' : 'text-yellow-700';
+        const badge = issue.severity === 'error' ? 'ERROR' : 'WARN';
+        return `<div class="${color}"><span class="font-bold">${badge}</span> <span class="font-mono">${issue.where}.${issue.field}</span> – ${issue.message}</div>`;
+    };
+
+    const stationErr = stationIssues.filter(i => i.severity === 'error').length;
+    const eventErr = eventIssues.filter(i => i.severity === 'error').length;
+    const header = `
+        <div class="font-bold mb-1">⚠️ Probleme gefunden: ${total}</div>
+        <div class="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+            Stationen: ${stationIssues.length} (Errors: ${stationErr}) · Events: ${eventIssues.length} (Errors: ${eventErr})
+        </div>
+    `;
+
+    const details = [
+        ...stationIssues.slice(0, 10).map(renderIssue),
+        ...eventIssues.slice(0, 10).map(renderIssue),
+    ].join('');
+
+    const more = total > 20 ? `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">… weitere Probleme vorhanden (gekürzt).</div>` : '';
+    el.innerHTML = header + details + more;
+
+    showToast(`Datencheck: ${total} Problem(e) gefunden`, stationErr + eventErr > 0 ? 'error' : 'info');
 }
 
 export function handleAdminAdd(type) {

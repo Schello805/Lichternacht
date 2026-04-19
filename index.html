@@ -240,6 +240,19 @@
                             <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Events mit gleicher ID.</div>
                         </div>
                     </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="font-bold text-sm">Datencheck</div>
+                            <button type="button" onclick="runDataValidation()"
+                                class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-black text-xs font-bold">
+                                Prüfen
+                            </button>
+                        </div>
+                        <div id="admin-validation-results" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
+                            Noch nicht geprüft.
+                        </div>
+                    </div>
                 </div>
             </div>
 
