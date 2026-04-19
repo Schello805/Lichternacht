@@ -344,12 +344,15 @@
                         </button>
                     </div>
 
-                    <!-- Event Date (also used for ICS + "Aktuell/Demnächst") -->
+                    <!-- Event Date (also used for ICS + "Aktuell/Demnächst" + Pass-Start/Ende) -->
                     <div class="flex gap-2 items-center">
                         <input id="admin-ics-date" type="text"
-                            placeholder="Datum der Lichternacht (z.B. 22.11.2026) oder leer lassen"
+                            placeholder="Datum (z.B. 22.11.2026 17:00-23:00) oder leer lassen"
                             class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
                         <span class="text-[10px] text-gray-500 w-24">Leer = Ausgeblendet</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 -mt-1">
+                        Optionaler Zeitraum: <span class="font-mono">17:00-23:00</span> (sonst ganzer Tag). Format wird auch für „Live/Demnächst“ + Lichter‑Pass genutzt.
                     </div>
 
                     <button onclick="saveDownloads()"
@@ -1012,7 +1015,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.75', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.76', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1037,7 +1040,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.75"></script>
+    <script type="module" src="main.js?v=1.4.76"></script>
 </body>
 
 </html>

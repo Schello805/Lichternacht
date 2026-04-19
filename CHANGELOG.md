@@ -10,6 +10,10 @@
 - **Programm:** „Live/Demnächst“ wird nur am konfigurierten Event-Datum angezeigt (Admin: Datum der Lichternacht/ICS).
 - **Lichter‑Pass:** Check‑ins sind nur am Event-Datum möglich (wenn gesetzt), damit niemand Tage vorher sammeln kann.
 
+## [1.4.76] - 2026-04-19
+### Improved
+- **Event-Zeitraum:** Admin-Feld unterstützt optional <Datum> <Start-Ende> (z.B. `22.11.2026 17:00-23:00`) für Programm-Status + Lichter‑Pass.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

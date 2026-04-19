@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getConfiguredEventDateKey, formatEventDateDe } from './utils.js';
+import { showToast, getDistance, getConfiguredEventWindow, formatEventWindowDe, isWithinEventWindowNow } from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
@@ -1308,11 +1308,12 @@ export function renderTimeline() {
         return;
     }
 
-    // If an event date is configured, show "live/next" only on that day.
-    const configuredDateKey = getConfiguredEventDateKey();
+    // If an event date/time window is configured, show "live/next" only within that window.
+    const configuredWindow = getConfiguredEventWindow();
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const isEventDay = !configuredDateKey || todayKey === configuredDateKey;
+    const isEventDay = !configuredWindow || todayKey === configuredWindow.dateKey;
+    const isEventWindowNow = !configuredWindow || isWithinEventWindowNow(configuredWindow, now);
 
     // Sort by time
     const sorted = [...state.events].sort((a, b) => {
@@ -1327,33 +1328,40 @@ export function renderTimeline() {
     let currentActiveEvent = null; // Store currently running event for header
     let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
-    const infoBanner = (!isEventDay && configuredDateKey)
+    const infoBanner = (configuredWindow && !isEventDay)
         ? `
             <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
-                Das Programm gilt am <span class="font-bold">${formatEventDateDe(configuredDateKey)}</span>.
+                Das Programm gilt am <span class="font-bold">${formatEventWindowDe(configuredWindow)}</span>.
                 Heute (${now.toLocaleDateString('de-DE')}) ist kein Veranstaltungstag – daher kein „Live/Demnächst“.
             </div>
         `
-        : '';
+        : (configuredWindow && isEventDay && !isEventWindowNow)
+            ? `
+                <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+                    Die Lichternacht ist aktiv am <span class="font-bold">${formatEventWindowDe(configuredWindow)}</span>.
+                    Aktuell ist sie nicht gestartet oder bereits vorbei – daher kein „Live/Demnächst“.
+                </div>
+            `
+            : '';
 
     container.innerHTML = infoBanner + sorted.map((e, index) => {
         const [h, m] = e.time.split(':').map(Number);
         const eventTimeVal = h * 60 + m;
         
         // Logic: Event is "active" if we are within -15 min to +45 min window
-        const isCurrent = isEventDay && (eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45); 
+        const isCurrent = isEventWindowNow && (eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45); 
         
         // Logic: Event is "past" if it started more than 30 mins ago AND we are not in the "current" window
         // (Adjusted to ensure no gap between current and past)
-        const isPast = isEventDay && (eventTimeVal < currentTimeVal - 30 && !isCurrent);
+        const isPast = isEventWindowNow && (eventTimeVal < currentTimeVal - 30 && !isCurrent);
 
         // Find Next Event (first one in future)
-        if (isEventDay && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
+        if (isEventWindowNow && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
             nextEvent = e;
         }
 
         // Find Current Event (first one that is active)
-        if (isEventDay && !currentActiveEvent && isCurrent) {
+        if (isEventWindowNow && !currentActiveEvent && isCurrent) {
             currentActiveEvent = e;
         }
 
@@ -1408,7 +1416,7 @@ export function renderTimeline() {
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
         let scrollId = '';
-        if (isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
+        if (isEventWindowNow && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
             scrollId = 'id="timeline-scroll-target"';
             hasSetScrollTarget = true;
         }
@@ -1444,8 +1452,8 @@ export function renderTimeline() {
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
-        if (!isEventDay && configuredDateKey) {
-            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatEventDateDe(configuredDateKey)}.</p>`;
+        if (configuredWindow && (!isEventDay || !isEventWindowNow)) {
+            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatEventWindowDe(configuredWindow)}.</p>`;
             return;
         }
         // PRIORITY 1: Currently Active Event

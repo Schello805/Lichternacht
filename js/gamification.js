@@ -1,18 +1,16 @@
 import { state } from './state.js';
-import { showToast, getDistance, getConfiguredEventDateKey, formatEventDateDe } from './utils.js';
+import { showToast, getDistance, getConfiguredEventWindow, formatEventWindowDe, isWithinEventWindowNow } from './utils.js';
 
 function isPassActiveToday() {
-    const configuredKey = getConfiguredEventDateKey();
-    if (!configuredKey) return true; // no restriction if not configured
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return todayKey === configuredKey;
+    const w = getConfiguredEventWindow();
+    if (!w) return true;
+    return isWithinEventWindowNow(w, new Date());
 }
 
 function getPassInactiveMessage() {
-    const configuredKey = getConfiguredEventDateKey();
-    if (!configuredKey) return '';
-    return `Der Lichter‑Pass ist am ${formatEventDateDe(configuredKey)} aktiv.`;
+    const w = getConfiguredEventWindow();
+    if (!w) return '';
+    return `Der Lichter‑Pass ist nur während der Lichternacht aktiv (${formatEventWindowDe(w)}).`;
 }
 
 function getRewardConfig() {
