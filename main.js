@@ -1,5 +1,5 @@
 import { state } from './js/state.js';
-import { shareStation, showToast, parseEventDateKey } from './js/utils.js';
+import { shareStation, showToast } from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig } from './js/data.js';
@@ -21,7 +21,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.76";
+const APP_VERSION = "1.4.77";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -921,7 +921,29 @@ function checkUpcomingEvents() {
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
 
-    const configuredKey = parseEventDateKey(state.downloads && state.downloads.icsDate);
+    function parseEventDateKeyCompat(input) {
+        const raw = String(input || '').trim();
+        if (!raw) return null;
+        const datePart = raw.split(/\s+/)[0];
+
+        const de = datePart.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (de) {
+            const day = String(de[1]).padStart(2, '0');
+            const month = String(de[2]).padStart(2, '0');
+            const year = de[3];
+            return `${year}-${month}-${day}`;
+        }
+
+        const compact = datePart.match(/^(\d{4})(\d{2})(\d{2})$/);
+        if (compact) return `${compact[1]}-${compact[2]}-${compact[3]}`;
+
+        const iso = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+        return null;
+    }
+
+    const configuredKey = parseEventDateKeyCompat(state.downloads && state.downloads.icsDate);
     if (!configuredKey) return;
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (todayKey !== configuredKey) return;

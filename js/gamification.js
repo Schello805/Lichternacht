@@ -1,16 +1,25 @@
 import { state } from './state.js';
-import { showToast, getDistance, getConfiguredEventWindow, formatEventWindowDe, isWithinEventWindowNow } from './utils.js';
+import { showToast, getDistance } from './utils.js';
+import * as utils from './utils.js';
 
 function isPassActiveToday() {
-    const w = getConfiguredEventWindow();
+    const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
     if (!w) return true;
-    return isWithinEventWindowNow(w, new Date());
+    if (typeof utils.isWithinEventWindowNow === 'function') return utils.isWithinEventWindowNow(w, new Date());
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return todayKey === w.dateKey;
 }
 
 function getPassInactiveMessage() {
-    const w = getConfiguredEventWindow();
+    const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
     if (!w) return '';
-    return `Der Lichter‑Pass ist nur während der Lichternacht aktiv (${formatEventWindowDe(w)}).`;
+    const formatted = (typeof utils.formatEventWindowDe === 'function')
+        ? utils.formatEventWindowDe(w)
+        : (typeof utils.formatEventDateDe === 'function')
+            ? utils.formatEventDateDe(w.dateKey)
+            : (w.dateKey || '');
+    return `Der Lichter‑Pass ist nur während der Lichternacht aktiv (${formatted}).`;
 }
 
 function getRewardConfig() {
