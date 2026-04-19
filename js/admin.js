@@ -607,14 +607,19 @@ export async function deleteBroadcast() {
 }
 
 export async function saveAppConfig() {
-    const title = document.getElementById('admin-app-title').value;
-    const subtitle = document.getElementById('admin-app-subtitle').value;
+    const titleRaw = document.getElementById('admin-app-title').value;
+    const subtitleRaw = document.getElementById('admin-app-subtitle').value;
     const planningMode = document.getElementById('admin-planning-mode').checked;
     const planningText = document.getElementById('admin-planning-text').value;
     
+    const title = (titleRaw || '').trim();
+    const subtitle = (subtitleRaw || '').trim();
     console.log("Saving App Config:", { title, subtitle, planningMode, planningText });
 
-    const config = { title, subtitle, planningMode, planningText };
+    // Safety: never overwrite title/subtitle with empty strings by accident.
+    const config = { planningMode, planningText };
+    if (title) config.title = title;
+    if (subtitle) config.subtitle = subtitle;
     
     try {
         if (state.useLocalStorage) {
@@ -647,7 +652,13 @@ export async function saveAppConfig() {
 }
 
 export async function saveTrackingConfig() {
-    const trackingCode = document.getElementById('admin-tracking-code').value;
+    const trackingCode = (document.getElementById('admin-tracking-code').value || '').trim();
+
+    // Safety: don't accidentally clear tracking by saving an empty textarea.
+    if (!trackingCode) {
+        showToast("Tracking Code ist leer – nicht gespeichert. (Zum Löschen extra Button nutzen.)", 'info');
+        return;
+    }
     
     // We just save it as string in the config
     const config = { trackingCode };
@@ -667,6 +678,29 @@ export async function saveTrackingConfig() {
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
+    }
+}
+
+export async function clearTrackingConfig() {
+    if (!confirm("Tracking wirklich deaktivieren? (Tracking Code wird gelöscht)")) return;
+
+    const config = { trackingCode: null };
+    try {
+        if (state.useLocalStorage) {
+            const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+            localStorage.setItem('app_config', JSON.stringify({ ...old, ...config }));
+            state.config = { ...state.config, ...config };
+        } else {
+            const { doc, setDoc } = state.fb;
+            await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+            state.config = { ...state.config, ...config };
+        }
+        const el = document.getElementById('admin-tracking-code');
+        if (el) el.value = '';
+        showToast("Tracking deaktiviert", 'success');
+    } catch (e) {
+        console.error(e);
+        showToast("Fehler beim Löschen", 'error');
     }
 }
 

@@ -387,7 +387,11 @@
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
                     <p class="text-xs text-gray-500 mt-3 mb-2">Hier kompletten Tracking-Code einfügen (wird beim Start geladen).</p>
                     <textarea id="admin-tracking-code" class="w-full h-32 p-2 border rounded text-xs font-mono bg-gray-50 dark:bg-gray-800 dark:text-white mb-2" placeholder="<!-- Matomo Code -->..."></textarea>
-                    <button onclick="saveTrackingConfig()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                    <div class="flex gap-2">
+                        <button onclick="saveTrackingConfig()" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                        <button type="button" onclick="clearTrackingConfig()" class="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-sm px-4 border border-gray-200 dark:border-gray-600">Löschen</button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2">Leeres Feld wird nicht gespeichert (Schutz vor versehentlichem Löschen).</p>
                 </div>
             </details>
 
