@@ -51,7 +51,10 @@ export function validateStations(stations) {
         }
 
         if (!isNonEmptyString(s?.desc)) {
-            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: 'Adresse/Ort (desc) fehlt' });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: 'Adresse/Ort fehlt' });
+        }
+        if (!isNonEmptyString(s?.offer)) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: 'Angebot/Beschreibung fehlt' });
         }
     });
 

@@ -109,28 +109,41 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                            <i class="ph-fill ph-database text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-900 dark:text-white">Deine Daten auf dem Gerät</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Dein persönlicher Fortschritt wird <span class="font-bold">lokal im Browser</span> gespeichert (localStorage) – z.B. Favoriten, besuchte Stationen (Lichter‑Pass) und ob du schon abgestimmt hast.
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                Wenn du in den Browser‑Einstellungen <span class="font-bold">„Cookies & Website‑Daten“</span> (oder „App‑Daten“) für diese Seite löschst, ist dieser Fortschritt auf diesem Gerät weg und startet wieder bei 0.
+                                <span class="text-xs opacity-80">(Nur Cache leeren löscht das meist nicht.)</span>
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                Hinweis: „Likes/Abstimmung gesperrt“ ist ebenfalls lokal gespeichert – wenn du die Website‑Daten löschst, kann dich das so wirken lassen, als hättest du noch nicht abgestimmt.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
                 <a href="./index.html?bug=1"
                     class="inline-flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
                     <i class="ph ph-bug"></i> Fehler melden
                 </a>
 
-                <div class="mt-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 text-left">
-                    <div class="font-bold text-sm text-gray-900 dark:text-white">Datenschutz & Cookies</div>
-                    <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                        Tracking (Matomo) wird nur nach Einwilligung aktiviert. Du kannst die Cookie‑Einstellungen jederzeit öffnen.
+                    <div class="mt-4 text-left text-xs text-gray-600 dark:text-gray-300">
+                        Tracking (Matomo) wird nur nach Einwilligung aktiviert.
+                        <a href="./index.html?cookies=1" class="underline font-bold">Tracking‑Einstellung öffnen</a>
                     </div>
-                    <a href="./index.html?cookies=1"
-                        class="inline-flex items-center justify-center gap-2 mt-3 w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">
-                        Cookie‑Einstellungen öffnen
-                    </a>
+                    <p class="text-xs text-gray-400 mt-6">Private Web-App von Michael Schellenberger</p>
                 </div>
-                <p class="text-xs text-gray-400 mt-6">Private Web-App von Michael Schellenberger</p>
-            </div>
-        </main>
-    </div>
+            </main>
+        </div>
 
     <script>
         // Dark mode in sync with app

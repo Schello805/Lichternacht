@@ -370,11 +370,13 @@ export function runDataValidation() {
     const renderIssue = (issue) => {
         const color = issue.severity === 'error' ? 'text-red-600' : 'text-yellow-700';
         const badge = issue.severity === 'error' ? 'ERROR' : 'WARN';
-        const label = issue.label || issue.where || 'Eintrag';
+        const primaryLabel = issue.label || issue.where || 'Eintrag';
+        const where = issue.where ? `${issue.where}${issue.field ? `.${issue.field}` : ''}` : '';
+        const whereSuffix = (where && where !== primaryLabel) ? ` <span class="font-mono opacity-70">${where}</span>` : '';
         const openBtn = issue.stationId
             ? `<button type="button" class="ml-2 underline font-bold" onclick="toggleAdminPanel(); openStation(${JSON.stringify(issue.stationId)}); editStation(${JSON.stringify(issue.stationId)});">Öffnen</button>`
             : (issue.eventId ? `<button type="button" class="ml-2 underline font-bold" onclick="toggleAdminPanel(); editEvent(${JSON.stringify(issue.eventId)});">Öffnen</button>` : '');
-        return `<div class="${color}"><span class="font-bold">${badge}</span> <span class="font-mono">${label}</span> – ${issue.message}${openBtn}</div>`;
+        return `<div class="${color}"><span class="font-bold">${badge}</span> <span class="font-bold">${primaryLabel}</span>${whereSuffix} – ${issue.message}${openBtn}</div>`;
     };
 
     const stationErr = stationIssues.filter(i => i.severity === 'error').length;
