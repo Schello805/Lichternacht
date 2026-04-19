@@ -1,5 +1,19 @@
 import { state } from './state.js';
-import { showToast, getDistance } from './utils.js';
+import { showToast, getDistance, getConfiguredEventDateKey, formatEventDateDe } from './utils.js';
+
+function isPassActiveToday() {
+    const configuredKey = getConfiguredEventDateKey();
+    if (!configuredKey) return true; // no restriction if not configured
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return todayKey === configuredKey;
+}
+
+function getPassInactiveMessage() {
+    const configuredKey = getConfiguredEventDateKey();
+    if (!configuredKey) return '';
+    return `Der Lichter‑Pass ist am ${formatEventDateDe(configuredKey)} aktiv.`;
+}
 
 function getRewardConfig() {
     const rewards = state.config?.rewards || {};
@@ -228,6 +242,10 @@ export function updateModalFavBtn(id) {
 }
 
 export async function checkIn(id) {
+    if (!isPassActiveToday()) {
+        showToast(getPassInactiveMessage(), 'info');
+        return;
+    }
     let visitedStations = new Set();
     try {
         const saved = localStorage.getItem('visited_stations');
@@ -497,6 +515,13 @@ export function initPresence() {
 }
 
 export function checkProximity(lat, lng) {
+    // Hide smart check-in outside the configured event day to avoid unfair early check-ins.
+    if (!isPassActiveToday()) {
+        const btn = document.getElementById('smart-action-btn');
+        if (btn) btn.classList.add('hidden');
+        state.smartActionStationId = null;
+        return;
+    }
     // Only check if we have stations
     if (!state.stations || state.stations.length === 0) return;
 

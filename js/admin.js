@@ -541,6 +541,11 @@ export async function saveDownloads() {
             const { doc, setDoc } = state.fb;
             await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
         }
+
+        // Update in-memory state immediately (no reload required)
+        state.downloads = { ...(state.downloads || {}), ...config.downloads };
+        state.config = { ...(state.config || {}), ...config };
+        if (window.renderTimeline) window.renderTimeline();
         showToast("Downloads gespeichert", 'success');
     } catch (e) {
         console.error(e);

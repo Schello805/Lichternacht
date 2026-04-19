@@ -57,7 +57,9 @@ export async function loadData() {
         // Load Config from LocalStorage
         const cData = localStorage.getItem('app_config');
         if (cData) {
-            state.config = { ...state.config, ...JSON.parse(cData) };
+            const parsed = JSON.parse(cData);
+            state.config = { ...state.config, ...parsed };
+            if (parsed.downloads) state.downloads = parsed.downloads;
             
             // Apply Config to UI immediately
             if (state.config.title) {

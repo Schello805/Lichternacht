@@ -1,5 +1,5 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js';
+import { shareStation, showToast, parseEventDateKey } from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig } from './js/data.js';
@@ -21,7 +21,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.74";
+const APP_VERSION = "1.4.75";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -921,11 +921,10 @@ function checkUpcomingEvents() {
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
 
-    const icsDate = state.downloads && state.downloads.icsDate;
-    if (!icsDate || !/^\d{8}$/.test(icsDate)) return;
+    const configuredKey = parseEventDateKey(state.downloads && state.downloads.icsDate);
+    if (!configuredKey) return;
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const icsKey = `${icsDate.slice(0, 4)}-${icsDate.slice(4, 6)}-${icsDate.slice(6, 8)}`;
-    if (todayKey !== icsKey) return;
+    if (todayKey !== configuredKey) return;
 
     state.events.forEach(e => {
         const [h, m] = e.time.split(':').map(Number);

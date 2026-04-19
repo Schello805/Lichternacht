@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { showToast, getDistance } from './utils.js';
+import { showToast, getDistance, getConfiguredEventDateKey, formatEventDateDe } from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
@@ -1308,12 +1308,17 @@ export function renderTimeline() {
         return;
     }
 
+    // If an event date is configured, show "live/next" only on that day.
+    const configuredDateKey = getConfiguredEventDateKey();
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isEventDay = !configuredDateKey || todayKey === configuredDateKey;
+
     // Sort by time
     const sorted = [...state.events].sort((a, b) => {
         return a.time.localeCompare(b.time);
     });
 
-    const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
@@ -1322,24 +1327,33 @@ export function renderTimeline() {
     let currentActiveEvent = null; // Store currently running event for header
     let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
-    container.innerHTML = sorted.map((e, index) => {
+    const infoBanner = (!isEventDay && configuredDateKey)
+        ? `
+            <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+                Das Programm gilt am <span class="font-bold">${formatEventDateDe(configuredDateKey)}</span>.
+                Heute (${now.toLocaleDateString('de-DE')}) ist kein Veranstaltungstag – daher kein „Live/Demnächst“.
+            </div>
+        `
+        : '';
+
+    container.innerHTML = infoBanner + sorted.map((e, index) => {
         const [h, m] = e.time.split(':').map(Number);
         const eventTimeVal = h * 60 + m;
         
         // Logic: Event is "active" if we are within -15 min to +45 min window
-        const isCurrent = eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45; 
+        const isCurrent = isEventDay && (eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45); 
         
         // Logic: Event is "past" if it started more than 30 mins ago AND we are not in the "current" window
         // (Adjusted to ensure no gap between current and past)
-        const isPast = eventTimeVal < currentTimeVal - 30 && !isCurrent;
+        const isPast = isEventDay && (eventTimeVal < currentTimeVal - 30 && !isCurrent);
 
         // Find Next Event (first one in future)
-        if (!nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
+        if (isEventDay && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
             nextEvent = e;
         }
 
         // Find Current Event (first one that is active)
-        if (!currentActiveEvent && isCurrent) {
+        if (isEventDay && !currentActiveEvent && isCurrent) {
             currentActiveEvent = e;
         }
 
@@ -1394,7 +1408,7 @@ export function renderTimeline() {
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
         let scrollId = '';
-        if (!hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
+        if (isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
             scrollId = 'id="timeline-scroll-target"';
             hasSetScrollTarget = true;
         }
@@ -1430,6 +1444,10 @@ export function renderTimeline() {
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
+        if (!isEventDay && configuredDateKey) {
+            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatEventDateDe(configuredDateKey)}.</p>`;
+            return;
+        }
         // PRIORITY 1: Currently Active Event
         if (currentActiveEvent) {
              headerDisplay.innerHTML = `
