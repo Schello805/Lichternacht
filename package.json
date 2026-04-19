@@ -5,7 +5,7 @@
     "tailwindcss": "^3.4.17"
   },
   "name": "lichternacht",
-  "version": "1.4.81",
+  "version": "1.4.82",
   "description": "Eine progressive Web App (PWA) für die Lichternacht Bechhofen. Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.",
   "main": "main.js",
   "scripts": {

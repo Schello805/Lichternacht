@@ -124,6 +124,40 @@ export async function loadData() {
     if (window.renderFilterBar) window.renderFilterBar();
     if (window.checkPlanningMode) window.checkPlanningMode();
 
+    // Deep link: open a station via ?station=28
+    // Runs after data + UI are ready.
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const stationParam = params.get('station');
+        if (stationParam) {
+            const key = 'deep_link_station_handled';
+            if (sessionStorage.getItem(key) !== String(stationParam)) {
+                const station = Array.isArray(state.stations)
+                    ? state.stations.find(x => String(x.id) === String(stationParam))
+                    : null;
+
+                if (!station) {
+                    showToast('Station nicht gefunden', 'error');
+                } else {
+                    if (typeof window.flyToStation === 'function') {
+                        window.flyToStation(Number(station.lat), Number(station.lng), station.id);
+                    }
+                    setTimeout(() => {
+                        if (typeof window.openStation === 'function') window.openStation(stationParam);
+                    }, 450);
+                }
+
+                sessionStorage.setItem(key, String(stationParam));
+            }
+
+            // Clean URL so refresh/back doesn't re-trigger.
+            params.delete('station');
+            const newQuery = params.toString();
+            const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '') + window.location.hash;
+            history.replaceState(null, '', newUrl);
+        }
+    } catch (e) { }
+
     // Lightweight auto-validation for stability (does not spam normal visitors)
     try {
         const stationIssues = validateStations(state.stations);

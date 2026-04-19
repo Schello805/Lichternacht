@@ -165,7 +165,10 @@ export function shareStation(id) {
     const s = state.stations.find(x => x.id == id);
     if (!s) return;
 
-    const url = `${window.location.origin}/?station=${s.id}`;
+    // Keep current path (/, /index.html, etc.) so the deep link works on all hosting setups.
+    const urlObj = new URL(window.location.origin + window.location.pathname);
+    urlObj.searchParams.set('station', s.id);
+    const url = urlObj.toString();
     const text = `Schau dir ${s.name} bei der Lichternacht an!`;
 
     if (navigator.share) {
