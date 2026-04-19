@@ -18,6 +18,10 @@
 ### Fixed
 - **Stabilität:** Verhindert „Importing binding name … is not found“ bei gemischten Caches (Fallback über Namespace-Import).
 
+## [1.4.78] - 2026-04-19
+### Fixed
+- **Bug melden:** Reports werden jetzt unter `/public/reports` gespeichert (Regelpfad), kein `permission-denied` mehr.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

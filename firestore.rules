@@ -87,7 +87,8 @@ service cloud.firestore {
 
     // Reports
     match /artifacts/{appId}/public/reports/{reportId} {
-        allow create: if true;
+        // Allow all authenticated users (including anonymous auth) to create a report.
+        allow create: if request.auth != null;
         allow read, update, delete: if isAdmin();
     }
   }

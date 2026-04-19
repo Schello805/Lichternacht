@@ -1199,7 +1199,8 @@ export async function submitBugReport() {
         timestamp: Date.now(),
         dateStr: new Date().toLocaleString(),
         userAgent: navigator.userAgent,
-        user: (state.auth && state.auth.currentUser) ? state.auth.currentUser.email : 'anonymous',
+        user: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.email || 'anonymous') : 'anonymous',
+        userId: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.uid || '') : '',
         appId: state.appId || 'unknown'
     };
 
@@ -1207,7 +1208,7 @@ export async function submitBugReport() {
         if (!state.useLocalStorage && state.fb) {
              const { collection, addDoc } = state.fb;
              // Save to 'reports' collection
-             const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'reports');
+             const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'reports');
              await addDoc(colRef, report);
              console.log("Bug report saved", report);
         } else {
