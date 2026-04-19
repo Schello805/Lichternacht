@@ -89,7 +89,107 @@ window.showPassInfo = () => {
     } catch (e) { }
     const visited = visitedStations.size;
     const total = Array.isArray(state.stations) ? state.stations.length : 0;
-    showToast(`Lichter-Pass: ${visited}/${total} Stationen besucht. Sammle alle Stationen!`, 'info');
+
+    const rewards = state.config?.rewards || {};
+    const enabled = rewards.enabled === true;
+    const thresholds = rewards.thresholds || {};
+    const prizes = rewards.prizes || {};
+
+    const bronzeT = Number.isFinite(Number(thresholds.bronze)) ? Number(thresholds.bronze) : 10;
+    const silverT = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 20;
+    const goldT = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 30;
+
+    const bronzeP = String(prizes.bronze || '').trim();
+    const silverP = String(prizes.silver || '').trim();
+    const goldP = String(prizes.gold || '').trim();
+
+    const hasAnyPrize = Boolean(bronzeP || silverP || goldP);
+    if (!enabled || !hasAnyPrize) {
+        showToast(`Lichter-Pass: ${visited}/${total} Stationen besucht. Sammle alle Stationen!`, 'info');
+        return;
+    }
+
+    const existing = document.getElementById('pass-modal');
+    if (existing) existing.remove();
+
+    function escapeHtml(s) {
+        return String(s)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;');
+    }
+
+    function renderPrizeRow(label, icon, threshold, prize, current) {
+        if (!prize) return '';
+        const reached = current >= threshold;
+        const badge = reached
+            ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 font-bold">Erreicht</span>`
+            : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200 font-bold">ab ${threshold}</span>`;
+        return `
+            <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="font-extrabold">${icon} ${label}</div>
+                    ${badge}
+                </div>
+                <div class="text-sm text-gray-700 dark:text-gray-200 mt-2 whitespace-pre-wrap">${escapeHtml(prize)}</div>
+            </div>
+        `;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pass-modal';
+    overlay.className = 'fixed inset-0 z-[6500] flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-xl font-extrabold">Lichter‑Pass</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">${visited}/${total} Stationen besucht</div>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-3">
+                ${renderPrizeRow('Bronze', '🥉', bronzeT, bronzeP, visited)}
+                ${renderPrizeRow('Silber', '🥈', silverT, silverP, visited)}
+                ${renderPrizeRow('Gold', '🥇', goldT, goldP, visited)}
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="pass-modal-copy">
+                    Alles kopieren
+                </button>
+                <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
+                    OK
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+
+    const copyBtn = document.getElementById('pass-modal-copy');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const lines = [];
+            if (bronzeP) lines.push(`Bronze (${bronzeT}): ${bronzeP}`);
+            if (silverP) lines.push(`Silber (${silverT}): ${silverP}`);
+            if (goldP) lines.push(`Gold (${goldT}): ${goldP}`);
+            const text = lines.join('\n');
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Preise kopiert', 'success');
+            } catch (e) {
+                showToast('Kopieren nicht möglich', 'error');
+            }
+        });
+    }
 };
 
 function setTourFlag(key, value) {
