@@ -13,9 +13,9 @@ function getRewardConfig() {
     };
 
     const thresholdsPercent = {
-        bronze: Math.min(100, asIntOr(rawThresholds.bronze, 40)),
-        silver: Math.min(100, asIntOr(rawThresholds.silver, 60)),
-        gold: Math.min(100, asIntOr(rawThresholds.gold, 80)),
+        bronze: Math.min(100, asIntOr(rawThresholds.bronze, 80)),
+        silver: Math.min(100, asIntOr(rawThresholds.silver, 90)),
+        gold: Math.min(100, asIntOr(rawThresholds.gold, 95)),
     };
 
     return {

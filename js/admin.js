@@ -27,9 +27,9 @@ export function toggleAdminPanel() {
             const thresholds = rewards.thresholds || {};
             const prizes = rewards.prizes || {};
             document.getElementById('admin-rewards-enabled').checked = rewards.enabled || false;
-            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 40;
-            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 60;
-            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 80;
+            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 80;
+            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 90;
+            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 95;
             document.getElementById('admin-reward-bronze-prize').value = prizes.bronze || '';
             document.getElementById('admin-reward-silver-prize').value = prizes.silver || '';
             document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
@@ -625,9 +625,9 @@ export async function saveTrackingConfig() {
 export async function saveRewardsConfig() {
     const enabled = !!document.getElementById('admin-rewards-enabled')?.checked;
 
-    const bronze = Number(document.getElementById('admin-reward-bronze-threshold')?.value || 40);
-    const silver = Number(document.getElementById('admin-reward-silver-threshold')?.value || 60);
-    const gold = Number(document.getElementById('admin-reward-gold-threshold')?.value || 80);
+    const bronze = Number(document.getElementById('admin-reward-bronze-threshold')?.value || 80);
+    const silver = Number(document.getElementById('admin-reward-silver-threshold')?.value || 90);
+    const gold = Number(document.getElementById('admin-reward-gold-threshold')?.value || 95);
 
     const isValidPercent = (v) => Number.isFinite(v) && v >= 1 && v <= 100;
     if (!isValidPercent(bronze) || !isValidPercent(silver) || !isValidPercent(gold)) {

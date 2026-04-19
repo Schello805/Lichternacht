@@ -95,9 +95,9 @@ window.showPassInfo = () => {
     const thresholds = rewards.thresholds || {};
     const prizes = rewards.prizes || {};
 
-    const bronzePercent = Number.isFinite(Number(thresholds.bronze)) ? Number(thresholds.bronze) : 40;
-    const silverPercent = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 60;
-    const goldPercent = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 80;
+    const bronzePercent = Number.isFinite(Number(thresholds.bronze)) ? Number(thresholds.bronze) : 80;
+    const silverPercent = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 90;
+    const goldPercent = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 95;
 
     const bronzePrize = String(prizes.bronze || '').trim();
     const silverPrize = String(prizes.silver || '').trim();
