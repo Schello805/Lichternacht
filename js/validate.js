@@ -17,39 +17,41 @@ export function validateStations(stations) {
 
     const list = Array.isArray(stations) ? stations : [];
     list.forEach((s, idx) => {
-        const path = `stations[${idx}]`;
         const id = s?.id;
+        const name = s?.name;
         const idStr = (id === null || id === undefined) ? '' : String(id).trim();
+        const label = idStr ? `Station ${idStr}${isNonEmptyString(name) ? ` (${name.trim()})` : ''}` : `Station (ohne id)`;
+        const path = `stations[${idx}]`;
         if (!idStr) {
-            issues.push({ severity: 'error', where: path, field: 'id', message: 'id fehlt' });
+            issues.push({ severity: 'error', where: path, label, stationId: null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id fehlt' });
         } else {
             const prev = seenIds.get(idStr);
             if (prev !== undefined) {
-                issues.push({ severity: 'error', where: path, field: 'id', message: `doppelte id (${idStr}), schon bei stations[${prev}]` });
+                issues.push({ severity: 'error', where: path, label, stationId: idStr, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: `doppelte id (${idStr}), schon bei stations[${prev}]` });
             } else {
                 seenIds.set(idStr, idx);
             }
         }
 
         if (!isNonEmptyString(s?.name)) {
-            issues.push({ severity: 'error', where: path, field: 'name', message: 'Name fehlt/leer' });
+            issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: '', field: 'name', message: 'Name fehlt/leer' });
         }
 
         const lat = toNumber(s?.lat);
         const lng = toNumber(s?.lng);
         if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-            issues.push({ severity: 'error', where: path, field: 'lat', message: `ungültig (${s?.lat})` });
+            issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'lat', message: `ungültig (${s?.lat})` });
         }
         if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-            issues.push({ severity: 'error', where: path, field: 'lng', message: `ungültig (${s?.lng})` });
+            issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'lng', message: `ungültig (${s?.lng})` });
         }
 
         if (!Array.isArray(s?.tags)) {
-            issues.push({ severity: 'warn', where: path, field: 'tags', message: 'tags ist kein Array (Filter könnten nicht funktionieren)' });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'tags ist kein Array (Filter könnten nicht funktionieren)' });
         }
 
         if (!isNonEmptyString(s?.desc)) {
-            issues.push({ severity: 'warn', where: path, field: 'desc', message: 'Beschreibung fehlt' });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: 'Adresse/Ort (desc) fehlt' });
         }
     });
 
@@ -65,22 +67,23 @@ export function validateEvents(events) {
         const path = `events[${idx}]`;
         const id = e?.id;
         const idStr = (id === null || id === undefined) ? '' : String(id).trim();
+        const label = idStr ? `Event ${idStr}${isNonEmptyString(e?.title) ? ` (${String(e.title).trim()})` : ''}` : `Event (ohne id)`;
         if (!idStr) {
-            issues.push({ severity: 'error', where: path, field: 'id', message: 'id fehlt' });
+            issues.push({ severity: 'error', where: path, label, eventId: null, field: 'id', message: 'id fehlt' });
         } else {
             const prev = seenIds.get(idStr);
             if (prev !== undefined) {
-                issues.push({ severity: 'error', where: path, field: 'id', message: `doppelte id (${idStr}), schon bei events[${prev}]` });
+                issues.push({ severity: 'error', where: path, label, eventId: idStr, field: 'id', message: `doppelte id (${idStr}), schon bei events[${prev}]` });
             } else {
                 seenIds.set(idStr, idx);
             }
         }
 
         if (!isNonEmptyString(e?.time)) {
-            issues.push({ severity: 'error', where: path, field: 'time', message: 'Zeit fehlt' });
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'time', message: 'Zeit fehlt' });
         }
         if (!isNonEmptyString(e?.title)) {
-            issues.push({ severity: 'error', where: path, field: 'title', message: 'Titel fehlt' });
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel fehlt' });
         }
 
         // Coordinates are optional for events, but if provided they must be valid.
@@ -90,14 +93,13 @@ export function validateEvents(events) {
             const lat = toNumber(e?.lat);
             const lng = toNumber(e?.lng);
             if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-                issues.push({ severity: 'warn', where: path, field: 'lat', message: `ungültig (${e?.lat})` });
+                issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'lat', message: `ungültig (${e?.lat})` });
             }
             if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-                issues.push({ severity: 'warn', where: path, field: 'lng', message: `ungültig (${e?.lng})` });
+                issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'lng', message: `ungültig (${e?.lng})` });
             }
         }
     });
 
     return issues;
 }
-
