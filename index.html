@@ -397,41 +397,50 @@
                     </p>
 
                     <div class="mt-4 space-y-3">
-                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="font-bold text-sm text-orange-700 dark:text-orange-300">Bronze</div>
-                                <input id="admin-reward-bronze-threshold" type="number" min="1" inputmode="numeric"
-                                    class="w-24 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                    placeholder="40">
-                            </div>
-                            <input id="admin-reward-bronze-prize" type="text"
-                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                placeholder="Preis-Text für Bronze (z.B. '1x Glühwein gratis bei ...')">
-                        </div>
+	                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+	                            <div class="flex items-center justify-between gap-2">
+	                                <div class="font-bold text-sm text-orange-700 dark:text-orange-300">Bronze</div>
+	                                <div class="relative w-24">
+	                                    <input id="admin-reward-bronze-threshold" type="number" min="1" max="100" step="1" inputmode="numeric"
+	                                        class="w-full p-2 pr-7 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                        placeholder="40" aria-label="Bronze Schwelle in Prozent">
+	                                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-300">%</span>
+	                                </div>
+	                            </div>
+	                            <input id="admin-reward-bronze-prize" type="text"
+	                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                placeholder="Preis-Text für Bronze (z.B. '1x Glühwein gratis bei ...')">
+	                        </div>
 
-                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="font-bold text-sm text-gray-600 dark:text-gray-200">Silber</div>
-                                <input id="admin-reward-silver-threshold" type="number" min="1" inputmode="numeric"
-                                    class="w-24 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                    placeholder="60">
-                            </div>
-                            <input id="admin-reward-silver-prize" type="text"
-                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                placeholder="Preis-Text für Silber">
-                        </div>
+	                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+	                            <div class="flex items-center justify-between gap-2">
+	                                <div class="font-bold text-sm text-gray-600 dark:text-gray-200">Silber</div>
+	                                <div class="relative w-24">
+	                                    <input id="admin-reward-silver-threshold" type="number" min="1" max="100" step="1" inputmode="numeric"
+	                                        class="w-full p-2 pr-7 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                        placeholder="60" aria-label="Silber Schwelle in Prozent">
+	                                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-300">%</span>
+	                                </div>
+	                            </div>
+	                            <input id="admin-reward-silver-prize" type="text"
+	                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                placeholder="Preis-Text für Silber">
+	                        </div>
 
-                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="font-bold text-sm text-yellow-700 dark:text-yellow-300">Gold</div>
-                                <input id="admin-reward-gold-threshold" type="number" min="1" inputmode="numeric"
-                                    class="w-24 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                    placeholder="80">
-                            </div>
-                            <input id="admin-reward-gold-prize" type="text"
-                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
-                                placeholder="Preis-Text für Gold">
-                        </div>
+	                        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+	                            <div class="flex items-center justify-between gap-2">
+	                                <div class="font-bold text-sm text-yellow-700 dark:text-yellow-300">Gold</div>
+	                                <div class="relative w-24">
+	                                    <input id="admin-reward-gold-threshold" type="number" min="1" max="100" step="1" inputmode="numeric"
+	                                        class="w-full p-2 pr-7 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                        placeholder="80" aria-label="Gold Schwelle in Prozent">
+	                                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-300">%</span>
+	                                </div>
+	                            </div>
+	                            <input id="admin-reward-gold-prize" type="text"
+	                                class="w-full mt-2 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm"
+	                                placeholder="Preis-Text für Gold">
+	                        </div>
                     </div>
 
                     <button onclick="saveRewardsConfig()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm mt-4">Speichern</button>
