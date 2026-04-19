@@ -2,6 +2,11 @@ import http.server
 import socketserver
 import os
 import cgi
+import json
+import time
+import smtplib
+import ssl
+from email.message import EmailMessage
 
 PORT = 8000
 UPLOAD_DIR = 'downloads'
@@ -10,7 +15,104 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
+    def _send_json(self, status, payload):
+        self.send_response(status)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode('utf-8'))
+
+    def _read_json(self):
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+        except Exception:
+            length = 0
+        if length <= 0 or length > 200_000:
+            return None
+        raw = self.rfile.read(length)
+        try:
+            return json.loads(raw.decode('utf-8'))
+        except Exception:
+            return None
+
+    def _rate_limit(self):
+        # Very small in-memory throttle to reduce accidental spam.
+        # Not a security feature; for real deployments, add proper protections.
+        now = time.time()
+        ip = self.client_address[0] if self.client_address else 'unknown'
+        try:
+            store = getattr(self.server, "_rate_store", {})
+            last = store.get(ip, 0)
+            if now - last < 10:
+                return False
+            store[ip] = now
+            setattr(self.server, "_rate_store", store)
+        except Exception:
+            pass
+        return True
+
+    def _send_bug_report_email(self, subject, text):
+        to_addr = os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz')
+        from_addr = os.environ.get('BUGREPORT_FROM', to_addr)
+
+        host = os.environ.get('SMTP_HOST', '').strip()
+        user = os.environ.get('SMTP_USER', '').strip()
+        password = os.environ.get('SMTP_PASS', '').strip()
+        port = int(os.environ.get('SMTP_PORT', '587'))
+        use_ssl = os.environ.get('SMTP_SSL', '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+        if not host or not user or not password:
+            raise RuntimeError("SMTP not configured (set SMTP_HOST/SMTP_USER/SMTP_PASS)")
+
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = from_addr
+        msg['To'] = to_addr
+        msg.set_content(text)
+
+        if use_ssl:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(host, port, context=context, timeout=15) as smtp:
+                smtp.login(user, password)
+                smtp.send_message(msg)
+        else:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(host, port, timeout=15) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                smtp.login(user, password)
+                smtp.send_message(msg)
+
     def do_POST(self):
+        if self.path == '/api/bug-report':
+            if not self._rate_limit():
+                self._send_json(429, {"ok": False, "error": "rate_limited"})
+                return
+
+            if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
+                self._send_json(400, {"ok": False, "error": "invalid_content_type"})
+                return
+
+            data = self._read_json()
+            if not data or not isinstance(data, dict):
+                self._send_json(400, {"ok": False, "error": "invalid_json"})
+                return
+
+            subject = str(data.get('subject') or 'Feedback Lichternacht App').strip()[:200]
+            text = str(data.get('text') or '').strip()
+            if not text:
+                self._send_json(400, {"ok": False, "error": "empty_text"})
+                return
+            if len(text) > 50_000:
+                text = text[:50_000] + "\n\n[gekürzt]"
+
+            try:
+                self._send_bug_report_email(subject, text)
+                self._send_json(200, {"ok": True})
+            except Exception as e:
+                self._send_json(500, {"ok": False, "error": str(e)})
+            return
+
         if self.path == '/upload':
             try:
                 content_type, pdict = cgi.parse_header(self.headers['content-type'])

@@ -1215,17 +1215,32 @@ export async function submitBugReport() {
         report.description
     ].join('\n');
 
-    // Send via email (mailto) instead of Firestore.
-    const to = 'info@schellenberger.biz';
-    const subject = `Feedback Lichternacht App (${report.appId})`;
-    const body = reportText;
+    // Send to backend endpoint which sends an email (anonymous users supported).
+    // A browser cannot send emails by itself; this needs a server-side mail relay.
+    try {
+        const res = await fetch('./api/bug-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subject: `Feedback Lichternacht App (${report.appId})`,
+                text: reportText,
+                meta: report
+            })
+        });
 
-    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
+        if (!res.ok) {
+            const msg = await res.text().catch(() => '');
+            throw new Error(msg || `HTTP ${res.status}`);
+        }
 
-    document.getElementById('bug-desc').value = '';
-    closeModal('bug-report-modal');
-    showToast('E-Mail-Entwurf geöffnet.', 'success');
+        document.getElementById('bug-desc').value = '';
+        closeModal('bug-report-modal');
+        showToast('Danke! Feedback gesendet.', 'success');
+        return;
+    } catch (e) {
+        console.error("Bug report send failed", e);
+        showToast('Senden nicht möglich (Server/Email nicht konfiguriert).', 'error');
+    }
 }
 
 export function openEventModal() {

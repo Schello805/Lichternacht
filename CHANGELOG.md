@@ -32,6 +32,10 @@
 ### Fixed
 - **Admin:** Datencheck-Toast erscheint nur im Adminpanel.
 
+## [1.4.81] - 2026-04-19
+### Changed
+- **Bug melden:** Sendet Feedback serverseitig per E‑Mail (POST `/api/bug-report`) + kurzer Danke-Toast.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
