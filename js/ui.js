@@ -1204,6 +1204,15 @@ export async function submitBugReport() {
         appId: state.appId || 'unknown'
     };
 
+    const reportText = [
+        `App: ${report.appId}`,
+        `Zeit: ${report.dateStr}`,
+        `User: ${report.user} (${report.userId || 'n/a'})`,
+        `Browser: ${report.userAgent}`,
+        '',
+        report.description
+    ].join('\n');
+
     try {
         if (!state.useLocalStorage && state.fb) {
              const { collection, addDoc } = state.fb;
@@ -1211,16 +1220,34 @@ export async function submitBugReport() {
              const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'reports');
              await addDoc(colRef, report);
              console.log("Bug report saved", report);
+             document.getElementById('bug-desc').value = '';
+             closeModal('bug-report-modal');
+             showToast('Bug gemeldet! Vielen Dank.', 'success');
+             return;
         } else {
             console.warn("Offline/Local mode: Bug report not sent", report);
         }
-        
-        document.getElementById('bug-desc').value = '';
-        closeModal('bug-report-modal');
-        showToast('Bug gemeldet! Vielen Dank.', 'success');
-    } catch(e) {
+    } catch (e) {
         console.error("Error submitting bug report:", e);
-        showToast('Fehler beim Senden', 'error');
+    }
+
+    // Fallback: store locally + copy to clipboard so the user can send it per mail/message.
+    try {
+        const key = 'bug_reports_local_queue';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        existing.push(report);
+        localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) { }
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(reportText);
+            showToast('Online nicht verfügbar – Bericht gespeichert & kopiert. Bitte per Mail senden.', 'info');
+        } else {
+            alert('Online nicht verfügbar. Bitte kopiere diesen Bericht und sende ihn per Mail:\n\n' + reportText);
+        }
+    } catch (e) {
+        alert('Online nicht verfügbar. Bitte kopiere diesen Bericht und sende ihn per Mail:\n\n' + reportText);
     }
 }
 

@@ -22,6 +22,10 @@
 ### Fixed
 - **Bug melden:** Reports werden jetzt unter `/public/reports` gespeichert (Regelpfad), kein `permission-denied` mehr.
 
+## [1.4.79] - 2026-04-19
+### Improved
+- **Bug melden:** Fallback wenn Firestore blockiert ist (lokal speichern + in Zwischenablage kopieren).
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
