@@ -16,7 +16,7 @@ Beispiel (Ubuntu):
 
 1. Service-Datei anlegen:
 
-`/etc/systemd/system/lichternacht-api.service`
+`/etc/systemd/system/lichternacht-api.service` (Vorlage im Repo: `server/systemd/lichternacht-api.service`)
 
 ```ini
 [Unit]
@@ -54,7 +54,7 @@ a2enmod proxy proxy_http
 systemctl reload apache2
 ```
 
-In deinem vHost (oder einer Site-Config) ergänzen:
+In deinem vHost (oder einer Site-Config) ergänzen (Vorlage im Repo: `server/apache/vhost-snippet.conf`):
 
 ```apache
 ProxyPass        "/api/"  "http://127.0.0.1:8000/api/"
@@ -81,3 +81,8 @@ curl -i -X POST http://localhost/api/bug-report \
 
 Erwartet: `200 {"ok": true}` (und E‑Mail kommt an).
 
+## Diagnose
+
+- API läuft? `curl -i http://127.0.0.1:8000/api/health`
+- Apache Proxy ok? `curl -i http://localhost/api/health`
+- systemd Logs: `journalctl -u lichternacht-api -n 200 --no-pager`

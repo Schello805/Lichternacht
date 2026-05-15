@@ -195,6 +195,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(404)
         self.end_headers()
 
+    def do_GET(self):
+        if self.path == '/api/health':
+            self._send_json(200, {"ok": True})
+            return
+        return super().do_GET()
+
 print(f"Server läuft auf http://{HOST}:{PORT}")
 print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
 

@@ -9,6 +9,22 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 *   **Interaktive Karte:** Leaflet-Karte mit Standort-Tracking und Routing.
 *   **Gamification:** Lichter-Pass, Check-Ins, Likes und Favoriten.
 *   **Onboarding:** Mini-Tour (Kurze Tour) für neue Nutzer; kann über die Hilfe („Tour erneut anzeigen“) erneut gestartet werden.
+
+## Betrieb (Server)
+
+### Bug melden → E-Mail
+
+Die App sendet Bugreports an `POST /api/bug-report` (Apache Proxy → `server.py`), damit Nutzer (auch anonym) Feedback senden können, ohne Firestore-Probleme.
+
+- Setup-Anleitung: `SERVER_EMAIL_SETUP.md`
+- `.env` Vorlage: `.env.example`
+
+### Event-Datum / Zeitfenster
+
+Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitfenster gesetzt werden:
+
+- Beispiel: `22.11.2026 17:00-23:00`
+- Wirkung: „Live/Demnächst“ + Lichter‑Pass Check-ins nur innerhalb dieses Fensters.
 *   **Live-Updates:** Änderungen an Stationen/Events sind sofort bei allen Nutzern sichtbar (Firestore Realtime).
 *   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
 *   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.

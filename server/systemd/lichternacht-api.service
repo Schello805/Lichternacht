@@ -1,0 +1,17 @@
+[Unit]
+Description=Lichternacht API (bug report email)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/html/Lichternacht
+ExecStart=/usr/bin/python3 /var/www/html/Lichternacht/server.py
+Restart=on-failure
+
+# Bind only locally; Apache proxies /api/* to this service.
+Environment=PORT=8000
+Environment=BIND_HOST=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target
+
