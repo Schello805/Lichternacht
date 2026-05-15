@@ -22,7 +22,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.84";
+const APP_VERSION = "1.4.85";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -85,12 +85,8 @@ window.showUserCountInfo = () => {
 };
 
 window.showPassInfo = () => {
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
-    const visited = visitedStations.size;
+    const visitedRecords = (typeof utils.getVisitedStationRecords === 'function') ? utils.getVisitedStationRecords(state.stations) : [];
+    const visited = visitedRecords.length;
     const total = Array.isArray(state.stations) ? state.stations.length : 0;
 
     const rewards = state.config?.rewards || {};
@@ -149,6 +145,18 @@ window.showPassInfo = () => {
     const nextGoalText = nextGoal
         ? `Noch ${Math.max(0, nextGoal.count - visited)} Station(en) bis ${nextGoal.label}.`
         : (hasAnyPrize ? 'Du hast alle eingestellten Preisstufen erreicht.' : 'Sammle Stationen und verfolge hier deinen Fortschritt.');
+
+    const visibleVisitedRecords = visitedRecords.slice(-8).reverse();
+    const visitedHistoryHtml = visibleVisitedRecords.length > 0
+        ? visibleVisitedRecords.map(item => `
+            <div class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                <div>
+                    <div class="font-bold text-gray-900 dark:text-white">#${escapeHtml(item.stationNumber)} ${escapeHtml(item.stationName)}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(item.checkedAtLabel)}</div>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="text-sm text-gray-600 dark:text-gray-300">Noch keine Check-ins vorhanden.</div>';
 
     function renderPrizeRow(label, icon, percent, prize, current, tot) {
         if (!prize) return '';
@@ -219,9 +227,20 @@ window.showPassInfo = () => {
                     : '<div class="text-sm text-gray-600 dark:text-gray-300">Aktuell sind noch keine Preise hinterlegt.</div>'}
             </div>
 
+            <div class="mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="font-bold text-gray-900 dark:text-white">Check-in Verlauf</div>
+                    <button type="button" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 dark:border-gray-600" id="pass-history-export">
+                        CSV Export
+                    </button>
+                </div>
+                <div class="mt-2">${visitedHistoryHtml}</div>
+                ${visitedRecords.length > visibleVisitedRecords.length ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Es werden die letzten ${visibleVisitedRecords.length} Check-ins angezeigt. Der Export enthält alle.</div>` : ''}
+            </div>
+
             <div class="mt-5 flex gap-2">
                 <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="pass-modal-copy">
-                    Alles kopieren
+                    Preise kopieren
                 </button>
                 <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
                     OK
@@ -256,6 +275,37 @@ window.showPassInfo = () => {
             } catch (e) {
                 showToast('Kopieren nicht möglich', 'error');
             }
+        });
+    }
+
+    const exportBtn = document.getElementById('pass-history-export');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            if (visitedRecords.length === 0) {
+                showToast('Noch keine Check-ins vorhanden.', 'info');
+                return;
+            }
+
+            const rows = [
+                ['Station Nr.', 'Station', 'Check-in Zeitpunkt', 'Check-in ISO'].join(';'),
+                ...visitedRecords.map(item => [
+                    utils.toCsvValue(item.stationNumber),
+                    utils.toCsvValue(item.stationName),
+                    utils.toCsvValue(item.checkedAtLabel),
+                    utils.toCsvValue(item.checkedAt || '')
+                ].join(';'))
+            ];
+
+            const blob = new Blob([`\uFEFF${rows.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lichterpass-checkins-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('Check-in Verlauf exportiert.', 'success');
         });
     }
 };
@@ -324,7 +374,14 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sende...';
 
+            const claimId = `LP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+            const visitedRecords = (typeof utils.getVisitedStationRecords === 'function') ? utils.getVisitedStationRecords(state.stations) : [];
+            const visitedLines = visitedRecords.length > 0
+                ? visitedRecords.map(item => `- #${item.stationNumber} ${item.stationName} | ${item.checkedAtLabel}`).join('\n')
+                : '- Keine Check-ins gefunden';
+
             const text = [
+                `Anforderungs-ID: ${claimId}`,
                 `Preisstufe: ${level}`,
                 `Preis: ${prizeText || '-'}`,
                 `Fortschritt: ${visited}/${total} Stationen`,
@@ -332,7 +389,10 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
                 `Kontakt: ${contact}`,
                 `Hinweis: ${note || '-'}`,
                 `Zeit: ${new Date().toLocaleString()}`,
-                `App: ${state.appId || 'unknown'}`
+                `App: ${state.appId || 'unknown'}`,
+                '',
+                'Besuchte Stationen:',
+                visitedLines
             ].join('\n');
 
             try {
@@ -342,7 +402,7 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
                     body: JSON.stringify({
                         subject: `Preisanforderung Lichternacht App: ${level}`,
                         text,
-                        meta: { type: 'prize_claim', level, name, contact, appId: state.appId || 'unknown' }
+                        meta: { type: 'prize_claim', claimId, level, name, contact, appId: state.appId || 'unknown' }
                     })
                 });
                 if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));

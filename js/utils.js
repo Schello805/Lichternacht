@@ -1,5 +1,137 @@
 import { state } from './state.js';
 
+const VISITED_KEY = 'visited_stations';
+const VISITED_LOG_KEY = 'visited_station_log';
+
+function stationKey(id) {
+    return String(id);
+}
+
+export function formatDateTimeDe(value) {
+    if (!value) return 'Zeitpunkt unbekannt';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return 'Zeitpunkt unbekannt';
+    return d.toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function readLegacyVisitedIds() {
+    try {
+        const saved = localStorage.getItem(VISITED_KEY);
+        if (!saved) return [];
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.map(stationKey) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function readVisitedLog() {
+    try {
+        const saved = localStorage.getItem(VISITED_LOG_KEY);
+        if (!saved) return [];
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .filter(item => item && item.id !== undefined && item.id !== null)
+            .map(item => ({
+                id: stationKey(item.id),
+                checkedAt: item.checkedAt || null
+            }));
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeVisitedRecords(records) {
+    const normalized = records
+        .filter(item => item && item.id !== undefined && item.id !== null)
+        .map(item => ({
+            id: stationKey(item.id),
+            checkedAt: item.checkedAt || null
+        }));
+    localStorage.setItem(VISITED_LOG_KEY, JSON.stringify(normalized));
+    localStorage.setItem(VISITED_KEY, JSON.stringify(normalized.map(item => item.id)));
+}
+
+export function getVisitedStationRecords(stations = state.stations) {
+    const byId = new Map();
+    readVisitedLog().forEach(item => byId.set(stationKey(item.id), item));
+    readLegacyVisitedIds().forEach(id => {
+        if (!byId.has(stationKey(id))) {
+            byId.set(stationKey(id), { id: stationKey(id), checkedAt: null });
+        }
+    });
+
+    const stationIndex = new Map();
+    if (Array.isArray(stations)) {
+        stations.forEach((station, index) => {
+            stationIndex.set(stationKey(station.id), { station, index });
+        });
+    }
+
+    return [...byId.values()]
+        .map(item => {
+            const entry = stationIndex.get(stationKey(item.id));
+            return {
+                id: stationKey(item.id),
+                checkedAt: item.checkedAt || null,
+                checkedAtLabel: formatDateTimeDe(item.checkedAt),
+                station: entry?.station || null,
+                stationName: entry?.station?.name || `Station ${item.id}`,
+                stationNumber: entry?.station?.id ?? item.id,
+                order: entry?.index ?? 99999
+            };
+        })
+        .sort((a, b) => {
+            if (a.checkedAt && b.checkedAt) return new Date(a.checkedAt) - new Date(b.checkedAt);
+            if (a.checkedAt && !b.checkedAt) return 1;
+            if (!a.checkedAt && b.checkedAt) return -1;
+            return a.order - b.order;
+        });
+}
+
+export function getVisitedStationIdSet() {
+    return new Set(getVisitedStationRecords().map(item => stationKey(item.id)));
+}
+
+export function isStationVisited(id) {
+    return getVisitedStationIdSet().has(stationKey(id));
+}
+
+export function markStationVisited(id, checkedAt = new Date().toISOString()) {
+    const records = getVisitedStationRecords().map(item => ({
+        id: stationKey(item.id),
+        checkedAt: item.checkedAt || null
+    }));
+    const key = stationKey(id);
+    const existing = records.find(item => stationKey(item.id) === key);
+    if (existing) {
+        if (!existing.checkedAt) existing.checkedAt = checkedAt;
+    } else {
+        records.push({ id: key, checkedAt });
+    }
+    writeVisitedRecords(records);
+}
+
+export function removeStationVisited(id) {
+    const key = stationKey(id);
+    const records = getVisitedStationRecords()
+        .filter(item => stationKey(item.id) !== key)
+        .map(item => ({ id: stationKey(item.id), checkedAt: item.checkedAt || null }));
+    writeVisitedRecords(records);
+}
+
+export function toCsvValue(value) {
+    const s = String(value ?? '');
+    return /[",\n;]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
 export function parseEventDateKey(input) {
     const s = String(input || '').trim();
     if (!s) return null;

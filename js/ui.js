@@ -1,6 +1,6 @@
 
 import { state } from './state.js';
-import { showToast, getDistance } from './utils.js';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js';
 import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
@@ -481,16 +481,11 @@ export function renderList(stations) {
         });
     }
 
-    // Get visited stations
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
 
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
-        const isVisited = visitedStations.has(s.id);
+        const isVisited = visitedStations.has(String(s.id));
         const likeCount = s.likes || 0;
         
         let distInfo = '';
@@ -602,13 +597,8 @@ export function filterList(tag) {
     }
 
     if (tag === 'visited') {
-        let visitedStations = new Set();
-        try {
-            const saved = localStorage.getItem('visited_stations');
-            if (saved) visitedStations = new Set(JSON.parse(saved));
-        } catch (e) { }
-        
-        const visited = state.stations.filter(s => visitedStations.has(s.id));
+        const visitedStations = getVisitedStationIdSet();
+        const visited = state.stations.filter(s => visitedStations.has(String(s.id)));
         renderList(visited);
         
         if (visited.length === 0) {

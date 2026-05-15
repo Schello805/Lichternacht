@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, setLoading } from './utils.js';
+import { showToast, setLoading, getVisitedStationIdSet } from './utils.js';
 import { saveData } from './data.js';
 
 let tileLayer;
@@ -32,17 +32,13 @@ export function refreshMapMarkers() {
     state.markers.forEach(m => state.map.removeLayer(m.marker));
     state.markers = [];
 
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
 
     const lastChecked = localStorage.getItem('last_checked_station');
 
     state.stations.forEach(s => {
         const isActive = state.activeStationId && state.activeStationId === s.id;
-        const isVisited = visitedStations.has(s.id);
+        const isVisited = visitedStations.has(String(s.id));
         const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
         const color = (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
         const idStr = s.id.toString();

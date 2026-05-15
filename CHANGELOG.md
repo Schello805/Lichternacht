@@ -49,6 +49,13 @@
 - **Lichter‑Pass:** Neue Statuskarte mit Aktivzeit, Fortschritt, nächstem Ziel und verständlichem Ablauf.
 - **Preise:** Gewinner können den erreichten Preis mit Kontaktdaten anfordern; der Admin erhält die Anfrage per E‑Mail.
 
+## [1.4.85] - 2026-05-15
+### Improved
+- **Lichter‑Pass:** Besuchte Stationen werden mit Check-in-Zeitpunkt im Pass angezeigt und können als CSV exportiert werden.
+- **Preise:** Preisanforderungen enthalten jetzt eine Anforderungs-ID sowie den Check-in-Verlauf für die Übergabeprüfung.
+### Changed
+- **Datenschutz/Hilfe:** Hinweise zu lokal gespeicherten Check-in-Zeitpunkten und Preisanforderungen ergänzt.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

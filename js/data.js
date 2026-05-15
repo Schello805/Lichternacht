@@ -234,6 +234,7 @@ export async function syncGlobalConfig() {
                     keysToRemove.forEach(k => localStorage.removeItem(k));
                     
                     localStorage.removeItem('visited_stations');
+                    localStorage.removeItem('visited_station_log');
                     localStorage.removeItem('favorites');
                     localStorage.removeItem('last_broadcast_seen');
                     

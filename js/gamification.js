@@ -1,5 +1,12 @@
 import { state } from './state.js';
-import { showToast, getDistance } from './utils.js';
+import {
+    showToast,
+    getDistance,
+    getVisitedStationRecords,
+    getVisitedStationIdSet,
+    markStationVisited,
+    removeStationVisited
+} from './utils.js';
 import * as utils from './utils.js';
 
 function isPassActiveToday() {
@@ -118,11 +125,7 @@ function showRewardModal(level, prizeText) {
         claimBtn.addEventListener('click', () => {
             close();
             if (typeof window.openPrizeClaimModal === 'function') {
-                let visitedStations = new Set();
-                try {
-                    const saved = localStorage.getItem('visited_stations');
-                    if (saved) visitedStations = new Set(JSON.parse(saved));
-                } catch (e) { }
+                const visitedStations = getVisitedStationIdSet();
                 const total = Array.isArray(state.stations) ? state.stations.length : 0;
                 window.openPrizeClaimModal(levelLabel, prizeText, visitedStations.size, total);
             } else {
@@ -132,19 +135,15 @@ function showRewardModal(level, prizeText) {
     }
 }
 export function undoCheckIn(id) {
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
+    const key = String(id);
 
-    if (!visitedStations.has(id)) {
+    if (!visitedStations.has(key)) {
         showToast('Station war nicht als besucht markiert.', 'info');
         return;
     }
 
-    visitedStations.delete(id);
-    localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
+    removeStationVisited(id);
 
     const lastChecked = localStorage.getItem('last_checked_station');
     if (lastChecked && lastChecked.toString() === id.toString()) {
@@ -267,13 +266,10 @@ export async function checkIn(id) {
         showToast(getPassInactiveMessage(), 'info');
         return;
     }
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
+    const key = String(id);
 
-    if (visitedStations.has(id)) {
+    if (visitedStations.has(key)) {
         showToast('Diese Station ist bereits als besucht markiert.', 'info');
         return;
     }
@@ -328,8 +324,8 @@ export async function checkIn(id) {
         return;
     }
 
-    visitedStations.add(id);
-    localStorage.setItem('visited_stations', JSON.stringify([...visitedStations]));
+    markStationVisited(id);
+    const updatedVisitedStations = getVisitedStationIdSet();
 
     state.lastCheckedStationId = id;
     localStorage.setItem('last_checked_station', id.toString());
@@ -337,7 +333,7 @@ export async function checkIn(id) {
     updatePassProgress();
 
     // Check for Champion Status
-    const count = visitedStations.size;
+    const count = updatedVisitedStations.size;
     let newLevel = null;
     if (count === state.stations.length && count > 0) newLevel = 'diamond';
     else {
@@ -423,13 +419,9 @@ export function updateCheckInBtn(id) {
     const btn = document.getElementById('checkin-btn');
     if (!btn) return;
 
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
 
-    if (visitedStations.has(id)) {
+    if (visitedStations.has(String(id))) {
         btn.innerHTML = `
             <div class="flex items-center justify-between w-full">
                 <div class="flex items-center">
@@ -454,12 +446,7 @@ export function updateCheckInBtn(id) {
 }
 
 export function updatePassProgress() {
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
-    const count = visitedStations.size;
+    const count = getVisitedStationRecords().length;
     const total = Array.isArray(state.stations) ? state.stations.length : 0;
     const el = document.getElementById('pass-progress');
     if (el) el.innerHTML = `<i class="ph-fill ph-trophy mr-1"></i><span class="font-bold">${count}/${total}</span>`;
@@ -547,11 +534,7 @@ export function checkProximity(lat, lng) {
     if (!state.stations || state.stations.length === 0) return;
 
     // Get visited stations
-    let visitedStations = new Set();
-    try {
-        const saved = localStorage.getItem('visited_stations');
-        if (saved) visitedStations = new Set(JSON.parse(saved));
-    } catch (e) { }
+    const visitedStations = getVisitedStationIdSet();
 
     // Find nearest unvisited station (and keep all candidates within radius)
     let nearest = null;
@@ -560,7 +543,7 @@ export function checkProximity(lat, lng) {
     const candidates = [];
 
     state.stations.forEach(s => {
-        if (visitedStations.has(s.id)) return; // Skip visited
+        if (visitedStations.has(String(s.id))) return; // Skip visited
 
         const dist = getDistance(lat, lng, s.lat, s.lng);
         if (dist <= DETECT_RADIUS) {
