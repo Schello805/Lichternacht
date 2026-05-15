@@ -1615,7 +1615,7 @@ export function renderTimeline() {
             }
 
             const idArg = locationInfo.stationId ? `, ${JSON.stringify(locationInfo.stationId)}` : '';
-            showMapBtn = `<button onclick="event.stopPropagation(); flyToStation(${locationInfo.lat}, ${locationInfo.lng}${idArg})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
+            showMapBtn = `<button onclick='event.stopPropagation(); flyToStation(${locationInfo.lat}, ${locationInfo.lng}${idArg})' class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
         }
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
@@ -1631,7 +1631,7 @@ export function renderTimeline() {
             <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
-            <div onclick="openProgramEvent(${JSON.stringify(e.id)})" class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
+            <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>
@@ -1639,8 +1639,8 @@ export function renderTimeline() {
                     </div>
                     ${state.isAdmin ? `
                         <div class="flex gap-2">
-                            <button onclick="event.stopPropagation(); editEvent(${JSON.stringify(e.id)})" class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
-                            <button onclick="event.stopPropagation(); deleteEvent(${JSON.stringify(e.id)})" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
+                            <button onclick='event.stopPropagation(); editEvent(${JSON.stringify(e.id)})' class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
+                            <button onclick='event.stopPropagation(); deleteEvent(${JSON.stringify(e.id)})' class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
                         </div>` : ''}
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
