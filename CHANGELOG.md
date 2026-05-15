@@ -77,6 +77,10 @@
 ### Fixed
 - **Programm:** Klick auf Programmpunkte funktioniert wieder; kaputtes Inline-Quoting der Event-ID behoben.
 
+## [1.4.90] - 2026-05-15
+### Fixed
+- **Programm:** Ohne gesetztes Event-Datum werden Live/Demnächst/Countdown nicht mehr auf heute berechnet.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

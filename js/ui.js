@@ -1424,6 +1424,9 @@ function getProgramStatus(event, context) {
         ? utils.formatEventDateDe(context.configuredWindow.dateKey)
         : '';
 
+    if (!context.hasConfiguredEventDate) {
+        return { key: 'no-date', label: 'Datum fehlt', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
+    }
     if (context.configuredWindow && !context.isEventDay) {
         return { key: 'date', label: configuredLabel ? `am ${configuredLabel}` : 'geplant', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
     }
@@ -1451,8 +1454,9 @@ export function openProgramEvent(id) {
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const context = {
         configuredWindow,
-        isEventDay: !configuredWindow || todayKey === configuredWindow.dateKey,
-        isEventWindowNow: !configuredWindow || (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(configuredWindow, now) : todayKey === configuredWindow.dateKey),
+        hasConfiguredEventDate: !!configuredWindow,
+        isEventDay: !!configuredWindow && todayKey === configuredWindow.dateKey,
+        isEventWindowNow: !!configuredWindow && (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(configuredWindow, now) : todayKey === configuredWindow.dateKey),
         currentTimeVal: now.getHours() * 60 + now.getMinutes()
     };
     const status = getProgramStatus(event, context);
@@ -1537,12 +1541,13 @@ export function renderTimeline() {
         : null;
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const isEventDay = !configuredWindow || todayKey === configuredWindow.dateKey;
-    const isEventWindowNow = !configuredWindow
-        ? true
-        : (typeof utils.isWithinEventWindowNow === 'function')
+    const hasConfiguredEventDate = !!configuredWindow;
+    const isEventDay = hasConfiguredEventDate && todayKey === configuredWindow.dateKey;
+    const isEventWindowNow = hasConfiguredEventDate
+        ? (typeof utils.isWithinEventWindowNow === 'function')
             ? utils.isWithinEventWindowNow(configuredWindow, now)
-            : todayKey === configuredWindow.dateKey;
+            : todayKey === configuredWindow.dateKey
+        : false;
 
     const formatWindow = (w) => {
         if (!w) return '';
@@ -1559,20 +1564,27 @@ export function renderTimeline() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
-    const statusContext = { configuredWindow, isEventDay, isEventWindowNow, currentTimeVal };
+    const statusContext = { configuredWindow, hasConfiguredEventDate, isEventDay, isEventWindowNow, currentTimeVal };
 
     let nextEvent = null;
     let currentActiveEvent = null; // Store currently running event for header
     let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
-    const infoBanner = (configuredWindow && !isEventDay)
+    const infoBanner = !configuredWindow
         ? `
+            <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+                Für das Programm ist noch kein Event-Datum gesetzt. Deshalb werden „Live“, „Demnächst“ und Countdowns nicht berechnet.
+                Bitte im Adminbereich unter Downloads/Kalender das Datum setzen.
+            </div>
+        `
+        : (!isEventDay)
+            ? `
             <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
                 Das Programm gilt am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
                 Heute (${now.toLocaleDateString('de-DE')}) ist kein Veranstaltungstag – daher kein „Live/Demnächst“.
             </div>
         `
-        : (configuredWindow && isEventDay && !isEventWindowNow)
+        : (isEventDay && !isEventWindowNow)
             ? `
                 <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
                     Die Lichternacht ist aktiv am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
@@ -1588,7 +1600,7 @@ export function renderTimeline() {
         const isPast = eventStatus.isPast;
 
         // Find Next Event (first one in future)
-        if (isEventDay && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
+        if (hasConfiguredEventDate && isEventDay && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
             nextEvent = e;
         }
 
@@ -1620,7 +1632,7 @@ export function renderTimeline() {
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
         let scrollId = '';
-        if (isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
+        if (hasConfiguredEventDate && isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
             scrollId = 'id="timeline-scroll-target"';
             hasSetScrollTarget = true;
         }
@@ -1661,6 +1673,10 @@ export function renderTimeline() {
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
         const isAfterEventWindow = configuredWindow && isEventDay && !isEventWindowNow && currentTimeVal > configuredWindow.endMin;
+        if (!configuredWindow) {
+            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Event-Datum fehlt – kein Live-Status.</p>`;
+            return;
+        }
         if (configuredWindow && (!isEventDay || isAfterEventWindow)) {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatWindow(configuredWindow)}.</p>`;
             return;
