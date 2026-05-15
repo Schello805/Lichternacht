@@ -265,17 +265,20 @@ export function renderFilterBar() {
     
     const sortedTags = [...allTags].sort();
 
-    // Row 1: Main Filters (Prominent, Pill-shaped)
+    const primaryBtn = (tag, label, iconHtml = '') => `
+        <button onclick="filterList('${tag}')" data-tag="${tag}" 
+            class="filter-btn min-w-0 px-2 py-2 rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center justify-center gap-1 ${currentFilter === tag ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}">
+            ${iconHtml}<span class="truncate">${label}</span>
+        </button>
+    `;
+
+    // Row 1: Main Filters as a compact grid (no sideways scrolling on mobile)
     let row1 = `
-        <div class="flex gap-2 overflow-x-auto no-scrollbar items-center px-4">
-            <button onclick="filterList('all')" data-tag="all" 
-                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'all' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}">Alle</button>
-            <button onclick="filterList('proximity')" data-tag="proximity" 
-                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'proximity' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} mr-1"></i>in der Nähe</button>
-            <button onclick="filterList('favorites')" data-tag="favorites" 
-                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'favorites' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} mr-1"></i>Favoriten</button>
-            <button onclick="filterList('visited')" data-tag="visited" 
-                class="filter-btn px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all whitespace-nowrap ${currentFilter === 'visited' ? 'bg-yellow-500 text-white ring-2 ring-yellow-300' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}"><i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} mr-1"></i>Besucht</button>
+        <div class="grid grid-cols-4 gap-1.5">
+            ${primaryBtn('all', 'Alle')}
+            ${primaryBtn('proximity', 'Nähe', `<i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} text-sm"></i>`)}
+            ${primaryBtn('favorites', 'Favoriten', `<i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} text-sm"></i>`)}
+            ${primaryBtn('visited', 'Besucht', `<i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} text-sm"></i>`)}
         </div>
     `;
 
@@ -283,7 +286,7 @@ export function renderFilterBar() {
     const isTagActive = sortedTags.includes(currentFilter);
     
     // Style matches the buttons above exactly
-    const wrapperBase = "relative flex items-center w-full rounded-full shadow-sm px-4 py-2 transition-all";
+    const wrapperBase = "relative flex items-center w-full rounded-xl shadow-sm px-3 py-2 transition-all";
     const wrapperState = isTagActive
         ? "bg-yellow-500 ring-2 ring-yellow-300"
         : "bg-white border border-gray-200 hover:bg-gray-50";
@@ -292,7 +295,7 @@ export function renderFilterBar() {
     const textColor = isTagActive ? "text-white" : "text-gray-700";
 
     let row2 = `
-        <div class="px-4 mt-2">
+        <div class="mt-1.5">
             <div class="${wrapperBase} ${wrapperState}">
                 <!-- Filter Icon (Next to Dropdown) -->
                 <i class="ph ph-funnel text-lg mr-2 ${iconColor} flex-shrink-0"></i>
@@ -507,18 +510,18 @@ export function renderList(stations) {
         }
 
         return `
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4 relative overflow-hidden" onclick="openStation('${s.id}')">
-            ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1" style="position: absolute; top: 0; right: 0; font-size: 10px;"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
+        <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden" onclick="openStation('${s.id}')">
+            ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex justify-between items-start">
-                <h3 class="font-bold text-lg ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
+                <h3 class="font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
                 <div class="flex flex-col items-end gap-1">
                     <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${s.id}</span>
                     <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
                 </div>
             </div>
-            <p class="text-gray-600 dark:text-gray-400">${s.desc}</p>
-            <div class="mt-2 flex gap-2 flex-wrap">
-                ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">${t}</span>`).join('')}
+            <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${s.desc}</p>
+            <div class="mt-2 flex gap-1.5 flex-wrap">
+                ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${t}</span>`).join('')}
             </div>
             ${distInfo}
         </div>
@@ -541,36 +544,8 @@ export function filterStations(query) {
 
 export function filterList(tag) {
     currentFilter = tag;
+    renderFilterBar();
     
-    // Update active button state
-    const buttons = document.querySelectorAll('.filter-btn');
-    buttons.forEach(btn => {
-        const btnTag = btn.dataset.tag;
-        if (btnTag === tag) {
-            // Update heart icon if it's favorites
-            const icon = btn.querySelector('.ph-heart');
-            if(icon) { icon.classList.remove('text-red-500'); icon.classList.add('text-white'); }
-            // Update nav icon if it's proximity
-            const navIcon = btn.querySelector('.ph-compass');
-            if(navIcon) { navIcon.classList.remove('text-blue-500'); navIcon.classList.add('text-white'); }
-            // Update check icon if it's visited
-            const checkIcon = btn.querySelector('.ph-check-circle');
-            if(checkIcon) { checkIcon.classList.remove('text-green-500'); checkIcon.classList.add('text-white'); }
-        } else {
-            btn.classList.remove('active', 'bg-yellow-600', 'text-white');
-            btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
-            // Reset heart icon
-            const icon = btn.querySelector('.ph-heart');
-            if(icon) { icon.classList.remove('text-white'); icon.classList.add('text-red-500'); }
-            // Reset nav icon
-            const navIcon = btn.querySelector('.ph-compass');
-            if(navIcon) { navIcon.classList.remove('text-white'); navIcon.classList.add('text-blue-500'); }
-            // Reset check icon
-            const checkIcon = btn.querySelector('.ph-check-circle');
-            if(checkIcon) { checkIcon.classList.remove('text-white'); checkIcon.classList.add('text-green-500'); }
-        }
-    });
-
     if (tag === 'all') {
         renderList(state.stations);
         return;

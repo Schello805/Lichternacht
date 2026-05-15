@@ -62,6 +62,11 @@
 - **Admin-Validierung:** Stationen, Events, App-Konfiguration, Downloads und Preise geben klarere Warnungen bei unvollständigen Eingaben.
 - **User-Hinweise:** Lichter‑Pass und Check-in-Feedback erklären dezenter, warum etwas klappt oder nicht klappt.
 
+## [1.4.87] - 2026-05-15
+### Improved
+- **Mobile Layout:** Header, Suche, Filter und Stationskarten nutzen den Platz kompakter.
+- **Filter-Menü:** Hauptfilter sind jetzt als 4er-Raster sichtbar statt horizontal scrollbar.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
