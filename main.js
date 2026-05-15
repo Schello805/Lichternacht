@@ -13,7 +13,7 @@ import {
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
-    renderList, renderTimeline, renderFilterBar, openStation, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
+    renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
 } from './js/ui.js';
 import {
     uploadSeedData, toggleAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
@@ -22,7 +22,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.87";
+const APP_VERSION = "1.4.88";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -813,6 +813,7 @@ window.openBugReportModal = openBugReportModal;
 window.submitBugReport = submitBugReport;
 window.renderList = renderList;
 window.renderTimeline = renderTimeline;
+window.openProgramEvent = openProgramEvent;
 window.renderFilterBar = renderFilterBar;
 window.checkPlanningMode = checkPlanningMode;
 window.closePlanningBanner = closePlanningBanner;

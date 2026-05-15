@@ -1302,6 +1302,225 @@ export function generateICS() {
     showToast("Kalender heruntergeladen", "success");
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function escapeIcsValue(value) {
+    return String(value ?? '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('\n', '\\n')
+        .replaceAll(',', '\\,')
+        .replaceAll(';', '\\;');
+}
+
+function getProgramBaseDateParts() {
+    const configDate = state.downloads?.icsDate;
+    if (configDate && typeof utils.parseEventWindowConfig === 'function') {
+        const windowConfig = utils.parseEventWindowConfig(configDate);
+        if (windowConfig?.dateKey) {
+            const parts = windowConfig.dateKey.split('-').map(Number);
+            return { year: parts[0], month: parts[1] - 1, day: parts[2], configured: true };
+        }
+    }
+
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate(), configured: false };
+}
+
+function createEventDate(event, offsetMinutes = 0) {
+    const { year, month, day } = getProgramBaseDateParts();
+    const [hour, minute] = String(event.time || '00:00').split(':').map(Number);
+    const date = new Date(year, month, day, Number(hour) || 0, Number(minute) || 0);
+    if (offsetMinutes) date.setMinutes(date.getMinutes() + offsetMinutes);
+    return date;
+}
+
+function downloadSingleEventIcs(event) {
+    const start = createEventDate(event);
+    const end = createEventDate(event, 30);
+    const format = (date) => date.toISOString().replace(/-|:|\.\d+/g, "");
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Lichternacht//DE',
+        'BEGIN:VEVENT',
+        `UID:lichternacht-${escapeIcsValue(event.id || Date.now())}@lichternacht-bechhofen.de`,
+        `SUMMARY:${escapeIcsValue(event.title)}`,
+        `DESCRIPTION:${escapeIcsValue(event.desc || '')}`,
+        `LOCATION:${escapeIcsValue(event.loc || '')}`,
+        `DTSTART:${format(start)}`,
+        `DTEND:${format(end)}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = String(event.title || 'programmpunkt').toLowerCase().replace(/[^a-z0-9äöüß]+/gi, '-').replace(/^-|-$/g, '') || 'programmpunkt';
+    a.href = url;
+    a.download = `lichternacht-${safeName}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    showToast('Programmpunkt als Kalenderdatei heruntergeladen', 'success');
+}
+
+function getEventLocationInfo(event) {
+    const lat = parseFloat(event.lat);
+    const lng = parseFloat(event.lng);
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001);
+    if (!hasCoords) return { hasCoords: false, lat: null, lng: null, stationId: null, distanceText: '' };
+
+    const coordMatch = Array.isArray(state.stations) && state.stations.find(station => {
+        const stationLat = parseFloat(station.lat);
+        const stationLng = parseFloat(station.lng);
+        if (!Number.isFinite(stationLat) || !Number.isFinite(stationLng)) return false;
+        return Math.abs(stationLat - lat) < 0.00001 && Math.abs(stationLng - lng) < 0.00001;
+    });
+    const nameMatch = (!coordMatch && Array.isArray(state.stations)) ? state.stations.find(station =>
+        typeof station.name === 'string' && typeof event.loc === 'string' &&
+        station.name.trim().toLowerCase() === event.loc.trim().toLowerCase()
+    ) : null;
+
+    let distanceText = '';
+    if (state.userLocation) {
+        const distance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng) * 1.3;
+        const minutes = Math.ceil(distance / 80);
+        const distanceLabel = distance > 1000 ? `${(distance / 1000).toFixed(1)} km` : `${Math.round(distance)} m`;
+        distanceText = `${distanceLabel} · ca. ${minutes} min`;
+    }
+
+    return {
+        hasCoords,
+        lat,
+        lng,
+        stationId: (coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null,
+        distanceText
+    };
+}
+
+function formatCountdown(minutes) {
+    const abs = Math.max(0, Math.floor(minutes));
+    if (abs < 1) return 'jetzt';
+    if (abs < 60) return `in ${abs} Min.`;
+    const hours = Math.floor(abs / 60);
+    const rest = abs % 60;
+    return rest > 0 ? `in ${hours} Std. ${rest} Min.` : `in ${hours} Std.`;
+}
+
+function getProgramStatus(event, context) {
+    const [hour, minute] = String(event.time || '00:00').split(':').map(Number);
+    const eventTimeVal = (Number(hour) || 0) * 60 + (Number(minute) || 0);
+    const diff = eventTimeVal - context.currentTimeVal;
+    const configuredLabel = context.configuredWindow && typeof utils.formatEventDateDe === 'function'
+        ? utils.formatEventDateDe(context.configuredWindow.dateKey)
+        : '';
+
+    if (context.configuredWindow && !context.isEventDay) {
+        return { key: 'date', label: configuredLabel ? `am ${configuredLabel}` : 'geplant', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
+    }
+    if (diff > 0) {
+        return { key: diff <= 30 ? 'soon' : 'upcoming', label: formatCountdown(diff), className: diff <= 30 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', isPast: false, eventTimeVal };
+    }
+    if (context.isEventWindowNow && context.currentTimeVal <= eventTimeVal + 45) {
+        return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
+    }
+    return { key: 'past', label: 'Vorbei', className: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300', isPast: true, eventTimeVal };
+}
+
+export function openProgramEvent(id) {
+    const event = state.events.find(item => String(item.id) === String(id));
+    if (!event) {
+        showToast('Programmpunkt nicht gefunden', 'error');
+        return;
+    }
+
+    const existing = document.getElementById('program-event-modal');
+    if (existing) existing.remove();
+
+    const now = new Date();
+    const configuredWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const context = {
+        configuredWindow,
+        isEventDay: !configuredWindow || todayKey === configuredWindow.dateKey,
+        isEventWindowNow: !configuredWindow || (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(configuredWindow, now) : todayKey === configuredWindow.dateKey),
+        currentTimeVal: now.getHours() * 60 + now.getMinutes()
+    };
+    const status = getProgramStatus(event, context);
+    const locationInfo = getEventLocationInfo(event);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'program-event-modal';
+    overlay.className = 'fixed inset-0 z-[6500] flex items-end sm:items-center justify-center p-0 sm:p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 border border-gray-200 dark:border-gray-700">
+            <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 sm:hidden"></div>
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm font-extrabold px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">${escapeHtml(event.time)} Uhr</span>
+                        <span class="text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}">${escapeHtml(status.label)}</span>
+                    </div>
+                    <h2 class="text-xl font-extrabold brand-font leading-tight">${escapeHtml(event.title)}</h2>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-1">
+                        <i class="ph-fill ph-map-pin"></i>
+                        <span>${escapeHtml(event.loc || 'Ort nicht angegeben')}</span>
+                    </div>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">${escapeHtml(event.desc || 'Keine weitere Beschreibung hinterlegt.')}</div>
+
+            ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
+
+            <div class="mt-5 grid grid-cols-1 gap-2">
+                ${locationInfo.hasCoords ? `
+                    <button type="button" id="program-show-map" class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+                        <i class="ph ph-map-pin"></i> Auf Karte zeigen
+                    </button>
+                    <button type="button" id="program-route" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 dark:bg-gray-700">
+                        <i class="ph ph-route"></i> Route
+                    </button>
+                ` : `<div class="text-sm text-gray-500 dark:text-gray-400">Für diesen Programmpunkt ist noch keine Kartenposition hinterlegt.</div>`}
+                <button type="button" id="program-calendar" class="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-2">
+                    <i class="ph ph-calendar-plus"></i> In Kalender speichern
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+
+    document.getElementById('program-calendar')?.addEventListener('click', () => downloadSingleEventIcs(event));
+    document.getElementById('program-show-map')?.addEventListener('click', () => {
+        close();
+        flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId);
+    });
+    document.getElementById('program-route')?.addEventListener('click', () => {
+        close();
+        switchTab('map');
+        setTimeout(() => {
+            try { if (state.map) state.map.invalidateSize(); } catch (e) { }
+            if (window.calculateRoute) window.calculateRoute(locationInfo.lat, locationInfo.lng);
+        }, 250);
+    });
+}
+
 export function renderTimeline() {
     const container = document.getElementById('timeline-container');
     if (!container) return;
@@ -1340,6 +1559,7 @@ export function renderTimeline() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
+    const statusContext = { configuredWindow, isEventDay, isEventWindowNow, currentTimeVal };
 
     let nextEvent = null;
     let currentActiveEvent = null; // Store currently running event for header
@@ -1362,18 +1582,13 @@ export function renderTimeline() {
             : '';
 
     container.innerHTML = infoBanner + sorted.map((e, index) => {
-        const [h, m] = e.time.split(':').map(Number);
-        const eventTimeVal = h * 60 + m;
-        
-        // Logic: Event is "active" if we are within -15 min to +45 min window
-        const isCurrent = isEventWindowNow && (eventTimeVal >= currentTimeVal - 15 && eventTimeVal <= currentTimeVal + 45); 
-        
-        // Logic: Event is "past" if it started more than 30 mins ago AND we are not in the "current" window
-        // (Adjusted to ensure no gap between current and past)
-        const isPast = isEventWindowNow && (eventTimeVal < currentTimeVal - 30 && !isCurrent);
+        const eventStatus = getProgramStatus(e, statusContext);
+        const eventTimeVal = eventStatus.eventTimeVal;
+        const isCurrent = eventStatus.key === 'live';
+        const isPast = eventStatus.isPast;
 
         // Find Next Event (first one in future)
-        if (isEventWindowNow && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
+        if (isEventDay && !nextEvent && eventTimeVal > currentTimeVal && !isCurrent) {
             nextEvent = e;
         }
 
@@ -1386,54 +1601,26 @@ export function renderTimeline() {
                           e.color === 'red' ? 'bg-red-500' : 
                           e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
 
-        // ... Distance & Map Btn Logic ...
         let distInfo = '';
         let showMapBtn = '';
-        let highlightStationId = null;
-        
-        if (e.lat && e.lng) {
-             const lat = parseFloat(e.lat);
-             const lng = parseFloat(e.lng);
-             
-             // Check if valid coords (not 0,0 default)
-             if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001)) {
-                 // Try to resolve a station ID for marker highlighting
-                 const coordMatch = state.stations && state.stations.find(s => {
-                    const sLat = parseFloat(s.lat);
-                    const sLng = parseFloat(s.lng);
-                    if (isNaN(sLat) || isNaN(sLng)) return false;
-                    return Math.abs(sLat - lat) < 0.00001 && Math.abs(sLng - lng) < 0.00001;
-                 });
-                 const nameMatch = (!coordMatch && state.stations) ? state.stations.find(s =>
-                    typeof s.name === 'string' && typeof e.loc === 'string' &&
-                    s.name.trim().toLowerCase() === e.loc.trim().toLowerCase()
-                 ) : null;
-                 highlightStationId = (coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null;
 
-                 // Distance
-                 if (state.userLocation) {
-                     const d = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
-                     const walkingDist = d * 1.3;
-                     const minutes = Math.ceil(walkingDist / 80);
-                     const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
-                     
-                     distInfo = `
-                        <span class="flex items-center gap-1 ml-3 pl-3 border-l border-gray-300 dark:border-gray-600">
-                            <i class="ph-fill ph-navigation-arrow text-blue-500"></i> ${distStr}
-                            <span class="text-[10px] text-gray-400">(${minutes} min)</span>
-                        </span>
-                     `;
-                 }
-                 
-                 // Map Button
-                 const idArg = highlightStationId ? `, '${highlightStationId}'` : '';
-                 showMapBtn = `<button onclick="flyToStation(${lat}, ${lng}${idArg})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
-             }
+        const locationInfo = getEventLocationInfo(e);
+        if (locationInfo.hasCoords) {
+            if (locationInfo.distanceText) {
+                distInfo = `
+                    <span class="flex items-center gap-1 ml-3 pl-3 border-l border-gray-300 dark:border-gray-600">
+                        <i class="ph-fill ph-navigation-arrow text-blue-500"></i> ${escapeHtml(locationInfo.distanceText)}
+                    </span>
+                `;
+            }
+
+            const idArg = locationInfo.stationId ? `, ${JSON.stringify(locationInfo.stationId)}` : '';
+            showMapBtn = `<button onclick="event.stopPropagation(); flyToStation(${locationInfo.lat}, ${locationInfo.lng}${idArg})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
         }
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
         let scrollId = '';
-        if (isEventWindowNow && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
+        if (isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
             scrollId = 'id="timeline-scroll-target"';
             hasSetScrollTarget = true;
         }
@@ -1444,22 +1631,26 @@ export function renderTimeline() {
             <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700">
+            <div onclick="openProgramEvent(${JSON.stringify(e.id)})" class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${e.time} Uhr</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>
+                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${eventStatus.className}">${escapeHtml(eventStatus.label)}</span>
+                    </div>
                     ${state.isAdmin ? `
                         <div class="flex gap-2">
-                            <button onclick="editEvent('${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
-                            <button onclick="deleteEvent('${e.id}')" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
+                            <button onclick="event.stopPropagation(); editEvent(${JSON.stringify(e.id)})" class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
+                            <button onclick="event.stopPropagation(); deleteEvent(${JSON.stringify(e.id)})" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
                         </div>` : ''}
                 </div>
-                <h4 class="font-bold text-gray-900 dark:text-white">${e.title}</h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${e.desc}</p>
+                <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>
-                    <span>${e.loc}</span>
+                    <span>${escapeHtml(e.loc)}</span>
                     ${distInfo}
                     ${showMapBtn}
+                    <span class="ml-auto text-[10px] text-gray-400 flex items-center gap-1">Details <i class="ph ph-caret-right"></i></span>
                 </div>
             </div>
         </div>
@@ -1469,7 +1660,8 @@ export function renderTimeline() {
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
-        if (configuredWindow && (!isEventDay || !isEventWindowNow)) {
+        const isAfterEventWindow = configuredWindow && isEventDay && !isEventWindowNow && currentTimeVal > configuredWindow.endMin;
+        if (configuredWindow && (!isEventDay || isAfterEventWindow)) {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatWindow(configuredWindow)}.</p>`;
             return;
         }

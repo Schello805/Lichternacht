@@ -67,6 +67,12 @@
 - **Mobile Layout:** Header, Suche, Filter und Stationskarten nutzen den Platz kompakter.
 - **Filter-Menü:** Hauptfilter sind jetzt als 4er-Raster sichtbar statt horizontal scrollbar.
 
+## [1.4.88] - 2026-05-15
+### Added
+- **Programm:** Programmpunkte öffnen jetzt eine Detailansicht mit Beschreibung, Ort, Karte, Route und Einzel-Kalenderdatei.
+### Improved
+- **Programm:** Zeitleiste zeigt Live-/Vorbei-/Countdown-Status und behält den Kartenbezug über „Zeigen“.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).
