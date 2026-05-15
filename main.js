@@ -1,5 +1,6 @@
 import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
+import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
 import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js';
 import { loadData, syncGlobalConfig } from './js/data.js';
@@ -21,7 +22,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.83";
+const APP_VERSION = "1.4.84";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -106,11 +107,6 @@ window.showPassInfo = () => {
     const goldPrize = String(prizes.gold || '').trim();
 
     const hasAnyPrize = Boolean(bronzePrize || silverPrize || goldPrize);
-    if (!enabled || !hasAnyPrize) {
-        showToast(`Lichter-Pass: ${visited}/${total} Stationen besucht. Sammle alle Stationen!`, 'info');
-        return;
-    }
-
     const existing = document.getElementById('pass-modal');
     if (existing) existing.remove();
 
@@ -118,7 +114,9 @@ window.showPassInfo = () => {
         return String(s)
             .replaceAll('&', '&amp;')
             .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;');
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
     function pctToCount(pct, tot) {
@@ -126,6 +124,31 @@ window.showPassInfo = () => {
         if (!Number.isFinite(Number(tot)) || Number(tot) <= 0) return 0;
         return Math.max(1, Math.floor((p / 100) * Number(tot)));
     }
+
+    const eventWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
+    const eventWindowLabel = eventWindow && typeof utils.formatEventWindowDe === 'function' ? utils.formatEventWindowDe(eventWindow) : '';
+    const passActive = !eventWindow || (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(eventWindow, new Date()) : true);
+
+    const prizeRows = [
+        { key: 'bronze', label: 'Bronze', icon: '🥉', percent: bronzePercent, prize: bronzePrize },
+        { key: 'silver', label: 'Silber', icon: '🥈', percent: silverPercent, prize: silverPrize },
+        { key: 'gold', label: 'Gold', icon: '🥇', percent: goldPercent, prize: goldPrize },
+    ].filter(row => row.prize);
+
+    const nextGoal = prizeRows
+        .map(row => ({ ...row, count: pctToCount(row.percent, total) }))
+        .filter(row => visited < row.count)
+        .sort((a, b) => a.count - b.count)[0];
+
+    const bestReached = [...prizeRows]
+        .map(row => ({ ...row, count: pctToCount(row.percent, total) }))
+        .filter(row => visited >= row.count)
+        .sort((a, b) => b.count - a.count)[0];
+
+    const progressPercent = total > 0 ? Math.min(100, Math.round((visited / total) * 100)) : 0;
+    const nextGoalText = nextGoal
+        ? `Noch ${Math.max(0, nextGoal.count - visited)} Station(en) bis ${nextGoal.label}.`
+        : (hasAnyPrize ? 'Du hast alle eingestellten Preisstufen erreicht.' : 'Sammle Stationen und verfolge hier deinen Fortschritt.');
 
     function renderPrizeRow(label, icon, percent, prize, current, tot) {
         if (!prize) return '';
@@ -142,6 +165,7 @@ window.showPassInfo = () => {
                     ${badge}
                 </div>
                 <div class="text-sm text-gray-700 dark:text-gray-200 mt-2 whitespace-pre-wrap">${escapeHtml(prize)}</div>
+                ${reached ? `<button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${label}" data-claim-prize="${escapeHtml(prize)}">Preis anfordern</button>` : ''}
             </div>
         `;
     }
@@ -151,21 +175,48 @@ window.showPassInfo = () => {
     overlay.className = 'fixed inset-0 z-[6500] flex items-center justify-center p-4';
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
-        <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+        <div class="relative z-10 w-full max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <div class="text-xl font-extrabold">Lichter‑Pass</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">${visited}/${total} Stationen besucht</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">${visited}/${total} Stationen besucht · ${progressPercent}%</div>
                 </div>
                 <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
                     <i class="ph ph-x text-2xl"></i>
                 </button>
             </div>
 
+            <div class="mt-4">
+                <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-full bg-yellow-500 rounded-full" style="width:${progressPercent}%"></div>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl border ${passActive ? 'border-green-200 bg-green-50 text-green-900' : 'border-yellow-200 bg-yellow-50 text-yellow-900'} text-sm">
+                <div class="font-bold">${passActive ? 'Lichter‑Pass ist aktiv' : 'Lichter‑Pass ist noch nicht aktiv'}</div>
+                <div class="mt-1">${eventWindowLabel ? `Check-ins sind im Zeitraum ${escapeHtml(eventWindowLabel)} möglich.` : 'Check-ins sind während der Veranstaltung möglich.'}</div>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                <div class="font-bold text-gray-900 dark:text-white">So funktioniert es</div>
+                <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“. Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.</div>
+                <div class="mt-2 font-bold text-gray-900 dark:text-white">${escapeHtml(nextGoalText)}</div>
+            </div>
+
+            ${bestReached ? `
+                <div class="mt-4 p-3 rounded-xl border border-green-200 bg-green-50 text-green-900 text-sm">
+                    <div class="font-bold">${bestReached.icon} ${bestReached.label} erreicht</div>
+                    <div class="mt-1">Gib deine Kontaktdaten an. Ich melde mich danach bei dir und organisiere die Übergabe.</div>
+                    <button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${bestReached.label}" data-claim-prize="${escapeHtml(bestReached.prize)}">Preis anfordern</button>
+                </div>
+            ` : ''}
+
             <div class="mt-4 space-y-3">
-                ${renderPrizeRow('Bronze', '🥉', bronzePercent, bronzePrize, visited, total)}
-                ${renderPrizeRow('Silber', '🥈', silverPercent, silverPrize, visited, total)}
-                ${renderPrizeRow('Gold', '🥇', goldPercent, goldPrize, visited, total)}
+                ${hasAnyPrize
+                    ? `${renderPrizeRow('Bronze', '🥉', bronzePercent, bronzePrize, visited, total)}
+                       ${renderPrizeRow('Silber', '🥈', silverPercent, silverPrize, visited, total)}
+                       ${renderPrizeRow('Gold', '🥇', goldPercent, goldPrize, visited, total)}`
+                    : '<div class="text-sm text-gray-600 dark:text-gray-300">Aktuell sind noch keine Preise hinterlegt.</div>'}
             </div>
 
             <div class="mt-5 flex gap-2">
@@ -183,6 +234,13 @@ window.showPassInfo = () => {
 
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+    overlay.querySelectorAll('[data-claim-level]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const level = btn.getAttribute('data-claim-level') || 'Preis';
+            const prize = btn.getAttribute('data-claim-prize') || '';
+            if (typeof window.openPrizeClaimModal === 'function') window.openPrizeClaimModal(level, prize, visited, total);
+        });
+    });
 
     const copyBtn = document.getElementById('pass-modal-copy');
     if (copyBtn) {
@@ -197,6 +255,108 @@ window.showPassInfo = () => {
                 showToast('Preise kopiert', 'success');
             } catch (e) {
                 showToast('Kopieren nicht möglich', 'error');
+            }
+        });
+    }
+};
+
+window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
+    const existing = document.getElementById('prize-claim-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'prize-claim-modal';
+    overlay.className = 'fixed inset-0 z-[7000] flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-xl font-extrabold">Preis anfordern</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">${level} · ${visited}/${total} Stationen</div>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm whitespace-pre-wrap" id="claim-prize-text"></div>
+
+            <div class="mt-4 space-y-3">
+                <input id="claim-name" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="Dein Name" autocomplete="name">
+                <input id="claim-contact" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="E-Mail oder Telefonnummer" autocomplete="email">
+                <textarea id="claim-note" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm h-20" placeholder="Hinweis zur Übergabe (optional)"></textarea>
+            </div>
+
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                Die Angaben werden per E-Mail an den Admin gesendet, damit die Übergabe organisiert werden kann.
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" data-close="1">
+                    Abbrechen
+                </button>
+                <button type="button" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" id="claim-submit">
+                    Anfordern
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const prizeEl = document.getElementById('claim-prize-text');
+    if (prizeEl) prizeEl.textContent = prizeText || level;
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+
+    const submitBtn = document.getElementById('claim-submit');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            const name = (document.getElementById('claim-name')?.value || '').trim();
+            const contact = (document.getElementById('claim-contact')?.value || '').trim();
+            const note = (document.getElementById('claim-note')?.value || '').trim();
+            if (!name || !contact) {
+                showToast('Bitte Name und Kontakt angeben.', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sende...';
+
+            const text = [
+                `Preisstufe: ${level}`,
+                `Preis: ${prizeText || '-'}`,
+                `Fortschritt: ${visited}/${total} Stationen`,
+                `Name: ${name}`,
+                `Kontakt: ${contact}`,
+                `Hinweis: ${note || '-'}`,
+                `Zeit: ${new Date().toLocaleString()}`,
+                `App: ${state.appId || 'unknown'}`
+            ].join('\n');
+
+            try {
+                const res = await fetch('./api/bug-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject: `Preisanforderung Lichternacht App: ${level}`,
+                        text,
+                        meta: { type: 'prize_claim', level, name, contact, appId: state.appId || 'unknown' }
+                    })
+                });
+                if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+
+                try {
+                    localStorage.setItem(`prize_claimed_${String(level).toLowerCase()}`, 'true');
+                } catch (e) { }
+                close();
+                showToast('Danke! Deine Preisanforderung wurde gesendet.', 'success');
+            } catch (e) {
+                console.error('Prize claim failed', e);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Anfordern';
+                showToast('Senden nicht möglich. Bitte später erneut versuchen.', 'error');
             }
         });
     }

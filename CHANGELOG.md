@@ -44,6 +44,11 @@
 ### Improved
 - **Station-Modal:** Button „Maps“ heißt jetzt „Navigation starten“.
 
+## [1.4.84] - 2026-05-15
+### Improved
+- **Lichter‑Pass:** Neue Statuskarte mit Aktivzeit, Fortschritt, nächstem Ziel und verständlichem Ablauf.
+- **Preise:** Gewinner können den erreichten Preis mit Kontaktdaten anfordern; der Admin erhält die Anfrage per E‑Mail.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

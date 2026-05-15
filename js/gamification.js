@@ -71,6 +71,13 @@ function showRewardModal(level, prizeText) {
         diamond: 'Diamant erreicht 💎'
     };
     const title = titleMap[level] || 'Preis';
+    const levelLabelMap = {
+        bronze: 'Bronze',
+        silver: 'Silber',
+        gold: 'Gold',
+        diamond: 'Diamant'
+    };
+    const levelLabel = levelLabelMap[level] || title;
 
     const overlay = document.createElement('div');
     overlay.id = 'reward-modal';
@@ -86,12 +93,13 @@ function showRewardModal(level, prizeText) {
             </div>
             <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Dein Preis:</p>
             <div class="mt-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm whitespace-pre-wrap" id="reward-text"></div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-3">Gib deine Kontaktdaten an, damit die Übergabe organisiert werden kann.</p>
             <div class="flex gap-2 mt-4">
-                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="reward-copy">
-                    Kopieren
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" data-close="1">
+                    Später
                 </button>
-                <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
-                    OK
+                <button type="button" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" id="reward-claim">
+                    Preis anfordern
                 </button>
             </div>
         </div>
@@ -105,14 +113,20 @@ function showRewardModal(level, prizeText) {
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
 
-    const copyBtn = document.getElementById('reward-copy');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(prizeText);
-                showToast('Preis kopiert', 'success');
-            } catch (e) {
-                showToast('Kopieren nicht möglich', 'error');
+    const claimBtn = document.getElementById('reward-claim');
+    if (claimBtn) {
+        claimBtn.addEventListener('click', () => {
+            close();
+            if (typeof window.openPrizeClaimModal === 'function') {
+                let visitedStations = new Set();
+                try {
+                    const saved = localStorage.getItem('visited_stations');
+                    if (saved) visitedStations = new Set(JSON.parse(saved));
+                } catch (e) { }
+                const total = Array.isArray(state.stations) ? state.stations.length : 0;
+                window.openPrizeClaimModal(levelLabel, prizeText, visitedStations.size, total);
+            } else {
+                showToast('Bitte öffne den Lichter‑Pass, um den Preis anzufordern.', 'info');
             }
         });
     }
@@ -428,7 +442,7 @@ export function updateCheckInBtn(id) {
                 </button>
             </div>
         `;
-        btn.disabled = true;
+        btn.disabled = false;
         btn.classList.add('bg-green-50', 'border', 'border-green-200');
         btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
     } else {
