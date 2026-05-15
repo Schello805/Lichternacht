@@ -790,6 +790,11 @@ export async function saveStationChanges() {
     s.tags = newTags;
     s.time = document.getElementById('edit-time').value;
 
+    const stationHints = [];
+    if (!String(newDesc || '').trim()) stationHints.push('Adresse/Ort fehlt');
+    if (!String(newOffer || '').trim()) stationHints.push('Angebot/Beschreibung fehlt');
+    if (newTags.length === 0) stationHints.push('keine Tags/Filter gesetzt');
+
     try {
         // If ID changed, we must DELETE the old doc first (or after) to avoid duplicates
         if (idChanged) {
@@ -800,6 +805,9 @@ export async function saveStationChanges() {
         await saveData('station', s);
         if (s.__draft) delete s.__draft;
         showToast("Station gespeichert", 'success');
+        if (stationHints.length > 0) {
+            setTimeout(() => showToast(`Hinweis: ${stationHints.join(' · ')}`, 'info'), 350);
+        }
         
         // Update State references
         state.activeStationId = newId;
@@ -1003,6 +1011,17 @@ export async function saveEventChanges() {
         showToast("Zeit und Titel sind Pflicht!", 'error');
         return;
     }
+
+    if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(time).trim())) {
+        showToast("Zeitformat bitte als HH:MM eingeben (z.B. 18:00).", 'error');
+        return;
+    }
+
+    const eventHints = [];
+    if (!String(loc || '').trim()) eventHints.push('Ort fehlt');
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001)) {
+        eventHints.push('keine Kartenposition gesetzt');
+    }
     
     const evt = {
         id: state.activeEventId || ('evt_' + Date.now()),
@@ -1018,6 +1037,9 @@ export async function saveEventChanges() {
     try {
         await saveData('event', evt);
         showToast("Programmpunkt gespeichert", 'success');
+        if (eventHints.length > 0) {
+            setTimeout(() => showToast(`Hinweis: ${eventHints.join(' · ')}`, 'info'), 350);
+        }
         
         // Update State
         if (state.activeEventId) {
@@ -1255,20 +1277,14 @@ export function generateICS() {
     const configDate = state.downloads?.icsDate;
     
     if (configDate) {
-        // Try DD.MM.YYYY
-        const deMatch = configDate.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-        if (deMatch) {
-            year = parseInt(deMatch[3]);
-            month = parseInt(deMatch[2]) - 1;
-            day = parseInt(deMatch[1]);
-        } else {
-            // Try YYYYMMDD
-            const isoMatch = configDate.match(/^(\d{4})(\d{2})(\d{2})$/);
-            if (isoMatch) {
-                year = parseInt(isoMatch[1]);
-                month = parseInt(isoMatch[2]) - 1;
-                day = parseInt(isoMatch[3]);
-            }
+        const windowConfig = (typeof utils.parseEventWindowConfig === 'function')
+            ? utils.parseEventWindowConfig(configDate)
+            : null;
+        if (windowConfig?.dateKey) {
+            const parts = windowConfig.dateKey.split('-').map(Number);
+            year = parts[0];
+            month = parts[1] - 1;
+            day = parts[2];
         }
     }
 
@@ -1277,6 +1293,7 @@ export function generateICS() {
          year = now.getFullYear();
          month = now.getMonth();
          day = now.getDate();
+         showToast("Hinweis: Kein gültiges Event-Datum gesetzt – Kalender nutzt heute.", "info");
     }
     
     state.events.forEach(e => {

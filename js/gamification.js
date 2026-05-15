@@ -277,6 +277,7 @@ export async function checkIn(id) {
     if (!state.userLocation) {
         // Auto-locate
         if (window.locateUser) {
+            showToast('Standort wird angefragt… bitte GPS erlauben.', 'info');
             window.locateUser(() => checkIn(id));
         } else {
             showToast("Bitte erst Standort aktivieren!", 'error');
@@ -292,7 +293,7 @@ export async function checkIn(id) {
     const ALLOWED_RADIUS = 25; // 25m
 
     if (dist > ALLOWED_RADIUS) {
-        showToast(`Zu weit weg! (${dist.toFixed(0)}m / ${ALLOWED_RADIUS}m)`, 'error');
+        showToast(`Noch zu weit weg: ca. ${dist.toFixed(0)} m entfernt (max. ${ALLOWED_RADIUS} m).`, 'error');
         
         // Visual Feedback: Show circle on map
         if (state.map && window.L) {
@@ -387,7 +388,7 @@ export async function checkIn(id) {
     }
 
     updateCheckInBtn(id);
-    showToast('Check-in erfolgreich! 🏆', 'success');
+    showToast(`${s.name || 'Station'} gespeichert! 🏆`, 'success');
 
     // Update map marker styles (visited ring / last-checked pulse)
     if (window.refreshMapMarkers) window.refreshMapMarkers();

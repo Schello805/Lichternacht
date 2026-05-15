@@ -56,6 +56,12 @@
 ### Changed
 - **Datenschutz/Hilfe:** Hinweise zu lokal gespeicherten Check-in-Zeitpunkten und Preisanforderungen ergänzt.
 
+## [1.4.86] - 2026-05-15
+### Improved
+- **Admin-Kommunikation:** Datencheck prüft jetzt auch Event-Zeitraum und Preis-Konfiguration; Speichern zeigt gezielte Hinweise.
+- **Admin-Validierung:** Stationen, Events, App-Konfiguration, Downloads und Preise geben klarere Warnungen bei unvollständigen Eingaben.
+- **User-Hinweise:** Lichter‑Pass und Check-in-Feedback erklären dezenter, warum etwas klappt oder nicht klappt.
+
 ## [1.4.73] - 2026-03-03
 ### Added
 - **Admin UX:** Online/Lokal Statusanzeige im Admin (Online-only Funktionen werden im Lokal-Modus deaktiviert + Tooltip).

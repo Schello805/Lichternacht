@@ -1,11 +1,64 @@
 
 import { state } from './state.js';
-import { showToast } from './utils.js';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
 import { parseCsv, toCsv } from './csv.js';
 import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
+
+function getAdminConfigIssues() {
+    const issues = [];
+    const eventWindowRaw = String(state.downloads?.icsDate || '').trim();
+    const rewards = state.config?.rewards || {};
+    const prizes = rewards.prizes || {};
+
+    if (!eventWindowRaw) {
+        issues.push({
+            severity: 'warn',
+            where: 'config.eventWindow',
+            label: 'Event-Zeitraum',
+            field: 'icsDate',
+            message: 'fehlt – Programmstatus und Lichter‑Pass sind dann nicht zeitlich begrenzt'
+        });
+    } else {
+        const parsed = parseEventWindowConfig(eventWindowRaw);
+        if (!parsed) {
+            issues.push({
+                severity: 'error',
+                where: 'config.eventWindow',
+                label: 'Event-Zeitraum',
+                field: 'icsDate',
+                message: 'Format nicht erkannt. Beispiel: 22.11.2026 17:00-23:00'
+            });
+        } else if (parsed.startMin === 0 && parsed.endMin === (24 * 60 - 1)) {
+            issues.push({
+                severity: 'warn',
+                where: 'config.eventWindow',
+                label: 'Event-Zeitraum',
+                field: 'icsDate',
+                message: 'nur Datum gesetzt – Check-ins sind an diesem Tag ganztägig möglich'
+            });
+        }
+    }
+
+    if (rewards.enabled === true) {
+        const missingPrizes = ['bronze', 'silver', 'gold']
+            .filter(key => !String(prizes[key] || '').trim())
+            .map(key => ({ bronze: 'Bronze', silver: 'Silber', gold: 'Gold' }[key]));
+        if (missingPrizes.length > 0) {
+            issues.push({
+                severity: 'warn',
+                where: 'config.rewards',
+                label: 'Preise',
+                field: 'prizes',
+                message: `aktiv, aber ohne Preistext für ${missingPrizes.join(', ')}`
+            });
+        }
+    }
+
+    return issues;
+}
 
 export function toggleAdminPanel() {
     const panel = document.getElementById('admin-panel');
@@ -352,16 +405,18 @@ export async function importEventsCsv() {
 export function runDataValidation() {
     const stationIssues = validateStations(state.stations);
     const eventIssues = validateEvents(state.events);
+    const configIssues = getAdminConfigIssues();
 
     state.validation = {
         stations: stationIssues,
-        events: eventIssues
+        events: eventIssues,
+        config: configIssues
     };
 
     const el = document.getElementById('admin-validation-results');
     if (!el) return;
 
-    const total = stationIssues.length + eventIssues.length;
+    const total = stationIssues.length + eventIssues.length + configIssues.length;
     if (total === 0) {
         el.innerHTML = `<div class="text-green-600 font-bold">✅ Keine Probleme gefunden.</div>`;
         return;
@@ -381,14 +436,16 @@ export function runDataValidation() {
 
     const stationErr = stationIssues.filter(i => i.severity === 'error').length;
     const eventErr = eventIssues.filter(i => i.severity === 'error').length;
+    const configErr = configIssues.filter(i => i.severity === 'error').length;
     const header = `
         <div class="font-bold mb-1">⚠️ Probleme gefunden: ${total}</div>
         <div class="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
-            Stationen: ${stationIssues.length} (Errors: ${stationErr}) · Events: ${eventIssues.length} (Errors: ${eventErr})
+            Stationen: ${stationIssues.length} (Errors: ${stationErr}) · Events: ${eventIssues.length} (Errors: ${eventErr}) · Einstellungen: ${configIssues.length}
         </div>
     `;
 
     const details = [
+        ...configIssues.slice(0, 10).map(renderIssue),
         ...stationIssues.slice(0, 10).map(renderIssue),
         ...eventIssues.slice(0, 10).map(renderIssue),
     ].join('');
@@ -401,7 +458,7 @@ export function runDataValidation() {
         const adminPanel = document.getElementById('admin-panel');
         const isAdminPanelOpen = !!adminPanel && !adminPanel.classList.contains('hidden');
         if (state.isAdmin && isAdminPanelOpen) {
-            showToast(`Datencheck: ${total} Problem(e) gefunden`, stationErr + eventErr > 0 ? 'error' : 'info');
+            showToast(`Datencheck: ${total} Problem(e) gefunden`, stationErr + eventErr + configErr > 0 ? 'error' : 'info');
         }
     } catch (e) { }
 }
@@ -520,6 +577,7 @@ export async function saveDownloads() {
     const flyer1 = document.getElementById('admin-flyer1').value;
     const flyer2 = document.getElementById('admin-flyer2').value;
     const icsDate = document.getElementById('admin-ics-date').value;
+    const eventWindowRaw = (icsDate || '').trim();
 
     const isValidUrlOrEmpty = (v) => {
         const s = (v || '').trim();
@@ -532,11 +590,17 @@ export async function saveDownloads() {
         return;
     }
 
+    const parsedEventWindow = eventWindowRaw ? parseEventWindowConfig(eventWindowRaw) : null;
+    if (eventWindowRaw && !parsedEventWindow) {
+        showToast('Event-Zeitraum nicht erkannt. Beispiel: 22.11.2026 17:00-23:00', 'error');
+        return;
+    }
+
     const config = {
         downloads: {
             flyer1: (flyer1 || '').trim(),
             flyer2: (flyer2 || '').trim(),
-            icsDate: (icsDate || '').trim()
+            icsDate: eventWindowRaw
         }
     };
     
@@ -554,6 +618,14 @@ export async function saveDownloads() {
         state.config = { ...(state.config || {}), ...config };
         if (window.renderTimeline) window.renderTimeline();
         showToast("Downloads gespeichert", 'success');
+        if (!eventWindowRaw) {
+            setTimeout(() => showToast('Hinweis: Ohne Event-Zeitraum sind Programmstatus und Lichter‑Pass nicht zeitlich begrenzt.', 'info'), 350);
+        } else if (parsedEventWindow.startMin === 0 && parsedEventWindow.endMin === (24 * 60 - 1)) {
+            setTimeout(() => showToast('Hinweis: Nur Datum gesetzt – Check-ins sind ganztägig möglich.', 'info'), 350);
+        } else {
+            const label = formatEventWindowDe(parsedEventWindow);
+            setTimeout(() => showToast(`Event-Zeitraum aktiv: ${label}`, 'success'), 350);
+        }
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
@@ -632,6 +704,9 @@ export async function saveAppConfig() {
     
     const title = (titleRaw || '').trim();
     const subtitle = (subtitleRaw || '').trim();
+    const ignoredFields = [];
+    if (!title && String(titleRaw || '').length === 0) ignoredFields.push('Titel');
+    if (!subtitle && String(subtitleRaw || '').length === 0) ignoredFields.push('Untertitel');
     console.log("Saving App Config:", { title, subtitle, planningMode, planningText });
 
     // Safety: never overwrite title/subtitle with empty strings by accident.
@@ -661,6 +736,13 @@ export async function saveAppConfig() {
         
         if (planningMode) {
             showToast("⚠️ Planungs-Modus AKTIV", 'info');
+            if (!String(planningText || '').trim()) {
+                setTimeout(() => showToast('Hinweis: Planungs-Modus ist aktiv, aber ohne Hinweistext.', 'info'), 350);
+            }
+        }
+
+        if (ignoredFields.length > 0) {
+            setTimeout(() => showToast(`${ignoredFields.join(' & ')} leer – vorhandener Wert wurde nicht überschrieben.`, 'info'), 500);
         }
 
     } catch (e) {
@@ -745,6 +827,16 @@ export async function saveRewardsConfig() {
         gold: (document.getElementById('admin-reward-gold-prize')?.value || '').trim()
     };
 
+    const missingPrizes = Object.entries({
+        bronze: 'Bronze',
+        silver: 'Silber',
+        gold: 'Gold'
+    }).filter(([key]) => !prizes[key]).map(([, label]) => label);
+    if (enabled && missingPrizes.length === 3) {
+        showToast("Preise sind aktiv, aber alle Preisfelder sind leer.", 'error');
+        return;
+    }
+
     const rewards = {
         enabled,
         thresholds: { bronze, silver, gold },
@@ -764,6 +856,9 @@ export async function saveRewardsConfig() {
             state.config = { ...state.config, ...config };
         }
         showToast("Preise gespeichert", 'success');
+        if (enabled && missingPrizes.length > 0) {
+            setTimeout(() => showToast(`Hinweis: Kein Preistext für ${missingPrizes.join(', ')}.`, 'info'), 350);
+        }
     } catch (e) {
         console.error(e);
         showToast("Fehler beim Speichern", 'error');

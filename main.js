@@ -22,7 +22,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.85";
+const APP_VERSION = "1.4.86";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -209,6 +209,7 @@ window.showPassInfo = () => {
                 <div class="font-bold text-gray-900 dark:text-white">So funktioniert es</div>
                 <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“. Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.</div>
                 <div class="mt-2 font-bold text-gray-900 dark:text-white">${escapeHtml(nextGoalText)}</div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein Fortschritt bleibt auf diesem Gerät, solange du Website-Daten nicht löschst.</div>
             </div>
 
             ${bestReached ? `
