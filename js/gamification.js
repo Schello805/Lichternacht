@@ -65,6 +65,27 @@ function percentToCount(percent, total) {
     return Math.max(1, Math.floor((p / 100) * t));
 }
 
+function getNextRewardProgressText(visitedCount, total) {
+    const cfg = getRewardConfig();
+    if (!cfg.enabled) return '';
+
+    const goals = [
+        { key: 'bronze', label: 'Bronze', count: percentToCount(cfg.thresholdsPercent.bronze, total) },
+        { key: 'silver', label: 'Silber', count: percentToCount(cfg.thresholdsPercent.silver, total) },
+        { key: 'gold', label: 'Gold', count: percentToCount(cfg.thresholdsPercent.gold, total) },
+    ].filter(goal => cfg.prizes?.[goal.key] && goal.count > 0);
+
+    const nextGoal = goals
+        .filter(goal => visitedCount < goal.count)
+        .sort((a, b) => a.count - b.count)[0];
+
+    if (nextGoal) {
+        const remaining = Math.max(1, nextGoal.count - visitedCount);
+        return `Noch ${remaining} Station(en) bis ${nextGoal.label}.`;
+    }
+    return goals.length ? 'Du hast alle Preisstufen erreicht.' : '';
+}
+
 function showRewardModal(level, prizeText) {
     if (!prizeText) return;
 
@@ -134,6 +155,47 @@ function showRewardModal(level, prizeText) {
         });
     }
 }
+
+function showGpsCheckInHint(onContinue) {
+    const existing = document.getElementById('gps-checkin-hint-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gps-checkin-hint-modal';
+    overlay.className = 'fixed inset-0 z-[6500] flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full max-w-sm bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-5 border border-gray-200 dark:border-gray-700">
+            <div class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center mb-3">
+                <i class="ph-fill ph-navigation-arrow text-2xl"></i>
+            </div>
+            <h2 class="text-lg font-extrabold">Kurz zu GPS</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Damit der Lichter‑Pass fair bleibt, prüft die App beim Einchecken kurz, ob du in der Nähe der Station bist.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Dein Standort wird dafür nur auf deinem Gerät genutzt und nicht als Bewegungsprofil gespeichert.</p>
+            <div class="flex gap-2 mt-5">
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" data-close="1">
+                    Später
+                </button>
+                <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" id="gps-checkin-continue">
+                    Verstanden
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+    const continueBtn = document.getElementById('gps-checkin-continue');
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            localStorage.setItem('gps_checkin_hint_seen_v1', 'true');
+            close();
+            if (typeof onContinue === 'function') onContinue();
+        });
+    }
+}
+
 export function undoCheckIn(id) {
     const visitedStations = getVisitedStationIdSet();
     const key = String(id);
@@ -274,6 +336,11 @@ export async function checkIn(id) {
         return;
     }
 
+    if (localStorage.getItem('gps_checkin_hint_seen_v1') !== 'true') {
+        showGpsCheckInHint(() => checkIn(id));
+        return;
+    }
+
     if (!state.userLocation) {
         // Auto-locate
         if (window.locateUser) {
@@ -388,7 +455,9 @@ export async function checkIn(id) {
     }
 
     updateCheckInBtn(id);
-    showToast(`${s.name || 'Station'} gespeichert! 🏆`, 'success');
+    const totalStations = Array.isArray(state.stations) ? state.stations.length : 0;
+    const rewardProgressText = getNextRewardProgressText(count, totalStations);
+    showToast(`${s.name || 'Station'} gespeichert! ${rewardProgressText || '🏆'}`, 'success');
 
     // Update map marker styles (visited ring / last-checked pulse)
     if (window.refreshMapMarkers) window.refreshMapMarkers();

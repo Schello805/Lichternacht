@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.91] - 2026-06-28
+### Improved
+- **Besucherstart:** Neue kompakte Startkarte mit Eventstatus, Lichter‑Pass-Status und Schnellzugriff auf Karte, Stationen und Programm.
+- **Lichter‑Pass:** Vor dem ersten Check-in erklärt ein dezenter Hinweis, warum GPS benötigt wird.
+- **Motivation:** Nach einem Check-in zeigt die App, wie viele Stationen bis zur nächsten Preisstufe fehlen.
+
 ## [1.4.74] - 2026-04-19
 ### Improved
 - **Hilfe:** Tracking-Einstellung als dezenter Footer-Link; Hinweis zu lokaler Speicherung (localStorage) klarer.

@@ -123,6 +123,7 @@ export async function loadData() {
     if (window.renderTimeline) window.renderTimeline();
     if (window.renderFilterBar) window.renderFilterBar();
     if (window.checkPlanningMode) window.checkPlanningMode();
+    if (window.updateVisitorStartCard) window.updateVisitorStartCard();
 
     // Deep link: open a station via ?station=28
     // Runs after data + UI are ready.

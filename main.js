@@ -22,7 +22,7 @@ import {
 import { updateAdminUiAvailability } from './js/admin.js';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.90";
+const APP_VERSION = "1.4.91";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -82,6 +82,94 @@ window.showUserCountInfo = () => {
     } else {
         showToast(`Aktive Nutzer gerade: ${count}`, 'info');
     }
+};
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function parseTimeToMinutes(value) {
+    const match = String(value || '').match(/(\d{1,2})[:.](\d{2})/);
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    return (hours * 60) + minutes;
+}
+
+function getLocalDateKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getNextVisitorEvent(eventWindow) {
+    if (!eventWindow || !Array.isArray(state.events) || state.events.length === 0) return null;
+    const todayKey = getLocalDateKey();
+    if (eventWindow.dateKey !== todayKey) return null;
+
+    const now = new Date();
+    const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+    return state.events
+        .map(event => ({ event, minutes: parseTimeToMinutes(event.time) }))
+        .filter(item => item.minutes !== null && item.minutes >= nowMinutes)
+        .sort((a, b) => a.minutes - b.minutes)[0]?.event || null;
+}
+
+function hideVisitorStartCard() {
+    const card = document.getElementById('visitor-start-card');
+    if (card) card.classList.add('hidden');
+}
+
+window.dismissVisitorStartCard = () => {
+    localStorage.setItem('visitor_start_card_dismissed_v1', 'true');
+    hideVisitorStartCard();
+};
+
+window.updateVisitorStartCard = () => {
+    const card = document.getElementById('visitor-start-card');
+    const titleEl = document.getElementById('visitor-start-title');
+    const metaEl = document.getElementById('visitor-start-meta');
+    const nextEl = document.getElementById('visitor-start-next');
+    if (!card || !titleEl || !metaEl || !nextEl) return;
+    if (state.isAdmin || localStorage.getItem('visitor_start_card_dismissed_v1') === 'true') {
+        hideVisitorStartCard();
+        return;
+    }
+
+    const eventWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
+    const eventLabel = eventWindow && typeof utils.formatEventWindowDe === 'function'
+        ? utils.formatEventWindowDe(eventWindow)
+        : 'Datum noch nicht festgelegt';
+    const isActive = eventWindow && typeof utils.isWithinEventWindowNow === 'function'
+        ? utils.isWithinEventWindowNow(eventWindow, new Date())
+        : false;
+    const nextEvent = getNextVisitorEvent(eventWindow);
+
+    titleEl.textContent = state.config?.title ? `Willkommen bei ${state.config.title}` : 'Willkommen zur Lichternacht';
+    metaEl.textContent = `${eventLabel} · Lichter‑Pass ${isActive ? 'aktiv' : 'noch nicht aktiv'}`;
+
+    if (nextEvent) {
+        nextEl.innerHTML = `
+            <div class="font-bold text-gray-900 dark:text-white">Als Nächstes: ${escapeHtml(nextEvent.time || '')} Uhr · ${escapeHtml(nextEvent.title || 'Programmpunkt')}</div>
+            <div class="mt-0.5">${escapeHtml(nextEvent.loc || nextEvent.desc || 'Im Programm findest du Details und den Kartenbezug.')}</div>
+        `;
+    } else if (eventWindow) {
+        nextEl.innerHTML = `
+            <div class="font-bold text-gray-900 dark:text-white">Dein schneller Einstieg</div>
+            <div class="mt-0.5">Öffne die Karte, suche Stationen oder plane deinen Abend im Programm.</div>
+        `;
+    } else {
+        nextEl.innerHTML = `
+            <div class="font-bold text-gray-900 dark:text-white">Noch kein Veranstaltungsdatum</div>
+            <div class="mt-0.5">Du kannst die Stationen schon ansehen; der Lichter‑Pass wird zur Veranstaltung wichtig.</div>
+        `;
+    }
+
+    card.classList.remove('hidden');
 };
 
 window.showPassInfo = () => {
@@ -943,6 +1031,16 @@ window.onload = async () => {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => filterStations(e.target.value));
     }
+
+    const visitorClose = document.getElementById('visitor-start-close');
+    if (visitorClose) visitorClose.addEventListener('click', window.dismissVisitorStartCard);
+    document.querySelectorAll('[data-visitor-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-visitor-tab');
+            if (tab) switchTab(tab);
+            hideVisitorStartCard();
+        });
+    });
 
     // Tracking consent UI (mobile bottom sheet)
     initTrackingConsentUi();
