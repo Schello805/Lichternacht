@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.92] - 2026-06-30
+### Changed
+- **Lichter‑Pass:** CSV Export und „Preise kopieren“ sind nur noch im Admin-Modus sichtbar.
+
 ## [1.4.91] - 2026-06-28
 ### Improved
 - **Besucherstart:** Neue kompakte Startkarte mit Eventstatus, Lichter‑Pass-Status und Schnellzugriff auf Karte, Stationen und Programm.
