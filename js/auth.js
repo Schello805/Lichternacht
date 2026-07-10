@@ -89,6 +89,7 @@ export function setAdminState(admin) {
         document.getElementById('lock-icon').classList.replace('ph-lock-key', 'ph-lock-key-open');
         document.getElementById('lock-icon').classList.add('text-green-500');
     } else {
+        if (window.closeAdminPage) window.closeAdminPage();
         document.body.classList.remove('admin-mode');
         document.getElementById('admin-bar').classList.add('hidden');
         document.getElementById('lock-icon').classList.replace('ph-lock-key-open', 'ph-lock-key');

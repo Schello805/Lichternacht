@@ -60,49 +60,85 @@ function getAdminConfigIssues() {
     return issues;
 }
 
+function fillAdminPanel() {
+    document.getElementById('admin-app-title').value = state.config.title || '';
+    document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
+    document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
+    document.getElementById('admin-planning-text').value = state.config.planningText || '';
+
+    document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
+
+    const rewards = state.config.rewards || {};
+    const thresholds = rewards.thresholds || {};
+    const prizes = rewards.prizes || {};
+    document.getElementById('admin-rewards-enabled').checked = rewards.enabled || false;
+    document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 80;
+    document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 90;
+    document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 95;
+    document.getElementById('admin-reward-bronze-prize').value = prizes.bronze || '';
+    document.getElementById('admin-reward-silver-prize').value = prizes.silver || '';
+    document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
+
+    document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
+    document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
+    document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
+
+    loadUsers();
+    try { runDataValidation(); } catch (e) { }
+    if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
+}
+
+export function closeAdminPanel() {
+    const panel = document.getElementById('admin-panel');
+    const main = document.getElementById('main-content');
+    const nav = document.getElementById('bottom-nav');
+    const floatingStatus = document.getElementById('floating-status');
+    const smartAction = document.getElementById('smart-action-container');
+    const visitorStart = document.getElementById('visitor-start-card');
+
+    if (panel) panel.classList.add('hidden');
+    if (main) main.classList.remove('hidden');
+    if (nav) nav.classList.remove('hidden');
+    if (floatingStatus) floatingStatus.classList.remove('hidden');
+    if (smartAction) smartAction.classList.remove('hidden');
+    if (visitorStart && visitorStart.dataset.wasVisibleBeforeAdmin === 'true') {
+        visitorStart.classList.remove('hidden');
+    }
+    if (visitorStart) delete visitorStart.dataset.wasVisibleBeforeAdmin;
+}
+
+export function openAdminPanel() {
+    if (!state.isAdmin) {
+        showToast('Bitte zuerst als Admin einloggen.', 'info');
+        return;
+    }
+
+    const panel = document.getElementById('admin-panel');
+    const main = document.getElementById('main-content');
+    const nav = document.getElementById('bottom-nav');
+    const floatingStatus = document.getElementById('floating-status');
+    const smartAction = document.getElementById('smart-action-container');
+    const visitorStart = document.getElementById('visitor-start-card');
+    if (!panel) return;
+
+    if (visitorStart) {
+        visitorStart.dataset.wasVisibleBeforeAdmin = visitorStart.classList.contains('hidden') ? 'false' : 'true';
+        visitorStart.classList.add('hidden');
+    }
+
+    if (main) main.classList.add('hidden');
+    if (nav) nav.classList.add('hidden');
+    if (floatingStatus) floatingStatus.classList.add('hidden');
+    if (smartAction) smartAction.classList.add('hidden');
+    panel.classList.remove('hidden');
+    panel.scrollTop = 0;
+    fillAdminPanel();
+}
+
 export function toggleAdminPanel() {
     const panel = document.getElementById('admin-panel');
-    if (panel) {
-        panel.classList.toggle('hidden');
-        
-        // If panel is now visible, pre-fill with data
-        if (!panel.classList.contains('hidden')) {
-            // Pre-fill App Config
-            document.getElementById('admin-app-title').value = state.config.title || '';
-            document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
-            document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
-            document.getElementById('admin-planning-text').value = state.config.planningText || '';
-
-            // Pre-fill Tracking
-            document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
-
-            // Pre-fill Rewards/Prizes
-            const rewards = state.config.rewards || {};
-            const thresholds = rewards.thresholds || {};
-            const prizes = rewards.prizes || {};
-            document.getElementById('admin-rewards-enabled').checked = rewards.enabled || false;
-            document.getElementById('admin-reward-bronze-threshold').value = thresholds.bronze ?? 80;
-            document.getElementById('admin-reward-silver-threshold').value = thresholds.silver ?? 90;
-            document.getElementById('admin-reward-gold-threshold').value = thresholds.gold ?? 95;
-            document.getElementById('admin-reward-bronze-prize').value = prizes.bronze || '';
-            document.getElementById('admin-reward-silver-prize').value = prizes.silver || '';
-            document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
-
-            // Pre-fill Downloads
-            document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
-            document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
-            document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
-
-            // Load Users
-            loadUsers();
-
-            // Run quick data validation for stability
-            try { runDataValidation(); } catch (e) { }
-
-            // Update Online/Lokal availability
-            if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
-        }
-    }
+    if (panel && !panel.classList.contains('hidden')) closeAdminPanel();
+    else openAdminPanel();
 }
 
 export function updateAdminUiAvailability() {

@@ -194,11 +194,20 @@
             </div>
         </header>
 
-        <!-- Admin Export Panel (Global) -->
+        <!-- Admin Page (Global) -->
         <div id="admin-panel"
-            class="hidden admin-panel absolute top-20 left-5 right-5 bg-white dark:bg-gray-800 dark:text-white p-5 rounded-lg shadow-xl z-[5000] max-h-[80vh] overflow-y-auto">
-            <h3 class="font-bold text-lg mb-2">Admin Konsole</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Verwalte hier Daten, Downloads und Nachrichten.</p>
+            class="hidden admin-panel flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 dark:text-white p-3 sm:p-5">
+            <div class="max-w-5xl mx-auto pb-24">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="font-bold text-xl mb-1 brand-font">Admin Konsole</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Verwalte hier Daten, Downloads und Nachrichten.</p>
+                </div>
+                <button type="button" onclick="window.closeAdminPage()"
+                    class="shrink-0 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="ph ph-arrow-left"></i> Zur App
+                </button>
+            </div>
 
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <div class="font-bold text-sm p-4 bg-gray-100 dark:bg-gray-600 dark:text-white border-b dark:border-gray-600 flex justify-between items-center">
@@ -467,10 +476,11 @@
                 </div>
             </details>
 
-            <button onclick="toggleAdminPanel()"
+            <button onclick="window.closeAdminPage()"
                 class="w-full mt-4 bg-gray-200 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-300 shadow-sm">
-                Schließen
+                Zurück zur App
             </button>
+            </div>
         </div>
 
         <!-- Floating Quick Action (Bottom Left) -->
@@ -526,7 +536,7 @@
         </div>
 
         <!-- Floating Status (Bottom Right) -->
-        <div style="z-index: 1200;" class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2">
+        <div id="floating-status" style="z-index: 1200;" class="absolute bottom-20 right-4 z-[400] flex flex-col items-end gap-2">
             <!-- Mini Tour Prompt (optional) -->
             <div id="mini-tour-prompt" style="display:none" class="hidden pointer-events-auto tour-prompt">
                 <div class="tour-prompt-title">Kurze Tour</div>
@@ -561,13 +571,13 @@
                 <button onclick="handleAdminAdd()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
                         class="ph ph-plus"></i> Neu</button>
                 <button onclick="toggleAdminPanel()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
-                        class="ph ph-toolbox"></i> Tools</button>
+                        class="ph ph-toolbox"></i> Adminseite</button>
                 <button onclick="logoutAdmin()" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40">Exit</button>
             </div>
         </div>
 
         <!-- Main Content Views -->
-        <main class="flex-grow relative bg-gray-50 overflow-hidden">
+        <main id="main-content" class="flex-grow relative bg-gray-50 overflow-hidden">
 
             <!-- VIEW: KARTE -->
             <div id="view-map" class="view-section h-full w-full relative">
@@ -651,7 +661,7 @@
         </main>
 
         <!-- Navigation -->
-        <nav class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
+        <nav id="bottom-nav" class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
             <div id="nav-map" onclick="window.switchTab('map')" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
                 <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Karte</span>
@@ -1051,7 +1061,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.92', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.93', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1076,7 +1086,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.92"></script>
+    <script type="module" src="main.js?v=1.4.93"></script>
 </body>
 
 </html>

@@ -140,6 +140,11 @@ export function closeModal(id) {
 
 export function switchTab(tab) {
     console.log("switchTab called for:", tab);
+
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel && !adminPanel.classList.contains('hidden') && window.closeAdminPage) {
+        window.closeAdminPage();
+    }
     
     // Hide all views
     const views = ['view-map', 'view-list', 'view-events'];

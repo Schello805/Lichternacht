@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.93] - 2026-07-09
+### Changed
+- **Adminbereich:** Admin-Konsole ist jetzt eine eigene App-Seite statt ein schwebendes Modal/Panel.
+
 ## [1.4.92] - 2026-06-30
 ### Changed
 - **Lichter‑Pass:** CSV Export und „Preise kopieren“ sind nur noch im Admin-Modus sichtbar.
