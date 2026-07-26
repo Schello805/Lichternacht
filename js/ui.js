@@ -1600,7 +1600,14 @@ export function openProgramEvent(id) {
                         <span class="text-sm font-extrabold px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">${escapeHtml(event.time)} Uhr</span>
                         <span class="text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}">${escapeHtml(status.label)}</span>
                     </div>
-                    <h2 class="text-xl font-extrabold brand-font leading-tight">${escapeHtml(event.title)}</h2>
+                    <div class="flex items-start gap-2">
+                        <h2 class="text-xl font-extrabold brand-font leading-tight">${escapeHtml(event.title)}</h2>
+                        ${normalizeExternalLink(event.link) ? `
+                            <button type="button" id="program-link" class="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border border-blue-100 dark:border-blue-800 flex items-center justify-center hover:bg-blue-100" title="Link öffnen" aria-label="Link öffnen">
+                                <i class="ph ph-link text-base"></i>
+                            </button>
+                        ` : ''}
+                    </div>
                     <div class="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-1">
                         <i class="ph-fill ph-map-pin"></i>
                         <span>${escapeHtml(event.loc || 'Ort nicht angegeben')}</span>
@@ -1616,11 +1623,6 @@ export function openProgramEvent(id) {
             ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
 
             <div class="mt-5 grid grid-cols-1 gap-2">
-                ${normalizeExternalLink(event.link) ? `
-                    <button type="button" id="program-link" class="w-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 py-3 rounded-xl font-bold text-sm border border-blue-100 dark:border-blue-800 flex items-center justify-center gap-2">
-                        <i class="ph ph-link"></i> Link öffnen
-                    </button>
-                ` : ''}
                 ${locationInfo.hasCoords ? `
                     <button type="button" id="program-show-map" class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
                         <i class="ph ph-map-pin"></i> Auf Karte zeigen

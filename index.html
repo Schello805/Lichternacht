@@ -781,7 +781,14 @@
                         </div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
+                                <div class="flex items-start gap-2">
+                                    <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
+                                    <button id="modal-link-btn" type="button"
+                                        class="hidden mt-0.5 shrink-0 w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100 items-center justify-center hover:bg-blue-100"
+                                        title="Link öffnen" aria-label="Link öffnen">
+                                        <i class="ph ph-link text-base"></i>
+                                    </button>
+                                </div>
                                 <p id="modal-subtitle"
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
@@ -809,10 +816,6 @@
                         <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
-                        <button id="modal-link-btn" type="button"
-                            class="hidden w-full mb-3 bg-blue-50 text-blue-700 border border-blue-100 font-bold py-3 rounded-lg items-center justify-center gap-2 hover:bg-blue-100">
-                            <i class="ph ph-link text-lg"></i> Link öffnen
-                        </button>
                         <div class="grid grid-cols-3 gap-2 mt-4">
                             <button onclick="shareStation(window.activeStationId)"
                                 class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-2 rounded-lg flex flex-col items-center justify-center gap-1 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] leading-tight"><i
@@ -1156,7 +1159,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.107', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.108', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1183,7 +1186,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.107"></script>
+    <script type="module" src="main.js?v=1.4.108"></script>
 </body>
 
 </html>

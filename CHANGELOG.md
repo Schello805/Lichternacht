@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.108] - 2026-07-26
+### Improved
+- **Stationsmodal:** Link ist jetzt als dezentes Icon neben dem Stationsnamen statt als großer Button sichtbar.
+- **Lichter‑Pass:** Verwirrenden Button „Preise kopieren“ entfernt.
+
 ## [1.4.107] - 2026-07-26
 ### Improved
 - **Programm/Karte:** „Auf Karte zeigen“ zoomt näher heran und lässt die Zielstation deutlich pulsieren.

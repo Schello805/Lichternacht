@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.107';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.108';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.107';
+} from './js/ui.js?v=1.4.108';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.107';
+} from './js/admin.js?v=1.4.108';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.107';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.108';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.107";
+const APP_VERSION = "1.4.108";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -379,12 +379,7 @@ window.showPassInfo = () => {
             </div>
 
             <div class="mt-5 flex gap-2">
-                ${showAdminPassTools ? `
-                    <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="pass-modal-copy">
-                        Preise kopieren
-                    </button>
-                ` : ''}
-                <button type="button" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
+                <button type="button" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" data-close="1">
                     OK
                 </button>
             </div>
@@ -402,23 +397,6 @@ window.showPassInfo = () => {
             if (typeof window.openPrizeClaimModal === 'function') window.openPrizeClaimModal(level, prize, visited, total);
         });
     });
-
-    const copyBtn = document.getElementById('pass-modal-copy');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', async () => {
-            const lines = [];
-            if (bronzePrize) lines.push(`Bronze (${Math.floor(bronzePercent)}% = ${pctToCount(bronzePercent, total)}): ${bronzePrize}`);
-            if (silverPrize) lines.push(`Silber (${Math.floor(silverPercent)}% = ${pctToCount(silverPercent, total)}): ${silverPrize}`);
-            if (goldPrize) lines.push(`Gold (${Math.floor(goldPercent)}% = ${pctToCount(goldPercent, total)}): ${goldPrize}`);
-            const text = lines.join('\n');
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('Preise kopiert', 'success');
-            } catch (e) {
-                showToast('Kopieren nicht möglich', 'error');
-            }
-        });
-    }
 
     const exportBtn = document.getElementById('pass-history-export');
     if (exportBtn) {
