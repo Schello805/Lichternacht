@@ -1,9 +1,11 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.95';
+const CACHE_NAME = 'lichternacht-v1.4.96';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
+    workbox.core.skipWaiting();
+    workbox.core.clientsClaim();
 
     // Precache & Route
     // Wir nutzen hier Runtime Caching für alles, da wir keine Build-Step haben.

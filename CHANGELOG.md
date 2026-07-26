@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.96] - 2026-07-26
+### Fixed
+- **Admin Datencheck:** Geänderte Admin/UI-Module werden cache-sicher geladen; neue Service Worker übernehmen sofort.
+
 ## [1.4.95] - 2026-07-26
 ### Added
 - **CI:** GitHub Actions prüft bei Push/Pull Request automatisch Build und JavaScript-Syntax.
