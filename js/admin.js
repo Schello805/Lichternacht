@@ -393,6 +393,24 @@ function normalizeTags(tagsValue) {
     return parts.map(s => s.trim()).filter(Boolean);
 }
 
+function mergeImportedItems(collection, importedItems) {
+    const currentItems = Array.isArray(collection) ? collection : [];
+    const itemMap = new Map(currentItems.map(item => [String(item.id), item]));
+    importedItems.forEach(item => itemMap.set(String(item.id), item));
+    return Array.from(itemMap.values());
+}
+
+function refreshAfterCsvImport() {
+    if (window.renderList) window.renderList(state.stations);
+    if (window.renderTimeline) window.renderTimeline();
+    if (window.renderFilterBar) window.renderFilterBar();
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+    if (window.updatePassProgress) window.updatePassProgress();
+    if (window.updateVisitorStartCard) window.updateVisitorStartCard();
+    renderAdminDataTables();
+    try { runDataValidation(); } catch (e) { }
+}
+
 export function exportStationsCsv() {
     const rows = (state.stations || []).map(s => ({
         id: s.id ?? '',
@@ -513,8 +531,10 @@ async function importCsvGeneric(file, kind) {
 
         if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
         for (const s of mapped) await saveData('station', s);
+        state.stations = mergeImportedItems(state.stations, mapped);
+        if (state.useLocalStorage) localStorage.setItem('stations_data', JSON.stringify(state.stations));
+        refreshAfterCsvImport();
         showToast('Stationen importiert', 'success');
-        setTimeout(() => location.reload(), 800);
         return;
     }
 
@@ -547,8 +567,10 @@ async function importCsvGeneric(file, kind) {
 
         if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
         for (const e of mapped) await saveData('event', e);
+        state.events = mergeImportedItems(state.events, mapped);
+        if (state.useLocalStorage) localStorage.setItem('events_data', JSON.stringify(state.events));
+        refreshAfterCsvImport();
         showToast('Events importiert', 'success');
-        setTimeout(() => location.reload(), 800);
         return;
     }
 }

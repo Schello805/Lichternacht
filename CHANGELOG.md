@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.103] - 2026-07-26
+### Fixed
+- **Admin CSV-Import:** Tabellenübersicht, Karte, Liste und Programm werden nach dem Import sofort mit den neuen Daten aktualisiert.
+
 ## [1.4.102] - 2026-07-26
 ### Added
 - **Header:** Klick auf Logo/Titel führt zurück zur Startansicht.
