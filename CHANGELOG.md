@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.100] - 2026-07-26
+### Improved
+- **Besucherstart:** Startkarte wartet jetzt, bis Tour/Login/Cookiebanner geschlossen sind, statt mit Overlays zu konkurrieren.
+
 ## [1.4.99] - 2026-07-26
 ### Improved
 - **GPS:** Wiederholte Standortfehler werden gedrosselt, damit Nutzer nicht mehrfach denselben Hinweis sehen.

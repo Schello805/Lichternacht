@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.99';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.100';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.99';
+} from './js/ui.js?v=1.4.100';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.99';
+} from './js/admin.js?v=1.4.100';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.99';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.100';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.99";
+const APP_VERSION = "1.4.100";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -138,6 +138,25 @@ function hideVisitorStartCard() {
     if (card) card.classList.add('hidden');
 }
 
+let visitorStartRetryTimer = null;
+
+function isBlockingVisitorOverlayVisible() {
+    const tutorial = document.getElementById('tutorial-modal');
+    const tracking = document.getElementById('tracking-consent');
+    const login = document.getElementById('login-modal');
+    return (tutorial && !tutorial.classList.contains('hidden')) ||
+        (tracking && !tracking.classList.contains('hidden')) ||
+        (login && !login.classList.contains('hidden'));
+}
+
+function retryVisitorStartCardSoon() {
+    if (visitorStartRetryTimer) window.clearTimeout(visitorStartRetryTimer);
+    visitorStartRetryTimer = window.setTimeout(() => {
+        visitorStartRetryTimer = null;
+        if (window.updateVisitorStartCard) window.updateVisitorStartCard();
+    }, 900);
+}
+
 window.dismissVisitorStartCard = () => {
     localStorage.setItem('visitor_start_card_dismissed_v1', 'true');
     hideVisitorStartCard();
@@ -151,6 +170,11 @@ window.updateVisitorStartCard = () => {
     if (!card || !titleEl || !metaEl || !nextEl) return;
     if (state.isAdmin || localStorage.getItem('visitor_start_card_dismissed_v1') === 'true') {
         hideVisitorStartCard();
+        return;
+    }
+    if (isBlockingVisitorOverlayVisible()) {
+        hideVisitorStartCard();
+        retryVisitorStartCardSoon();
         return;
     }
 
@@ -935,6 +959,7 @@ window.addNewTag = window.addNewTag; // Already on window from ui.js, but for co
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');
     localStorage.setItem('tutorial_seen', 'true');
+    retryVisitorStartCardSoon();
 };
 
 window.toggleAdminLogin = () => {
@@ -968,7 +993,10 @@ function initTrackingConsentUi() {
     const closeBtn = document.getElementById('tracking-consent-close');
     const backdrop = document.getElementById('tracking-consent-backdrop');
 
-    const hide = () => modal.classList.add('hidden');
+    const hide = () => {
+        modal.classList.add('hidden');
+        retryVisitorStartCardSoon();
+    };
     const show = () => modal.classList.remove('hidden');
 
     // Allow opening the cookie banner from other pages/links.
