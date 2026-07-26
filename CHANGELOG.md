@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.115] - 2026-07-26
+### Fixed
+- **Tour:** Der Deep-Link `?tour=1` wird nach dem Start aus der URL entfernt, damit „Überspringen“ beim Neuladen nicht wieder überschrieben wird.
+
 ## [1.4.114] - 2026-07-26
 ### Fixed
 - **CSV Import:** CSV-Parser wird jetzt ebenfalls versioniert geladen, damit kein alter Parser aus dem Browser-/Service-Worker-Cache verwendet wird.
