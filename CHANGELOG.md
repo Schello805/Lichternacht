@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.119] - 2026-07-26
+### Added
+- **Firebase Deploy:** Projektkonfiguration für reproduzierbaren Firestore-Rules-Deploy ergänzt.
+
 ## [1.4.118] - 2026-07-26
 ### Fixed
 - **Admin Nutzungsanalyse:** Firestore-Regel für das Lesen anonymer Check-ins erkennt Admins jetzt explizit pro App-Instanz.
