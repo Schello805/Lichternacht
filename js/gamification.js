@@ -402,6 +402,10 @@ export async function checkIn(id) {
 
     // Check for Champion Status
     const count = updatedVisitedStations.size;
+    if (count >= 3 && typeof window.maybeAskPassParticipation === 'function') {
+        window.maybeAskPassParticipation();
+    }
+
     let newLevel = null;
     if (count === state.stations.length && count > 0) newLevel = 'diamond';
     else {

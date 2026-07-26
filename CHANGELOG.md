@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.116] - 2026-07-26
+### Added
+- **Lichter‑Pass Gewinnspiel:** Nach dem 3. Check-in kann der Nutzer freiwillig mit Name und E-Mail teilnehmen.
+- **Eventende:** Nach Eventende fragt die App Gewinner aktiv, ob sie den erreichten Preis anfordern möchten.
+- **Rechtliches:** Hilfeseite, Datenschutz und neue Gewinnspielhinweise erklären Teilnahme, Preisanforderung und Ablauf nach der Veranstaltung.
+
 ## [1.4.115] - 2026-07-26
 ### Fixed
 - **Tour:** Der Deep-Link `?tour=1` wird nach dem Start aus der URL entfernt, damit „Überspringen“ beim Neuladen nicht wieder überschrieben wird.

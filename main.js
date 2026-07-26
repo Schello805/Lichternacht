@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.115';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.116';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.115';
+} from './js/ui.js?v=1.4.116';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.115';
+} from './js/admin.js?v=1.4.116';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.115';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.116';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.115";
+const APP_VERSION = "1.4.116";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -220,10 +220,220 @@ window.updateVisitorStartCard = () => {
     card.classList.remove('hidden');
 };
 
-window.showPassInfo = () => {
+const PASS_PARTICIPANT_KEY = 'pass_participant_v1';
+const PASS_PARTICIPATION_DECISION_KEY = 'pass_participation_decision_v1';
+
+function getPassParticipant() {
+    try {
+        const raw = localStorage.getItem(PASS_PARTICIPANT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function savePassParticipant(participant) {
+    localStorage.setItem(PASS_PARTICIPANT_KEY, JSON.stringify({
+        name: participant.name,
+        email: participant.email,
+        joinedAt: participant.joinedAt || new Date().toISOString()
+    }));
+    localStorage.setItem(PASS_PARTICIPATION_DECISION_KEY, 'accepted');
+}
+
+function getPassProgressSnapshot() {
     const visitedRecords = (typeof utils.getVisitedStationRecords === 'function') ? utils.getVisitedStationRecords(state.stations) : [];
     const visited = visitedRecords.length;
     const total = Array.isArray(state.stations) ? state.stations.length : 0;
+    return { visitedRecords, visited, total };
+}
+
+function pctToCount(pct, total) {
+    const p = Math.min(100, Math.max(1, Math.floor(Number(pct) || 0)));
+    if (!Number.isFinite(Number(total)) || Number(total) <= 0) return 0;
+    return Math.max(1, Math.floor((p / 100) * Number(total)));
+}
+
+function getBestReachedPrize(visited, total) {
+    const rewards = state.config?.rewards || {};
+    if (rewards.enabled !== true) return null;
+    const thresholds = rewards.thresholds || {};
+    const prizes = rewards.prizes || {};
+    return [
+        { key: 'bronze', label: 'Bronze', icon: '🥉', percent: thresholds.bronze ?? 80, prize: String(prizes.bronze || '').trim() },
+        { key: 'silver', label: 'Silber', icon: '🥈', percent: thresholds.silver ?? 90, prize: String(prizes.silver || '').trim() },
+        { key: 'gold', label: 'Gold', icon: '🥇', percent: thresholds.gold ?? 95, prize: String(prizes.gold || '').trim() },
+    ].filter(row => row.prize)
+        .map(row => ({ ...row, count: pctToCount(row.percent, total) }))
+        .filter(row => row.count > 0 && visited >= row.count)
+        .sort((a, b) => b.count - a.count)[0] || null;
+}
+
+function getVisitedLines(visitedRecords) {
+    return visitedRecords.length > 0
+        ? visitedRecords.map(item => `- #${item.stationNumber} ${item.stationName} | ${item.checkedAtLabel}`).join('\n')
+        : '- Keine Check-ins gefunden';
+}
+
+async function sendPassEmail(subject, text, meta) {
+    const res = await fetch('./api/bug-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, text, meta })
+    });
+    if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+}
+
+window.openPassParticipationModal = () => {
+    const existing = document.getElementById('pass-participation-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pass-participation-modal';
+    overlay.className = 'fixed inset-0 z-[7000] flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close="1"></div>
+        <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 dark:text-white rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-xl font-extrabold">Am Lichter‑Pass teilnehmen?</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">Du hast 3 Stationen geschafft. Wenn du am Gewinnspiel teilnehmen möchtest, brauche ich deinen Namen und deine E-Mail.</div>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-3">
+                <input id="pass-participant-name" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="Dein Name" autocomplete="name">
+                <input id="pass-participant-email" type="email" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="Deine E-Mail" autocomplete="email">
+            </div>
+
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                Deine Angaben werden zur Gewinnspiel-Teilnahme und späteren Kontaktaufnahme genutzt. Details stehen in den Gewinnspielhinweisen und im Datenschutz.
+            </div>
+
+            <div class="mt-3 flex gap-2 text-xs">
+                <a href="./gewinnspiel.html" target="_blank" class="underline text-blue-600 dark:text-blue-300">Gewinnspielhinweise</a>
+                <a href="./datenschutz.html" target="_blank" class="underline text-blue-600 dark:text-blue-300">Datenschutz</a>
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600" id="pass-participation-decline">
+                    Nicht teilnehmen
+                </button>
+                <button type="button" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" id="pass-participation-submit">
+                    Teilnehmen
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+
+    const declineBtn = document.getElementById('pass-participation-decline');
+    if (declineBtn) {
+        declineBtn.addEventListener('click', () => {
+            localStorage.setItem(PASS_PARTICIPATION_DECISION_KEY, 'declined');
+            close();
+            showToast('Alles klar – du kannst den Lichter‑Pass trotzdem weiter nutzen.', 'info');
+        });
+    }
+
+    const submitBtn = document.getElementById('pass-participation-submit');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            const name = (document.getElementById('pass-participant-name')?.value || '').trim();
+            const email = (document.getElementById('pass-participant-email')?.value || '').trim();
+            if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showToast('Bitte Name und gültige E-Mail angeben.', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sende...';
+
+            const participant = { name, email, joinedAt: new Date().toISOString() };
+            const { visitedRecords, visited, total } = getPassProgressSnapshot();
+            const text = [
+                'Neue Lichter‑Pass Teilnahme',
+                `Name: ${name}`,
+                `E-Mail: ${email}`,
+                `Fortschritt: ${visited}/${total} Stationen`,
+                `Zeit: ${new Date().toLocaleString()}`,
+                `App: ${state.appId || 'unknown'}`,
+                '',
+                'Bisher besuchte Stationen:',
+                getVisitedLines(visitedRecords)
+            ].join('\n');
+
+            try {
+                await sendPassEmail('Lichter‑Pass Teilnahme', text, {
+                    type: 'pass_participation',
+                    name,
+                    email,
+                    visited,
+                    total,
+                    appId: state.appId || 'unknown'
+                });
+                savePassParticipant(participant);
+                close();
+                showToast('Danke! Du nimmst am Lichter‑Pass Gewinnspiel teil.', 'success');
+            } catch (e) {
+                console.error('Pass participation failed', e);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Teilnehmen';
+                showToast('Teilnahme konnte nicht gesendet werden. Bitte später erneut versuchen.', 'error');
+            }
+        });
+    }
+};
+
+window.maybeAskPassParticipation = () => {
+    const { visited } = getPassProgressSnapshot();
+    if (visited < 3) return;
+    if (localStorage.getItem(PASS_PARTICIPATION_DECISION_KEY)) return;
+    if (document.getElementById('pass-participation-modal')) return;
+    setTimeout(() => {
+        if (typeof window.openPassParticipationModal === 'function') window.openPassParticipationModal();
+    }, 700);
+};
+
+function isEventEndReminderDue(now = new Date()) {
+    const eventWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
+    if (!eventWindow || !eventWindow.dateKey) return false;
+    const todayKey = getLocalDateKey(now);
+    if (todayKey !== eventWindow.dateKey) return false;
+
+    const currentMin = (now.getHours() * 60) + now.getMinutes();
+    const fallbackEndMin = 22 * 60;
+    const endMin = (eventWindow.startMin === 0 && eventWindow.endMin === (24 * 60 - 1))
+        ? fallbackEndMin
+        : eventWindow.endMin;
+    return currentMin >= endMin;
+}
+
+function remindPrizeClaimAfterEvent() {
+    if (!isEventEndReminderDue()) return;
+    if (document.getElementById('prize-claim-modal') || document.getElementById('pass-participation-modal')) return;
+
+    const { visited, total } = getPassProgressSnapshot();
+    const bestReached = getBestReachedPrize(visited, total);
+    if (!bestReached) return;
+
+    const reminderKey = `prize_end_reminder_${bestReached.key}_${getLocalDateKey()}`;
+    const claimedKey = `prize_claimed_${String(bestReached.label).toLowerCase()}`;
+    if (localStorage.getItem(reminderKey) === 'true' || localStorage.getItem(claimedKey) === 'true') return;
+
+    localStorage.setItem(reminderKey, 'true');
+    window.openPrizeClaimModal(bestReached.label, bestReached.prize, visited, total);
+    setTimeout(() => showToast('Die Veranstaltung ist vorbei. Wenn du möchtest, kannst du deinen erreichten Preis jetzt anfordern.', 'info'), 500);
+}
+
+window.showPassInfo = () => {
+    const { visitedRecords, visited, total } = getPassProgressSnapshot();
 
     const rewards = state.config?.rewards || {};
     const enabled = rewards.enabled === true;
@@ -433,6 +643,9 @@ window.showPassInfo = () => {
 window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
     const existing = document.getElementById('prize-claim-modal');
     if (existing) existing.remove();
+    const participant = getPassParticipant();
+    const participantName = participant?.name || '';
+    const participantEmail = participant?.email || '';
 
     const overlay = document.createElement('div');
     overlay.id = 'prize-claim-modal';
@@ -476,6 +689,10 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
     document.body.appendChild(overlay);
     const prizeEl = document.getElementById('claim-prize-text');
     if (prizeEl) prizeEl.textContent = prizeText || level;
+    const nameInput = document.getElementById('claim-name');
+    const contactInput = document.getElementById('claim-contact');
+    if (nameInput) nameInput.value = participantName;
+    if (contactInput) contactInput.value = participantEmail;
 
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
@@ -496,9 +713,6 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
 
             const claimId = `LP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
             const visitedRecords = (typeof utils.getVisitedStationRecords === 'function') ? utils.getVisitedStationRecords(state.stations) : [];
-            const visitedLines = visitedRecords.length > 0
-                ? visitedRecords.map(item => `- #${item.stationNumber} ${item.stationName} | ${item.checkedAtLabel}`).join('\n')
-                : '- Keine Check-ins gefunden';
 
             const text = [
                 `Anforderungs-ID: ${claimId}`,
@@ -512,20 +726,18 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
                 `App: ${state.appId || 'unknown'}`,
                 '',
                 'Besuchte Stationen:',
-                visitedLines
+                getVisitedLines(visitedRecords)
             ].join('\n');
 
             try {
-                const res = await fetch('./api/bug-report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        subject: `Preisanforderung Lichternacht App: ${level}`,
-                        text,
-                        meta: { type: 'prize_claim', claimId, level, name, contact, appId: state.appId || 'unknown' }
-                    })
+                await sendPassEmail(`Preisanforderung Lichternacht App: ${level}`, text, {
+                    type: 'prize_claim',
+                    claimId,
+                    level,
+                    name,
+                    contact,
+                    appId: state.appId || 'unknown'
                 });
-                if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
 
                 try {
                     localStorage.setItem(`prize_claimed_${String(level).toLowerCase()}`, 'true');
@@ -1183,6 +1395,8 @@ window.onload = async () => {
     // Check for upcoming events every minute
     setInterval(checkUpcomingEvents, 60000);
     checkUpcomingEvents(); // Initial check
+    setInterval(remindPrizeClaimAfterEvent, 60000);
+    setTimeout(remindPrizeClaimAfterEvent, 1500);
 
     // Init
     initMap();
