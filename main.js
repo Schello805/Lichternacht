@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.96';
+} from './js/ui.js?v=1.4.97';
 import {
-    uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.96';
+    uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
+} from './js/admin.js?v=1.4.97';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.96';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.97';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.96";
+const APP_VERSION = "1.4.97";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -48,6 +48,8 @@ window.dumpData = dumpData;
 window.downloadDataJs = downloadDataJs;
 window.exportStationsCsv = exportStationsCsv;
 window.exportEventsCsv = exportEventsCsv;
+window.downloadStationsCsvTemplate = downloadStationsCsvTemplate;
+window.downloadEventsCsvTemplate = downloadEventsCsvTemplate;
 window.importStationsCsv = importStationsCsv;
 window.importEventsCsv = importEventsCsv;
 window.runDataValidation = runDataValidation;

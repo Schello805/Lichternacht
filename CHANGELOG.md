@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.97] - 2026-07-26
+### Added
+- **Tests:** Automatisierte Node-Tests für Datenvalidierung, CSV-Escaping und Event-Zeitfenster.
+- **Admin CSV:** Vorlagen-Download, `offer`-Spalte und Import-Vorabprüfung für Stationen/Events.
+- **Betrieb:** Security-/Produktionscheckliste in `SECURITY.md`.
+
+### Improved
+- **Updates:** Update-Hinweis und Service-Worker-Aktivierung sind robuster.
+
 ## [1.4.96] - 2026-07-26
 ### Fixed
 - **Admin Datencheck:** Geänderte Admin/UI-Module werden cache-sicher geladen; neue Service Worker übernehmen sofort.

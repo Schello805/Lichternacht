@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.96';
+const CACHE_NAME = 'lichternacht-v1.4.97';
 
 if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
@@ -85,6 +85,12 @@ if (workbox) {
 // Force Update
 self.addEventListener('install', (event) => {
     self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 self.addEventListener('activate', (event) => {

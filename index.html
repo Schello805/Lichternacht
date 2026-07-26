@@ -215,7 +215,7 @@
                 </div>
                 <div class="p-4">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
+                        Export/Import als CSV (z.B. für Excel). Pflichtspalten werden vor dem Speichern geprüft. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -224,6 +224,8 @@
                             <div class="flex gap-2">
                                 <button type="button" onclick="exportStationsCsv()"
                                     class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
+                                <button type="button" onclick="downloadStationsCsvTemplate()"
+                                    class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold border border-gray-200 dark:border-gray-600">Vorlage</button>
                             </div>
                             <input id="admin-stations-csv" type="file" accept=".csv,text/csv"
                                 class="w-full mt-2 text-xs" />
@@ -231,7 +233,7 @@
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
                                 Import CSV (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID. Werbetext: max. 250 Zeichen, max. 5 Tags.</div>
                         </div>
 
                         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
@@ -239,6 +241,8 @@
                             <div class="flex gap-2">
                                 <button type="button" onclick="exportEventsCsv()"
                                     class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
+                                <button type="button" onclick="downloadEventsCsvTemplate()"
+                                    class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold border border-gray-200 dark:border-gray-600">Vorlage</button>
                             </div>
                             <input id="admin-events-csv" type="file" accept=".csv,text/csv"
                                 class="w-full mt-2 text-xs" />
@@ -981,9 +985,9 @@
     </div>
 
     <!-- Update Toast -->
-    <div id="update-toast" class="hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[5000] bg-yellow-500 text-black px-6 py-3 rounded-full shadow-2xl font-bold animate-slide-up flex items-center gap-3">
-        <span>Neues Update verfügbar! Bitte neu laden.</span>
-        <button onclick="window.location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-50">
+    <div id="update-toast" class="hidden fixed bottom-24 left-3 right-3 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-[5000] bg-yellow-500 text-black px-4 sm:px-6 py-3 rounded-2xl sm:rounded-full shadow-2xl font-bold animate-slide-up flex items-center justify-between sm:justify-center gap-3">
+        <span class="text-sm">Neue App-Version verfügbar.</span>
+        <button id="update-reload-btn" type="button" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-50">
             Neu laden
         </button>
     </div>
@@ -1050,6 +1054,25 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                let refreshing = false;
+                const updateToast = document.getElementById('update-toast');
+                const reloadBtn = document.getElementById('update-reload-btn');
+                const showUpdateToast = () => {
+                    if (updateToast) updateToast.classList.remove('hidden');
+                };
+                const activateWaitingWorker = (registration) => {
+                    if (registration?.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    } else {
+                        window.location.reload();
+                    }
+                };
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                });
+
                 // Remove Old Caches if needed (Manual Nuke)
                 if (localStorage.getItem('app_version') !== '1.4.70') {
                      // Optionally clear caches via SW logic
@@ -1066,11 +1089,14 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.96', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.97', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
                     console.log('New Service Worker registered', reg);
+                    if (reloadBtn) {
+                        reloadBtn.addEventListener('click', () => activateWaitingWorker(reg));
+                    }
                     
                     reg.onupdatefound = () => {
                         const installingWorker = reg.installing;
@@ -1079,8 +1105,7 @@
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
                                     console.log('New content is available; please refresh.');
-                                    const toast = document.getElementById('update-toast');
-                                    if (toast) toast.classList.remove('hidden');
+                                    showUpdateToast();
                                 }
                             }
                         };
@@ -1091,7 +1116,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.96"></script>
+    <script type="module" src="main.js?v=1.4.97"></script>
 </body>
 
 </html>

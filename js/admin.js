@@ -7,6 +7,9 @@ import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
+const STATION_CSV_COLUMNS = ['id', 'name', 'desc', 'offer', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
+const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'loc', 'lat', 'lng', 'color'];
+
 function getAdminConfigIssues() {
     const issues = [];
     const eventWindowRaw = String(state.downloads?.icsDate || '').trim();
@@ -315,6 +318,7 @@ export function exportStationsCsv() {
         id: s.id ?? '',
         name: s.name ?? '',
         desc: s.desc ?? '',
+        offer: s.offer ?? '',
         lat: s.lat ?? '',
         lng: s.lng ?? '',
         tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
@@ -322,9 +326,26 @@ export function exportStationsCsv() {
         time: s.time ?? '',
         likes: s.likes ?? ''
     }));
-    const csv = toCsv(rows, ['id', 'name', 'desc', 'lat', 'lng', 'tags', 'image', 'time', 'likes']);
+    const csv = toCsv(rows, STATION_CSV_COLUMNS);
     downloadTextFile('stations.csv', csv, 'text/csv');
     showToast('stations.csv heruntergeladen', 'success');
+}
+
+export function downloadStationsCsvTemplate() {
+    const csv = toCsv([{
+        id: '',
+        name: 'Beispielstation',
+        desc: 'Adresse oder Ort',
+        offer: 'Kurzer Werbetext mit maximal 250 Zeichen',
+        lat: '49.1620',
+        lng: '10.5550',
+        tags: 'Essen|Getränke',
+        image: '',
+        time: '',
+        likes: ''
+    }], STATION_CSV_COLUMNS);
+    downloadTextFile('stations-vorlage.csv', csv, 'text/csv');
+    showToast('Stations-Vorlage heruntergeladen', 'success');
 }
 
 export function exportEventsCsv() {
@@ -338,9 +359,24 @@ export function exportEventsCsv() {
         lng: e.lng ?? '',
         color: e.color ?? ''
     }));
-    const csv = toCsv(rows, ['id', 'time', 'title', 'desc', 'loc', 'lat', 'lng', 'color']);
+    const csv = toCsv(rows, EVENT_CSV_COLUMNS);
     downloadTextFile('events.csv', csv, 'text/csv');
     showToast('events.csv heruntergeladen', 'success');
+}
+
+export function downloadEventsCsvTemplate() {
+    const csv = toCsv([{
+        id: '',
+        time: '17:00',
+        title: 'Eröffnung',
+        desc: 'Kurze Beschreibung',
+        loc: 'Johanniskirche',
+        lat: '49.1620',
+        lng: '10.5550',
+        color: 'yellow'
+    }], EVENT_CSV_COLUMNS);
+    downloadTextFile('events-vorlage.csv', csv, 'text/csv');
+    showToast('Event-Vorlage heruntergeladen', 'success');
 }
 
 async function importCsvGeneric(file, kind) {
@@ -360,6 +396,7 @@ async function importCsvGeneric(file, kind) {
                 id: Number.isFinite(id) ? id : null,
                 name: (r.name ?? '').toString().trim(),
                 desc: (r.desc ?? '').toString().trim(),
+                offer: (r.offer ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
                 tags: normalizeTags(r.tags),
@@ -386,7 +423,15 @@ async function importCsvGeneric(file, kind) {
             }
         }
 
-        if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.`)) return;
+        const issues = validateStations(mapped);
+        const errors = issues.filter(issue => issue.severity === 'error');
+        if (errors.length > 0) {
+            throw new Error(`CSV hat ${errors.length} Fehler. Bitte erst Datencheck/Vorlage nutzen. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
+        }
+        const warnings = issues.filter(issue => issue.severity === 'warn');
+        const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
+
+        if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
         for (const s of mapped) await saveData('station', s);
         showToast('Stationen importiert', 'success');
         setTimeout(() => location.reload(), 800);
@@ -412,7 +457,15 @@ async function importCsvGeneric(file, kind) {
             return evt;
         });
 
-        if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.`)) return;
+        const issues = validateEvents(mapped);
+        const errors = issues.filter(issue => issue.severity === 'error');
+        if (errors.length > 0) {
+            throw new Error(`CSV hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
+        }
+        const warnings = issues.filter(issue => issue.severity === 'warn');
+        const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
+
+        if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
         for (const e of mapped) await saveData('event', e);
         showToast('Events importiert', 'success');
         setTimeout(() => location.reload(), 800);

@@ -88,6 +88,21 @@ Das Projekt nutzt **TailwindCSS** für das Styling. Um CSS-Änderungen zu machen
 2.  **CSS Bauen (Watch Mode für Entwicklung):**
     ```bash
     npm run watch
+
+3.  **Prüfung vor Push/Deployment:**
+    ```bash
+    npm run verify
+    ```
+
+    Das prüft den Tailwind-Build, JavaScript-Syntax und automatisierte Tests.
+
+## ✅ Produktionsreife Checks
+
+- **CI:** GitHub Actions läuft bei jedem Push/Pull Request auf `main`.
+- **Admin-Daten:** CSV-Import prüft Pflichtfelder und verhindert fehlerhafte Cloud-Imports.
+- **Stationen:** Werbetext max. 250 Zeichen, maximal 5 Tags, ein Bild pro Station.
+- **Updates:** Service Worker übernimmt neue Versionen schneller; Nutzer erhalten einen „Neu laden“-Hinweis.
+- **Security:** Siehe `SECURITY.md` für Firestore-/SMTP-/DSGVO-Checkliste.
     ```
 
 3.  **CSS für Produktion bauen:**

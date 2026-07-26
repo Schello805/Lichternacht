@@ -1,0 +1,38 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { validateEvents, validateStations } from '../js/validate.js';
+
+test('validateStations warns for missing fields and station advertising limits', () => {
+    const issues = validateStations([{
+        id: 28,
+        name: 'Schützenhaus',
+        desc: '',
+        offer: 'x'.repeat(251),
+        lat: 49.1,
+        lng: 10.5,
+        tags: ['Essen', 'Getränke', 'Kultur', 'Event', 'Kinder', 'Party']
+    }]);
+
+    assert.ok(issues.some(issue => issue.field === 'desc' && issue.severity === 'warn'));
+    assert.ok(issues.some(issue => issue.field === 'offer' && issue.message.includes('251/250')));
+    assert.ok(issues.some(issue => issue.field === 'tags' && issue.message.includes('6/5')));
+});
+
+test('validateStations reports invalid coordinates and duplicate ids', () => {
+    const issues = validateStations([
+        { id: 1, name: 'A', desc: 'Ort', offer: 'Text', lat: 99, lng: 10, tags: [] },
+        { id: 1, name: 'B', desc: 'Ort', offer: 'Text', lat: 49, lng: 181, tags: [] }
+    ]);
+
+    assert.ok(issues.some(issue => issue.field === 'id' && issue.severity === 'error'));
+    assert.ok(issues.some(issue => issue.field === 'lat' && issue.severity === 'error'));
+    assert.ok(issues.some(issue => issue.field === 'lng' && issue.severity === 'error'));
+});
+
+test('validateEvents requires time and title', () => {
+    const issues = validateEvents([{ id: 'evt-1', time: '', title: '' }]);
+
+    assert.ok(issues.some(issue => issue.field === 'time' && issue.severity === 'error'));
+    assert.ok(issues.some(issue => issue.field === 'title' && issue.severity === 'error'));
+});
