@@ -5,6 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.121';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1336,6 +1337,7 @@ export async function submitBugReport() {
             body: JSON.stringify({
                 subject: `Feedback Lichternacht App (${report.appId})`,
                 text: reportText,
+                html: buildFeedbackEmailHtml(report),
                 meta: report
             })
         });

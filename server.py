@@ -86,7 +86,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             pass
         return True
 
-    def _send_bug_report_email(self, subject, text):
+    def _send_bug_report_email(self, subject, text, html_content=None):
         to_addr = os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz')
         from_addr = os.environ.get('BUGREPORT_FROM', to_addr)
 
@@ -104,6 +104,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         msg['From'] = from_addr
         msg['To'] = to_addr
         msg.set_content(text)
+        if html_content:
+            msg.add_alternative(html_content, subtype='html')
 
         if use_ssl:
             context = ssl.create_default_context()
@@ -174,9 +176,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 return
             if len(text) > 50_000:
                 text = text[:50_000] + "\n\n[gekürzt]"
+            html_content = str(data.get('html') or '').strip()
+            if len(html_content) > 200_000:
+                html_content = html_content[:200_000]
 
             try:
-                self._send_bug_report_email(subject, text)
+                self._send_bug_report_email(subject, text, html_content or None)
                 self._send_json(200, {"ok": True})
             except Exception as e:
                 self._send_json(500, {"ok": False, "error": str(e)})

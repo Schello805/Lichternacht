@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.121] - 2026-07-26
+### Improved
+- **E-Mails:** Feedback, Lichter‑Pass Teilnahme, Preisanforderung und Nutzungsanalyse werden jetzt zusätzlich als schön formatierte HTML-Mails mit App-, Gewinnspiel- und Datenschutzlinks verschickt.
+
 ## [1.4.120] - 2026-07-26
 ### Improved
 - **Admin Summary-Mail:** Anonyme Nutzungsanalyse ist jetzt übersichtlicher mit Kurzüberblick, Top-Erkenntnissen und klaren Abschnitten formatiert.

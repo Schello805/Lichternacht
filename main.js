@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.120';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.121';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,16 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.120';
+} from './js/ui.js?v=1.4.121';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail
-} from './js/admin.js?v=1.4.120';
+} from './js/admin.js?v=1.4.121';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.120';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.121';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.121';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.120";
+const APP_VERSION = "1.4.121";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -278,11 +279,17 @@ function getVisitedLines(visitedRecords) {
         : '- Keine Check-ins gefunden';
 }
 
-async function sendPassEmail(subject, text, meta) {
+function getVisitedLineArray(visitedRecords) {
+    return visitedRecords.length > 0
+        ? visitedRecords.map(item => `#${item.stationNumber} ${item.stationName} | ${item.checkedAtLabel}`)
+        : [];
+}
+
+async function sendPassEmail(subject, text, meta, html) {
     const res = await fetch('./api/bug-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, text, meta })
+        body: JSON.stringify({ subject, text, html, meta })
     });
     if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
 }
@@ -371,6 +378,14 @@ window.openPassParticipationModal = () => {
                 'Bisher besuchte Stationen:',
                 getVisitedLines(visitedRecords)
             ].join('\n');
+            const html = buildPassParticipationEmailHtml({
+                name,
+                email,
+                visited,
+                total,
+                appId: state.appId || 'unknown',
+                visitedLines: getVisitedLineArray(visitedRecords)
+            });
 
             try {
                 await sendPassEmail('Lichter‑Pass Teilnahme', text, {
@@ -380,7 +395,7 @@ window.openPassParticipationModal = () => {
                     visited,
                     total,
                     appId: state.appId || 'unknown'
-                });
+                }, html);
                 savePassParticipant(participant);
                 close();
                 showToast('Danke! Du nimmst am Lichter‑Pass Gewinnspiel teil.', 'success');
@@ -731,6 +746,18 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
                 'Besuchte Stationen:',
                 getVisitedLines(visitedRecords)
             ].join('\n');
+            const html = buildPrizeClaimEmailHtml({
+                claimId,
+                level,
+                prizeText,
+                visited,
+                total,
+                name,
+                contact,
+                note,
+                appId: state.appId || 'unknown',
+                visitedLines: getVisitedLineArray(visitedRecords)
+            });
 
             try {
                 await sendPassEmail(`Preisanforderung Lichternacht App: ${level}`, text, {
@@ -740,7 +767,7 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
                     name,
                     contact,
                     appId: state.appId || 'unknown'
-                });
+                }, html);
 
                 try {
                     localStorage.setItem(`prize_claimed_${String(level).toLowerCase()}`, 'true');

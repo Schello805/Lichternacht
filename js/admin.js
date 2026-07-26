@@ -2,8 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.120';
+import { parseCsv, toCsv } from './csv.js?v=1.4.121';
 import { validateStations, validateEvents } from './validate.js';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.121';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1406,6 +1407,7 @@ export async function sendUsageSummaryEmail() {
             body: JSON.stringify({
                 subject: 'Lichternacht App – anonyme Nutzungsanalyse',
                 text: usageSummaryToText(state.usageSummary),
+                html: buildUsageSummaryEmailHtml(state.usageSummary),
                 meta: { type: 'usage_summary', appId: state.appId || 'unknown' }
             })
         });
