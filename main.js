@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.121';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.122';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,16 +14,16 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.121';
+} from './js/ui.js?v=1.4.122';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail
-} from './js/admin.js?v=1.4.121';
+} from './js/admin.js?v=1.4.122';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.121';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.121';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.122';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.122';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.121";
+const APP_VERSION = "1.4.122";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -574,7 +574,7 @@ window.showPassInfo = () => {
                 <div class="font-bold text-gray-900 dark:text-white">So funktioniert es</div>
                 <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“. Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.</div>
                 <div class="mt-2 font-bold text-gray-900 dark:text-white">${escapeHtml(nextGoalText)}</div>
-                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein Fortschritt bleibt auf diesem Gerät, solange du Website-Daten nicht löschst.</div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein persönlicher Fortschritt bleibt lokal auf diesem Gerät, solange du Website-Daten nicht löschst. Normale Check-ins werden zusätzlich anonymisiert/pseudonymisiert zentral für die Nachbereitung gezählt.</div>
             </div>
 
             ${bestReached ? `

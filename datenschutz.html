@@ -46,8 +46,9 @@
                 <div class="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                     <div class="font-bold mb-1">Wichtig</div>
                     <div>
-                        Diese Seite ist eine Vorlage und ersetzt keine Rechtsberatung. Bitte prüfe, ob alle Angaben zu
-                        Hosting, Speicherdauern und eingesetzten Diensten vollständig sind.
+                        Diese Hinweise beschreiben die aktuelle Datenverarbeitung dieser privaten Web-App. Sie ersetzen
+                        keine Rechtsberatung, sollen aber für Besucher transparent erklären, welche Daten lokal, zentral
+                        oder per E-Mail verarbeitet werden.
                     </div>
                 </div>
 
@@ -63,7 +64,8 @@
                     <h2 class="font-bold text-gray-900 dark:text-white">2. Zwecke und Rechtsgrundlagen</h2>
                     <div>
                         Ich verarbeite personenbezogene Daten, um diese Web-App bereitzustellen, die Sicherheit zu gewährleisten
-                        und – sofern du einwilligst – Nutzungsstatistiken (Tracking) zu erstellen.
+                        Feedback entgegenzunehmen, den freiwilligen Lichter‑Pass mit Gewinnspiel abzuwickeln und – sofern
+                        du einwilligst – Nutzungsstatistiken (Tracking) zu erstellen.
                     </div>
                     <div>
                         Hinweis: Diese Web-App ist privat erstellt. Die Marktgemeinde Bechhofen als Veranstalter der Lichternacht ist nicht Betreiber dieser App.
@@ -80,14 +82,18 @@
                         Zweck: Auslieferung der Inhalte, Stabilität und Sicherheit (z. B. Abwehr von Angriffen).
                     </div>
                     <div>
-                        Speicherdauer/Hosting: [bitte ergänzen].
+                        Speicherdauer/Hosting: Die App wird auf einem Webserver ausgeliefert. Server-Logfiles werden nur
+                        so lange verarbeitet, wie es für Betrieb, Fehlersuche und Sicherheit erforderlich ist bzw. wie es
+                        die Server-/Provider-Konfiguration vorsieht.
                     </div>
                 </section>
 
                 <section class="space-y-2">
                     <h2 class="font-bold text-gray-900 dark:text-white">4. Tracking (Matomo Tag Manager)</h2>
                     <div>
-                        Wenn du zustimmst, lade ich Matomo Tag Manager, um die Nutzung der App zu messen und zu verbessern.
+                        Wenn du zustimmst, lade ich Matomo Tag Manager von
+                        <span class="font-mono">analytics.schellenberger.biz</span>, um die Nutzung der App zu messen
+                        und zu verbessern. Ohne Zustimmung wird dieser Tracking-Code nicht geladen.
                     </div>
                     <div>
                         Einwilligung: Tracking wird erst nach deiner aktiven Zustimmung aktiviert. Deine Entscheidung wird lokal
@@ -98,7 +104,8 @@
                         Du kannst deine Entscheidung jederzeit in der App unter „Hilfe → Datenschutz & Tracking“ ändern.
                     </div>
                     <div>
-                        Weitere Angaben (z. B. Anbieter/URL, IP-Anonymisierung, Speicherdauer, Auftragsverarbeitung, Serverstandort) bitte ergänzen.
+                        Bei Matomo können technische Nutzungsdaten wie aufgerufene Seiten, Zeitpunkt, Gerät-/Browserdaten
+                        und Referrer verarbeitet werden. Die konkrete Verarbeitung richtet sich nach der Matomo-Konfiguration.
                     </div>
                 </section>
 
@@ -106,17 +113,21 @@
                     <h2 class="font-bold text-gray-900 dark:text-white">5. Lichter‑Pass und Preisanforderung</h2>
                     <div>
                         Besuchte Stationen im Lichter‑Pass werden mit Check-in-Zeitpunkt lokal auf deinem Gerät gespeichert
-                        (<span class="font-mono">localStorage</span>). Du kannst den Verlauf in der App einsehen und als CSV exportieren.
+                        (<span class="font-mono">localStorage</span>). Dadurch bleibt dein persönlicher Fortschritt auf
+                        diesem Gerät sichtbar, solange du die Website-Daten/App-Daten nicht löschst. Nur den Cache zu
+                        leeren entfernt diese Daten in der Regel nicht.
                     </div>
                     <div>
-                        Zusätzlich speichert die App anonyme Check-in-Ereignisse zentral, damit ich nach der Veranstaltung auswerten kann,
-                        welche Stationen wie stark genutzt wurden. Gespeichert werden z. B. zufällige Geräte-ID, Station, Zeitpunkt,
-                        Stunde, aktueller Fortschritt und ggf. erreichte Preisstufe. Es werden dabei keine GPS-Koordinaten, kein Name
-                        und keine E-Mail-Adresse gespeichert.
+                        Zusätzlich speichert die App normale Check-ins anonymisiert/pseudonymisiert zentral, damit ich nach
+                        der Veranstaltung auswerten kann, welche Stationen wie stark genutzt wurden. Gespeichert werden
+                        z. B. eine zufällig erzeugte Geräte-ID, Station, Zeitpunkt, Stunde, aktueller Fortschritt und ggf.
+                        erreichte Preisstufe. GPS-Koordinaten, Name und E-Mail-Adresse werden bei diesen normalen
+                        Check-ins nicht gespeichert.
                     </div>
                     <div>
                         Nach dem 3. Check-in kannst du freiwillig am Lichter‑Pass Gewinnspiel teilnehmen. Dafür werden Name,
-                        E-Mail-Adresse, Teilnahmezeitpunkt und dein aktueller Check-in-Stand per E-Mail an mich gesendet.
+                        E-Mail-Adresse, Teilnahmezeitpunkt und dein aktueller Check-in-Stand inklusive bisher besuchter
+                        Stationen per E-Mail an mich gesendet.
                     </div>
                     <div>
                         Wenn du einen Preis anforderst, werden deine eingegebenen Kontaktdaten, die erreichte Preisstufe,
@@ -133,7 +144,16 @@
                 </section>
 
                 <section class="space-y-2">
-                    <h2 class="font-bold text-gray-900 dark:text-white">6. Deine Rechte</h2>
+                    <h2 class="font-bold text-gray-900 dark:text-white">6. Feedback und Fehler melden</h2>
+                    <div>
+                        Wenn du das Formular „Fehler melden“ nutzt, werden deine Nachricht sowie technische Angaben wie
+                        Zeitpunkt, App-ID, aktuelle URL, Browser/User-Agent und ggf. eine angemeldete Nutzerkennung per
+                        E-Mail an mich gesendet. Das dient ausschließlich dazu, Fehler nachzuvollziehen und Feedback zu bearbeiten.
+                    </div>
+                </section>
+
+                <section class="space-y-2">
+                    <h2 class="font-bold text-gray-900 dark:text-white">7. Deine Rechte</h2>
                     <div>
                         Du hast – je nach Voraussetzungen – Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung,
                         Datenübertragbarkeit sowie Widerspruch. Außerdem kannst du eine erteilte Einwilligung jederzeit mit Wirkung für die
@@ -142,7 +162,7 @@
                 </section>
 
                 <section class="space-y-2">
-                    <h2 class="font-bold text-gray-900 dark:text-white">7. Kontakt Datenschutz</h2>
+                    <h2 class="font-bold text-gray-900 dark:text-white">8. Kontakt Datenschutz</h2>
                     <div>Datenschutzanfragen bitte per E-Mail an info@schellenberger.biz</div>
                 </section>
             </div>

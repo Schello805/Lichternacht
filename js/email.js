@@ -190,7 +190,7 @@ export function buildUsageSummaryEmailHtml(summary) {
     const unused = summary.stationsWithoutCheckins.map(row => `#${row.stationId} ${row.stationName}`);
 
     return renderShell({
-        title: 'Anonyme Nutzungsanalyse',
+        title: 'Anonymisierte Nutzungsanalyse',
         intro: 'Zusammenfassung der Lichter‑Pass Nutzung für deine Nachbereitung.',
         sections: [
             {
@@ -217,6 +217,6 @@ export function buildUsageSummaryEmailHtml(summary) {
             { title: 'Lessons Learned', body: renderList(summary.lessons, 'Noch zu wenig Daten für belastbare Erkenntnisse') }
         ],
         cta: renderButton(APP_URL, 'Web-App öffnen'),
-        footerNote: 'Diese Auswertung ist anonym. Normale Check-ins enthalten keine Namen, E-Mail-Adressen oder GPS-Koordinaten.'
+        footerNote: 'Diese Auswertung ist anonymisiert/pseudonymisiert. Normale Check-ins enthalten keine Namen, Kontaktdaten oder GPS-Koordinaten.'
     });
 }

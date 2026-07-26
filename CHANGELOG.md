@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.122] - 2026-07-26
+### Improved
+- **Datenschutzhinweise:** Lokale Speicherung, zentrale anonymisierte/pseudonymisierte Check-in-Auswertung sowie freiwillige E-Mail-Verarbeitung für Gewinnspiel, Preisanforderung und Feedback klarer abgegrenzt.
+
 ## [1.4.121] - 2026-07-26
 ### Improved
 - **E-Mails:** Feedback, Lichter‑Pass Teilnahme, Preisanforderung und Nutzungsanalyse werden jetzt zusätzlich als schön formatierte HTML-Mails mit App-, Gewinnspiel- und Datenschutzlinks verschickt.

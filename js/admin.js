@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.121';
+import { parseCsv, toCsv } from './csv.js?v=1.4.122';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.121';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.122';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1303,7 +1303,7 @@ function usageSummaryToText(summary) {
 
     const lines = [
         '🕯️ Lichternacht App',
-        'Anonyme Nutzungsanalyse',
+        'Anonymisierte/pseudonymisierte Nutzungsanalyse',
         '',
         `Erstellt am ${createdAt}`,
         '',
@@ -1342,7 +1342,7 @@ function usageSummaryToText(summary) {
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         ...lessonRows,
         '',
-        'Hinweis: Diese Auswertung ist anonym. Es werden keine Namen, E-Mail-Adressen oder GPS-Koordinaten aus normalen Check-ins ausgewertet.'
+        'Hinweis: Diese Auswertung ist anonymisiert/pseudonymisiert. Es werden keine Namen, Kontaktdaten oder GPS-Koordinaten aus normalen Check-ins ausgewertet.'
     ];
     return lines.join('\n');
 }
@@ -1405,7 +1405,7 @@ export async function sendUsageSummaryEmail() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                subject: 'Lichternacht App – anonyme Nutzungsanalyse',
+                subject: 'Lichternacht App – anonymisierte Nutzungsanalyse',
                 text: usageSummaryToText(state.usageSummary),
                 html: buildUsageSummaryEmailHtml(state.usageSummary),
                 meta: { type: 'usage_summary', appId: state.appId || 'unknown' }
