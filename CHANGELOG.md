@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.99] - 2026-07-26
+### Improved
+- **GPS:** Wiederholte Standortfehler werden gedrosselt, damit Nutzer nicht mehrfach denselben Hinweis sehen.
+
 ## [1.4.98] - 2026-07-26
 ### Added
 - **E2E:** Playwright-Test für Besucher-Stationsmodal und Admin-Direktzugriff.

@@ -3,6 +3,22 @@ import { showToast, setLoading, getVisitedStationIdSet } from './utils.js';
 import { saveData } from './data.js';
 
 let tileLayer;
+const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
+let lastGpsErrorToastAt = 0;
+let lastGpsErrorSignature = '';
+let timeoutRetryToastShown = false;
+let timeoutFinalToastShown = false;
+
+function shouldShowGpsErrorToast(err) {
+    const now = Date.now();
+    const signature = `${err?.code || 'unknown'}:${err?.message || ''}`;
+    if (signature !== lastGpsErrorSignature || now - lastGpsErrorToastAt > GPS_ERROR_TOAST_COOLDOWN_MS) {
+        lastGpsErrorSignature = signature;
+        lastGpsErrorToastAt = now;
+        return true;
+    }
+    return false;
+}
 
 export function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([49.158, 10.552], 16);
@@ -112,6 +128,9 @@ export function locateUser(cb) {
     state.watchId = navigator.geolocation.watchPosition(
         (pos) => {
             setLoading(false);
+            lastGpsErrorSignature = '';
+            lastGpsErrorToastAt = 0;
+            timeoutFinalToastShown = false;
 
             // We got a fix again -> reset timeout retry flag
             state._gpsTimeoutRetried = false;
@@ -163,7 +182,8 @@ export function locateUser(cb) {
         },
         (err) => {
             setLoading(false);
-            console.warn("GPS Watch Error", err);
+            const shouldNotify = shouldShowGpsErrorToast(err);
+            if (shouldNotify) console.warn("GPS Watch Error", err);
 
             // TIMEOUT is common (indoors/first fix). Retry once with relaxed settings.
             if (err && err.code === 3) {
@@ -171,13 +191,19 @@ export function locateUser(cb) {
 
                 if (!state._gpsTimeoutRetried) {
                     state._gpsTimeoutRetried = true;
-                    showToast('GPS Timeout – versuche es erneut (ggf. nach draußen gehen)...', 'info');
+                    if (!timeoutRetryToastShown) {
+                        timeoutRetryToastShown = true;
+                        showToast('GPS Timeout – ich versuche es noch einmal. Ggf. kurz nach draußen gehen.', 'info');
+                    }
                     try { if (state.watchId) navigator.geolocation.clearWatch(state.watchId); } catch (e) { }
                     setTimeout(() => locateUser(cb), 400);
                     return;
                 }
 
-                showToast('GPS Timeout – kein Signal. Bitte Standort prüfen.', 'error');
+                if (shouldNotify && !timeoutFinalToastShown) {
+                    timeoutFinalToastShown = true;
+                    showToast('GPS Timeout – kein Signal. Bitte Standort prüfen.', 'error');
+                }
                 return;
             }
 
@@ -186,7 +212,9 @@ export function locateUser(cb) {
             if (listLocateBtn) listLocateBtn.classList.remove('hidden');
 
             document.getElementById('status-indicator').innerText = "GPS Fehler";
-            showToast("GPS Fehler: " + (err?.message || err), 'error');
+            if (shouldNotify) {
+                showToast("GPS Fehler: " + (err?.message || err), 'error');
+            }
         },
         {
             enableHighAccuracy: state._gpsTimeoutRetried ? false : true,
