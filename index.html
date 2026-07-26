@@ -528,6 +528,36 @@
                 </div>
             </details>
 
+            <!-- Usage Analytics -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>8. Nutzungsanalyse (anonym)</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <p class="text-xs text-gray-500 mt-3 mb-3">
+                        Anonyme Lichter‑Pass Auswertung: Check-ins, aktive Geräte, Stationen, Uhrzeiten und Lessons Learned. Keine Namen, keine E-Mails, keine GPS-Koordinaten.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                        <button type="button" onclick="loadUsageAnalytics()" data-online-only="true"
+                            class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">
+                            Analyse laden
+                        </button>
+                        <button type="button" onclick="exportUsageAnalyticsCsv()" data-online-only="true"
+                            class="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-sm border border-gray-200 dark:border-gray-600">
+                            CSV Export
+                        </button>
+                        <button type="button" onclick="sendUsageSummaryEmail()" data-online-only="true"
+                            class="bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold text-sm">
+                            Summary-Mail
+                        </button>
+                    </div>
+                    <div id="admin-usage-summary" class="text-xs text-gray-600 dark:text-gray-300">
+                        Noch keine Auswertung geladen.
+                    </div>
+                </div>
+            </details>
+
             <button onclick="window.closeAdminPage()"
                 class="w-full mt-4 bg-gray-200 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-300 shadow-sm">
                 Zurück zur App
@@ -1159,7 +1189,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.116', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.117', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1186,7 +1216,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.116"></script>
+    <script type="module" src="main.js?v=1.4.117"></script>
 </body>
 
 </html>

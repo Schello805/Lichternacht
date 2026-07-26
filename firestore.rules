@@ -71,6 +71,12 @@ service cloud.firestore {
         allow read: if true;
         allow write: if true; // Public write for heartbeat
       }
+
+      // Anonymous Lichter-Pass analytics
+      match /checkins/{checkinId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+      }
     }
 
     // Config (Downloads)

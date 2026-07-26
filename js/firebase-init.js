@@ -48,6 +48,7 @@ export async function initFirebase() {
         state.fb.getDocs = fbStore.getDocs;
         state.fb.getDoc = fbStore.getDoc;
         state.fb.setDoc = fbStore.setDoc;
+        state.fb.addDoc = fbStore.addDoc;
         state.fb.updateDoc = fbStore.updateDoc;
         state.fb.deleteDoc = fbStore.deleteDoc;
         state.fb.onSnapshot = fbStore.onSnapshot; // Added

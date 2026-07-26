@@ -2,7 +2,7 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.116';
+import { parseCsv, toCsv } from './csv.js?v=1.4.117';
 import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
@@ -1156,6 +1156,214 @@ export async function saveRewardsConfig() {
     }
 }
 
+function buildUsageSummary(checkins) {
+    const stationLookup = new Map((state.stations || []).map(station => [String(station.id), station]));
+    const byStation = new Map();
+    const byHour = new Map();
+    const byDate = new Map();
+    const uniqueVisitors = new Set();
+    const levels = { bronze: 0, silver: 0, gold: 0, diamond: 0 };
+
+    checkins.forEach((event) => {
+        const stationId = String(event.stationId || '');
+        const station = stationLookup.get(stationId);
+        const stationName = event.stationName || station?.name || `Station ${stationId}`;
+        const current = byStation.get(stationId) || { stationId, stationName, count: 0, uniqueVisitors: new Set(), first: '', last: '' };
+        current.count += 1;
+        if (event.anonymousId) current.uniqueVisitors.add(event.anonymousId);
+        if (event.checkedAt && (!current.first || event.checkedAt < current.first)) current.first = event.checkedAt;
+        if (event.checkedAt && (!current.last || event.checkedAt > current.last)) current.last = event.checkedAt;
+        byStation.set(stationId, current);
+
+        if (event.anonymousId) uniqueVisitors.add(event.anonymousId);
+        const hour = Number.isFinite(Number(event.hour)) ? `${String(Number(event.hour)).padStart(2, '0')}:00` : 'unbekannt';
+        byHour.set(hour, (byHour.get(hour) || 0) + 1);
+        const dateKey = event.dateKey || (event.checkedAt ? String(event.checkedAt).slice(0, 10) : 'unbekannt');
+        byDate.set(dateKey, (byDate.get(dateKey) || 0) + 1);
+
+        const level = String(event.reachedLevel || '').toLowerCase();
+        if (levels[level] !== undefined) levels[level] += 1;
+    });
+
+    const stationRows = [...byStation.values()]
+        .map(row => ({ ...row, uniqueVisitors: row.uniqueVisitors.size }))
+        .sort((a, b) => b.count - a.count || a.stationName.localeCompare(b.stationName, 'de'));
+    const hourlyRows = [...byHour.entries()].map(([hour, count]) => ({ hour, count })).sort((a, b) => a.hour.localeCompare(b.hour));
+    const dateRows = [...byDate.entries()].map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
+    const totalStations = (state.stations || []).length;
+    const visitedStationIds = new Set(stationRows.map(row => String(row.stationId)));
+    const stationsWithoutCheckins = (state.stations || [])
+        .filter(station => !visitedStationIds.has(String(station.id)))
+        .map(station => ({ stationId: String(station.id), stationName: station.name || `Station ${station.id}` }));
+    const peakHour = hourlyRows.slice().sort((a, b) => b.count - a.count)[0] || null;
+    const topStation = stationRows[0] || null;
+    const lowStations = stationRows.filter(row => row.count <= 2);
+
+    const lessons = [];
+    if (topStation) lessons.push(`Stärkste Station: ${topStation.stationName} mit ${topStation.count} Check-ins.`);
+    if (peakHour) lessons.push(`Stärkstes Zeitfenster: ${peakHour.hour} mit ${peakHour.count} Check-ins.`);
+    if (stationsWithoutCheckins.length > 0) lessons.push(`${stationsWithoutCheckins.length} Station(en) hatten keine Check-ins – Beschilderung/Position/Angebot prüfen.`);
+    if (lowStations.length > 0) lessons.push(`${lowStations.length} Station(en) hatten nur 1–2 Check-ins – Lage, Attraktivität oder Sichtbarkeit prüfen.`);
+    if (uniqueVisitors.size > 0) lessons.push(`Ø Check-ins pro aktivem Lichter‑Pass Gerät: ${(checkins.length / uniqueVisitors.size).toFixed(1)}.`);
+
+    return {
+        generatedAt: new Date().toISOString(),
+        totalCheckins: checkins.length,
+        uniqueVisitors: uniqueVisitors.size,
+        totalStations,
+        stationRows,
+        hourlyRows,
+        dateRows,
+        stationsWithoutCheckins,
+        levels,
+        lessons
+    };
+}
+
+function renderUsageSummary(summary) {
+    const el = document.getElementById('admin-usage-summary');
+    if (!el) return;
+    if (!summary) {
+        el.innerHTML = '<div class="text-gray-500">Noch keine Auswertung geladen.</div>';
+        return;
+    }
+
+    const topStations = summary.stationRows.slice(0, 8).map(row => `
+        <tr class="border-t border-gray-200 dark:border-gray-700">
+            <td class="py-1 pr-2 font-mono">#${escapeHtml(row.stationId)}</td>
+            <td class="py-1 pr-2 font-bold">${escapeHtml(row.stationName)}</td>
+            <td class="py-1 text-right">${escapeHtml(row.count)}</td>
+            <td class="py-1 text-right">${escapeHtml(row.uniqueVisitors)}</td>
+        </tr>
+    `).join('');
+    const hours = summary.hourlyRows.map(row => `${escapeHtml(row.hour)}: ${escapeHtml(row.count)}`).join(' · ') || 'Keine Daten';
+    const lessons = summary.lessons.map(item => `<li>${escapeHtml(item)}</li>`).join('') || '<li>Noch zu wenig Daten für Lessons Learned.</li>';
+
+    el.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Check-ins</div><div class="text-xl font-extrabold">${summary.totalCheckins}</div></div>
+            <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Aktive Geräte</div><div class="text-xl font-extrabold">${summary.uniqueVisitors}</div></div>
+            <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Stationen genutzt</div><div class="text-xl font-extrabold">${summary.stationRows.length}/${summary.totalStations}</div></div>
+            <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Medaillen</div><div class="text-xs font-bold">B ${summary.levels.bronze} · S ${summary.levels.silver} · G ${summary.levels.gold}</div></div>
+        </div>
+        <div class="mb-3">
+            <div class="font-bold mb-1">Check-ins nach Uhrzeit</div>
+            <div class="text-xs text-gray-600 dark:text-gray-300">${hours}</div>
+        </div>
+        <div class="mb-3">
+            <div class="font-bold mb-1">Top Stationen</div>
+            <table class="w-full text-xs">
+                <thead class="text-[10px] uppercase text-gray-500"><tr><th class="text-left">Nr.</th><th class="text-left">Station</th><th class="text-right">Check-ins</th><th class="text-right">Geräte</th></tr></thead>
+                <tbody>${topStations || '<tr><td colspan="4" class="py-2 text-gray-500">Keine Check-ins vorhanden.</td></tr>'}</tbody>
+            </table>
+        </div>
+        <div>
+            <div class="font-bold mb-1">Lessons Learned</div>
+            <ul class="list-disc pl-5 text-xs text-gray-600 dark:text-gray-300 space-y-1">${lessons}</ul>
+        </div>
+    `;
+}
+
+function usageSummaryToText(summary) {
+    const lines = [
+        'Lichternacht App – anonyme Nutzungsanalyse',
+        `Erstellt: ${new Date(summary.generatedAt).toLocaleString('de-DE')}`,
+        '',
+        `Check-ins gesamt: ${summary.totalCheckins}`,
+        `Aktive Lichter‑Pass Geräte: ${summary.uniqueVisitors}`,
+        `Stationen mit Check-ins: ${summary.stationRows.length}/${summary.totalStations}`,
+        `Medaillen erreicht: Bronze ${summary.levels.bronze}, Silber ${summary.levels.silver}, Gold ${summary.levels.gold}, Diamant ${summary.levels.diamond}`,
+        '',
+        'Check-ins nach Uhrzeit:',
+        ...(summary.hourlyRows.length ? summary.hourlyRows.map(row => `- ${row.hour}: ${row.count}`) : ['- Keine Daten']),
+        '',
+        'Stationen nach Check-ins:',
+        ...(summary.stationRows.length ? summary.stationRows.map(row => `- #${row.stationId} ${row.stationName}: ${row.count} Check-ins (${row.uniqueVisitors} Geräte)`) : ['- Keine Daten']),
+        '',
+        'Stationen ohne Check-ins:',
+        ...(summary.stationsWithoutCheckins.length ? summary.stationsWithoutCheckins.map(row => `- #${row.stationId} ${row.stationName}`) : ['- Keine']),
+        '',
+        'Lessons Learned:',
+        ...(summary.lessons.length ? summary.lessons.map(item => `- ${item}`) : ['- Noch zu wenig Daten'])
+    ];
+    return lines.join('\n');
+}
+
+function downloadUsageCsv(summary) {
+    const rows = [
+        ['stationId', 'stationName', 'checkins', 'uniqueDevices', 'firstCheckin', 'lastCheckin'].join(';'),
+        ...summary.stationRows.map(row => [
+            toCsvValue(row.stationId),
+            toCsvValue(row.stationName),
+            toCsvValue(row.count),
+            toCsvValue(row.uniqueVisitors),
+            toCsvValue(row.first),
+            toCsvValue(row.last)
+        ].join(';'))
+    ];
+    downloadTextFile('lichterpass-nutzungsanalyse-stationen.csv', `\uFEFF${rows.join('\n')}\n`, 'text/csv;charset=utf-8');
+}
+
+function toCsvValue(value) {
+    const s = String(value ?? '');
+    return /[";\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+export async function loadUsageAnalytics() {
+    if (state.useLocalStorage || !state.db || !state.fb?.collection || !state.fb?.getDocs) {
+        showToast('Nutzungsanalyse ist nur online verfügbar.', 'error');
+        return;
+    }
+    try {
+        const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
+        const snap = await state.fb.getDocs(colRef);
+        const checkins = [];
+        snap.forEach(docSnap => checkins.push({ id: docSnap.id, ...docSnap.data() }));
+        state.usageSummary = buildUsageSummary(checkins);
+        renderUsageSummary(state.usageSummary);
+        showToast('Nutzungsanalyse geladen', 'success');
+    } catch (e) {
+        console.error('Usage analytics load failed', e);
+        showToast('Nutzungsanalyse konnte nicht geladen werden.', 'error');
+    }
+}
+
+export function exportUsageAnalyticsCsv() {
+    if (!state.usageSummary) {
+        showToast('Bitte zuerst Nutzungsanalyse laden.', 'info');
+        return;
+    }
+    downloadUsageCsv(state.usageSummary);
+    showToast('Nutzungsanalyse exportiert.', 'success');
+}
+
+export async function sendUsageSummaryEmail() {
+    if (!state.usageSummary) {
+        showToast('Bitte zuerst Nutzungsanalyse laden.', 'info');
+        return;
+    }
+    try {
+        const res = await fetch('./api/bug-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subject: 'Lichternacht App – anonyme Nutzungsanalyse',
+                text: usageSummaryToText(state.usageSummary),
+                meta: { type: 'usage_summary', appId: state.appId || 'unknown' }
+            })
+        });
+        if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+        showToast('Summary-Mail gesendet.', 'success');
+    } catch (e) {
+        console.error('Usage summary email failed', e);
+        showToast('Summary-Mail konnte nicht gesendet werden.', 'error');
+    }
+}
+
+export function renderUsageAnalyticsPlaceholder() {
+    renderUsageSummary(state.usageSummary || null);
+}
+
 export async function resetLikes() {
     if (!confirm("WARNUNG: Möchtest du wirklich ALLE 'Likes' (Flammen) auf 0 zurücksetzen? Das kann nicht rückgängig gemacht werden.")) return;
 
@@ -1202,7 +1410,7 @@ export async function resetLikes() {
 }
 
 export async function startNewYear() {
-    if (!confirm("⚠️ ACHTUNG: 'Neues Jahr starten' führt folgende Aktionen aus:\n\n1. Alle Likes auf 0 setzen.\n2. Aktuelle Broadcast-Nachricht löschen.\n3. Medaillen-Statistiken zurücksetzen.\n4. ALLE Besucher-Listen auf den Handys der Nutzer löschen (beim nächsten Start).\n\nWirklich fortfahren?")) return;
+    if (!confirm("⚠️ ACHTUNG: 'Neues Jahr starten' führt folgende Aktionen aus:\n\n1. Alle Likes auf 0 setzen.\n2. Aktuelle Broadcast-Nachricht löschen.\n3. Medaillen-Statistiken zurücksetzen.\n4. Anonyme Check-in-Auswertung löschen.\n5. ALLE Besucher-Listen auf den Handys der Nutzer löschen (beim nächsten Start).\n\nWirklich fortfahren?")) return;
     
     const code = prompt("Bitte 'RESET' eingeben zur Bestätigung:");
     if (code !== 'RESET') return;
@@ -1210,7 +1418,7 @@ export async function startNewYear() {
     showToast("Starte Reset... Bitte warten.", 'info');
 
     try {
-        const { writeBatch, doc, deleteDoc, setDoc } = state.fb;
+        const { writeBatch, doc, deleteDoc, setDoc, collection, getDocs } = state.fb;
         const batch = writeBatch(state.db);
 
         // 1. Reset Likes (Batch)
@@ -1229,14 +1437,19 @@ export async function startNewYear() {
             count_diamond: 0 
         });
 
+        // 3. Delete anonymous check-in analytics
+        const checkinsRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
+        const checkinsSnap = await getDocs(checkinsRef);
+        checkinsSnap.forEach(docSnap => batch.delete(docSnap.ref));
+
         // Commit Batch
         await batch.commit();
 
-        // 3. Delete Broadcast (Single Op)
+        // 4. Delete Broadcast (Single Op)
         const broadcastRef = doc(state.db, 'artifacts', state.appId, 'public', 'broadcast');
         await deleteDoc(broadcastRef).catch(() => {}); // Ignore if not exists
 
-        // 4. Update Global Config to trigger Client Wipe
+        // 5. Update Global Config to trigger Client Wipe
         const globalConfigRef = doc(state.db, 'global', 'config');
         await setDoc(globalConfigRef, { 
             resetToken: Date.now() 

@@ -29,6 +29,46 @@ function getPassInactiveMessage() {
     return `Der Lichter‑Pass ist nur während der Lichternacht aktiv (${formatted}).`;
 }
 
+function getAnonymousAnalyticsId() {
+    const key = 'anonymous_analytics_id_v1';
+    try {
+        let id = localStorage.getItem(key);
+        if (!id) {
+            const random = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `anon_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            id = String(random).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48);
+            localStorage.setItem(key, id);
+        }
+        return id;
+    } catch (e) {
+        return `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+}
+
+async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') {
+    if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
+    try {
+        const now = new Date();
+        const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const hour = now.getHours();
+        const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
+        await state.fb.addDoc(colRef, {
+            type: 'checkin',
+            anonymousId: getAnonymousAnalyticsId(),
+            stationId: String(station.id),
+            stationName: String(station.name || `Station ${station.id}`),
+            checkedAt: now.toISOString(),
+            dateKey,
+            hour,
+            passCountAfter: Number(visitedCount) || 0,
+            reachedLevel: reachedLevel || '',
+            source: 'lichterpass',
+            appId: state.appId || 'unknown'
+        });
+    } catch (e) {
+        console.warn('Anonymous check-in analytics failed', e);
+    }
+}
+
 function getRewardConfig() {
     const rewards = state.config?.rewards || {};
     const rawThresholds = rewards.thresholds || {};
@@ -457,6 +497,8 @@ export async function checkIn(id) {
             } catch (e) { console.warn("Could not update champion stats", e); }
         }
     }
+
+    recordAnonymousCheckIn(s, count, newLevel || '');
 
     updateCheckInBtn(id);
     const totalStations = Array.isArray(state.stations) ? state.stations.length : 0;

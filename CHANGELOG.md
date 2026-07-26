@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.117] - 2026-07-26
+### Added
+- **Anonyme Nutzungsanalyse:** Lichter‑Pass Check-ins werden ohne Namen, E-Mail oder GPS zentral für Admin-Auswertungen gespeichert.
+- **Admin Summary:** Adminbereich zeigt Check-ins, aktive Geräte, Top-Stationen, Uhrzeiten und Lessons Learned mit CSV-Export und Summary-Mail.
+
 ## [1.4.116] - 2026-07-26
 ### Added
 - **Lichter‑Pass Gewinnspiel:** Nach dem 3. Check-in kann der Nutzer freiwillig mit Name und E-Mail teilnehmen.
