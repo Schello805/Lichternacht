@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.118] - 2026-07-26
+### Fixed
+- **Admin Nutzungsanalyse:** Firestore-Regel für das Lesen anonymer Check-ins erkennt Admins jetzt explizit pro App-Instanz.
+
 ## [1.4.117] - 2026-07-26
 ### Added
 - **Anonyme Nutzungsanalyse:** Lichter‑Pass Check-ins werden ohne Namen, E-Mail oder GPS zentral für Admin-Auswertungen gespeichert.

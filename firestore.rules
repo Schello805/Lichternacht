@@ -16,6 +16,13 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/artifacts/$(request.path[4])/public/data/users/$(request.auth.uid))
       );
     }
+
+    function isAppAdmin(appId) {
+      return isSuperAdmin() || (
+        request.auth != null &&
+        exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid))
+      );
+    }
     
     function isIncrement(field) {
       return request.resource.data[field] == resource.data[field] + 1;
@@ -75,7 +82,7 @@ service cloud.firestore {
       // Anonymous Lichter-Pass analytics
       match /checkins/{checkinId} {
         allow create: if true;
-        allow read, update, delete: if isAdmin();
+        allow read, update, delete: if isAppAdmin(appId);
       }
     }
 
