@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.120] - 2026-07-26
+### Improved
+- **Admin Summary-Mail:** Anonyme Nutzungsanalyse ist jetzt übersichtlicher mit Kurzüberblick, Top-Erkenntnissen und klaren Abschnitten formatiert.
+
 ## [1.4.119] - 2026-07-26
 ### Added
 - **Firebase Deploy:** Projektkonfiguration für reproduzierbaren Firestore-Rules-Deploy ergänzt.

@@ -2,7 +2,7 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.119';
+import { parseCsv, toCsv } from './csv.js?v=1.4.120';
 import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
@@ -1265,26 +1265,83 @@ function renderUsageSummary(summary) {
 }
 
 function usageSummaryToText(summary) {
+    const createdAt = new Date(summary.generatedAt).toLocaleString('de-DE');
+    const stationCoverage = summary.totalStations > 0
+        ? Math.round((summary.stationRows.length / summary.totalStations) * 100)
+        : 0;
+    const averageCheckins = summary.uniqueVisitors > 0
+        ? (summary.totalCheckins / summary.uniqueVisitors).toFixed(1).replace('.', ',')
+        : '0';
+    const peakHour = summary.hourlyRows.slice().sort((a, b) => b.count - a.count)[0] || null;
+    const topStation = summary.stationRows[0] || null;
+    const medalLine = [
+        `Bronze ${summary.levels.bronze}`,
+        `Silber ${summary.levels.silver}`,
+        `Gold ${summary.levels.gold}`,
+        `Diamant ${summary.levels.diamond}`
+    ].join(' · ');
+    const formatRows = (rows, emptyText) => rows.length ? rows : [`- ${emptyText}`];
+    const topStationRows = formatRows(
+        summary.stationRows.slice(0, 12).map((row, index) => {
+            return `${String(index + 1).padStart(2, '0')}. #${row.stationId} ${row.stationName} – ${row.count} Check-in${row.count === 1 ? '' : 's'} (${row.uniqueVisitors} Gerät${row.uniqueVisitors === 1 ? '' : 'e'})`;
+        }),
+        'Keine Daten vorhanden'
+    );
+    const hourRows = formatRows(
+        summary.hourlyRows.map(row => `- ${row.hour}: ${row.count} Check-in${row.count === 1 ? '' : 's'}`),
+        'Keine Daten vorhanden'
+    );
+    const unusedStationRows = formatRows(
+        summary.stationsWithoutCheckins.map(row => `- #${row.stationId} ${row.stationName}`),
+        'Keine'
+    );
+    const lessonRows = formatRows(
+        summary.lessons.map(item => `- ${item}`),
+        'Noch zu wenig Daten für belastbare Erkenntnisse'
+    );
+
     const lines = [
-        'Lichternacht App – anonyme Nutzungsanalyse',
-        `Erstellt: ${new Date(summary.generatedAt).toLocaleString('de-DE')}`,
+        '🕯️ Lichternacht App',
+        'Anonyme Nutzungsanalyse',
         '',
-        `Check-ins gesamt: ${summary.totalCheckins}`,
-        `Aktive Lichter‑Pass Geräte: ${summary.uniqueVisitors}`,
-        `Stationen mit Check-ins: ${summary.stationRows.length}/${summary.totalStations}`,
-        `Medaillen erreicht: Bronze ${summary.levels.bronze}, Silber ${summary.levels.silver}, Gold ${summary.levels.gold}, Diamant ${summary.levels.diamond}`,
+        `Erstellt am ${createdAt}`,
         '',
-        'Check-ins nach Uhrzeit:',
-        ...(summary.hourlyRows.length ? summary.hourlyRows.map(row => `- ${row.hour}: ${row.count}`) : ['- Keine Daten']),
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'Kurzüberblick',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `• Check-ins gesamt: ${summary.totalCheckins}`,
+        `• Aktive Lichter‑Pass Geräte: ${summary.uniqueVisitors}`,
+        `• Ø Check-ins pro aktivem Gerät: ${averageCheckins}`,
+        `• Stationen mit Check-ins: ${summary.stationRows.length}/${summary.totalStations} (${stationCoverage} %)`,
+        `• Medaillen erreicht: ${medalLine}`,
         '',
-        'Stationen nach Check-ins:',
-        ...(summary.stationRows.length ? summary.stationRows.map(row => `- #${row.stationId} ${row.stationName}: ${row.count} Check-ins (${row.uniqueVisitors} Geräte)`) : ['- Keine Daten']),
+        'Top-Erkenntnisse',
+        `• Stärkste Station: ${topStation ? `#${topStation.stationId} ${topStation.stationName} (${topStation.count})` : 'noch keine Daten'}`,
+        `• Stärkste Uhrzeit: ${peakHour ? `${peakHour.hour} (${peakHour.count})` : 'noch keine Daten'}`,
+        `• Stationen ohne Check-ins: ${summary.stationsWithoutCheckins.length}`,
         '',
-        'Stationen ohne Check-ins:',
-        ...(summary.stationsWithoutCheckins.length ? summary.stationsWithoutCheckins.map(row => `- #${row.stationId} ${row.stationName}`) : ['- Keine']),
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'Check-ins nach Uhrzeit',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        ...hourRows,
         '',
-        'Lessons Learned:',
-        ...(summary.lessons.length ? summary.lessons.map(item => `- ${item}`) : ['- Noch zu wenig Daten'])
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'Stationen nach Check-ins',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        ...topStationRows,
+        ...(summary.stationRows.length > 12 ? [`… ${summary.stationRows.length - 12} weitere Station(en) im CSV-Export.`] : []),
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'Stationen ohne Check-ins',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        ...unusedStationRows,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'Lessons Learned',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        ...lessonRows,
+        '',
+        'Hinweis: Diese Auswertung ist anonym. Es werden keine Namen, E-Mail-Adressen oder GPS-Koordinaten aus normalen Check-ins ausgewertet.'
     ];
     return lines.join('\n');
 }
