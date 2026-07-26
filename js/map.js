@@ -9,6 +9,61 @@ let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
 let timeoutFinalToastShown = false;
 
+function getUserMarkerIcon() {
+    const heading = Number.isFinite(Number(state.compassHeading)) ? Number(state.compassHeading) : 0;
+    const headingClass = state.compassEnabled ? 'is-heading-active' : '';
+    const headingStyle = state.compassEnabled ? `style="transform: rotate(${heading}deg);"` : '';
+    return L.divIcon({
+        html: `
+            <div class="user-location-marker ${headingClass}">
+                <div class="user-location-heading" ${headingStyle}></div>
+                <div class="user-location-dot"></div>
+            </div>
+        `,
+        className: 'user-loc',
+        iconSize: [54, 54],
+        iconAnchor: [27, 27]
+    });
+}
+
+function updateUserMarkerHeading() {
+    if (!state.userMarker) return;
+    try {
+        state.userMarker.setIcon(getUserMarkerIcon());
+    } catch (e) { }
+}
+
+function normalizeHeading(event) {
+    if (Number.isFinite(event.webkitCompassHeading)) {
+        return Number(event.webkitCompassHeading);
+    }
+    if (Number.isFinite(event.absolute) && Number.isFinite(event.alpha)) {
+        return (360 - Number(event.alpha) + 360) % 360;
+    }
+    if (Number.isFinite(event.alpha)) {
+        return (360 - Number(event.alpha) + 360) % 360;
+    }
+    return null;
+}
+
+function setCompassButtonState() {
+    const btn = document.getElementById('compass-btn');
+    if (!btn) return;
+    btn.classList.toggle('text-blue-600', state.compassEnabled);
+    btn.classList.toggle('dark:text-blue-300', state.compassEnabled);
+    btn.classList.toggle('text-gray-700', !state.compassEnabled);
+    btn.classList.toggle('dark:text-gray-300', !state.compassEnabled);
+    btn.setAttribute('aria-pressed', state.compassEnabled ? 'true' : 'false');
+    btn.title = state.compassEnabled ? 'Kompass aktiv' : 'Kompass aktivieren';
+}
+
+function handleDeviceOrientation(event) {
+    const heading = normalizeHeading(event);
+    if (heading == null) return;
+    state.compassHeading = heading;
+    updateUserMarkerHeading();
+}
+
 function shouldShowGpsErrorToast(err) {
     const now = Date.now();
     const signature = `${err?.code || 'unknown'}:${err?.message || ''}`;
@@ -18,6 +73,52 @@ function shouldShowGpsErrorToast(err) {
         return true;
     }
     return false;
+}
+
+export async function toggleCompass() {
+    if (state.compassEnabled) {
+        if (state.compassListener) {
+            window.removeEventListener('deviceorientationabsolute', state.compassListener, true);
+            window.removeEventListener('deviceorientation', state.compassListener, true);
+        }
+        state.compassListener = null;
+        state.compassEnabled = false;
+        state.compassHeading = null;
+        setCompassButtonState();
+        updateUserMarkerHeading();
+        showToast('Kompass deaktiviert', 'info');
+        return;
+    }
+
+    if (!window.DeviceOrientationEvent) {
+        showToast('Kompass auf diesem Gerät nicht verfügbar.', 'error');
+        return;
+    }
+
+    try {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') {
+                showToast('Kompass-Berechtigung wurde nicht erteilt.', 'error');
+                return;
+            }
+        }
+    } catch (e) {
+        showToast('Kompass konnte nicht aktiviert werden.', 'error');
+        return;
+    }
+
+    state.compassListener = handleDeviceOrientation;
+    window.addEventListener('deviceorientationabsolute', state.compassListener, true);
+    window.addEventListener('deviceorientation', state.compassListener, true);
+    state.compassEnabled = true;
+    setCompassButtonState();
+    updateUserMarkerHeading();
+    showToast('Kompass aktiv – Handy flach halten und Richtung prüfen.', 'success');
+
+    if (!state.userLocation && typeof locateUser === 'function') {
+        locateUser();
+    }
 }
 
 export function initMap() {
@@ -151,7 +252,7 @@ export function locateUser(cb) {
             if (state.userMarker) {
                 state.userMarker.setLatLng([userLat, userLng]);
             } else { 
-                const icon = L.divIcon({ html: '<div style="width:18px;height:18px;background:#2563eb;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>', className: 'user-loc', iconSize: [18, 18] }); 
+                const icon = getUserMarkerIcon(); 
                 state.userMarker = L.marker([userLat, userLng], { icon: icon, interactive: false, keyboard: false }).addTo(state.map);
             }
             

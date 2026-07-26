@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.123" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.124" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.123">
+    <link rel="stylesheet" href="style.css?v=1.4.124">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -674,6 +674,10 @@
                         class="bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
                         <i class="ph ph-crosshair text-xl"></i>
                     </button>
+                    <button id="compass-btn" onclick="toggleCompass()" aria-label="Kompass aktivieren" aria-pressed="false" title="Kompass aktivieren"
+                        class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
+                        <i class="ph ph-compass text-xl"></i>
+                    </button>
                     <button onclick="resetMap()"
                         class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
                         <i class="ph ph-house text-xl"></i>
@@ -1189,7 +1193,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.123', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.124', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1216,7 +1220,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.123"></script>
+    <script type="module" src="main.js?v=1.4.124"></script>
 </body>
 
 </html>

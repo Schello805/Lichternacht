@@ -49,4 +49,50 @@
         border-color: #fff !important;
         transform-origin: center;
     }
+
+    .user-loc {
+        background: transparent !important;
+        border: 0 !important;
+    }
+
+    .user-location-marker {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        pointer-events: none;
+    }
+
+    .user-location-dot {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: #2563eb;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22), 0 2px 10px rgba(37, 99, 235, 0.65);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+    }
+
+    .user-location-heading {
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 46px;
+        height: 46px;
+        margin-left: -23px;
+        margin-top: -23px;
+        border-radius: 9999px;
+        background: conic-gradient(from -24deg, rgba(37, 99, 235, 0.34) 0deg, rgba(37, 99, 235, 0.08) 48deg, transparent 49deg, transparent 360deg);
+        filter: drop-shadow(0 3px 10px rgba(37, 99, 235, 0.35));
+        transform-origin: center;
+        z-index: 1;
+    }
+
+    .user-location-marker.is-heading-active .user-location-heading {
+        display: block;
+    }
 }

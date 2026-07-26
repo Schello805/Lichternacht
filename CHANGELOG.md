@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.124] - 2026-07-26
+### Added
+- **Karte:** Kompassmodus ergänzt. Nach Sensor-Erlaubnis zeigt der eigene Standort eine Blickrichtungsanzeige wie bei Karten-Apps.
+
 ## [1.4.123] - 2026-07-26
 ### Fixed
 - **Programm → Karte:** „Zeigen“ findet die Zielstation auch bei kleinen Koordinatenabweichungen und markiert sie mit einem deutlich sichtbaren Puls-Ring.
