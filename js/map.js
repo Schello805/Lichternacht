@@ -46,17 +46,6 @@ function normalizeHeading(event) {
     return null;
 }
 
-function setCompassButtonState() {
-    const btn = document.getElementById('compass-btn');
-    if (!btn) return;
-    btn.classList.toggle('text-blue-600', state.compassEnabled);
-    btn.classList.toggle('dark:text-blue-300', state.compassEnabled);
-    btn.classList.toggle('text-gray-700', !state.compassEnabled);
-    btn.classList.toggle('dark:text-gray-300', !state.compassEnabled);
-    btn.setAttribute('aria-pressed', state.compassEnabled ? 'true' : 'false');
-    btn.title = state.compassEnabled ? 'Kompass aktiv' : 'Kompass aktivieren';
-}
-
 function handleDeviceOrientation(event) {
     const heading = normalizeHeading(event);
     if (heading == null) return;
@@ -75,36 +64,17 @@ function shouldShowGpsErrorToast(err) {
     return false;
 }
 
-export async function toggleCompass() {
-    if (state.compassEnabled) {
-        if (state.compassListener) {
-            window.removeEventListener('deviceorientationabsolute', state.compassListener, true);
-            window.removeEventListener('deviceorientation', state.compassListener, true);
-        }
-        state.compassListener = null;
-        state.compassEnabled = false;
-        state.compassHeading = null;
-        setCompassButtonState();
-        updateUserMarkerHeading();
-        showToast('Kompass deaktiviert', 'info');
-        return;
-    }
-
-    if (!window.DeviceOrientationEvent) {
-        showToast('Kompass auf diesem Gerät nicht verfügbar.', 'error');
-        return;
-    }
+async function enableCompassFromUserGesture() {
+    if (state.compassEnabled || state.compassPermissionTried) return;
+    if (!window.DeviceOrientationEvent) return;
 
     try {
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            state.compassPermissionTried = true;
             const permission = await DeviceOrientationEvent.requestPermission();
-            if (permission !== 'granted') {
-                showToast('Kompass-Berechtigung wurde nicht erteilt.', 'error');
-                return;
-            }
+            if (permission !== 'granted') return;
         }
     } catch (e) {
-        showToast('Kompass konnte nicht aktiviert werden.', 'error');
         return;
     }
 
@@ -112,13 +82,8 @@ export async function toggleCompass() {
     window.addEventListener('deviceorientationabsolute', state.compassListener, true);
     window.addEventListener('deviceorientation', state.compassListener, true);
     state.compassEnabled = true;
-    setCompassButtonState();
     updateUserMarkerHeading();
-    showToast('Kompass aktiv – Handy flach halten und Richtung prüfen.', 'success');
-
-    if (!state.userLocation && typeof locateUser === 'function') {
-        locateUser();
-    }
+    showToast('Kompass aktiv – Richtung wird am Standortpunkt angezeigt.', 'success');
 }
 
 export function initMap() {
@@ -210,6 +175,10 @@ export function locateUser(cb) {
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
         return;
+    }
+
+    if (navigator.userActivation?.isActive) {
+        enableCompassFromUserGesture();
     }
 
     const forceCenter = !cb;

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.125] - 2026-07-26
+### Changed
+- **Karte:** Kompassfunktion wird beim manuellen Standort-Aktivieren mitgestartet; der separate Kompassbutton wurde entfernt.
+
 ## [1.4.124] - 2026-07-26
 ### Added
 - **Karte:** Kompassmodus ergänzt. Nach Sensor-Erlaubnis zeigt der eigene Standort eine Blickrichtungsanzeige wie bei Karten-Apps.

@@ -5,6 +5,7 @@ export const state = {
     compassHeading: null,
     compassEnabled: false,
     compassListener: null,
+    compassPermissionTried: false,
     routingControl: null,
     stations: [],
     events: [],
