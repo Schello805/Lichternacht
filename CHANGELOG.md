@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.113] - 2026-07-26
+### Fixed
+- **Onboarding:** Abgelehnte oder abgeschlossene Hinweise bleiben jetzt auch nach App-Updates ausgeblendet.
+
 ## [1.4.112] - 2026-07-26
 ### Changed
 - **CSV Export:** Stationen und Events werden als Semikolon-CSV exportiert; Admin-Hinweise erklären Spaltentrenner und Felder klarer.

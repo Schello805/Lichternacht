@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.112';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.113';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.112';
+} from './js/ui.js?v=1.4.113';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.112';
+} from './js/admin.js?v=1.4.113';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.112';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.113';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.112";
+const APP_VERSION = "1.4.113";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -543,21 +543,28 @@ window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
 };
 
 function setTourFlag(key, value) {
-    try {
-        localStorage.setItem(key, value);
-    } catch (e) {
-        // ignore
-    }
-    try {
-        const maxAge = 60 * 60 * 24 * 365; // 1 year
-        document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/`;
-    } catch (e) { }
+    setPersistentFlag(key, value);
 }
 
 function getTourFlag(key) {
+    return getPersistentFlag(key);
+}
+
+function setPersistentFlag(key, value) {
     try {
-        const v = localStorage.getItem(key);
-        if (v !== null) return v;
+        localStorage.setItem(key, value);
+    } catch (e) { }
+    try {
+        const maxAge = 60 * 60 * 24 * 365; // 1 year
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+    } catch (e) { }
+}
+
+function getPersistentFlag(key) {
+    try {
+        const value = localStorage.getItem(key);
+        if (value !== null) return value;
     } catch (e) { }
     try {
         const needle = `${encodeURIComponent(key)}=`;
@@ -567,6 +574,20 @@ function getTourFlag(key) {
         return decodeURIComponent(hit.substring(needle.length));
     } catch (e) { }
     return null;
+}
+
+function clearPersistentFlag(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch (e) { }
+    try {
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${encodeURIComponent(key)}=; Max-Age=0; Path=/; SameSite=Lax${secure}`;
+    } catch (e) { }
+}
+
+function hasAnyPersistentFlag(keys) {
+    return keys.some(key => getPersistentFlag(key) === 'true');
 }
 
 function hideMiniTourPromptEl() {
@@ -635,8 +656,10 @@ window.startMiniTour = (force = false) => {
 
     const finish = () => {
         setTourFlag(key, 'true');
+        setTourFlag('mini_tour_seen', 'true');
         // Once completed, never show prompt again
         setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+        setTourFlag('mini_tour_prompt_dismissed', 'true');
         cleanup();
     };
 
@@ -741,9 +764,9 @@ window.startMiniTour = (force = false) => {
 window.showMiniTourPrompt = () => {
     const seenKey = 'mini_tour_seen_v1';
     const dismissedKey = 'mini_tour_prompt_dismissed_v1';
-    const seen = getTourFlag(seenKey);
-    const dismissed = getTourFlag(dismissedKey);
-    if (seen === 'true' || dismissed === 'true') {
+    const seenKeys = [seenKey, 'mini_tour_seen'];
+    const dismissedKeys = [dismissedKey, 'mini_tour_prompt_dismissed'];
+    if (hasAnyPersistentFlag(seenKeys) || hasAnyPersistentFlag(dismissedKeys)) {
         hideMiniTourPromptEl();
         return;
     }
@@ -775,6 +798,7 @@ window.showMiniTourPrompt = () => {
 
 window.dismissMiniTourPrompt = () => {
     setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+    setTourFlag('mini_tour_prompt_dismissed', 'true');
     const el = document.getElementById('mini-tour-prompt');
     if (el) {
         el.classList.add('hidden');
@@ -790,6 +814,7 @@ window.startMiniTourFromPrompt = () => {
     }
     // Also hide prompt for this session so it doesn't reappear
     setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+    setTourFlag('mini_tour_prompt_dismissed', 'true');
     if (window.startMiniTour) setTimeout(() => window.startMiniTour(true), 0);
 };
 
@@ -877,14 +902,10 @@ window.triggerPwaInstall = async () => {
 };
 
 window.restartMiniTour = () => {
-    try {
-        localStorage.removeItem('mini_tour_seen_v1');
-        localStorage.removeItem('mini_tour_prompt_dismissed_v1');
-    } catch (e) { }
-    try {
-        document.cookie = "mini_tour_seen_v1=; Max-Age=0; Path=/";
-        document.cookie = "mini_tour_prompt_dismissed_v1=; Max-Age=0; Path=/";
-    } catch (e) { }
+    clearPersistentFlag('mini_tour_seen_v1');
+    clearPersistentFlag('mini_tour_seen');
+    clearPersistentFlag('mini_tour_prompt_dismissed_v1');
+    clearPersistentFlag('mini_tour_prompt_dismissed');
 
     if (window.showMiniTourPrompt) window.showMiniTourPrompt();
     showToast('Tour kann erneut gestartet werden.', 'info');
@@ -946,7 +967,8 @@ window.addNewTag = window.addNewTag; // Already on window from ui.js, but for co
 
 window.closeTutorial = () => {
     document.getElementById('tutorial-modal').classList.add('hidden');
-    localStorage.setItem('tutorial_seen', 'true');
+    setPersistentFlag('tutorial_seen', 'true');
+    setPersistentFlag('onboarding_dismissed', 'true');
     retryVisitorStartCardSoon();
 };
 
@@ -1167,7 +1189,7 @@ window.onload = async () => {
     updatePassProgress(); // FIX: Show correct pass progress on load
 
     // Tutorial Check
-    if (!localStorage.getItem('tutorial_seen')) {
+    if (!hasAnyPersistentFlag(['tutorial_seen', 'onboarding_dismissed'])) {
         document.getElementById('tutorial-modal').classList.remove('hidden');
     }
 
@@ -1253,8 +1275,8 @@ window.onload = async () => {
     // Defensive: if flags already set, ensure prompt is not visible
     try {
         const seen = getTourFlag('mini_tour_seen_v1');
-        const dismissed = getTourFlag('mini_tour_prompt_dismissed_v1');
-        if (seen === 'true' || dismissed === 'true') {
+        const dismissed = hasAnyPersistentFlag(['mini_tour_prompt_dismissed_v1', 'mini_tour_prompt_dismissed']);
+        if (seen === 'true' || dismissed) {
             hideMiniTourPromptEl();
         }
     } catch (e) { }
