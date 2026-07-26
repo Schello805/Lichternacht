@@ -59,9 +59,9 @@ export function validateStations(stations) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: 'Adresse/Ort fehlt' });
         }
         if (!isNonEmptyString(s?.offer)) {
-            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: 'Angebot/Beschreibung fehlt' });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: 'Angebot/Werbetext fehlt' });
         } else if (String(s.offer).length > STATION_OFFER_MAX_LENGTH) {
-            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: `Angebot/Beschreibung zu lang (${String(s.offer).length}/${STATION_OFFER_MAX_LENGTH} Zeichen)` });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: `Angebot/Werbetext zu lang (${String(s.offer).length}/${STATION_OFFER_MAX_LENGTH} Zeichen)` });
         }
     });
 

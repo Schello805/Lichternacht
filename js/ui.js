@@ -775,7 +775,7 @@ export async function saveStationChanges() {
     }
 
     if (newOffer.length > STATION_OFFER_MAX_LENGTH) {
-        showToast(`Beschreibung ist zu lang: maximal ${STATION_OFFER_MAX_LENGTH} Zeichen`, 'error');
+        showToast(`Angebot/Werbetext ist zu lang: maximal ${STATION_OFFER_MAX_LENGTH} Zeichen`, 'error');
         return;
     }
 
@@ -808,7 +808,7 @@ export async function saveStationChanges() {
 
     const stationHints = [];
     if (!String(newDesc || '').trim()) stationHints.push('Adresse/Ort fehlt');
-    if (!String(newOffer || '').trim()) stationHints.push('Angebot/Beschreibung fehlt');
+    if (!String(newOffer || '').trim()) stationHints.push('Angebot/Werbetext fehlt');
     if (newTags.length === 0) stationHints.push('keine Tags/Filter gesetzt');
 
     try {

@@ -7,7 +7,7 @@ import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
-const STATION_CSV_COLUMNS = ['id', 'name', 'desc', 'offer', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
+const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
 const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'loc', 'lat', 'lng', 'color'];
 
 function getAdminConfigIssues() {
@@ -130,7 +130,7 @@ function renderAdminDataTables() {
             <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
             <table class="w-full min-w-[680px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Werbetext/Ort</th><th class="text-left py-2">Tags</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Werbetext / Adresse</th><th class="text-left py-2">Tags</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
                 <tbody>${stationRows || '<tr><td colspan="5" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
             </table>
@@ -397,7 +397,7 @@ export function exportStationsCsv() {
     const rows = (state.stations || []).map(s => ({
         id: s.id ?? '',
         name: s.name ?? '',
-        desc: s.desc ?? '',
+        address: s.desc ?? '',
         offer: s.offer ?? '',
         lat: s.lat ?? '',
         lng: s.lng ?? '',
@@ -415,8 +415,8 @@ export function downloadStationsCsvTemplate() {
     const csv = toCsv([{
         id: '',
         name: 'Beispielstation',
-        desc: 'Adresse oder Ort',
-        offer: 'Kurzer Werbetext mit maximal 250 Zeichen',
+        address: 'Adresse oder Ort',
+        offer: 'Kurzer Angebotstext/Werbetext mit maximal 250 Zeichen',
         lat: '49.1620',
         lng: '10.5550',
         tags: 'Essen|Getränke',
@@ -475,7 +475,7 @@ async function importCsvGeneric(file, kind) {
             const station = {
                 id: Number.isFinite(id) ? id : null,
                 name: (r.name ?? '').toString().trim(),
-                desc: (r.desc ?? '').toString().trim(),
+                desc: (r.address ?? r.desc ?? '').toString().trim(),
                 offer: (r.offer ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,

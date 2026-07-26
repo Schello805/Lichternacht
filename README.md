@@ -105,7 +105,7 @@ Das Projekt nutzt **TailwindCSS** für das Styling. Um CSS-Änderungen zu machen
 
 - **CI:** GitHub Actions läuft bei jedem Push/Pull Request auf `main`.
 - **E2E:** Playwright prüft Besucher-Stationsdetails und Admin-Direktzugriff.
-- **Admin-Daten:** CSV-Import prüft Pflichtfelder und verhindert fehlerhafte Cloud-Imports.
+- **Admin-Daten:** CSV-Import prüft Pflichtfelder und verhindert fehlerhafte Cloud-Imports. Bei Stationen heißt `address` Adresse/Ort, `offer` ist der sichtbare Angebotstext.
 - **Stationen:** Werbetext max. 250 Zeichen, maximal 5 Tags, ein Bild pro Station.
 - **Updates:** Service Worker übernimmt neue Versionen schneller; Nutzer erhalten einen „Neu laden“-Hinweis.
 - **Security:** Siehe `SECURITY.md` für Firestore-/SMTP-/DSGVO-Checkliste.

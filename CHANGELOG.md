@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.101] - 2026-07-26
+### Changed
+- **Admin CSV:** Stations-Export nutzt jetzt `address` statt missverständlichem `desc`; alte `desc`-Importe bleiben kompatibel.
+- **Admin UI:** Stationsfeld heißt klarer „Angebot / Werbetext“.
+
 ## [1.4.100] - 2026-07-26
 ### Improved
 - **Besucherstart:** Startkarte wartet jetzt, bis Tour/Login/Cookiebanner geschlossen sind, statt mit Overlays zu konkurrieren.

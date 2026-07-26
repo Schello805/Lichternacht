@@ -248,7 +248,7 @@
                 </div>
                 <div class="p-4">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Pflichtspalten werden vor dem Speichern geprüft. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
+                        Export/Import als CSV (z.B. für Excel). Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -266,7 +266,7 @@
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
                                 Import CSV (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID. Werbetext: max. 250 Zeichen, max. 5 Tags.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID. Alte CSV-Spalte <span class="font-mono">desc</span> wird weiterhin als Adresse/Ort erkannt.</div>
                         </div>
 
                         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
@@ -849,13 +849,13 @@
                             wiederzufinden.</p>
 
                         <div class="flex items-center justify-between gap-2">
-                            <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Werbetext</label>
                             <span id="edit-offer-count" class="text-[11px] text-gray-400">0/250</span>
                         </div>
                         <textarea id="edit-offer" maxlength="250"
                             class="w-full mb-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                             placeholder="Was wird angeboten?"></textarea>
-                        <p class="text-[11px] text-gray-400 mb-3">Kurz wie eine Werbekarte: maximal 250 Zeichen.</p>
+                        <p class="text-[11px] text-gray-400 mb-3">Das ist der Text, den Besucher im Stationsdetail sehen. Maximal 250 Zeichen.</p>
 
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Bild</label>
                         <div class="flex gap-2 mb-2">
@@ -1130,7 +1130,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.100', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.101', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1157,7 +1157,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.100"></script>
+    <script type="module" src="main.js?v=1.4.101"></script>
 </body>
 
 </html>
