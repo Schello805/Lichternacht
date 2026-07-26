@@ -1251,7 +1251,7 @@ export function startStationPicker() {
     console.log("startStationPicker called");
 }
 
-export function flyToStation(lat, lng, id = null) {
+export function flyToStation(lat, lng, id = null, zoom = 19) {
     if (!lat || !lng || isNaN(lat) || isNaN(lng) || (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001)) {
         showToast("Keine gültigen Koordinaten", 'error');
         return;
@@ -1261,17 +1261,21 @@ export function flyToStation(lat, lng, id = null) {
     // Allow tab switch animation to start
     setTimeout(() => {
         if (state.map) {
-            state.map.setView([lat, lng], 18, { animate: true });
+            state.map.setView([lat, lng], zoom, { animate: true });
             
             // Highlight Marker if ID is provided
             if (id) {
                 // Clear previous highlights
                 document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
+                state.markers.forEach(item => {
+                    if (item.marker?.setZIndexOffset) item.marker.setZIndexOffset(0);
+                });
 
                 showToast("Station auf der Karte markiert", 'info');
 
                 const entry = state.markers.find(m => m.id == id);
                 if (entry && entry.marker) {
+                    if (entry.marker.setZIndexOffset) entry.marker.setZIndexOffset(1000);
                     const iconDiv = entry.marker.getElement();
                     if (iconDiv) {
                         const innerDiv = iconDiv.querySelector('div');
@@ -1281,10 +1285,10 @@ export function flyToStation(lat, lng, id = null) {
                             // Remove highlight after a few seconds
                             setTimeout(() => {
                                 innerDiv.classList.remove('highlight-pin');
+                                if (entry.marker?.setZIndexOffset) entry.marker.setZIndexOffset(0);
                             }, 6500);
                         }
                     }
-                    entry.marker.openPopup(); // Also open popup if relevant? Or mostly just highlight.
                 }
             }
         }
@@ -1643,7 +1647,7 @@ export function openProgramEvent(id) {
     });
     document.getElementById('program-show-map')?.addEventListener('click', () => {
         close();
-        flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId);
+        flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId, 19);
     });
     document.getElementById('program-route')?.addEventListener('click', () => {
         close();

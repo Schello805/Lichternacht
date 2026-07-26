@@ -18,9 +18,9 @@
     }
     
     .highlight-pin {
-        animation: pulse-ring 2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite !important;
+        animation: pulse-ring 0.9s cubic-bezier(0.25, 0.8, 0.25, 1) infinite !important;
         z-index: 1000 !important;
-        border-color: #eab308 !important; /* yellow-500 */
+        border-color: #fff !important;
         transform-origin: center;
     }
 }

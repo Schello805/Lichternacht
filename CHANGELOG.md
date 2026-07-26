@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.107] - 2026-07-26
+### Improved
+- **Programm/Karte:** „Auf Karte zeigen“ zoomt näher heran und lässt die Zielstation deutlich pulsieren.
+- **Stationsmodal:** Aktionsbuttons unten sind jetzt gleich groß und kompakter beschriftet.
+
 ## [1.4.106] - 2026-07-26
 ### Improved
 - **Admin-Tooltips:** Tooltips erscheinen jetzt sofort per eigener UI statt mit verzögerten Browser-Tooltips.
