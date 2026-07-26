@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.126] - 2026-07-26
+### Improved
+- **Karten-Kompass:** Blickrichtungsberechnung für Android/Chrome robuster gemacht und an die aktuelle Display-Ausrichtung angepasst.
+
 ## [1.4.125] - 2026-07-26
 ### Changed
 - **Karte:** Kompassfunktion wird beim manuellen Standort-Aktivieren mitgestartet; der separate Kompassbutton wurde entfernt.

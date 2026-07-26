@@ -35,14 +35,15 @@ function updateUserMarkerHeading() {
 
 function normalizeHeading(event) {
     if (Number.isFinite(event.webkitCompassHeading)) {
-        return Number(event.webkitCompassHeading);
+        return (Number(event.webkitCompassHeading) + 360) % 360;
     }
-    if (Number.isFinite(event.absolute) && Number.isFinite(event.alpha)) {
-        return (360 - Number(event.alpha) + 360) % 360;
+
+    const alpha = Number(event.alpha);
+    if (Number.isFinite(alpha)) {
+        const screenAngle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0) || 0;
+        return (360 - alpha + screenAngle + 360) % 360;
     }
-    if (Number.isFinite(event.alpha)) {
-        return (360 - Number(event.alpha) + 360) % 360;
-    }
+
     return null;
 }
 
@@ -78,6 +79,7 @@ async function enableCompassFromUserGesture() {
         return;
     }
 
+    state.compassPermissionTried = true;
     state.compassListener = handleDeviceOrientation;
     window.addEventListener('deviceorientationabsolute', state.compassListener, true);
     window.addEventListener('deviceorientation', state.compassListener, true);
