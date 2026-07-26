@@ -249,7 +249,7 @@
                 </div>
                 <div class="p-4">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner.
+                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Events nutzen <span class="font-mono">description</span> für die Beschreibung. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -267,7 +267,7 @@
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
                                 Import CSV (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID. Alte CSV-Spalte <span class="font-mono">desc</span> wird weiterhin als Adresse/Ort erkannt.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">CSV mit Semikolon <span class="font-mono">;</span> trennen. Import überschreibt Stationen mit gleicher ID.</div>
                         </div>
 
                         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
@@ -284,7 +284,7 @@
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
                                 Import CSV (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Events mit gleicher ID.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">CSV mit Semikolon <span class="font-mono">;</span> trennen. Import überschreibt Events mit gleicher ID.</div>
                         </div>
                     </div>
 
@@ -1159,7 +1159,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.111', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.112', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1186,7 +1186,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.111"></script>
+    <script type="module" src="main.js?v=1.4.112"></script>
 </body>
 
 </html>

@@ -8,7 +8,7 @@ import { validateStations, validateEvents } from './validate.js';
 console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
-const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'link', 'loc', 'lat', 'lng', 'color'];
+const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 
 function getAdminConfigIssues() {
@@ -494,7 +494,7 @@ export function exportStationsCsv() {
         time: s.time ?? '',
         likes: s.likes ?? ''
     }));
-    const csv = toCsv(rows, STATION_CSV_COLUMNS);
+    const csv = toCsv(rows, STATION_CSV_COLUMNS, ';');
     downloadTextFile('stations.csv', csv, 'text/csv');
     showToast('stations.csv heruntergeladen', 'success');
 }
@@ -512,7 +512,7 @@ export function downloadStationsCsvTemplate() {
         image: '',
         time: '',
         likes: ''
-    }], STATION_CSV_COLUMNS);
+    }], STATION_CSV_COLUMNS, ';');
     downloadTextFile('stations-vorlage.csv', csv, 'text/csv');
     showToast('Stations-Vorlage heruntergeladen', 'success');
 }
@@ -523,14 +523,14 @@ export function exportEventsCsv() {
         id: e.id ?? '',
         time: e.time ?? '',
         title: e.title ?? '',
-        desc: e.desc ?? '',
+        description: e.desc ?? '',
         link: e.link ?? '',
         loc: e.loc ?? '',
         lat: e.lat ?? '',
         lng: e.lng ?? '',
         color: e.color ?? ''
     }));
-    const csv = toCsv(rows, EVENT_CSV_COLUMNS);
+    const csv = toCsv(rows, EVENT_CSV_COLUMNS, ';');
     downloadTextFile('events.csv', csv, 'text/csv');
     showToast('events.csv heruntergeladen', 'success');
 }
@@ -540,13 +540,13 @@ export function downloadEventsCsvTemplate() {
         id: '',
         time: '17:00',
         title: 'Eröffnung',
-        desc: 'Kurze Beschreibung',
+        description: 'Kurze Beschreibung',
         link: 'https://beispiel.de',
         loc: 'Johanniskirche',
         lat: '49.1620',
         lng: '10.5550',
         color: 'yellow'
-    }], EVENT_CSV_COLUMNS);
+    }], EVENT_CSV_COLUMNS, ';');
     downloadTextFile('events-vorlage.csv', csv, 'text/csv');
     showToast('Event-Vorlage heruntergeladen', 'success');
 }
@@ -570,7 +570,7 @@ async function importCsvGeneric(file, kind) {
             const station = {
                 id: Number.isFinite(id) ? id : null,
                 name: (r.name ?? '').toString().trim(),
-                desc: (r.address ?? r.desc ?? '').toString().trim(),
+                desc: (r.address ?? '').toString().trim(),
                 offer: (r.offer ?? '').toString().trim(),
                 link: (r.link ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
@@ -623,7 +623,7 @@ async function importCsvGeneric(file, kind) {
                 id: idRaw || ('evt_' + Date.now() + '_' + idx),
                 time: (r.time ?? '').toString().trim(),
                 title: (r.title ?? '').toString().trim(),
-                desc: (r.desc ?? '').toString().trim(),
+                desc: (r.description ?? '').toString().trim(),
                 link: (r.link ?? '').toString().trim(),
                 loc: (r.loc ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.112] - 2026-07-26
+### Changed
+- **CSV Export:** Stationen und Events werden als Semikolon-CSV exportiert; Admin-Hinweise erklären Spaltentrenner und Felder klarer.
+- **CSV Felder:** Alte `desc`-CSV-Spalte entfernt; Events nutzen jetzt `description`, Stationen weiterhin `address`.
+
 ## [1.4.111] - 2026-07-26
 ### Fixed
 - **CSV Import:** Semikolon-, Komma- und Tab-getrennte CSV-Dateien werden automatisch erkannt; Excel-CSV mit Base64-Bildern importiert wieder korrekt.
