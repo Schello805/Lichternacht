@@ -103,24 +103,63 @@ function renderAdminDataTables() {
 
     const query = String(search?.value || '').trim().toLowerCase();
     const matches = (...values) => !query || values.some(value => String(value ?? '').toLowerCase().includes(query));
-    const stations = (state.stations || []).filter(s => matches(s.id, s.name, s.desc, s.offer, Array.isArray(s.tags) ? s.tags.join(' ') : ''));
-    const events = (state.events || []).filter(e => matches(e.id, e.time, e.title, e.desc, e.loc));
+    const formatCoord = value => Number.isFinite(Number(value)) ? Number(value).toFixed(5) : '';
+    const formatLink = value => value ? `<span title="${escapeAttr(value)}">🔗</span>` : '';
+    const formatImage = value => value ? `<span title="Bild hinterlegt">✓</span>` : '';
+    const formatTags = tags => Array.isArray(tags) ? tags.join('|') : '';
+    const stations = (state.stations || []).filter(s => matches(
+        s.id,
+        s.name,
+        s.desc,
+        s.offer,
+        s.link,
+        s.lat,
+        s.lng,
+        formatTags(s.tags),
+        s.image,
+        s.time,
+        s.likes
+    ));
+    const events = (state.events || []).filter(e => matches(
+        e.id,
+        e.time,
+        e.title,
+        e.desc,
+        e.link,
+        e.loc,
+        e.lat,
+        e.lng,
+        e.color
+    ));
 
-    const stationRows = stations.slice(0, 80).map(s => `
+    const stationRows = stations.map(s => `
         <tr class="border-t border-gray-200 dark:border-gray-700">
-            <td class="py-2 pr-2 font-mono font-bold">${escapeHtml(s.id)}</td>
+            <td class="py-2 px-3 font-mono font-bold">${escapeHtml(s.id)}</td>
             <td class="py-2 pr-2 font-bold">${escapeHtml(s.name)}</td>
-            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.offer || s.desc || '')}</td>
-            <td class="py-2 pr-2">${Array.isArray(s.tags) ? s.tags.length : 0}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.desc || '')}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.offer || '')}</td>
+            <td class="py-2 pr-2 text-center">${formatLink(s.link)}</td>
+            <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(s.lat))}</td>
+            <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(s.lng))}</td>
+            <td class="py-2 pr-2">${escapeHtml(formatTags(s.tags))}</td>
+            <td class="py-2 pr-2 text-center">${formatImage(s.image)}</td>
+            <td class="py-2 pr-2">${escapeHtml(s.time || '')}</td>
+            <td class="py-2 pr-2 text-right">${escapeHtml(s.likes ?? '')}</td>
             <td class="py-2 text-right"><button type="button" data-admin-edit="station" data-admin-id="${escapeAttr(s.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
         </tr>
     `).join('');
 
-    const eventRows = events.slice(0, 80).map(e => `
+    const eventRows = events.map(e => `
         <tr class="border-t border-gray-200 dark:border-gray-700">
+            <td class="py-2 px-3 font-mono">${escapeHtml(e.id)}</td>
             <td class="py-2 pr-2 font-mono">${escapeHtml(e.time)}</td>
             <td class="py-2 pr-2 font-bold">${escapeHtml(e.title)}</td>
-            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.loc || e.desc || '')}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.desc || '')}</td>
+            <td class="py-2 pr-2 text-center">${formatLink(e.link)}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.loc || '')}</td>
+            <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(e.lat))}</td>
+            <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(e.lng))}</td>
+            <td class="py-2 pr-2">${escapeHtml(e.color || '')}</td>
             <td class="py-2 text-right"><button type="button" data-admin-edit="event" data-admin-id="${escapeAttr(e.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
         </tr>
     `).join('');
@@ -128,20 +167,20 @@ function renderAdminDataTables() {
     container.innerHTML = `
         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
             <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
-            <table class="w-full min-w-[680px]">
+            <table class="w-full min-w-[1180px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Werbetext / Adresse</th><th class="text-left py-2">Tags</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Zeit</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
-                <tbody>${stationRows || '<tr><td colspan="5" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
+                <tbody>${stationRows || '<tr><td colspan="12" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
             </table>
         </div>
         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
             <div class="px-3 py-2 font-bold">Events (${events.length}/${(state.events || []).length})</div>
-            <table class="w-full min-w-[560px]">
+            <table class="w-full min-w-[980px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Ort/Info</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">ID</th><th class="text-left py-2">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Beschreibung</th><th class="text-center py-2">Link</th><th class="text-left py-2">Ort</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Farbe</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
-                <tbody>${eventRows || '<tr><td colspan="4" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
+                <tbody>${eventRows || '<tr><td colspan="10" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -412,6 +451,7 @@ function refreshAfterCsvImport() {
 }
 
 export function exportStationsCsv() {
+    renderAdminDataTables();
     const rows = (state.stations || []).map(s => ({
         id: s.id ?? '',
         name: s.name ?? '',
@@ -449,6 +489,7 @@ export function downloadStationsCsvTemplate() {
 }
 
 export function exportEventsCsv() {
+    renderAdminDataTables();
     const rows = (state.events || []).map(e => ({
         id: e.id ?? '',
         time: e.time ?? '',

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.109] - 2026-07-26
+### Fixed
+- **Admin Tabellenübersicht:** Stationen und Programmpunkte zeigen jetzt alle CSV-Felder und werden vor dem Export aus dem aktuellen App-State neu gerendert.
+
 ## [1.4.108] - 2026-07-26
 ### Improved
 - **Stationsmodal:** Link ist jetzt als dezentes Icon neben dem Stationsnamen statt als großer Button sichtbar.
