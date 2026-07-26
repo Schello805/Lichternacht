@@ -11,6 +11,9 @@ function toNumber(value) {
     return NaN;
 }
 
+const STATION_OFFER_MAX_LENGTH = 250;
+const STATION_TAG_MAX_COUNT = 5;
+
 export function validateStations(stations) {
     const issues = [];
     const seenIds = new Map();
@@ -48,6 +51,8 @@ export function validateStations(stations) {
 
         if (!Array.isArray(s?.tags)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'tags ist kein Array (Filter könnten nicht funktionieren)' });
+        } else if (s.tags.length > STATION_TAG_MAX_COUNT) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: `zu viele Tags (${s.tags.length}/${STATION_TAG_MAX_COUNT})` });
         }
 
         if (!isNonEmptyString(s?.desc)) {
@@ -55,6 +60,8 @@ export function validateStations(stations) {
         }
         if (!isNonEmptyString(s?.offer)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: 'Angebot/Beschreibung fehlt' });
+        } else if (String(s.offer).length > STATION_OFFER_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: `Angebot/Beschreibung zu lang (${String(s.offer).length}/${STATION_OFFER_MAX_LENGTH} Zeichen)` });
         }
     });
 

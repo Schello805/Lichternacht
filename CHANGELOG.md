@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.95] - 2026-07-26
+### Added
+- **CI:** GitHub Actions prüft bei Push/Pull Request automatisch Build und JavaScript-Syntax.
+
+## [1.4.94] - 2026-07-26
+### Changed
+- **Stationen:** Angebot/Beschreibung ist auf 250 Zeichen begrenzt; maximal 5 Tags pro Station.
+
+### Fixed
+- **Admin Datencheck:** „Öffnen“ springt wieder zuverlässig zur betroffenen Station bzw. zum Event.
+
 ## [1.4.93] - 2026-07-09
 ### Changed
 - **Adminbereich:** Admin-Konsole ist jetzt eine eigene App-Seite statt ein schwebendes Modal/Panel.

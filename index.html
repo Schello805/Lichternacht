@@ -797,10 +797,14 @@
                             der Karte ziehen, sobald du eingeloggt bist – die Anzeige hilft dir, die Station
                             wiederzufinden.</p>
 
-                        <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
-                        <textarea id="edit-offer"
-                            class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Beschreibung</label>
+                            <span id="edit-offer-count" class="text-[11px] text-gray-400">0/250</span>
+                        </div>
+                        <textarea id="edit-offer" maxlength="250"
+                            class="w-full mb-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                             placeholder="Was wird angeboten?"></textarea>
+                        <p class="text-[11px] text-gray-400 mb-3">Kurz wie eine Werbekarte: maximal 250 Zeichen.</p>
 
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Bild</label>
                         <div class="flex gap-2 mb-2">
@@ -819,6 +823,7 @@
                         <input id="edit-image" type="hidden" class="hidden" aria-hidden="true" readonly>
 
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Tags / Filter</label>
+                        <p class="text-[11px] text-gray-400 mb-2">Maximal 5 Tags pro Station.</p>
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
 
@@ -1061,7 +1066,7 @@
                 });
 
                 // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.93', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.95', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1086,7 +1091,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.93"></script>
+    <script type="module" src="main.js?v=1.4.95"></script>
 </body>
 
 </html>

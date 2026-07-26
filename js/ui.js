@@ -6,6 +6,9 @@ import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
 
+const STATION_OFFER_MAX_LENGTH = 250;
+const STATION_TAG_MAX_COUNT = 5;
+
 // --- Modal & Tab Handling ---
 
 export function openModal(target) {
@@ -604,6 +607,7 @@ function renderTagPicker() {
     
     // Parse current input
     const currentTags = new Set(input.value.split(',').map(t => t.trim()).filter(t => t));
+    const selectedCount = currentTags.size;
 
     // Ensure currently selected tags are visible even if not in global list yet
     currentTags.forEach(t => allTags.add(t));
@@ -611,13 +615,22 @@ function renderTagPicker() {
     container.innerHTML = [...allTags].sort().map(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentTags.has(tag);
+        const isDisabled = !isActive && selectedCount >= STATION_TAG_MAX_COUNT;
         const bg = isActive ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
-        return `<span onclick="toggleEditTag('${tag}')" class="cursor-pointer px-2 py-1 rounded text-xs select-none transition-colors ${bg}">${label}</span>`;
+        const disabledClass = isDisabled ? 'opacity-45 cursor-not-allowed hover:bg-gray-200' : 'cursor-pointer';
+        return `<span onclick="toggleEditTag('${tag}')" class="${disabledClass} px-2 py-1 rounded text-xs select-none transition-colors ${bg}">${label}</span>`;
     }).join('') + 
-    `<span onclick="addNewTag()" class="cursor-pointer px-2 py-1 rounded text-xs select-none transition-colors bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300 font-bold flex items-center gap-1"><i class="ph ph-plus"></i> Neu</span>`;
+    `<span onclick="addNewTag()" class="${selectedCount >= STATION_TAG_MAX_COUNT ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} px-2 py-1 rounded text-xs select-none transition-colors bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300 font-bold flex items-center gap-1"><i class="ph ph-plus"></i> Neu</span>`;
 }
 
 window.addNewTag = () => {
+    const input = document.getElementById('edit-tags');
+    let tags = input.value.split(',').map(t => t.trim()).filter(t => t);
+    if (tags.length >= STATION_TAG_MAX_COUNT) {
+        showToast(`Maximal ${STATION_TAG_MAX_COUNT} Tags pro Station`, 'info');
+        return;
+    }
+
     const newTag = prompt("Neuer Tag Name (z.B. 'pizza'):");
     if (!newTag) return;
     
@@ -625,9 +638,6 @@ window.addNewTag = () => {
     if (!cleanTag) return;
     
     // Add to input if not exists
-    const input = document.getElementById('edit-tags');
-    let tags = input.value.split(',').map(t => t.trim()).filter(t => t);
-    
     if (!tags.includes(cleanTag)) {
         tags.push(cleanTag);
         input.value = tags.join(', ');
@@ -647,6 +657,10 @@ window.toggleEditTag = (tag) => {
     if (tags.includes(tag)) {
         tags = tags.filter(t => t !== tag);
     } else {
+        if (tags.length >= STATION_TAG_MAX_COUNT) {
+            showToast(`Maximal ${STATION_TAG_MAX_COUNT} Tags pro Station`, 'info');
+            return;
+        }
         tags.push(tag);
     }
     input.value = tags.join(', ');
@@ -676,6 +690,8 @@ export function editStation(id) {
     // Init Tag Picker
     renderTagPicker();
     document.getElementById('edit-tags').oninput = () => renderTagPicker();
+    updateOfferCounter();
+    document.getElementById('edit-offer').oninput = updateOfferCounter;
 
     // Image UI
     updateImageUploadUI(s.image);
@@ -683,6 +699,16 @@ export function editStation(id) {
     // Toggle Views
     document.getElementById('modal-view-mode').classList.add('hidden');
     document.getElementById('modal-edit-mode').classList.remove('hidden');
+}
+
+function updateOfferCounter() {
+    const input = document.getElementById('edit-offer');
+    const counter = document.getElementById('edit-offer-count');
+    if (!input || !counter) return;
+    const length = input.value.length;
+    counter.textContent = `${length}/${STATION_OFFER_MAX_LENGTH}`;
+    counter.classList.toggle('text-red-600', length > STATION_OFFER_MAX_LENGTH);
+    counter.classList.toggle('font-bold', length > STATION_OFFER_MAX_LENGTH);
 }
 
 function updateImageUploadUI(imageSrc) {
@@ -745,6 +771,16 @@ export async function saveStationChanges() {
 
     if (!newName) {
         showToast("Name darf nicht leer sein", 'error');
+        return;
+    }
+
+    if (newOffer.length > STATION_OFFER_MAX_LENGTH) {
+        showToast(`Beschreibung ist zu lang: maximal ${STATION_OFFER_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+
+    if (newTags.length > STATION_TAG_MAX_COUNT) {
+        showToast(`Zu viele Tags: maximal ${STATION_TAG_MAX_COUNT} pro Station`, 'error');
         return;
     }
 

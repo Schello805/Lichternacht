@@ -60,6 +60,14 @@ function getAdminConfigIssues() {
     return issues;
 }
 
+function escapeAttr(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+}
+
 function fillAdminPanel() {
     document.getElementById('admin-app-title').value = state.config.title || '';
     document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
@@ -465,8 +473,8 @@ export function runDataValidation() {
         const where = issue.where ? `${issue.where}${issue.field ? `.${issue.field}` : ''}` : '';
         const whereSuffix = (where && where !== primaryLabel) ? ` <span class="font-mono opacity-70">${where}</span>` : '';
         const openBtn = issue.stationId
-            ? `<button type="button" class="ml-2 underline font-bold" onclick="toggleAdminPanel(); openStation(${JSON.stringify(issue.stationId)}); editStation(${JSON.stringify(issue.stationId)});">Öffnen</button>`
-            : (issue.eventId ? `<button type="button" class="ml-2 underline font-bold" onclick="toggleAdminPanel(); editEvent(${JSON.stringify(issue.eventId)});">Öffnen</button>` : '');
+            ? `<button type="button" class="ml-2 underline font-bold" data-validation-open="station" data-validation-id="${escapeAttr(issue.stationId)}">Öffnen</button>`
+            : (issue.eventId ? `<button type="button" class="ml-2 underline font-bold" data-validation-open="event" data-validation-id="${escapeAttr(issue.eventId)}">Öffnen</button>` : '');
         return `<div class="${color}"><span class="font-bold">${badge}</span> <span class="font-bold">${primaryLabel}</span>${whereSuffix} – ${issue.message}${openBtn}</div>`;
     };
 
@@ -488,6 +496,19 @@ export function runDataValidation() {
 
     const more = total > 20 ? `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">… weitere Probleme vorhanden (gekürzt).</div>` : '';
     el.innerHTML = header + details + more;
+    el.querySelectorAll('[data-validation-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const type = button.getAttribute('data-validation-open');
+            const id = button.getAttribute('data-validation-id');
+            closeAdminPanel();
+            if (type === 'station') {
+                if (window.openStation) window.openStation(id);
+                if (window.editStation) window.editStation(id);
+            } else if (type === 'event' && window.editEvent) {
+                window.editEvent(id);
+            }
+        });
+    });
 
     // Toast only inside the admin panel (avoid showing this to normal users).
     try {
