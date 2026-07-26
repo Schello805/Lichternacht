@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.106] - 2026-07-26
+### Improved
+- **Admin-Tooltips:** Tooltips erscheinen jetzt sofort per eigener UI statt mit verzögerten Browser-Tooltips.
+
 ## [1.4.105] - 2026-07-26
 ### Added
 - **Links:** Stationen und Programmpunkte haben optional ein Linkfeld, das in den Detailansichten als Button angezeigt wird.

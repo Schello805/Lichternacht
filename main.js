@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.105';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.106';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,15 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.105';
+} from './js/ui.js?v=1.4.106';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.105';
+} from './js/admin.js?v=1.4.106';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.105';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.106';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.105";
+const APP_VERSION = "1.4.106";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1062,7 +1062,76 @@ function initTrackingConsentUi() {
     if (consentState === null) show();
 }
 
+function initFastTooltips() {
+    let tooltip = document.getElementById('fast-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'fast-tooltip';
+        tooltip.setAttribute('role', 'tooltip');
+        document.body.appendChild(tooltip);
+    }
+
+    document.querySelectorAll('[title]').forEach(el => {
+        const text = el.getAttribute('title');
+        if (!text) return;
+        el.dataset.fastTooltip = text;
+        el.removeAttribute('title');
+        if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', text);
+        el.classList.add('fast-tooltip-trigger');
+    });
+
+    let activeEl = null;
+    let hideTimer = null;
+
+    const showTooltip = (el) => {
+        const text = el?.dataset?.fastTooltip;
+        if (!text) return;
+        activeEl = el;
+        clearTimeout(hideTimer);
+        tooltip.textContent = text;
+        tooltip.classList.add('show');
+
+        const rect = el.getBoundingClientRect();
+        const margin = 10;
+        const width = tooltip.offsetWidth || 240;
+        const height = tooltip.offsetHeight || 40;
+        const left = Math.min(Math.max(rect.left + rect.width / 2 - width / 2, margin), window.innerWidth - width - margin);
+        const top = rect.top - height - 8 > margin ? rect.top - height - 8 : rect.bottom + 8;
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${Math.min(top, window.innerHeight - height - margin)}px`;
+    };
+
+    const hideTooltip = (el) => {
+        if (el && activeEl && el !== activeEl) return;
+        hideTimer = setTimeout(() => {
+            tooltip.classList.remove('show');
+            activeEl = null;
+        }, 80);
+    };
+
+    document.addEventListener('pointerover', (event) => {
+        const el = event.target.closest?.('[data-fast-tooltip]');
+        if (el) showTooltip(el);
+    });
+    document.addEventListener('pointerout', (event) => {
+        const el = event.target.closest?.('[data-fast-tooltip]');
+        if (el) hideTooltip(el);
+    });
+    document.addEventListener('focusin', (event) => {
+        const el = event.target.closest?.('[data-fast-tooltip]');
+        if (el) showTooltip(el);
+    });
+    document.addEventListener('focusout', (event) => {
+        const el = event.target.closest?.('[data-fast-tooltip]');
+        if (el) hideTooltip(el);
+    });
+    window.addEventListener('scroll', () => hideTooltip(), true);
+}
+
 window.onload = async () => {
+    initFastTooltips();
+
     // Try to load config.js dynamically to avoid 404 console spam if missing
     try {
         await new Promise((resolve, reject) => {

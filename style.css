@@ -122,6 +122,32 @@ h3,
     border-left-color: #3b82f6;
 }
 
+#fast-tooltip {
+    position: fixed;
+    z-index: 10000;
+    max-width: min(280px, calc(100vw - 24px));
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(17, 24, 39, 0.96);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.08s ease, transform 0.08s ease;
+}
+
+#fast-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.fast-tooltip-trigger {
+    cursor: help;
+}
+
 /* Loading Spinner */
 .spinner {
     width: 24px;
