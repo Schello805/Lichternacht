@@ -11,6 +11,18 @@ function toNumber(value) {
     return NaN;
 }
 
+function isValidOptionalHttpUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return true;
+    const withProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+    try {
+        const url = new URL(withProtocol);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const EVENT_DESC_MAX_LENGTH = 250;
@@ -68,6 +80,10 @@ export function validateStations(stations) {
         } else if (String(s.offer).length > STATION_OFFER_MAX_LENGTH) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: `Angebot/Werbetext zu lang (${String(s.offer).length}/${STATION_OFFER_MAX_LENGTH} Zeichen)` });
         }
+
+        if (!isValidOptionalHttpUrl(s?.link)) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'link', message: 'Link ist keine gültige Webadresse' });
+        }
     });
 
     return issues;
@@ -105,6 +121,10 @@ export function validateEvents(events) {
 
         if (isNonEmptyString(e?.desc) && String(e.desc).length > EVENT_DESC_MAX_LENGTH) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'desc', message: `Beschreibung zu lang (${String(e.desc).length}/${EVENT_DESC_MAX_LENGTH} Zeichen)` });
+        }
+
+        if (!isValidOptionalHttpUrl(e?.link)) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: 'Link ist keine gültige Webadresse' });
         }
 
         // Coordinates are optional for events, but if provided they must be valid.

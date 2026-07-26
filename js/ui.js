@@ -10,6 +10,18 @@ const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const EVENT_DESC_MAX_LENGTH = 250;
 
+function normalizeExternalLink(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const withProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+    try {
+        const url = new URL(withProtocol);
+        return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // --- Modal & Tab Handling ---
 
 export function openModal(target) {
@@ -44,6 +56,7 @@ export function openModal(target) {
         // Route & Maps Buttons
         const btnRoute = document.getElementById('btn-internal-route');
         const btnMaps = document.getElementById('btn-route');
+        const btnLink = document.getElementById('modal-link-btn');
         
         if (btnRoute) {
             btnRoute.onclick = () => {
@@ -64,6 +77,13 @@ export function openModal(target) {
                 const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
                 window.open(url, '_blank');
             };
+        }
+
+        if (btnLink) {
+            const externalLink = normalizeExternalLink(s.link);
+            btnLink.classList.toggle('hidden', !externalLink);
+            btnLink.classList.toggle('flex', !!externalLink);
+            btnLink.onclick = externalLink ? () => window.open(externalLink, '_blank', 'noopener') : null;
         }
 
         const modal = document.getElementById('detail-modal');
@@ -683,6 +703,7 @@ export function editStation(id) {
     document.getElementById('edit-name').value = s.name;
     document.getElementById('edit-desc').value = s.desc || '';
     document.getElementById('edit-offer').value = s.offer || '';
+    document.getElementById('edit-link').value = s.link || '';
     document.getElementById('edit-lat').value = s.lat;
     document.getElementById('edit-lng').value = s.lng;
     document.getElementById('edit-tags').value = (s.tags || []).join(', ');
@@ -785,6 +806,7 @@ export async function saveStationChanges() {
     const newName = document.getElementById('edit-name').value.trim();
     const newDesc = document.getElementById('edit-desc').value.trim();
     const newOffer = document.getElementById('edit-offer').value.trim();
+    const newLink = normalizeExternalLink(document.getElementById('edit-link').value);
     // Lat/Lng might have been updated by dragging (we need to ensure drag updates the hidden fields)
     const newLat = parseFloat(document.getElementById('edit-lat').value);
     const newLng = parseFloat(document.getElementById('edit-lng').value);
@@ -800,6 +822,11 @@ export async function saveStationChanges() {
 
     if (newOffer.length > STATION_OFFER_MAX_LENGTH) {
         showToast(`Angebot/Werbetext ist zu lang: maximal ${STATION_OFFER_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+
+    if (newLink === null) {
+        showToast("Link ist ungültig. Bitte als Webadresse eingeben.", 'error');
         return;
     }
 
@@ -825,6 +852,7 @@ export async function saveStationChanges() {
     s.name = newName;
     s.desc = newDesc;
     s.offer = newOffer;
+    s.link = newLink || '';
     s.lat = newLat;
     s.lng = newLng;
     s.tags = newTags;
@@ -989,6 +1017,7 @@ export function editEvent(id) {
     document.getElementById('evt-time').value = e.time;
     document.getElementById('evt-title').value = e.title;
     document.getElementById('evt-desc').value = e.desc || '';
+    document.getElementById('evt-link').value = e.link || '';
     document.getElementById('evt-loc').value = e.loc;
     document.getElementById('evt-lat').value = e.lat;
     document.getElementById('evt-lng').value = e.lng;
@@ -1009,6 +1038,7 @@ function resetEventModal() {
     document.getElementById('evt-time').value = '';
     document.getElementById('evt-title').value = '';
     document.getElementById('evt-desc').value = '';
+    document.getElementById('evt-link').value = '';
     document.getElementById('evt-loc').value = '';
     document.getElementById('evt-lat').value = '';
     document.getElementById('evt-lng').value = '';
@@ -1046,6 +1076,7 @@ export async function saveEventChanges() {
     const time = document.getElementById('evt-time').value.trim();
     const title = document.getElementById('evt-title').value.trim();
     const desc = document.getElementById('evt-desc').value.trim();
+    const link = normalizeExternalLink(document.getElementById('evt-link').value);
     const loc = document.getElementById('evt-loc').value.trim();
     const lat = parseFloat(document.getElementById('evt-lat').value);
     const lng = parseFloat(document.getElementById('evt-lng').value);
@@ -1063,6 +1094,11 @@ export async function saveEventChanges() {
 
     if (desc.length > EVENT_DESC_MAX_LENGTH) {
         showToast(`Beschreibung ist zu lang: maximal ${EVENT_DESC_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+
+    if (link === null) {
+        showToast("Link ist ungültig. Bitte als Webadresse eingeben.", 'error');
         return;
     }
 
@@ -1087,6 +1123,7 @@ export async function saveEventChanges() {
         time,
         title,
         desc,
+        link: link || '',
         loc,
         lat: lat || 0,
         lng: lng || 0,
@@ -1575,6 +1612,11 @@ export function openProgramEvent(id) {
             ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
 
             <div class="mt-5 grid grid-cols-1 gap-2">
+                ${normalizeExternalLink(event.link) ? `
+                    <button type="button" id="program-link" class="w-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 py-3 rounded-xl font-bold text-sm border border-blue-100 dark:border-blue-800 flex items-center justify-center gap-2">
+                        <i class="ph ph-link"></i> Link öffnen
+                    </button>
+                ` : ''}
                 ${locationInfo.hasCoords ? `
                     <button type="button" id="program-show-map" class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
                         <i class="ph ph-map-pin"></i> Auf Karte zeigen
@@ -1595,6 +1637,10 @@ export function openProgramEvent(id) {
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
 
     document.getElementById('program-calendar')?.addEventListener('click', () => downloadSingleEventIcs(event));
+    document.getElementById('program-link')?.addEventListener('click', () => {
+        const externalLink = normalizeExternalLink(event.link);
+        if (externalLink) window.open(externalLink, '_blank', 'noopener');
+    });
     document.getElementById('program-show-map')?.addEventListener('click', () => {
         close();
         flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId);

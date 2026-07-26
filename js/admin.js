@@ -7,8 +7,8 @@ import { validateStations, validateEvents } from './validate.js';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
-const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
-const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'loc', 'lat', 'lng', 'color'];
+const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
+const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'link', 'loc', 'lat', 'lng', 'color'];
 
 function getAdminConfigIssues() {
     const issues = [];
@@ -417,6 +417,7 @@ export function exportStationsCsv() {
         name: s.name ?? '',
         address: s.desc ?? '',
         offer: s.offer ?? '',
+        link: s.link ?? '',
         lat: s.lat ?? '',
         lng: s.lng ?? '',
         tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
@@ -435,6 +436,7 @@ export function downloadStationsCsvTemplate() {
         name: 'Beispielstation',
         address: 'Adresse oder Ort',
         offer: 'Kurzer Angebotstext/Werbetext mit maximal 250 Zeichen',
+        link: 'https://beispiel.de',
         lat: '49.1620',
         lng: '10.5550',
         tags: 'Essen|Getränke',
@@ -452,6 +454,7 @@ export function exportEventsCsv() {
         time: e.time ?? '',
         title: e.title ?? '',
         desc: e.desc ?? '',
+        link: e.link ?? '',
         loc: e.loc ?? '',
         lat: e.lat ?? '',
         lng: e.lng ?? '',
@@ -468,6 +471,7 @@ export function downloadEventsCsvTemplate() {
         time: '17:00',
         title: 'Eröffnung',
         desc: 'Kurze Beschreibung',
+        link: 'https://beispiel.de',
         loc: 'Johanniskirche',
         lat: '49.1620',
         lng: '10.5550',
@@ -498,6 +502,7 @@ async function importCsvGeneric(file, kind) {
                 name: (r.name ?? '').toString().trim(),
                 desc: (r.address ?? r.desc ?? '').toString().trim(),
                 offer: (r.offer ?? '').toString().trim(),
+                link: (r.link ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
                 tags: normalizeTags(r.tags),
@@ -549,6 +554,7 @@ async function importCsvGeneric(file, kind) {
                 time: (r.time ?? '').toString().trim(),
                 title: (r.title ?? '').toString().trim(),
                 desc: (r.desc ?? '').toString().trim(),
+                link: (r.link ?? '').toString().trim(),
                 loc: (r.loc ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,

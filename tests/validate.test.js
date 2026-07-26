@@ -46,9 +46,23 @@ test('validateStations requires numeric station ids', () => {
     assert.ok(issues.some(issue => issue.field === 'id' && issue.message.includes('Zahl')));
 });
 
+test('validateStations warns for invalid optional links', () => {
+    const issues = validateStations([
+        { id: 3, name: 'Station', desc: 'Ort', offer: 'Text', link: 'javascript:alert(1)', lat: 49, lng: 10, tags: [] }
+    ]);
+
+    assert.ok(issues.some(issue => issue.field === 'link'));
+});
+
 test('validateEvents requires time and title', () => {
     const issues = validateEvents([{ id: 'evt-1', time: '', title: '' }]);
 
     assert.ok(issues.some(issue => issue.field === 'time' && issue.severity === 'error'));
     assert.ok(issues.some(issue => issue.field === 'title' && issue.severity === 'error'));
+});
+
+test('validateEvents warns for invalid optional links', () => {
+    const issues = validateEvents([{ id: 'evt-1', time: '18:00', title: 'Show', link: 'ftp://example.test' }]);
+
+    assert.ok(issues.some(issue => issue.field === 'link'));
 });

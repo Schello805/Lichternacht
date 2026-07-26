@@ -809,6 +809,10 @@
                         <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
+                        <button id="modal-link-btn" type="button"
+                            class="hidden w-full mb-3 bg-blue-50 text-blue-700 border border-blue-100 font-bold py-3 rounded-lg items-center justify-center gap-2 hover:bg-blue-100">
+                            <i class="ph ph-link text-lg"></i> Link öffnen
+                        </button>
                         <div class="flex gap-2 mt-4">
                             <button onclick="shareStation(window.activeStationId)"
                                 class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600"><i
@@ -865,6 +869,10 @@
                             placeholder="Was wird angeboten?"></textarea>
                         <p class="text-[11px] text-gray-400 mb-3">Das ist der Text, den Besucher im Stationsdetail sehen. Maximal 250 Zeichen.</p>
 
+                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block" title="Optionaler Weblink, z.B. Website, Speisekarte oder Social-Media-Seite.">Link ⓘ</label>
+                        <input id="edit-link" type="url" class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="https://beispiel.de" title="Optional. Wird als Button in der Stationsansicht angezeigt.">
+
                         <label class="text-xs font-bold text-gray-500 uppercase mt-2 block" title="Optionales Bild für die Detailansicht. Pro Station ist ein Bild vorgesehen.">Bild ⓘ</label>
                         <div class="flex gap-2 mb-2">
                             <input type="file" id="image-upload" accept="image/*" class="hidden"
@@ -918,6 +926,8 @@
                     <span id="evt-desc-count" class="text-[11px] text-gray-400">0/250</span>
                 </div>
                 <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)" maxlength="250" title="Optionaler Zusatztext, maximal 250 Zeichen.">
+                <label class="text-[10px] font-bold uppercase text-gray-400" title="Optionaler Weblink, der im Programmdetail als Button angezeigt wird.">Link ⓘ</label>
+                <input id="evt-link" type="url" class="w-full mb-2 p-2 border rounded" placeholder="https://beispiel.de" title="Optional. Wird als Button im Programmdetail angezeigt.">
                 <input id="evt-loc" class="w-full mb-2 p-2 border rounded"
                     placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)"
                     title="Ort, der im Programm angezeigt wird. Für Kartenbezug zusätzlich Koordinaten setzen.">
@@ -1146,7 +1156,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.104', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.105', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1173,7 +1183,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.104"></script>
+    <script type="module" src="main.js?v=1.4.105"></script>
 </body>
 
 </html>

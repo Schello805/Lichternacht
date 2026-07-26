@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.105] - 2026-07-26
+### Added
+- **Links:** Stationen und Programmpunkte haben optional ein Linkfeld, das in den Detailansichten als Button angezeigt wird.
+- **CSV:** Stations- und Event-CSV unterstützen die neue Spalte `link`.
+
 ## [1.4.104] - 2026-07-26
 ### Added
 - **Admin-Formulare:** Feldvalidierung, Zeichenzähler und Tooltips für erklärungsbedürftige Station-/Programmfelder ergänzt.
