@@ -30,6 +30,22 @@ test('validateStations reports invalid coordinates and duplicate ids', () => {
     assert.ok(issues.some(issue => issue.field === 'lng' && issue.severity === 'error'));
 });
 
+test('validateStations requires station names with at least three chars', () => {
+    const issues = validateStations([
+        { id: 2, name: 'AB', desc: 'Ort', offer: 'Text', lat: 49, lng: 10, tags: [] }
+    ]);
+
+    assert.ok(issues.some(issue => issue.field === 'name' && issue.message.includes('mind. 3')));
+});
+
+test('validateStations requires numeric station ids', () => {
+    const issues = validateStations([
+        { id: '28a', name: 'Station', desc: 'Ort', offer: 'Text', lat: 49, lng: 10, tags: [] }
+    ]);
+
+    assert.ok(issues.some(issue => issue.field === 'id' && issue.message.includes('Zahl')));
+});
+
 test('validateEvents requires time and title', () => {
     const issues = validateEvents([{ id: 'evt-1', time: '', title: '' }]);
 

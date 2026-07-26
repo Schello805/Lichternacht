@@ -827,19 +827,26 @@
                         <h3 class="font-bold mb-3 text-lg">Station bearbeiten</h3>
                         <div class="flex gap-2 mb-2">
                             <div class="w-1/4">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Nr.</label>
-                                <input id="edit-id" class="w-full p-2 border rounded font-mono font-bold" placeholder="ID" autocomplete="off" autocorrect="off" autocapitalize="off">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase" title="Eindeutige Stationsnummer. Nur ganze Zahlen, keine Dopplungen.">Nr. ⓘ</label>
+                                <input id="edit-id" type="number" min="1" step="1" inputmode="numeric"
+                                    class="w-full p-2 border rounded font-mono font-bold" placeholder="ID" autocomplete="off" autocorrect="off" autocapitalize="off"
+                                    title="Eindeutige Stationsnummer. Beispiel: 28">
                             </div>
                             <div class="w-3/4">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Name</label>
-                                <input id="edit-name" class="w-full p-2 border rounded" placeholder="Name" autocomplete="off">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase" title="Name der Station, wie Besucher ihn sehen. Mindestens 3 Zeichen.">Name ⓘ</label>
+                                <input id="edit-name" class="w-full p-2 border rounded" placeholder="Name" minlength="3" autocomplete="off"
+                                    title="Mindestens 3 Zeichen.">
                             </div>
                         </div>
                         
-                        <label class="text-xs font-bold text-gray-500 uppercase">Adresse / Ort</label>
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase" title="Adresse oder kurzer Orts-Hinweis. Das erscheint unter dem Stationsnamen.">Adresse / Ort ⓘ</label>
+                            <span id="edit-desc-count" class="text-[11px] text-gray-400">0 Zeichen</span>
+                        </div>
                         <textarea id="edit-desc"
                             class="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-                            placeholder="Adresse / Ort"></textarea>
+                            placeholder="Adresse / Ort"
+                            title="Adresse oder kurzer Orts-Hinweis, z.B. Marktplatz oder Ziegeleistr. 9."></textarea>
                         <input id="edit-lat" type="hidden">
                         <input id="edit-lng" type="hidden">
 
@@ -850,7 +857,7 @@
                             wiederzufinden.</p>
 
                         <div class="flex items-center justify-between gap-2">
-                            <label class="text-xs font-bold text-gray-500 uppercase">Angebot / Werbetext</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase" title="Kurzer Werbetext, den Besucher im Stationsdetail lesen.">Angebot / Werbetext ⓘ</label>
                             <span id="edit-offer-count" class="text-[11px] text-gray-400">0/250</span>
                         </div>
                         <textarea id="edit-offer" maxlength="250"
@@ -858,7 +865,7 @@
                             placeholder="Was wird angeboten?"></textarea>
                         <p class="text-[11px] text-gray-400 mb-3">Das ist der Text, den Besucher im Stationsdetail sehen. Maximal 250 Zeichen.</p>
 
-                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Bild</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block" title="Optionales Bild für die Detailansicht. Pro Station ist ein Bild vorgesehen.">Bild ⓘ</label>
                         <div class="flex gap-2 mb-2">
                             <input type="file" id="image-upload" accept="image/*" class="hidden"
                                 onchange="handleImageUpload(this)">
@@ -874,7 +881,7 @@
                         </div>
                         <input id="edit-image" type="hidden" class="hidden" aria-hidden="true" readonly>
 
-                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Tags / Filter</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase mt-2 block" title="Tags steuern die Filterchips in der Besucheransicht. Maximal 5 pro Station.">Tags / Filter ⓘ</label>
                         <p class="text-[11px] text-gray-400 mb-2">Maximal 5 Tags pro Station.</p>
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
@@ -882,7 +889,8 @@
 
 
                         <input id="edit-time" class="w-full mb-4 p-2 border rounded"
-                            placeholder="Uhrzeit (z.B. 'ab 18:00')">
+                            placeholder="Uhrzeit (z.B. 'ab 18:00')"
+                            title="Optionaler Hinweis, wenn eine Station erst ab einer bestimmten Uhrzeit aktiv ist.">
                         <div class="flex gap-2">
                             <button onclick="deleteStation()"
                                 class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
@@ -901,11 +909,18 @@
             class="fixed inset-0 z-[1050] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div class="bg-white rounded-xl p-6 w-96 shadow-2xl m-4">
                 <h3 class="font-bold mb-3 text-lg">Programm bearbeiten</h3>
-                <input id="evt-time" class="w-full mb-2 p-2 border rounded" placeholder="Uhrzeit (z.B. 17:00)">
-                <input id="evt-title" class="w-full mb-2 p-2 border rounded" placeholder="Titel">
-                <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)">
+                <label class="text-[10px] font-bold uppercase text-gray-400" title="Startzeit des Programmpunkts im Format HH:MM.">Uhrzeit ⓘ</label>
+                <input id="evt-time" class="w-full mb-2 p-2 border rounded" placeholder="Uhrzeit (z.B. 17:00)" title="Bitte als HH:MM eingeben, z.B. 18:00.">
+                <label class="text-[10px] font-bold uppercase text-gray-400" title="Titel des Programmpunkts, wie Besucher ihn sehen.">Titel ⓘ</label>
+                <input id="evt-title" class="w-full mb-2 p-2 border rounded" placeholder="Titel" minlength="3" title="Mindestens 3 Zeichen.">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="text-[10px] font-bold uppercase text-gray-400" title="Optionaler Zusatztext im Programmdetail.">Beschreibung ⓘ</label>
+                    <span id="evt-desc-count" class="text-[11px] text-gray-400">0/250</span>
+                </div>
+                <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)" maxlength="250" title="Optionaler Zusatztext, maximal 250 Zeichen.">
                 <input id="evt-loc" class="w-full mb-2 p-2 border rounded"
-                    placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)">
+                    placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)"
+                    title="Ort, der im Programm angezeigt wird. Für Kartenbezug zusätzlich Koordinaten setzen.">
 
                 <div class="mb-2">
                     <label for="evt-linked-station" class="text-[10px] font-bold uppercase text-gray-400">Station wählen
@@ -929,14 +944,14 @@
                 </div>
 
                 <div class="flex gap-2 mb-2">
-                    <input id="evt-lat" class="w-1/2 p-2 border rounded text-xs" placeholder="Lat (49...)">
-                    <input id="evt-lng" class="w-1/2 p-2 border rounded text-xs" placeholder="Lng (10...)">
+                    <input id="evt-lat" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Lat (49...)" title="Breitengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
+                    <input id="evt-lng" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Lng (10...)" title="Längengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
                     <button onclick="fillEventCoords()" class="bg-gray-200 px-2 rounded"
                         title="Nimm Kartenmitte">📍</button>
                 </div>
 
-                <label class="text-xs font-bold text-gray-500 uppercase mt-2 block">Farbe</label>
-                <select id="evt-color" class="w-full mb-4 p-2 border rounded">
+                <label class="text-xs font-bold text-gray-500 uppercase mt-2 block" title="Farbe ist ein visueller Akzent in Timeline und Live/Demnächst-Hinweis.">Farbe ⓘ</label>
+                <select id="evt-color" class="w-full mb-4 p-2 border rounded" title="Nur visuelle Orientierung, keine technische Kategorie.">
                     <option value="yellow">Gelb (Standard)</option>
                     <option value="red">Rot</option>
                     <option value="blue">Blau</option>
@@ -1131,7 +1146,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.103', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.104', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1158,7 +1173,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.103"></script>
+    <script type="module" src="main.js?v=1.4.104"></script>
 </body>
 
 </html>

@@ -489,6 +489,9 @@ async function importCsvGeneric(file, kind) {
     if (kind === 'stations') {
         const mapped = rows.map((r, idx) => {
             const idRaw = (r.id ?? '').toString().trim();
+            if (idRaw && !/^\d+$/.test(idRaw)) {
+                throw new Error(`Station: id muss eine Zahl sein in Zeile ${idx + 2}`);
+            }
             const id = idRaw ? Number(idRaw) : null;
             const station = {
                 id: Number.isFinite(id) ? id : null,

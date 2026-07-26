@@ -8,6 +8,7 @@ import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
+const EVENT_DESC_MAX_LENGTH = 250;
 
 // --- Modal & Tab Handling ---
 
@@ -690,6 +691,8 @@ export function editStation(id) {
     // Init Tag Picker
     renderTagPicker();
     document.getElementById('edit-tags').oninput = () => renderTagPicker();
+    updateStationAddressCounter();
+    document.getElementById('edit-desc').oninput = updateStationAddressCounter;
     updateOfferCounter();
     document.getElementById('edit-offer').oninput = updateOfferCounter;
 
@@ -709,6 +712,23 @@ function updateOfferCounter() {
     counter.textContent = `${length}/${STATION_OFFER_MAX_LENGTH}`;
     counter.classList.toggle('text-red-600', length > STATION_OFFER_MAX_LENGTH);
     counter.classList.toggle('font-bold', length > STATION_OFFER_MAX_LENGTH);
+}
+
+function updateStationAddressCounter() {
+    const input = document.getElementById('edit-desc');
+    const counter = document.getElementById('edit-desc-count');
+    if (!input || !counter) return;
+    counter.textContent = `${input.value.length} Zeichen`;
+}
+
+function updateEventDescCounter() {
+    const input = document.getElementById('evt-desc');
+    const counter = document.getElementById('evt-desc-count');
+    if (!input || !counter) return;
+    const length = input.value.length;
+    counter.textContent = `${length}/${EVENT_DESC_MAX_LENGTH}`;
+    counter.classList.toggle('text-red-600', length > EVENT_DESC_MAX_LENGTH);
+    counter.classList.toggle('font-bold', length > EVENT_DESC_MAX_LENGTH);
 }
 
 function updateImageUploadUI(imageSrc) {
@@ -743,12 +763,16 @@ export async function saveStationChanges() {
     if (!s) return;
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
-    const idInput = document.getElementById('edit-id').value;
+    const idInput = document.getElementById('edit-id').value.trim();
+    if (!/^\d+$/.test(idInput)) {
+        showToast("Stationsnummer darf nur aus Zahlen bestehen", 'error');
+        return;
+    }
     
-    // Improved ID parsing: Only convert to number if it's purely numeric
-    let newId = idInput;
-    if (/^\d+$/.test(idInput)) {
-        newId = parseInt(idInput, 10);
+    const newId = parseInt(idInput, 10);
+    if (!Number.isInteger(newId) || newId < 1) {
+        showToast("Stationsnummer muss eine positive ganze Zahl sein", 'error');
+        return;
     }
 
     // Validation: Check if ID exists (and is not self)
@@ -758,9 +782,9 @@ export async function saveStationChanges() {
         return;
     }
 
-    const newName = document.getElementById('edit-name').value;
-    const newDesc = document.getElementById('edit-desc').value;
-    const newOffer = document.getElementById('edit-offer').value;
+    const newName = document.getElementById('edit-name').value.trim();
+    const newDesc = document.getElementById('edit-desc').value.trim();
+    const newOffer = document.getElementById('edit-offer').value.trim();
     // Lat/Lng might have been updated by dragging (we need to ensure drag updates the hidden fields)
     const newLat = parseFloat(document.getElementById('edit-lat').value);
     const newLng = parseFloat(document.getElementById('edit-lng').value);
@@ -769,8 +793,8 @@ export async function saveStationChanges() {
     const tagsInput = document.getElementById('edit-tags').value;
     const newTags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
-    if (!newName) {
-        showToast("Name darf nicht leer sein", 'error');
+    if (newName.length < 3) {
+        showToast("Name muss mindestens 3 Zeichen haben", 'error');
         return;
     }
 
@@ -969,6 +993,8 @@ export function editEvent(id) {
     document.getElementById('evt-lat').value = e.lat;
     document.getElementById('evt-lng').value = e.lng;
     document.getElementById('evt-color').value = e.color || 'yellow';
+    updateEventDescCounter();
+    document.getElementById('evt-desc').oninput = updateEventDescCounter;
     
     // Station Link logic if we had it stored in event
     // For now we don't strictly store linkedStationId in event, 
@@ -989,6 +1015,8 @@ function resetEventModal() {
     document.getElementById('evt-color').value = 'yellow';
     document.getElementById('evt-linked-station').value = '';
     document.getElementById('btn-delete-event').classList.add('hidden');
+    updateEventDescCounter();
+    document.getElementById('evt-desc').oninput = updateEventDescCounter;
     
     // Populate Station Select
     const sel = document.getElementById('evt-linked-station');
@@ -1015,10 +1043,10 @@ export function fillEventCoords() {
 }
 
 export async function saveEventChanges() {
-    const time = document.getElementById('evt-time').value;
-    const title = document.getElementById('evt-title').value;
-    const desc = document.getElementById('evt-desc').value;
-    const loc = document.getElementById('evt-loc').value;
+    const time = document.getElementById('evt-time').value.trim();
+    const title = document.getElementById('evt-title').value.trim();
+    const desc = document.getElementById('evt-desc').value.trim();
+    const loc = document.getElementById('evt-loc').value.trim();
     const lat = parseFloat(document.getElementById('evt-lat').value);
     const lng = parseFloat(document.getElementById('evt-lng').value);
     const color = document.getElementById('evt-color').value;
@@ -1028,8 +1056,23 @@ export async function saveEventChanges() {
         return;
     }
 
+    if (title.length < 3) {
+        showToast("Titel muss mindestens 3 Zeichen haben", 'error');
+        return;
+    }
+
+    if (desc.length > EVENT_DESC_MAX_LENGTH) {
+        showToast(`Beschreibung ist zu lang: maximal ${EVENT_DESC_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+
     if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(time).trim())) {
         showToast("Zeitformat bitte als HH:MM eingeben (z.B. 18:00).", 'error');
+        return;
+    }
+
+    if ((Number.isFinite(lat) && (lat < -90 || lat > 90)) || (Number.isFinite(lng) && (lng < -180 || lng > 180))) {
+        showToast("Koordinaten sind außerhalb des gültigen Bereichs", 'error');
         return;
     }
 

@@ -13,6 +13,7 @@ function toNumber(value) {
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
+const EVENT_DESC_MAX_LENGTH = 250;
 
 export function validateStations(stations) {
     const issues = [];
@@ -27,6 +28,8 @@ export function validateStations(stations) {
         const path = `stations[${idx}]`;
         if (!idStr) {
             issues.push({ severity: 'error', where: path, label, stationId: null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id fehlt' });
+        } else if (!/^\d+$/.test(idStr)) {
+            issues.push({ severity: 'error', where: path, label, stationId: idStr, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id muss eine Zahl sein' });
         } else {
             const prev = seenIds.get(idStr);
             if (prev !== undefined) {
@@ -38,6 +41,8 @@ export function validateStations(stations) {
 
         if (!isNonEmptyString(s?.name)) {
             issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: '', field: 'name', message: 'Name fehlt/leer' });
+        } else if (String(s.name).trim().length < 3) {
+            issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: String(s.name).trim(), field: 'name', message: 'Name zu kurz (mind. 3 Zeichen)' });
         }
 
         const lat = toNumber(s?.lat);
@@ -94,6 +99,12 @@ export function validateEvents(events) {
         }
         if (!isNonEmptyString(e?.title)) {
             issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel fehlt' });
+        } else if (String(e.title).trim().length < 3) {
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel zu kurz (mind. 3 Zeichen)' });
+        }
+
+        if (isNonEmptyString(e?.desc) && String(e.desc).length > EVENT_DESC_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'desc', message: `Beschreibung zu lang (${String(e.desc).length}/${EVENT_DESC_MAX_LENGTH} Zeichen)` });
         }
 
         // Coordinates are optional for events, but if provided they must be valid.
