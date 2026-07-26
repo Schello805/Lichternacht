@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.122';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.123';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1257,41 +1257,68 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
         showToast("Keine gültigen Koordinaten", 'error');
         return;
     }
+
+    function findTargetMarker() {
+        if (!Array.isArray(state.markers)) return null;
+        if (id != null && id !== '') {
+            const exact = state.markers.find(m => String(m.id) === String(id));
+            if (exact) return exact;
+        }
+
+        return state.markers
+            .map(item => {
+                const pos = item.marker?.getLatLng ? item.marker.getLatLng() : null;
+                if (!pos) return null;
+                return { item, distance: getDistance(Number(lat), Number(lng), pos.lat, pos.lng) };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.distance - b.distance)
+            .find(row => row.distance <= 40)?.item || null;
+    }
+
+    function clearMapHighlights() {
+        document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
+        document.querySelectorAll('.map-target-highlight').forEach(el => el.classList.remove('map-target-highlight'));
+        state.markers.forEach(item => {
+            if (item.marker?.setZIndexOffset) item.marker.setZIndexOffset(0);
+        });
+    }
+
+    function applyMapHighlight(attempt = 0) {
+        const entry = findTargetMarker();
+        if (!entry?.marker) {
+            if (attempt < 6) setTimeout(() => applyMapHighlight(attempt + 1), 250);
+            return;
+        }
+
+        if (entry.marker.setZIndexOffset) entry.marker.setZIndexOffset(10000);
+        const iconDiv = entry.marker.getElement();
+        const pinDiv = iconDiv?.querySelector('.station-pin') || iconDiv?.querySelector('div');
+        if (!iconDiv || !pinDiv) {
+            if (attempt < 6) setTimeout(() => applyMapHighlight(attempt + 1), 250);
+            return;
+        }
+
+        iconDiv.classList.add('map-target-highlight');
+        pinDiv.classList.add('highlight-pin');
+        setTimeout(() => {
+            iconDiv.classList.remove('map-target-highlight');
+            pinDiv.classList.remove('highlight-pin');
+            if (entry.marker?.setZIndexOffset) entry.marker.setZIndexOffset(0);
+        }, 8000);
+    }
     
     switchTab('map');
     // Allow tab switch animation to start
     setTimeout(() => {
         if (state.map) {
+            try { state.map.invalidateSize(); } catch (e) { }
             state.map.setView([lat, lng], zoom, { animate: true });
             
-            // Highlight Marker if ID is provided
-            if (id) {
-                // Clear previous highlights
-                document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
-                state.markers.forEach(item => {
-                    if (item.marker?.setZIndexOffset) item.marker.setZIndexOffset(0);
-                });
-
-                showToast("Station auf der Karte markiert", 'info');
-
-                const entry = state.markers.find(m => m.id == id);
-                if (entry && entry.marker) {
-                    if (entry.marker.setZIndexOffset) entry.marker.setZIndexOffset(1000);
-                    const iconDiv = entry.marker.getElement();
-                    if (iconDiv) {
-                        const innerDiv = iconDiv.querySelector('div');
-                        if (innerDiv) {
-                            innerDiv.classList.add('highlight-pin');
-                            
-                            // Remove highlight after a few seconds
-                            setTimeout(() => {
-                                innerDiv.classList.remove('highlight-pin');
-                                if (entry.marker?.setZIndexOffset) entry.marker.setZIndexOffset(0);
-                            }, 6500);
-                        }
-                    }
-                }
-            }
+            clearMapHighlights();
+            showToast("Station auf der Karte markiert", 'info');
+            applyMapHighlight();
+            setTimeout(() => applyMapHighlight(), 700);
         }
     }, 300); // Slightly longer delay to ensure map is rendered
 }
@@ -1510,7 +1537,7 @@ function getEventLocationInfo(event) {
         const stationLat = parseFloat(station.lat);
         const stationLng = parseFloat(station.lng);
         if (!Number.isFinite(stationLat) || !Number.isFinite(stationLng)) return false;
-        return Math.abs(stationLat - lat) < 0.00001 && Math.abs(stationLng - lng) < 0.00001;
+        return getDistance(stationLat, stationLng, lat, lng) <= 40;
     });
     const nameMatch = (!coordMatch && Array.isArray(state.stations)) ? state.stations.find(station =>
         typeof station.name === 'string' && typeof event.loc === 'string' &&

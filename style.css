@@ -235,18 +235,42 @@ h3,
     );
 }
 
+.map-target-highlight {
+    overflow: visible !important;
+    z-index: 10000 !important;
+}
+
+.map-target-highlight::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 58px;
+    height: 58px;
+    border-radius: 9999px;
+    border: 4px solid rgba(37, 99, 235, 0.95);
+    background: rgba(37, 99, 235, 0.16);
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.95);
+    pointer-events: none;
+    animation: highlightRingPulse 1s ease-out infinite !important;
+}
+
 .highlight-pin {
     background-color: #2563eb !important;
     border-color: #fff !important;
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.9), 0 0 0 4px rgba(255, 255, 255, 0.95) !important;
-    animation: highlightPulse 0.9s ease-in-out infinite;
+    animation: highlightPinBounce 0.75s ease-in-out infinite !important;
     transform-origin: center;
 }
 
-@keyframes highlightPulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.9), 0 0 0 4px rgba(255, 255, 255, 0.95); }
-    55% { transform: scale(1.28); box-shadow: 0 0 0 18px rgba(37, 99, 235, 0.0), 0 0 0 5px rgba(255, 255, 255, 0.95); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.0), 0 0 0 4px rgba(255, 255, 255, 0.95); }
+@keyframes highlightRingPulse {
+    0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.95; }
+    70% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(0.75); opacity: 0; }
+}
+
+@keyframes highlightPinBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
 }
 
 .visited-pin {

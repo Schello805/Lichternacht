@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.123] - 2026-07-26
+### Fixed
+- **Programm → Karte:** „Zeigen“ findet die Zielstation auch bei kleinen Koordinatenabweichungen und markiert sie mit einem deutlich sichtbaren Puls-Ring.
+
 ## [1.4.122] - 2026-07-26
 ### Improved
 - **Datenschutzhinweise:** Lokale Speicherung, zentrale anonymisierte/pseudonymisierte Check-in-Auswertung sowie freiwillige E-Mail-Verarbeitung für Gewinnspiel, Preisanforderung und Feedback klarer abgegrenzt.
