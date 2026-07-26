@@ -19,6 +19,11 @@ Die App sendet Bugreports an `POST /api/bug-report` (Apache Proxy → `server.py
 - Setup-Anleitung: `SERVER_EMAIL_SETUP.md`
 - `.env` Vorlage: `.env.example`
 
+### Fehler-Monitoring
+
+JavaScript-Fehler werden zusätzlich an `POST /api/client-error` gesendet und serverseitig in `logs/client-errors.log` protokolliert.
+Der Ordner `logs/` ist absichtlich ignoriert und gehört nicht ins Git-Repo.
+
 ### Event-Datum / Zeitfenster
 
 Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitfenster gesetzt werden:
@@ -99,6 +104,7 @@ Das Projekt nutzt **TailwindCSS** für das Styling. Um CSS-Änderungen zu machen
 ## ✅ Produktionsreife Checks
 
 - **CI:** GitHub Actions läuft bei jedem Push/Pull Request auf `main`.
+- **E2E:** Playwright prüft Besucher-Stationsdetails und Admin-Direktzugriff.
 - **Admin-Daten:** CSV-Import prüft Pflichtfelder und verhindert fehlerhafte Cloud-Imports.
 - **Stationen:** Werbetext max. 250 Zeichen, maximal 5 Tags, ein Bild pro Station.
 - **Updates:** Service Worker übernimmt neue Versionen schneller; Nutzer erhalten einen „Neu laden“-Hinweis.

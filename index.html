@@ -4,8 +4,32 @@
 <head>
     <meta charset="UTF-8">
     <script>
+        function reportClientError(payload) {
+            try {
+                const body = JSON.stringify({
+                    ...payload,
+                    href: location.href,
+                    userAgent: navigator.userAgent,
+                    ts: new Date().toISOString()
+                });
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/client-error', new Blob([body], { type: 'application/json' }));
+                } else {
+                    fetch('/api/client-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
+                }
+            } catch (e) { }
+        }
+
         window.onerror = function (msg, url, lineNo, columnNo, error) {
             console.error('Global Error:', msg, url, lineNo, error);
+            reportClientError({
+                type: 'error',
+                message: String(msg || ''),
+                source: String(url || ''),
+                line: lineNo || 0,
+                column: columnNo || 0,
+                stack: error && error.stack ? String(error.stack).slice(0, 4000) : ''
+            });
             // Zeige nur Toast/Alert wenn UI geladen, sonst Fallback
             const container = document.getElementById('toast-container');
             if (container) {
@@ -20,6 +44,15 @@
             }
             return false;
         };
+
+        window.addEventListener('unhandledrejection', function (event) {
+            const reason = event.reason || {};
+            reportClientError({
+                type: 'unhandledrejection',
+                message: String(reason.message || reason || ''),
+                stack: reason.stack ? String(reason.stack).slice(0, 4000) : ''
+            });
+        });
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lichternacht Bechhofen</title>
@@ -188,7 +221,7 @@
                 <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-1.5 sm:p-2">
                     <i class="ph ph-moon text-lg sm:text-xl" id="dark-mode-icon"></i>
                 </button>
-                <button onclick="toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2">
+                <button onclick="window.requestAdminPage ? window.requestAdminPage() : toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2">
                     <i class="ph ph-lock-key text-lg sm:text-xl" id="lock-icon"></i>
                 </button>
             </div>
@@ -264,6 +297,20 @@
                         </div>
                         <div id="admin-validation-results" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
                             Noch nicht geprüft.
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                            <div>
+                                <div class="font-bold text-sm">Tabellenübersicht</div>
+                                <div class="text-[11px] text-gray-500">Suchen, prüfen und direkt bearbeiten.</div>
+                            </div>
+                            <input id="admin-table-search" type="search" placeholder="Station/Event suchen..."
+                                class="w-full sm:w-64 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                        </div>
+                        <div id="admin-data-tables" class="space-y-4 text-xs">
+                            Wird geladen…
                         </div>
                     </div>
                 </div>
@@ -1073,23 +1120,17 @@
                     window.location.reload();
                 });
 
-                // Remove Old Caches if needed (Manual Nuke)
-                if (localStorage.getItem('app_version') !== '1.4.70') {
-                     // Optionally clear caches via SW logic
-                }
-
-                // NUCLEAR: Explicitly unregister the OLD 'sw.js' if it exists
-                const registrations = navigator.serviceWorker.getRegistrations().then(regs => {
+                // Remove the legacy service worker once, if an older installation still has it.
+                navigator.serviceWorker.getRegistrations().then(regs => {
                     for (const registration of regs) {
                         if (registration.active && registration.active.scriptURL.includes('sw.js')) {
-                            console.log('Unregistering OLD sw.js:', registration);
+                            console.log('Unregistering legacy sw.js:', registration);
                             registration.unregister();
                         }
                     }
                 });
 
-                // Register NEW SW
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.97', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.98', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1116,7 +1157,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.97"></script>
+    <script type="module" src="main.js?v=1.4.98"></script>
 </body>
 
 </html>

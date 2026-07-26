@@ -21,6 +21,10 @@ export async function performLogin() {
             const modal = document.getElementById('login-modal');
             if (modal) modal.classList.add('hidden');
             showToast('Lokaler Admin-Modus aktiviert (ohne Firebase Sync)', 'info');
+            if (window.pendingAdminOpen && window.toggleAdminPanel) {
+                window.pendingAdminOpen = false;
+                window.toggleAdminPanel();
+            }
             return;
         }
 
@@ -146,6 +150,10 @@ export function initAuthListener() {
                     btn.classList.replace('text-gray-500', 'text-green-500');
                     showToast(`Hallo ${user.email}!`, 'success');
                     await loadData();
+                    if (window.pendingAdminOpen && window.toggleAdminPanel) {
+                        window.pendingAdminOpen = false;
+                        window.toggleAdminPanel();
+                    }
                 } else {
                     // Invalid User (Not in Firestore whitelist)
                     console.warn("User not found in whitelist. Logging out.");

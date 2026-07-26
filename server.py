@@ -11,9 +11,12 @@ from email.message import EmailMessage
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
 PORT = int(os.environ.get('PORT', '8000'))
 UPLOAD_DIR = 'downloads'
+LOG_DIR = 'logs'
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
 def load_dotenv(path='.env'):
     """
@@ -116,7 +119,40 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp.login(user, password)
                 smtp.send_message(msg)
 
+    def _write_client_error_log(self, data):
+        entry = {
+            "ts": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            "ip": self.client_address[0] if self.client_address else "unknown",
+            "type": str(data.get("type") or "error")[:60],
+            "message": str(data.get("message") or "")[:1000],
+            "source": str(data.get("source") or "")[:500],
+            "line": data.get("line") or 0,
+            "column": data.get("column") or 0,
+            "href": str(data.get("href") or "")[:1000],
+            "userAgent": str(data.get("userAgent") or "")[:500],
+            "stack": str(data.get("stack") or "")[:4000]
+        }
+        with open(os.path.join(LOG_DIR, 'client-errors.log'), 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
     def do_POST(self):
+        if self.path == '/api/client-error':
+            if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
+                self._send_json(400, {"ok": False, "error": "invalid_content_type"})
+                return
+
+            data = self._read_json()
+            if not data or not isinstance(data, dict):
+                self._send_json(400, {"ok": False, "error": "invalid_json"})
+                return
+
+            try:
+                self._write_client_error_log(data)
+                self._send_json(200, {"ok": True})
+            except Exception as e:
+                self._send_json(500, {"ok": False, "error": str(e)})
+            return
+
         if self.path == '/api/bug-report':
             if not self._rate_limit():
                 self._send_json(429, {"ok": False, "error": "rate_limited"})
@@ -201,8 +237,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
 print(f"Server läuft auf http://{HOST}:{PORT}")
 print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
 
-with socketserver.TCPServer((HOST, PORT), CustomHandler) as httpd:
+with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
     httpd.serve_forever()

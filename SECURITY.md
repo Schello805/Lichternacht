@@ -7,6 +7,7 @@ Diese App ist eine private PWA mit Firebase/Firestore und einem kleinen Server-E
 - `firestore.rules` deployen und im Firebase-Regel-Simulator testen.
 - Admin-Nutzer nur gezielt in `artifacts/{appId}/public/data/users` anlegen.
 - `.env` niemals committen; SMTP-Zugangsdaten nur auf dem Server speichern.
+- `logs/client-errors.log` regelmäßig prüfen und nicht veröffentlichen.
 - Matomo/Tracking nur über Consent aktivieren und Datenschutzhinweise aktuell halten.
 - Nach jedem Deployment prüfen: App-Version, Service Worker Update, Admin-Datencheck.
 
@@ -19,6 +20,7 @@ Bei Push/Pull Request läuft `.github/workflows/ci.yml`:
 - Tailwind-Build
 - JavaScript-Syntaxcheck
 - Node-Tests für Validierung und Zeitfenster
+- Playwright-E2E für Stationsdetails und Admin-Datencheck
 
 ## Kritische manuelle Tests
 

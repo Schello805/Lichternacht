@@ -3,3 +3,6 @@
 config.js
 node_modules/
 .env
+logs/
+test-results/
+playwright-report/

@@ -71,6 +71,83 @@ function escapeAttr(value) {
         .replaceAll('>', '&gt;');
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function bindAdminTableActions(container) {
+    container.querySelectorAll('[data-admin-edit]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const type = button.getAttribute('data-admin-edit');
+            const id = button.getAttribute('data-admin-id');
+            closeAdminPanel();
+            if (type === 'station') {
+                if (window.openStation) window.openStation(id);
+                if (window.editStation) window.editStation(id);
+            } else if (type === 'event' && window.editEvent) {
+                window.editEvent(id);
+            }
+        });
+    });
+}
+
+function renderAdminDataTables() {
+    const container = document.getElementById('admin-data-tables');
+    const search = document.getElementById('admin-table-search');
+    if (!container) return;
+
+    const query = String(search?.value || '').trim().toLowerCase();
+    const matches = (...values) => !query || values.some(value => String(value ?? '').toLowerCase().includes(query));
+    const stations = (state.stations || []).filter(s => matches(s.id, s.name, s.desc, s.offer, Array.isArray(s.tags) ? s.tags.join(' ') : ''));
+    const events = (state.events || []).filter(e => matches(e.id, e.time, e.title, e.desc, e.loc));
+
+    const stationRows = stations.slice(0, 80).map(s => `
+        <tr class="border-t border-gray-200 dark:border-gray-700">
+            <td class="py-2 pr-2 font-mono font-bold">${escapeHtml(s.id)}</td>
+            <td class="py-2 pr-2 font-bold">${escapeHtml(s.name)}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.offer || s.desc || '')}</td>
+            <td class="py-2 pr-2">${Array.isArray(s.tags) ? s.tags.length : 0}</td>
+            <td class="py-2 text-right"><button type="button" data-admin-edit="station" data-admin-id="${escapeAttr(s.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
+        </tr>
+    `).join('');
+
+    const eventRows = events.slice(0, 80).map(e => `
+        <tr class="border-t border-gray-200 dark:border-gray-700">
+            <td class="py-2 pr-2 font-mono">${escapeHtml(e.time)}</td>
+            <td class="py-2 pr-2 font-bold">${escapeHtml(e.title)}</td>
+            <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.loc || e.desc || '')}</td>
+            <td class="py-2 text-right"><button type="button" data-admin-edit="event" data-admin-id="${escapeAttr(e.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
+            <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
+            <table class="w-full min-w-[680px]">
+                <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
+                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Werbetext/Ort</th><th class="text-left py-2">Tags</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                </thead>
+                <tbody>${stationRows || '<tr><td colspan="5" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
+            </table>
+        </div>
+        <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
+            <div class="px-3 py-2 font-bold">Events (${events.length}/${(state.events || []).length})</div>
+            <table class="w-full min-w-[560px]">
+                <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
+                    <tr><th class="text-left py-2 px-3">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Ort/Info</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                </thead>
+                <tbody>${eventRows || '<tr><td colspan="4" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
+            </table>
+        </div>
+    `;
+    bindAdminTableActions(container);
+}
+
 function fillAdminPanel() {
     document.getElementById('admin-app-title').value = state.config.title || '';
     document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
@@ -95,6 +172,9 @@ function fillAdminPanel() {
     document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
 
     loadUsers();
+    renderAdminDataTables();
+    const search = document.getElementById('admin-table-search');
+    if (search) search.oninput = renderAdminDataTables;
     try { runDataValidation(); } catch (e) { }
     if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
 }

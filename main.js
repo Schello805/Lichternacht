@@ -14,20 +14,21 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.97';
+} from './js/ui.js?v=1.4.98';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner
-} from './js/admin.js?v=1.4.97';
+} from './js/admin.js?v=1.4.98';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.97';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.98';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.97";
+const APP_VERSION = "1.4.98";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
 window.flyToStation = flyToStation;
 window.closePlanningBanner = closePlanningBanner;
+window.pendingAdminOpen = false;
 
 // Forced Reload Mechanism for Major Updates
 const lastVersion = localStorage.getItem('app_version');
@@ -76,6 +77,16 @@ window.checkProximity = checkProximity;
 window.executeSmartAction = executeSmartAction;
 window.openModal = openModal;
 window.closeModal = closeModal;
+
+window.requestAdminPage = () => {
+    window.pendingAdminOpen = true;
+    if (state.isAdmin && window.toggleAdminPanel) {
+        window.pendingAdminOpen = false;
+        window.toggleAdminPanel();
+    } else if (!state.isAdmin && window.toggleAdminLogin) {
+        window.toggleAdminLogin();
+    }
+};
 
 window.showUserCountInfo = () => {
     const el = document.getElementById('user-count');
@@ -1144,6 +1155,12 @@ window.onload = async () => {
         if (params.get('bug') === '1') {
             setTimeout(() => {
                 if (window.openBugReportModal) window.openBugReportModal();
+            }, 900);
+        }
+        if (params.get('admin') === '1') {
+            window.pendingAdminOpen = true;
+            setTimeout(() => {
+                if (window.requestAdminPage) window.requestAdminPage();
             }, 900);
         }
     } catch (e) { }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.98] - 2026-07-26
+### Added
+- **E2E:** Playwright-Test für Besucher-Stationsmodal und Admin-Direktzugriff.
+- **Admin:** Direkte Admin-URL `/admin/` und Tabellenübersicht für Stationen/Events.
+- **Monitoring:** Client-Fehler werden serverseitig unter `logs/client-errors.log` protokolliert.
+
+### Improved
+- **Service Worker:** Cache-/Update-Logik ist klarer strukturiert.
+
 ## [1.4.97] - 2026-07-26
 ### Added
 - **Tests:** Automatisierte Node-Tests für Datenvalidierung, CSV-Escaping und Event-Zeitfenster.
