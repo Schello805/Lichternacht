@@ -9,6 +9,7 @@ console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
 const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'desc', 'link', 'loc', 'lat', 'lng', 'color'];
+const adminTableSort = { field: 'id', direction: 'asc' };
 
 function getAdminConfigIssues() {
     const issues = [];
@@ -94,6 +95,19 @@ function bindAdminTableActions(container) {
             }
         });
     });
+    container.querySelectorAll('[data-admin-sort]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const field = button.getAttribute('data-admin-sort');
+            if (!field) return;
+            if (adminTableSort.field === field) {
+                adminTableSort.direction = adminTableSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                adminTableSort.field = field;
+                adminTableSort.direction = 'asc';
+            }
+            renderAdminDataTables();
+        });
+    });
 }
 
 function renderAdminDataTables() {
@@ -107,6 +121,21 @@ function renderAdminDataTables() {
     const formatLink = value => value ? `<span title="${escapeAttr(value)}">🔗</span>` : '';
     const formatImage = value => value ? `<span title="Bild hinterlegt">✓</span>` : '';
     const formatTags = tags => Array.isArray(tags) ? tags.join('|') : '';
+    const sortIndicator = field => adminTableSort.field === field ? (adminTableSort.direction === 'asc' ? ' ▲' : ' ▼') : ' ↕';
+    const sortButton = (field, label, classes = 'text-left py-2') => `
+        <button type="button" data-admin-sort="${escapeAttr(field)}" class="font-bold hover:text-yellow-600 ${classes}">
+            ${escapeHtml(label)}${sortIndicator(field)}
+        </button>
+    `;
+    const compareStationValues = (a, b) => {
+        if (adminTableSort.field === 'id') {
+            const aNum = Number(a.id);
+            const bNum = Number(b.id);
+            if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+            return String(a.id ?? '').localeCompare(String(b.id ?? ''), 'de', { numeric: true, sensitivity: 'base' });
+        }
+        return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'de', { numeric: true, sensitivity: 'base' });
+    };
     const stations = (state.stations || []).filter(s => matches(
         s.id,
         s.name,
@@ -119,7 +148,7 @@ function renderAdminDataTables() {
         s.image,
         s.time,
         s.likes
-    ));
+    )).sort((a, b) => adminTableSort.direction === 'asc' ? compareStationValues(a, b) : compareStationValues(b, a));
     const events = (state.events || []).filter(e => matches(
         e.id,
         e.time,
@@ -169,7 +198,7 @@ function renderAdminDataTables() {
             <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
             <table class="w-full min-w-[1180px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">Nr.</th><th class="text-left py-2">Name</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Zeit</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Zeit</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
                 <tbody>${stationRows || '<tr><td colspan="12" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
             </table>

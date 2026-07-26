@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.110] - 2026-07-26
+### Added
+- **Admin Tabellenübersicht:** Stationen lassen sich nach Nr. und Name auf-/absteigend sortieren.
+
 ## [1.4.109] - 2026-07-26
 ### Fixed
 - **Admin Tabellenübersicht:** Stationen und Programmpunkte zeigen jetzt alle CSV-Felder und werden vor dem Export aus dem aktuellen App-State neu gerendert.
