@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.111] - 2026-07-26
+### Fixed
+- **CSV Import:** Semikolon-, Komma- und Tab-getrennte CSV-Dateien werden automatisch erkannt; Excel-CSV mit Base64-Bildern importiert wieder korrekt.
+
 ## [1.4.110] - 2026-07-26
 ### Added
 - **Admin Tabellenübersicht:** Stationen lassen sich nach Nr. und Name auf-/absteigend sortieren.

@@ -1,21 +1,46 @@
-export function toCsv(rows, headers) {
+export function toCsv(rows, headers, delimiter = ',') {
     const escapeCell = (value) => {
         const s = value === null || value === undefined ? '' : String(value);
-        if (/[",\n\r]/.test(s)) {
+        const mustQuote = s.includes(delimiter) || /["\n\r]/.test(s);
+        if (mustQuote) {
             return `"${s.replace(/"/g, '""')}"`;
         }
         return s;
     };
 
     const out = [];
-    out.push(headers.map(escapeCell).join(','));
+    out.push(headers.map(escapeCell).join(delimiter));
     for (const row of rows) {
-        out.push(headers.map(h => escapeCell(row[h])).join(','));
+        out.push(headers.map(h => escapeCell(row[h])).join(delimiter));
     }
     return out.join('\n') + '\n';
 }
 
+function detectDelimiter(headerLine) {
+    const candidates = [',', ';', '\t'];
+    const counts = Object.fromEntries(candidates.map(candidate => [candidate, 0]));
+    let inQuotes = false;
+
+    for (let i = 0; i < headerLine.length; i++) {
+        const ch = headerLine[i];
+        if (ch === '"') {
+            if (inQuotes && headerLine[i + 1] === '"') {
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+            continue;
+        }
+        if (!inQuotes && counts[ch] !== undefined) counts[ch] += 1;
+    }
+
+    return candidates.sort((a, b) => counts[b] - counts[a])[0] || ',';
+}
+
 export function parseCsv(text) {
+    const normalizedText = String(text || '').replace(/^\uFEFF/, '');
+    const firstLine = normalizedText.split(/\r?\n/, 1)[0] || '';
+    const delimiter = detectDelimiter(firstLine);
     const rows = [];
     let row = [];
     let cell = '';
@@ -32,12 +57,12 @@ export function parseCsv(text) {
         row = [];
     };
 
-    for (let i = 0; i < text.length; i++) {
-        const ch = text[i];
+    for (let i = 0; i < normalizedText.length; i++) {
+        const ch = normalizedText[i];
 
         if (inQuotes) {
             if (ch === '"') {
-                const next = text[i + 1];
+                const next = normalizedText[i + 1];
                 if (next === '"') {
                     cell += '"';
                     i++;
@@ -55,7 +80,7 @@ export function parseCsv(text) {
             continue;
         }
 
-        if (ch === ',') {
+        if (ch === delimiter) {
             pushCell();
             continue;
         }
@@ -80,7 +105,7 @@ export function parseCsv(text) {
 
     if (rows.length === 0) return [];
 
-    const headers = rows[0].map(h => (h || '').trim());
+    const headers = rows[0].map(h => (h || '').trim().replace(/^\uFEFF/, ''));
     const out = [];
     for (let r = 1; r < rows.length; r++) {
         const obj = {};
@@ -93,4 +118,3 @@ export function parseCsv(text) {
     }
     return out;
 }
-
