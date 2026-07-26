@@ -193,14 +193,15 @@
         <!-- Header -->
         <header id="main-header"
             class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3 py-2 sm:p-4 border-b border-yellow-600/30 dark:border-yellow-600/20 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-2.5 min-w-0">
+            <button type="button" onclick="goHome()" aria-label="Zur Startseite"
+                class="flex items-center gap-2.5 min-w-0 text-left rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900">
                 <img src="icon.png" alt="Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-yellow-500 shadow-sm flex-shrink-0">
                 <div class="min-w-0">
                     <h1 id="app-title" class="text-base sm:text-xl leading-tight font-bold text-yellow-700 dark:text-yellow-500 tracking-wide brand-font">LICHTERNACHT
                     </h1>
                     <p id="app-subtitle" class="text-[11px] leading-tight text-yellow-800/70 dark:text-yellow-500/70 truncate"></p>
                 </div>
-            </div>
+            </button>
             <div class="flex items-center gap-0.5 flex-shrink-0">
                 <div id="status-indicator"
                     class="hidden text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 font-medium mr-1">
@@ -1130,7 +1131,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.101', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.102', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1157,7 +1158,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.101"></script>
+    <script type="module" src="main.js?v=1.4.102"></script>
 </body>
 
 </html>

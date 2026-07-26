@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.102] - 2026-07-26
+### Added
+- **Header:** Klick auf Logo/Titel führt zurück zur Startansicht.
+
 ## [1.4.101] - 2026-07-26
 ### Changed
 - **Admin CSV:** Stations-Export nutzt jetzt `address` statt missverständlichem `desc`; alte `desc`-Importe bleiben kompatibel.
