@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.114] - 2026-07-26
+### Fixed
+- **CSV Import:** CSV-Parser wird jetzt ebenfalls versioniert geladen, damit kein alter Parser aus dem Browser-/Service-Worker-Cache verwendet wird.
+
 ## [1.4.113] - 2026-07-26
 ### Fixed
 - **Onboarding:** Abgelehnte oder abgeschlossene Hinweise bleiben jetzt auch nach App-Updates ausgeblendet.
