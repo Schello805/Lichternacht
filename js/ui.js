@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.126';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.127';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -307,7 +307,7 @@ export function renderFilterBar() {
         <div class="grid grid-cols-4 gap-1.5">
             ${primaryBtn('all', 'Alle')}
             ${primaryBtn('proximity', 'Nähe', `<i class="ph-fill ph-compass ${currentFilter === 'proximity' ? 'text-white' : 'text-blue-500'} text-sm"></i>`)}
-            ${primaryBtn('favorites', 'Favoriten', `<i class="ph-fill ph-heart ${currentFilter === 'favorites' ? 'text-white' : 'text-red-500'} text-sm"></i>`)}
+            ${primaryBtn('favorites', 'Favoriten', `<i class="ph-fill ph-star ${currentFilter === 'favorites' ? 'text-white' : 'text-yellow-500'} text-sm"></i>`)}
             ${primaryBtn('visited', 'Besucht', `<i class="ph-fill ph-check-circle ${currentFilter === 'visited' ? 'text-white' : 'text-green-500'} text-sm"></i>`)}
         </div>
     `;

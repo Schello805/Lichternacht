@@ -326,7 +326,7 @@ export function toggleFavorite(id, fromModal = false) {
     // Actually, we should update the list icon if visible.
     const listIcon = document.getElementById(`fav-icon-${id}`);
     if (listIcon) {
-        listIcon.className = state.favorites.has(id) ? "ph-fill ph-heart text-red-500" : "ph ph-heart text-gray-400";
+        listIcon.className = state.favorites.has(id) ? "ph-fill ph-star text-yellow-500" : "ph ph-star text-gray-400";
     }
 
     // If we are in favorites view and removed a favorite, refresh the list
@@ -346,7 +346,7 @@ export function updateLikeBtn(id, count) {
 
     const countClass = isLiked ? 'text-orange-600' : 'text-gray-500';
 
-    btn.innerHTML = `${iconHtml}<span class="ml-1 text-sm font-bold text-gray-600 dark:text-gray-300">Like</span><span class="ml-1 text-xs font-bold ${countClass}">${count || 0}</span>`;
+    btn.innerHTML = `${iconHtml}<span class="ml-1 text-xs font-bold ${countClass}">${count || 0}</span>`;
     if (isLiked) {
         btn.classList.add('bg-orange-50', 'border-orange-200');
         btn.classList.remove('bg-gray-100', 'border-gray-200');
@@ -360,7 +360,8 @@ export function updateModalFavBtn(id) {
     const btn = document.getElementById('modal-fav-btn');
     if (!btn) return;
     const isFav = state.favorites.has(id);
-    btn.innerHTML = `<i class="ph ph-heart ${isFav ? 'ph-fill text-red-500' : 'text-gray-400'} text-2xl"></i>`;
+    btn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    btn.innerHTML = `<i class="ph ${isFav ? 'ph-fill ph-star text-yellow-500' : 'ph-star text-gray-400'} text-2xl"></i>`;
 }
 
 export async function checkIn(id) {

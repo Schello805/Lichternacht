@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.126" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.127" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.126">
+    <link rel="stylesheet" href="style.css?v=1.4.127">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -824,13 +824,15 @@
                                 </p>
                             </div>
                             <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
-                                class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors">
+                                class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors"
+                                title="Gefällt mir" aria-label="Gefällt mir">
                                 <i class="ph ph-thumbs-up text-xl text-gray-400"></i>
-                                <span class="ml-1 text-sm font-bold text-gray-600 dark:text-gray-300">Like</span>
+                                <span class="ml-1 text-xs font-bold text-gray-500">0</span>
                             </button>
                             <button id="modal-fav-btn" onclick="toggleFavorite(window.activeStationId, true)"
-                                class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-red-500 transition-colors">
-                                <i class="ph ph-heart text-2xl"></i>
+                                class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                                title="Favorit" aria-label="Favorit">
+                                <i class="ph ph-star text-2xl"></i>
                             </button>
                         </div>
 
@@ -1189,7 +1191,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.126', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.127', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1216,7 +1218,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.126"></script>
+    <script type="module" src="main.js?v=1.4.127"></script>
 </body>
 
 </html>

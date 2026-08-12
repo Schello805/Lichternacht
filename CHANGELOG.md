@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.127] - 2026-08-12
+### Changed
+- **Stationsmodal:** Favoriten nutzen jetzt einen Stern statt Herz; der Like-Button zeigt nur noch Icon und Zähler ohne Textlabel.
+
 ## [1.4.126] - 2026-07-26
 ### Improved
 - **Karten-Kompass:** Blickrichtungsberechnung für Android/Chrome robuster gemacht und an die aktuelle Display-Ausrichtung angepasst.
