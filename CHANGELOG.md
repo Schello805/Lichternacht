@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.128] - 2026-08-23
+### Fixed
+- **Lichter-Pass:** Check-ins bleiben ohne konfigurierten Event-Zeitraum gesperrt.
+- **Gewinnspiel:** Preise und Preisanforderungen sind an ein aktives Gewinnspiel sowie eine bestätigte Teilnahme gebunden.
+- **Datenschutz:** Lokale Speicherung von Name und E-Mail für die Gewinnspielabwicklung wird ausdrücklich erklärt.
+
+### Improved
+- **Besucherführung:** Gewinnspielteilnahme kann nach einer Ablehnung später im Lichter-Pass aktiviert werden.
+- **Bedienung:** Hauptnavigation und Header-Aktionen sind barriereärmer; Benachrichtigungen werden nur noch kontextbezogen angefragt.
+- **Stationsliste:** Hinterlegte Stationsbilder erscheinen als kompakte Vorschaubilder.
+- **Hilfe:** Favoriten-, Voting-, Benachrichtigungs- und Stationshinweise entsprechen wieder der aktuellen Oberfläche.
+
 ## [1.4.127] - 2026-08-12
 ### Changed
 - **Stationsmodal:** Favoriten nutzen jetzt einen Stern statt Herz; der Like-Button zeigt nur noch Icon und Zähler ohne Textlabel.

@@ -53,27 +53,37 @@
                     <div>
                         <h2 class="font-bold text-gray-900 dark:text-white">Karte & Liste</h2>
                         <p class="text-sm text-gray-600 dark:text-gray-400">Finde alle Stationen auf der Karte oder in der Liste. Nutze die Filter oben, um z.B. nur "Essen" oder "WC" anzuzeigen.</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Für Orte ohne exakte Adresse (z.B. eine Wiese) kannst du die Karte an die richtige Stelle schieben und im Programm-Editor den 📍-Button "Kartenmitte" nutzen.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tippe eine Station an, um Beschreibung, Bild, Link, Route und Navigation zu öffnen.</p>
                     </div>
                 </div>
 
                 <div class="flex gap-4">
-                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-500">
-                        <i class="ph-fill ph-heart text-xl"></i>
+                    <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 text-yellow-600">
+                        <i class="ph-fill ph-star text-xl"></i>
                     </div>
                     <div>
                         <h2 class="font-bold text-gray-900 dark:text-white">Favoriten</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Herz, um dir deinen persönlichen Plan zusammenzustellen. Filter in der Liste nach "Favoriten".</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Markiere Stationen mit dem Stern, um dir deinen persönlichen Plan zusammenzustellen. Filtere die Liste anschließend nach „Favoriten“.</p>
                     </div>
                 </div>
 
                 <div class="flex gap-4">
                     <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-500">
-                        <i class="ph-fill ph-fire text-xl"></i>
+                        <i class="ph-fill ph-thumbs-up text-xl"></i>
                     </div>
                     <div>
                         <h2 class="font-bold text-gray-900 dark:text-white">Voting</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Gib Stationen eine Flamme, wenn sie dir gefallen.</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Gib einer Station einmalig einen Daumen hoch, wenn sie dir gefällt.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                        <i class="ph-fill ph-bell-ringing text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900 dark:text-white">Programmerinnerungen</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Auf der Programmseite kannst du freiwillig 15-Minuten-Erinnerungen aktivieren. Die App fragt erst nach der Browserfreigabe, wenn du diesen Button selbst antippst.</p>
                     </div>
                 </div>
 
@@ -85,7 +95,7 @@
 	                        <h2 class="font-bold text-gray-900 dark:text-white">Lichter-Pass</h2>
 	                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Aktiviere dein GPS und besuche Stationen. Einchecken klappt in der Nähe.</p>
 	                        <div class="text-xs text-gray-500 dark:text-gray-400">
-	                            Nach dem 3. Check-in fragt dich die App, ob du am Lichter‑Pass Gewinnspiel teilnehmen möchtest. Wenn ja, gibst du Name und E-Mail an. Bronze/Silber/Gold hängen von den aktuellen Einstellungen ab (Prozent der Stationen). Wenn du einen Preis erreichst, kannst du ihn direkt anfordern.
+		                            Nach dem 3. Check-in fragt dich die App, ob du am Lichter‑Pass Gewinnspiel teilnehmen möchtest. Wenn ja, gibst du Name und E-Mail an. Lehnst du zunächst ab, kannst du später über den Lichter‑Pass teilnehmen. Deine Check-ins funktionieren auch ohne Gewinnspielteilnahme; einen Preis kannst du dann jedoch nicht erhalten. Bronze/Silber/Gold hängen von den aktuellen Einstellungen ab (Prozent der Stationen).
 	                        </div>
 	                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
 	                            Nach Veranstaltungsende (Endzeit im Adminbereich, sonst 22:00 Uhr) stoppt der Lichter‑Pass. Wenn du eine Preisstufe erreicht hast, fragt dich die App aktiv, ob du den Gewinn einholen möchtest. Ich melde mich danach zur Übergabe.
@@ -118,7 +128,7 @@
                         <div>
                             <h2 class="font-bold text-gray-900 dark:text-white">Deine Daten auf dem Gerät</h2>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Dein persönlicher Fortschritt wird <span class="font-bold">lokal im Browser</span> gespeichert (localStorage) – z.B. Favoriten, besuchte Stationen (Lichter‑Pass), lokale Teilnahme-Entscheidungen und ob du schon abgestimmt hast.
+                            Dein persönlicher Fortschritt wird <span class="font-bold">lokal im Browser</span> gespeichert (localStorage) – z.B. Favoriten, besuchte Stationen (Lichter‑Pass), lokale Teilnahme-Entscheidungen und ob du schon abgestimmt hast. Wenn du dem Gewinnspiel zustimmst, werden auch dein Name und deine E-Mail lokal hinterlegt, damit die App sie bei einer späteren Preisanforderung vorausfüllen kann.
                             </p>
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 Wenn du in den Browser‑Einstellungen <span class="font-bold">„Cookies & Website‑Daten“</span> (oder „App‑Daten“) für diese Seite löschst, ist dieser Fortschritt auf diesem Gerät weg und startet wieder bei 0.

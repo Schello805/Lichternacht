@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.127';
+import { parseCsv, toCsv } from './csv.js?v=1.4.128';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.127';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.128';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1424,7 +1424,7 @@ export function renderUsageAnalyticsPlaceholder() {
 }
 
 export async function resetLikes() {
-    if (!confirm("WARNUNG: Möchtest du wirklich ALLE 'Likes' (Flammen) auf 0 zurücksetzen? Das kann nicht rückgängig gemacht werden.")) return;
+    if (!confirm("WARNUNG: Möchtest du wirklich ALLE Likes (Daumen-hoch-Stimmen) auf 0 zurücksetzen? Das kann nicht rückgängig gemacht werden.")) return;
 
     // Safety check for writeBatch
     if (!state.fb || !state.fb.writeBatch) {

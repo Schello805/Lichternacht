@@ -139,7 +139,7 @@ Um die App für ein neues Jahr fit zu machen:
     *   *Dies dient als Backup, falls die App offline genutzt wird.*
 
 4.  **Likes zurücksetzen (Optional):**
-    *   Im Admin-Panel unter "App Titel & Untertitel" kannst du alle Likes (Flammen) auf 0 setzen.
+    *   Im Admin-Panel unter "App Titel & Untertitel" kannst du alle Likes (Daumen-hoch-Stimmen) auf 0 setzen.
 
 5.  **Planungs-Modus beenden:**
     *   Sobald alles fertig ist, deaktiviere den Planungs-Modus wieder.

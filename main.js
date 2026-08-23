@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.127';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.128';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,16 +14,16 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.127';
+} from './js/ui.js?v=1.4.128';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail
-} from './js/admin.js?v=1.4.127';
+} from './js/admin.js?v=1.4.128';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.127';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.127';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.128';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.128';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.127";
+const APP_VERSION = "1.4.128";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -245,6 +245,12 @@ function savePassParticipant(participant) {
     localStorage.setItem(PASS_PARTICIPATION_DECISION_KEY, 'accepted');
 }
 
+function hasAcceptedPassParticipation() {
+    const participant = getPassParticipant();
+    return localStorage.getItem(PASS_PARTICIPATION_DECISION_KEY) === 'accepted'
+        && Boolean(participant?.name && participant?.email);
+}
+
 function getPassProgressSnapshot() {
     const visitedRecords = (typeof utils.getVisitedStationRecords === 'function') ? utils.getVisitedStationRecords(state.stations) : [];
     const visited = visitedRecords.length;
@@ -295,6 +301,11 @@ async function sendPassEmail(subject, text, meta, html) {
 }
 
 window.openPassParticipationModal = () => {
+    const { visited } = getPassProgressSnapshot();
+    if (visited < 3) {
+        showToast('Die Gewinnspiel-Teilnahme ist nach dem 3. Check-in möglich.', 'info');
+        return;
+    }
     const existing = document.getElementById('pass-participation-modal');
     if (existing) existing.remove();
 
@@ -435,6 +446,7 @@ function isEventEndReminderDue(now = new Date()) {
 
 function remindPrizeClaimAfterEvent() {
     if (!isEventEndReminderDue()) return;
+    if (!hasAcceptedPassParticipation()) return;
     if (document.getElementById('prize-claim-modal') || document.getElementById('pass-participation-modal')) return;
 
     const { visited, total } = getPassProgressSnapshot();
@@ -462,11 +474,12 @@ window.showPassInfo = () => {
     const silverPercent = Number.isFinite(Number(thresholds.silver)) ? Number(thresholds.silver) : 90;
     const goldPercent = Number.isFinite(Number(thresholds.gold)) ? Number(thresholds.gold) : 95;
 
-    const bronzePrize = String(prizes.bronze || '').trim();
-    const silverPrize = String(prizes.silver || '').trim();
-    const goldPrize = String(prizes.gold || '').trim();
+    const bronzePrize = enabled ? String(prizes.bronze || '').trim() : '';
+    const silverPrize = enabled ? String(prizes.silver || '').trim() : '';
+    const goldPrize = enabled ? String(prizes.gold || '').trim() : '';
 
     const hasAnyPrize = Boolean(bronzePrize || silverPrize || goldPrize);
+    const isParticipant = hasAcceptedPassParticipation();
     const showAdminPassTools = state.isAdmin === true;
     const existing = document.getElementById('pass-modal');
     if (existing) existing.remove();
@@ -488,7 +501,10 @@ window.showPassInfo = () => {
 
     const eventWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
     const eventWindowLabel = eventWindow && typeof utils.formatEventWindowDe === 'function' ? utils.formatEventWindowDe(eventWindow) : '';
-    const passActive = !eventWindow || (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(eventWindow, new Date()) : true);
+    const passActive = !!eventWindow && (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(eventWindow, new Date()) : false);
+    const passStatusText = eventWindowLabel
+        ? `Check-ins sind im Zeitraum ${escapeHtml(eventWindowLabel)} möglich.`
+        : 'Check-ins starten erst, sobald der Veranstaltungszeitraum festgelegt wurde.';
 
     const prizeRows = [
         { key: 'bronze', label: 'Bronze', icon: '🥉', percent: bronzePercent, prize: bronzePrize },
@@ -538,7 +554,7 @@ window.showPassInfo = () => {
                     ${badge}
                 </div>
                 <div class="text-sm text-gray-700 dark:text-gray-200 mt-2 whitespace-pre-wrap">${escapeHtml(prize)}</div>
-                ${reached ? `<button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${label}" data-claim-prize="${escapeHtml(prize)}">Preis anfordern</button>` : ''}
+                ${reached && isParticipant ? `<button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${label}" data-claim-prize="${escapeHtml(prize)}">Preis anfordern</button>` : ''}
             </div>
         `;
     }
@@ -567,7 +583,7 @@ window.showPassInfo = () => {
 
             <div class="mt-4 p-3 rounded-xl border ${passActive ? 'border-green-200 bg-green-50 text-green-900' : 'border-yellow-200 bg-yellow-50 text-yellow-900'} text-sm">
                 <div class="font-bold">${passActive ? 'Lichter‑Pass ist aktiv' : 'Lichter‑Pass ist noch nicht aktiv'}</div>
-                <div class="mt-1">${eventWindowLabel ? `Check-ins sind im Zeitraum ${escapeHtml(eventWindowLabel)} möglich.` : 'Check-ins sind während der Veranstaltung möglich.'}</div>
+                <div class="mt-1">${passStatusText}</div>
             </div>
 
             <div class="mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
@@ -577,11 +593,23 @@ window.showPassInfo = () => {
                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein persönlicher Fortschritt bleibt lokal auf diesem Gerät, solange du Website-Daten nicht löschst. Normale Check-ins werden zusätzlich anonymisiert/pseudonymisiert zentral für die Nachbereitung gezählt.</div>
             </div>
 
+            ${visited >= 3 ? `
+                <div class="mt-4 p-3 rounded-xl border ${isParticipant ? 'border-green-200 bg-green-50 text-green-900' : 'border-blue-200 bg-blue-50 text-blue-900'} text-sm">
+                    <div class="font-bold">${isParticipant ? 'Gewinnspiel-Teilnahme ist aktiv' : 'Gewinnspiel-Teilnahme ist freiwillig'}</div>
+                    <div class="mt-1">${isParticipant
+                        ? 'Du kannst erreichte Preise anfordern. Deine hinterlegten Kontaktdaten werden dafür verwendet.'
+                        : 'Deine Check-ins zählen weiter. Einen Preis kannst du nur mit Name, E-Mail und akzeptierten Gewinnspielhinweisen erhalten.'}</div>
+                    ${!isParticipant ? `<button type="button" id="pass-join-raffle" class="mt-3 w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">Am Gewinnspiel teilnehmen</button>` : ''}
+                </div>
+            ` : `
+                <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">Nach dem 3. Check-in kannst du freiwillig am Gewinnspiel teilnehmen. Check-ins sind auch ohne Teilnahme möglich.</div>
+            `}
+
             ${bestReached ? `
                 <div class="mt-4 p-3 rounded-xl border border-green-200 bg-green-50 text-green-900 text-sm">
                     <div class="font-bold">${bestReached.icon} ${bestReached.label} erreicht</div>
-                    <div class="mt-1">Gib deine Kontaktdaten an. Ich melde mich danach bei dir und organisiere die Übergabe.</div>
-                    <button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${bestReached.label}" data-claim-prize="${escapeHtml(bestReached.prize)}">Preis anfordern</button>
+                    <div class="mt-1">${isParticipant ? 'Du kannst den Preis jetzt anfordern. Ich melde mich danach bei dir und organisiere die Übergabe.' : 'Für einen Preis musst du zuerst freiwillig am Gewinnspiel teilnehmen.'}</div>
+                    ${isParticipant ? `<button type="button" class="mt-3 w-full bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm" data-claim-level="${bestReached.label}" data-claim-prize="${escapeHtml(bestReached.prize)}">Preis anfordern</button>` : ''}
                 </div>
             ` : ''}
 
@@ -590,7 +618,7 @@ window.showPassInfo = () => {
                     ? `${renderPrizeRow('Bronze', '🥉', bronzePercent, bronzePrize, visited, total)}
                        ${renderPrizeRow('Silber', '🥈', silverPercent, silverPrize, visited, total)}
                        ${renderPrizeRow('Gold', '🥇', goldPercent, goldPrize, visited, total)}`
-                    : '<div class="text-sm text-gray-600 dark:text-gray-300">Aktuell sind noch keine Preise hinterlegt.</div>'}
+                    : `<div class="text-sm text-gray-600 dark:text-gray-300">${enabled ? 'Aktuell sind noch keine Preise hinterlegt.' : 'Aktuell ist kein Gewinnspiel aktiv.'}</div>`}
             </div>
 
             <div class="mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
@@ -618,6 +646,10 @@ window.showPassInfo = () => {
 
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
+    document.getElementById('pass-join-raffle')?.addEventListener('click', () => {
+        close();
+        window.openPassParticipationModal();
+    });
     overlay.querySelectorAll('[data-claim-level]').forEach(btn => {
         btn.addEventListener('click', () => {
             const level = btn.getAttribute('data-claim-level') || 'Preis';
@@ -659,6 +691,15 @@ window.showPassInfo = () => {
 };
 
 window.openPrizeClaimModal = (level, prizeText, visited = 0, total = 0) => {
+    if (state.config?.rewards?.enabled !== true) {
+        showToast('Aktuell ist kein Gewinnspiel aktiv.', 'info');
+        return;
+    }
+    if (!hasAcceptedPassParticipation()) {
+        showToast('Für einen Preis musst du zuerst am Gewinnspiel teilnehmen.', 'info');
+        window.openPassParticipationModal();
+        return;
+    }
     const existing = document.getElementById('prize-claim-modal');
     if (existing) existing.remove();
     const participant = getPassParticipant();
@@ -1157,6 +1198,7 @@ window.restartMiniTour = () => {
 window.switchTab = (tab) => {
     console.log("window.switchTab called", tab);
     switchTab(tab);
+    if (tab === 'events') updateProgramNotificationButton();
 };
 window.appSwitchTab = window.switchTab; // Alias for safety
 
@@ -1413,18 +1455,10 @@ window.onload = async () => {
     // Tracking consent UI (mobile bottom sheet)
     initTrackingConsentUi();
 
-    // Notifications: Request permission on first user interaction
-    const requestNotif = () => {
-        if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
-        }
-        document.removeEventListener('click', requestNotif);
-    };
-    document.addEventListener('click', requestNotif);
-
     // Check for upcoming events every minute
     setInterval(checkUpcomingEvents, 60000);
     checkUpcomingEvents(); // Initial check
+    updateProgramNotificationButton();
     setInterval(remindPrizeClaimAfterEvent, 60000);
     setTimeout(remindPrizeClaimAfterEvent, 1500);
 
@@ -1661,6 +1695,40 @@ function checkUpcomingEvents() {
         }
     });
 }
+
+function updateProgramNotificationButton() {
+    const button = document.getElementById('program-notification-opt-in');
+    if (!button) return;
+    const canAsk = 'Notification' in window && Notification.permission === 'default';
+    button.classList.toggle('hidden', !canAsk);
+}
+
+window.requestProgramNotifications = async () => {
+    if (!("Notification" in window)) {
+        showToast('Benachrichtigungen werden von diesem Browser nicht unterstützt.', 'info');
+        return;
+    }
+    if (Notification.permission === 'granted') {
+        showToast('Programmerinnerungen sind bereits aktiviert.', 'success');
+        updateProgramNotificationButton();
+        return;
+    }
+    if (Notification.permission === 'denied') {
+        showToast('Benachrichtigungen sind im Browser blockiert und können dort wieder erlaubt werden.', 'info');
+        updateProgramNotificationButton();
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        showToast(permission === 'granted'
+            ? 'Programmerinnerungen sind aktiviert.'
+            : 'Programmerinnerungen bleiben deaktiviert.', permission === 'granted' ? 'success' : 'info');
+    } catch (e) {
+        showToast('Benachrichtigungen konnten nicht aktiviert werden.', 'error');
+    }
+    updateProgramNotificationButton();
+};
 
 function sendLocalNotification(title, body) {
     if ("Notification" in window && Notification.permission === "granted") {

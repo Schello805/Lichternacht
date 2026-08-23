@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.127';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.128';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -21,6 +21,12 @@ function normalizeExternalLink(value) {
     } catch (e) {
         return null;
     }
+}
+
+function normalizeStationImage(value) {
+    const raw = String(value || '').trim();
+    if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw)) return raw;
+    return normalizeExternalLink(raw) || '';
 }
 
 // --- Modal & Tab Handling ---
@@ -47,8 +53,9 @@ export function openModal(target) {
         
         // Image
         const imgContainer = document.getElementById('modal-image-container');
-        if (s.image) {
-            imgContainer.innerHTML = `<img src="${s.image}" class="w-full h-48 object-cover rounded-t-2xl">`;
+        const stationImage = normalizeStationImage(s.image);
+        if (stationImage) {
+            imgContainer.innerHTML = `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(s.name)}" class="w-full h-48 object-cover rounded-t-2xl">`;
             imgContainer.classList.remove('hidden');
         } else {
             imgContainer.classList.add('hidden');
@@ -188,6 +195,7 @@ export function switchTab(tab) {
         if (btn) {
             btn.classList.remove('tab-active', 'text-yellow-600', 'font-bold');
             btn.classList.add('tab-inactive', 'text-gray-500');
+            btn.removeAttribute('aria-current');
         }
     });
     
@@ -209,6 +217,7 @@ export function switchTab(tab) {
     if (activeBtn) {
         activeBtn.classList.remove('tab-inactive', 'text-gray-500');
         activeBtn.classList.add('tab-active', 'text-yellow-600', 'font-bold');
+        activeBtn.setAttribute('aria-current', 'page');
     }
 
     if (tab === 'map') {
@@ -520,6 +529,7 @@ export function renderList(stations) {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         const isVisited = visitedStations.has(String(s.id));
         const likeCount = s.likes || 0;
+        const stationImage = normalizeStationImage(s.image);
         
         let distInfo = '';
         // Only show distance if user location is active AND distance is calculated
@@ -540,21 +550,26 @@ export function renderList(stations) {
         }
 
         return `
-        <div class="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden" onclick="openStation('${s.id}')">
+        <button type="button" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
-            <div class="flex justify-between items-start">
-                <h3 class="font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${s.name}</h3>
-                <div class="flex flex-col items-end gap-1">
-                    <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${s.id}</span>
-                    <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
+            <div class="flex items-start gap-3">
+                ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
+                <div class="min-w-0 flex-1">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${escapeHtml(s.name)}</h3>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${escapeHtml(s.id)}</span>
+                            <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
+                        </div>
+                    </div>
+                    <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(s.desc || '')}</p>
+                    <div class="mt-2 flex gap-1.5 flex-wrap">
+                        ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                    ${distInfo}
                 </div>
             </div>
-            <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${s.desc}</p>
-            <div class="mt-2 flex gap-1.5 flex-wrap">
-                ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${t}</span>`).join('')}
-            </div>
-            ${distInfo}
-        </div>
+        </button>
     `}).join('');
 }
 

@@ -11,7 +11,7 @@ import * as utils from './utils.js';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
-    if (!w) return true;
+    if (!w) return false;
     if (typeof utils.isWithinEventWindowNow === 'function') return utils.isWithinEventWindowNow(w, new Date());
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -20,7 +20,7 @@ function isPassActiveToday() {
 
 function getPassInactiveMessage() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
-    if (!w) return '';
+    if (!w) return 'Der Lichter‑Pass ist noch nicht aktiv, weil der Veranstaltungszeitraum noch nicht festgelegt wurde.';
     const formatted = (typeof utils.formatEventWindowDe === 'function')
         ? utils.formatEventWindowDe(w)
         : (typeof utils.formatEventDateDe === 'function')

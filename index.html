@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.127" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.128" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.127">
+    <link rel="stylesheet" href="style.css?v=1.4.128">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -209,20 +209,24 @@
 
                 <!-- Notification Bell -->
                 <button id="notification-btn" onclick="showLastBroadcast()"
-                    class="hidden text-gray-400 hover:text-red-500 transition-colors p-1.5 sm:p-2 relative">
+                    class="hidden text-gray-400 hover:text-red-500 transition-colors p-1.5 sm:p-2 relative"
+                    aria-label="Aktuelle Nachricht anzeigen">
                     <i class="ph ph-bell text-lg sm:text-xl"></i>
                     <span
                         class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
                 </button>
 
                 <a href="./help.html"
-                    class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1.5 sm:p-2">
+                    class="text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1.5 sm:p-2"
+                    aria-label="Hilfe öffnen">
                     <i class="ph ph-info text-lg sm:text-xl"></i>
                 </a>
-                <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-1.5 sm:p-2">
+                <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-1.5 sm:p-2"
+                    aria-label="Darstellung wechseln">
                     <i class="ph ph-moon text-lg sm:text-xl" id="dark-mode-icon"></i>
                 </button>
-                <button onclick="window.requestAdminPage ? window.requestAdminPage() : toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2">
+                <button onclick="window.requestAdminPage ? window.requestAdminPage() : toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2"
+                    aria-label="Adminbereich öffnen">
                     <i class="ph ph-lock-key text-lg sm:text-xl" id="lock-icon"></i>
                 </button>
             </div>
@@ -349,7 +353,7 @@
                     <button onclick="resetLikes()"
                         data-online-only="true"
                         class="w-full mb-3 bg-orange-100 text-orange-700 font-bold py-2 rounded-lg hover:bg-orange-200 mt-4">
-                        <i class="ph ph-fire"></i> Likes zurücksetzen (0)
+                        <i class="ph ph-thumbs-up"></i> Likes zurücksetzen (0)
                     </button>
                     <button onclick="startNewYear()"
                         data-online-only="true"
@@ -734,6 +738,10 @@
                                 </div>
                             </div>
                         </div>
+                        <button id="program-notification-opt-in" type="button" onclick="requestProgramNotifications()"
+                            class="hidden mt-4 w-full rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold text-white hover:bg-white/25">
+                            <i class="ph ph-bell-ringing mr-1"></i> 15-Minuten-Erinnerungen aktivieren
+                        </button>
                     </div>
                     <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
                     <div id="timeline-container" class="space-y-6 relative ml-3 pl-6 pb-24">
@@ -744,18 +752,18 @@
 
         <!-- Navigation -->
         <nav id="bottom-nav" class="bottom-nav flex justify-around items-center text-center py-3 text-xs font-medium text-gray-500">
-            <div id="nav-map" onclick="window.switchTab('map')" class="flex-1 cursor-pointer tab-active flex flex-col items-center">
+            <button type="button" id="nav-map" onclick="window.switchTab('map')" aria-label="Karte" aria-current="page" class="flex-1 cursor-pointer tab-active flex flex-col items-center bg-transparent border-0">
                 <i class="ph ph-map-trifold text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Karte</span>
-            </div>
-            <div id="nav-list" onclick="window.switchTab('list')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            </button>
+            <button type="button" id="nav-list" onclick="window.switchTab('list')" aria-label="Stationen" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center bg-transparent border-0">
                 <i class="ph ph-list-dashes text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Stationen</span>
-            </div>
-            <div id="nav-events" onclick="window.switchTab('events')" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center">
+            </button>
+            <button type="button" id="nav-events" onclick="window.switchTab('events')" aria-label="Programm" class="flex-1 cursor-pointer tab-inactive flex flex-col items-center bg-transparent border-0">
                 <i class="ph ph-calendar-star text-2xl mb-1 nav-icon"></i>
                 <span class="nav-text">Programm</span>
-            </div>
+            </button>
         </nav>
 
         <!-- Login Modal -->
@@ -1191,7 +1199,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.127', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.128', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1218,7 +1226,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.127"></script>
+    <script type="module" src="main.js?v=1.4.128"></script>
 </body>
 
 </html>

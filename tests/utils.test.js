@@ -34,6 +34,10 @@ test('isWithinEventWindowNow respects configured date and time', () => {
     assert.equal(isWithinEventWindowNow(windowConfig, new Date('2026-11-23T18:00:00+01:00')), false);
 });
 
+test('isWithinEventWindowNow keeps the pass inactive without an event window', () => {
+    assert.equal(isWithinEventWindowNow(null, new Date('2026-11-22T18:00:00+01:00')), false);
+});
+
 test('toCsvValue quotes values that need escaping', () => {
     assert.equal(toCsvValue('normal'), 'normal');
     assert.equal(toCsvValue('A;B'), '"A;B"');

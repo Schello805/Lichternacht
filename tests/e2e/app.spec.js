@@ -12,11 +12,44 @@ test.beforeEach(async ({ page }) => {
 test('visitor can open a station detail modal from the station list', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
-    await page.locator('#stations-list > div').first().waitFor({ state: 'visible' });
-    await page.locator('#stations-list > div').first().click();
+    await page.locator('#stations-list > button').first().waitFor({ state: 'visible' });
+    await page.locator('#stations-list > button').first().click();
 
     await expect(page.locator('#detail-modal')).toBeVisible();
     await expect(page.locator('#modal-title')).not.toBeEmpty();
+});
+
+test('visitor navigation is accessible and opens all main areas', async ({ page }) => {
+    await page.goto('/index.html');
+
+    const mapButton = page.getByRole('button', { name: 'Karte' });
+    const stationButton = page.getByRole('button', { name: 'Stationen' });
+    const programButton = page.getByRole('button', { name: 'Programm' });
+
+    await expect(mapButton).toHaveAttribute('aria-current', 'page');
+    await stationButton.click();
+    await expect(stationButton).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#view-list')).toBeVisible();
+
+    await programButton.click();
+    await expect(programButton).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#view-events')).toBeVisible();
+});
+
+test('visitor pass hides admin exports', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#pass-progress').click();
+
+    await expect(page.locator('#pass-modal')).toBeVisible();
+    await expect(page.locator('#pass-history-export')).toHaveCount(0);
+});
+
+test('help explains current favorite, voting and notification controls', async ({ page }) => {
+    await page.goto('/help.html');
+
+    await expect(page.getByText('Markiere Stationen mit dem Stern')).toBeVisible();
+    await expect(page.getByText('Gib einer Station einmalig einen Daumen hoch')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Programmerinnerungen' })).toBeVisible();
 });
 
 test('admin shortcut opens login and local admin can run data check', async ({ page }) => {
