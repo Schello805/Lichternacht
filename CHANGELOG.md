@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.130] - 2026-08-24
+### Fixed
+- **GPS-Button:** Die manuelle Standortsuche bleibt auch während einer automatischen Suche anklickbar und wird nicht mehr durch ein Lade-Overlay blockiert.
+- **iOS-Freigabe:** Klicks auf den Standortbutton werden ausdrücklich als Benutzeraktion behandelt, damit GPS- und Kompassfreigaben zuverlässig geöffnet werden.
+
+### Improved
+- **Tests:** Ein automatischer Browsertest sichert die erneute manuelle Standortsuche während einer laufenden GPS-Suche ab.
+
 ## [1.4.129] - 2026-08-24
 ### Fixed
 - **Standort:** Kompass- und GPS-Freigabe werden auf iOS geordnet statt gleichzeitig gestartet.

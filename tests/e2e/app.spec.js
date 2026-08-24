@@ -53,6 +53,19 @@ test('location marker stays visible above stations and follows GPS updates', asy
     expect(Number(paneZIndex)).toBeGreaterThan(600);
 });
 
+test('location button remains usable during an automatic GPS search', async ({ context, page }) => {
+    await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
+    await page.goto('/index.html');
+
+    const locateButton = page.locator('#map-locate-btn');
+    await expect(locateButton).toBeEnabled();
+    await locateButton.click();
+
+    await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
+    await expect(page.locator('.user-loc')).toBeVisible();
+    await expect(locateButton).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
+});
+
 test('visitor pass hides admin exports', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#pass-progress').click();

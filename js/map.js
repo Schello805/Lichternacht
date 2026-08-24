@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, setLoading, getVisitedStationIdSet } from './utils.js';
+import { showToast, getVisitedStationIdSet } from './utils.js';
 
 let tileLayer;
 const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
@@ -107,7 +107,6 @@ function setGpsUiStatus(status) {
     getLocationButtons().forEach(button => {
         const searching = status === 'searching';
         const connected = status === 'connected';
-        button.toggleAttribute('disabled', searching);
         button.setAttribute('aria-busy', searching ? 'true' : 'false');
         button.setAttribute('aria-label', connected ? 'Standort erneut bestimmen' : 'Eigenen Standort bestimmen');
         button.classList.toggle('ring-2', connected);
@@ -216,14 +215,14 @@ export function refreshMapMarkers() {
     });
 }
 
-export async function locateUser(cb) {
+export async function locateUser(cb, options = {}) {
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
         setGpsUiStatus('error');
         return;
     }
 
-    const startedFromUserGesture = navigator.userActivation?.isActive === true;
+    const startedFromUserGesture = options.userInitiated === true || navigator.userActivation?.isActive === true;
     const requestToken = ++state.gpsRequestToken;
 
     if (startedFromUserGesture) {
@@ -238,7 +237,6 @@ export async function locateUser(cb) {
     if (gpsFallbackTimer) clearTimeout(gpsFallbackTimer);
     gpsFallbackTimer = null;
     timeoutRetryToastShown = false;
-    setLoading(true, 'Suche Standort…');
     setGpsUiStatus('searching');
 
     const applyPosition = (pos) => {
@@ -246,7 +244,6 @@ export async function locateUser(cb) {
         const wasLocated = state.hasLocatedUser === true;
         context.hasFix = true;
         context.denied = false;
-        setLoading(false);
         setGpsUiStatus('connected');
         lastGpsErrorSignature = '';
         lastGpsErrorToastAt = 0;
@@ -296,7 +293,6 @@ export async function locateUser(cb) {
 
     const handleFinalError = (err) => {
         if (context.requestToken !== state.gpsRequestToken) return;
-        setLoading(false);
         const denied = err?.code === 1;
         setGpsUiStatus(denied ? 'denied' : 'error');
         if (shouldShowGpsErrorToast(err)) {
@@ -324,7 +320,6 @@ export async function locateUser(cb) {
 
     const handleWatchError = (err) => {
         if (context.requestToken !== state.gpsRequestToken) return;
-        setLoading(false);
         if (err?.code === 1) {
             context.denied = true;
             clearGpsWatch();
