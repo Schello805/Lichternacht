@@ -64,6 +64,39 @@ function shouldShowGpsErrorToast(err) {
     return false;
 }
 
+function showLocationPermissionHelp() {
+    let modal = document.getElementById('location-permission-help');
+    if (!modal) {
+        const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        modal = document.createElement('div');
+        modal.id = 'location-permission-help';
+        modal.className = 'fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 p-3';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'location-permission-title');
+        modal.innerHTML = `
+            <div class="w-full max-w-md rounded-2xl bg-white p-5 text-gray-900 shadow-2xl dark:bg-gray-800 dark:text-white">
+                <h2 id="location-permission-title" class="text-lg font-bold">Standort wieder freigeben</h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Der Browser hat den Standortzugriff für diese Website blockiert. Die App kann diese Einstellung aus Sicherheitsgründen nicht selbst ändern.</p>
+                <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm">
+                    ${isAppleMobile
+                        ? '<li>Tippe links in der Safari-Adressleiste auf das Seitensymbol.</li><li>Öffne „Website-Einstellungen“ und stelle „Standort“ auf „Erlauben“ oder „Fragen“.</li><li>Falls die Auswahl fehlt: Einstellungen → Datenschutz &amp; Sicherheit → Ortungsdienste → Safari-Websites → „Beim Verwenden der App“.</li>'
+                        : '<li>Öffne im Browser das Seitenmenü beziehungsweise die Website-Einstellungen.</li><li>Wähle „Berechtigungen“ → „Standort“ → „Zulassen“.</li><li>Lade anschließend diese Seite neu.</li>'}
+                </ol>
+                <div class="mt-5 grid grid-cols-2 gap-2">
+                    <button type="button" data-location-close class="rounded-xl bg-gray-200 px-3 py-3 text-sm font-bold text-gray-800 dark:bg-gray-700 dark:text-white">Schließen</button>
+                    <button type="button" data-location-retry class="rounded-xl bg-blue-600 px-3 py-3 text-sm font-bold text-white">Erneut versuchen</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('[data-location-close]').addEventListener('click', () => modal.remove());
+        modal.querySelector('[data-location-retry]').addEventListener('click', () => {
+            modal.remove();
+            locateUser(null, { userInitiated: true });
+        });
+    }
+}
+
 async function enableCompassFromUserGesture() {
     if (state.compassEnabled || state.compassPermissionTried) return;
     if (!window.DeviceOrientationEvent) return;
@@ -297,11 +330,12 @@ export async function locateUser(cb, options = {}) {
         setGpsUiStatus(denied ? 'denied' : 'error');
         if (shouldShowGpsErrorToast(err)) {
             const message = denied
-                ? 'Standortzugriff ist blockiert. Bitte erlaube ihn in den Browser-Einstellungen für diese Website.'
+                ? 'Standortzugriff ist blockiert. Öffne die angezeigte Anleitung, um ihn wieder freizugeben.'
                 : `Standort konnte nicht ermittelt werden: ${err?.message || 'Unbekannter Fehler'}`;
             console.warn('GPS Error', err);
             showToast(message, 'error');
         }
+        if (denied) showLocationPermissionHelp();
     };
 
     const startRelaxedFallback = () => {

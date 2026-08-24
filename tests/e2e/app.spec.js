@@ -40,6 +40,7 @@ test('location marker stays visible above stations and follows GPS updates', asy
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
     await page.goto('/index.html');
+    await page.locator('#map-locate-btn').click();
 
     const marker = page.locator('.user-loc');
     await expect(marker).toBeVisible();
@@ -53,7 +54,7 @@ test('location marker stays visible above stations and follows GPS updates', asy
     expect(Number(paneZIndex)).toBeGreaterThan(600);
 });
 
-test('location button remains usable during an automatic GPS search', async ({ context, page }) => {
+test('location button remains usable during a GPS search', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await page.goto('/index.html');
 
@@ -64,6 +65,16 @@ test('location button remains usable during an automatic GPS search', async ({ c
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
     await expect(page.locator('.user-loc')).toBeVisible();
     await expect(locateButton).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
+});
+
+test('blocked location permission opens recovery instructions', async ({ context, page }) => {
+    await context.clearPermissions();
+    await page.goto('/index.html');
+    await page.locator('#map-locate-btn').click();
+
+    await expect(page.locator('#location-permission-help')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Standort wieder freigeben' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Erneut versuchen' })).toBeVisible();
 });
 
 test('visitor pass hides admin exports', async ({ page }) => {

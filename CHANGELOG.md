@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.131] - 2026-08-24
+### Fixed
+- **Mobile Standortfreigabe:** GPS wird nicht mehr automatisch beim Laden angefordert, sondern ausschließlich durch einen bewussten Klick auf den Standortbutton.
+- **Gesperrte Berechtigung:** Bei einer zuvor abgelehnten Browserfreigabe erscheint eine gerätespezifische Schritt-für-Schritt-Anleitung mit erneuter Prüfung.
+
+### Improved
+- **Tests:** Standortfreigabe, erneute GPS-Suche und der Wiederherstellungsdialog für blockierte Berechtigungen werden automatisch geprüft.
+
 ## [1.4.130] - 2026-08-24
 ### Fixed
 - **GPS-Button:** Die manuelle Standortsuche bleibt auch während einer automatischen Suche anklickbar und wird nicht mehr durch ein Lade-Overlay blockiert.
