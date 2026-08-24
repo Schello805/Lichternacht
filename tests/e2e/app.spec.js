@@ -36,6 +36,23 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+test('location marker stays visible above stations and follows GPS updates', async ({ context, page }) => {
+    await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
+    await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
+    await page.goto('/index.html');
+
+    const marker = page.locator('.user-loc');
+    await expect(marker).toBeVisible();
+    await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
+
+    const initialPosition = await marker.getAttribute('style');
+    await context.setGeolocation({ latitude: 49.1582, longitude: 10.5501, accuracy: 8 });
+    await expect.poll(() => marker.getAttribute('style')).not.toBe(initialPosition);
+
+    const paneZIndex = await marker.evaluate(element => getComputedStyle(element.parentElement).zIndex);
+    expect(Number(paneZIndex)).toBeGreaterThan(600);
+});
+
 test('visitor pass hides admin exports', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#pass-progress').click();

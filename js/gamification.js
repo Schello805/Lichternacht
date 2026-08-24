@@ -393,6 +393,18 @@ export async function checkIn(id) {
         return;
     }
 
+    const gpsAgeMs = Date.now() - Number(state.gpsLastFixAt || 0);
+    if (!state.gpsLastFixAt || gpsAgeMs > 60000) {
+        showToast('Der Standort ist nicht mehr aktuell – GPS wird neu bestimmt.', 'info');
+        if (window.locateUser) window.locateUser(() => checkIn(id));
+        return;
+    }
+
+    if (Number.isFinite(Number(state.gpsAccuracy)) && Number(state.gpsAccuracy) > 75) {
+        showToast(`GPS noch zu ungenau (±${Math.round(Number(state.gpsAccuracy))} m). Bitte kurz warten und erneut versuchen.`, 'info');
+        return;
+    }
+
     const s = state.stations.find(x => x.id == id);
     if (!s) return;
 

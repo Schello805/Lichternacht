@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.129] - 2026-08-24
+### Fixed
+- **Standort:** Kompass- und GPS-Freigabe werden auf iOS geordnet statt gleichzeitig gestartet.
+- **GPS-Fallback:** Schnelle Initialmessung, dauerhaftes High-Accuracy-Tracking und entspannter Fallback ersetzen die anfällige Timeout-Rekursion.
+- **Standortmarker:** Der eigene Standort liegt in einer separaten obersten Kartenebene und kann nicht mehr von Stationsmarkern verdeckt werden.
+- **Check-in:** Veraltete oder stark ungenaue GPS-Messungen werden nicht für den Lichter-Pass verwendet.
+
+### Improved
+- **Standortanzeige:** Pulsierender blauer Punkt, klarer Such-/Verbindungsstatus und verständliche Hinweise bei gesperrtem oder ungenauem GPS.
+- **Browserfreigabe:** Apache und lokaler Server erlauben Standort- und Bewegungssensoren ausdrücklich nur für die eigene App.
+- **Tests:** Automatische Tests prüfen GPS-Aktualisierung, Marker-Sichtbarkeit, Kartenebene und die Erneuerung veralteter Messungen.
+
 ## [1.4.128] - 2026-08-23
 ### Fixed
 - **Lichter-Pass:** Check-ins bleiben ohne konfigurierten Event-Zeitraum gesperrt.

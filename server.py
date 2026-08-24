@@ -51,6 +51,10 @@ def load_dotenv(path='.env'):
 load_dotenv()
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Permissions-Policy', 'geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)')
+        super().end_headers()
+
     def _send_json(self, status, payload):
         self.send_response(status)
         self.send_header('Content-type', 'application/json')

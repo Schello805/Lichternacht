@@ -29,6 +29,9 @@
 # | Cache-Control Headers                                              |
 # ----------------------------------------------------------------------
 <IfModule mod_headers.c>
+  # Standort und Kompass ausschließlich für diese App erlauben.
+  Header always set Permissions-Policy "geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)"
+
   # Never cache Service Worker, Config, Manifest & HTML
   <FilesMatch "^(service-worker\.js|sw\.js|config\.js|manifest\.json|.*\.html|.*\.htm|.*\.xml)$">
     Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"

@@ -74,6 +74,7 @@
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22), 0 2px 10px rgba(37, 99, 235, 0.65);
         transform: translate(-50%, -50%);
         z-index: 2;
+        animation: userLocationPulse 2s ease-out infinite;
     }
 
     .user-location-heading {
@@ -94,5 +95,14 @@
 
     .user-location-marker.is-heading-active .user-location-heading {
         display: block;
+    }
+
+    @keyframes userLocationPulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22), 0 2px 10px rgba(37, 99, 235, 0.65); }
+        50% { box-shadow: 0 0 0 9px rgba(37, 99, 235, 0), 0 2px 12px rgba(37, 99, 235, 0.75); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .user-location-dot { animation: none; }
     }
 }

@@ -1,13 +1,12 @@
 import { state } from './state.js';
 import { showToast, setLoading, getVisitedStationIdSet } from './utils.js';
-import { saveData } from './data.js';
 
 let tileLayer;
 const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
 let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
-let timeoutFinalToastShown = false;
+let gpsFallbackTimer = null;
 
 function getUserMarkerIcon() {
     const heading = Number.isFinite(Number(state.compassHeading)) ? Number(state.compassHeading) : 0;
@@ -85,11 +84,55 @@ async function enableCompassFromUserGesture() {
     window.addEventListener('deviceorientation', state.compassListener, true);
     state.compassEnabled = true;
     updateUserMarkerHeading();
-    showToast('Kompass aktiv – Richtung wird am Standortpunkt angezeigt.', 'success');
+}
+
+function getLocationButtons() {
+    return ['map-locate-btn', 'list-locate-btn']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+}
+
+function setGpsUiStatus(status) {
+    state.gpsStatus = status;
+    const statusIndicator = document.getElementById('status-indicator');
+    const labels = {
+        searching: 'Suche…',
+        connected: 'Verbunden',
+        timeout: 'GPS Timeout',
+        denied: 'Standort gesperrt',
+        error: 'GPS Fehler'
+    };
+    if (statusIndicator) statusIndicator.innerText = labels[status] || 'GPS';
+
+    getLocationButtons().forEach(button => {
+        const searching = status === 'searching';
+        const connected = status === 'connected';
+        button.toggleAttribute('disabled', searching);
+        button.setAttribute('aria-busy', searching ? 'true' : 'false');
+        button.setAttribute('aria-label', connected ? 'Standort erneut bestimmen' : 'Eigenen Standort bestimmen');
+        button.classList.toggle('ring-2', connected);
+        button.classList.toggle('ring-blue-500', connected);
+        button.classList.toggle('animate-pulse', searching);
+    });
+}
+
+function clearGpsWatch() {
+    if (state.watchId !== null && state.watchId !== undefined) {
+        try { navigator.geolocation.clearWatch(state.watchId); } catch (e) { }
+    }
+    state.watchId = null;
+}
+
+function isValidPosition(position) {
+    return Number.isFinite(Number(position?.coords?.latitude))
+        && Number.isFinite(Number(position?.coords?.longitude));
 }
 
 export function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([49.158, 10.552], 16);
+    const userLocationPane = state.map.createPane('userLocationPane');
+    userLocationPane.style.zIndex = '750';
+    userLocationPane.style.pointerEvents = 'none';
     updateMapTiles(document.documentElement.classList.contains('dark'));
 }
 
@@ -173,127 +216,163 @@ export function refreshMapMarkers() {
     });
 }
 
-export function locateUser(cb) {
+export async function locateUser(cb) {
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
+        setGpsUiStatus('error');
         return;
     }
 
-    if (navigator.userActivation?.isActive) {
-        enableCompassFromUserGesture();
+    const startedFromUserGesture = navigator.userActivation?.isActive === true;
+    const requestToken = ++state.gpsRequestToken;
+
+    if (startedFromUserGesture) {
+        await enableCompassFromUserGesture();
+        if (requestToken !== state.gpsRequestToken) return;
     }
 
     const forceCenter = !cb;
+    const context = { requestToken, forceCenter, cb, cbCalled: false, hasFix: false, watchStarted: false, denied: false };
 
-    // Fresh locate attempt: allow one timeout-retry
-    if (!cb) {
-        state._gpsTimeoutRetried = false;
-    }
+    clearGpsWatch();
+    if (gpsFallbackTimer) clearTimeout(gpsFallbackTimer);
+    gpsFallbackTimer = null;
+    timeoutRetryToastShown = false;
+    setLoading(true, 'Suche Standort…');
+    setGpsUiStatus('searching');
 
-    setLoading(true, "Suche GPS...");
-    document.getElementById('status-indicator').innerText = "Suche...";
-    
-    // Use watchPosition for continuous updates
-    if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
-    
-    let cbCalled = false;
-    state.watchId = navigator.geolocation.watchPosition(
+    const applyPosition = (pos) => {
+        if (context.requestToken !== state.gpsRequestToken || !isValidPosition(pos)) return;
+        const wasLocated = state.hasLocatedUser === true;
+        context.hasFix = true;
+        context.denied = false;
+        setLoading(false);
+        setGpsUiStatus('connected');
+        lastGpsErrorSignature = '';
+        lastGpsErrorToastAt = 0;
+        timeoutRetryToastShown = false;
+
+        const userLat = Number(pos.coords.latitude);
+        const userLng = Number(pos.coords.longitude);
+        const fixTimestamp = Number.isFinite(Number(pos.timestamp)) ? Number(pos.timestamp) : Date.now();
+        const isFreshFix = Date.now() - fixTimestamp <= 60000;
+        state.userLocation = { lat: userLat, lng: userLng };
+        state.gpsAccuracy = Number.isFinite(Number(pos.coords.accuracy)) ? Number(pos.coords.accuracy) : null;
+        state.gpsLastFixAt = fixTimestamp;
+
+        if (context.cb && !context.cbCalled && isFreshFix) {
+            context.cbCalled = true;
+            try { context.cb(); } catch (e) { }
+        }
+
+        if (state.userMarker) {
+            state.userMarker.setLatLng([userLat, userLng]);
+            state.userMarker.setIcon(getUserMarkerIcon());
+        } else if (state.map) {
+            state.userMarker = L.marker([userLat, userLng], {
+                icon: getUserMarkerIcon(),
+                pane: 'userLocationPane',
+                interactive: false,
+                keyboard: false,
+                zIndexOffset: 10000
+            }).addTo(state.map);
+        }
+
+        if (state.map && (!state.hasLocatedUser || context.forceCenter)) {
+            state.map.setView([userLat, userLng], Math.max(state.map.getZoom(), 18));
+            state.hasLocatedUser = true;
+        }
+
+        if (!wasLocated && startedFromUserGesture) {
+            showToast(state.compassEnabled
+                ? 'Standort erkannt – Kompass ist aktiv.'
+                : 'Standort erkannt.', 'success');
+        }
+
+        if (window.checkProximity) window.checkProximity(userLat, userLng);
+        if (window.refreshStationList) window.refreshStationList();
+        if (window.renderTimeline) window.renderTimeline();
+    };
+
+    const handleFinalError = (err) => {
+        if (context.requestToken !== state.gpsRequestToken) return;
+        setLoading(false);
+        const denied = err?.code === 1;
+        setGpsUiStatus(denied ? 'denied' : 'error');
+        if (shouldShowGpsErrorToast(err)) {
+            const message = denied
+                ? 'Standortzugriff ist blockiert. Bitte erlaube ihn in den Browser-Einstellungen für diese Website.'
+                : `Standort konnte nicht ermittelt werden: ${err?.message || 'Unbekannter Fehler'}`;
+            console.warn('GPS Error', err);
+            showToast(message, 'error');
+        }
+    };
+
+    const startRelaxedFallback = () => {
+        if (context.denied || context.requestToken !== state.gpsRequestToken || gpsFallbackTimer) return;
+        gpsFallbackTimer = setTimeout(() => {
+            gpsFallbackTimer = null;
+            navigator.geolocation.getCurrentPosition(
+                applyPosition,
+                (err) => {
+                    if (!context.hasFix && err?.code === 1) handleFinalError(err);
+                },
+                { enableHighAccuracy: false, timeout: 30000, maximumAge: 120000 }
+            );
+        }, 600);
+    };
+
+    const handleWatchError = (err) => {
+        if (context.requestToken !== state.gpsRequestToken) return;
+        setLoading(false);
+        if (err?.code === 1) {
+            context.denied = true;
+            clearGpsWatch();
+            handleFinalError(err);
+            return;
+        }
+
+        setGpsUiStatus(context.hasFix ? 'connected' : 'timeout');
+        const shouldNotify = shouldShowGpsErrorToast(err);
+        if (shouldNotify) console.warn('GPS Watch Error', err);
+        if (!context.hasFix && shouldNotify && !timeoutRetryToastShown) {
+            timeoutRetryToastShown = true;
+            showToast('Standortsignal ist noch ungenau – die Suche läuft weiter.', 'info');
+        }
+        startRelaxedFallback();
+    };
+
+    const startWatch = () => {
+        if (context.watchStarted || context.denied || context.requestToken !== state.gpsRequestToken) return;
+        context.watchStarted = true;
+        state.watchId = navigator.geolocation.watchPosition(
+            applyPosition,
+            handleWatchError,
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
+        );
+    };
+
+    navigator.geolocation.getCurrentPosition(
         (pos) => {
-            setLoading(false);
-            lastGpsErrorSignature = '';
-            lastGpsErrorToastAt = 0;
-            timeoutFinalToastShown = false;
-
-            // We got a fix again -> reset timeout retry flag
-            state._gpsTimeoutRetried = false;
-
-            const userLat = pos.coords.latitude;
-            const userLng = pos.coords.longitude;
-            
-            // Update State
-            state.userLocation = { lat: userLat, lng: userLng };
-
-            // If a callback was provided (e.g. check-in retry), run it once after we have a fix
-            if (cb && !cbCalled) {
-                cbCalled = true;
-                try { cb(); } catch (e) { }
-            }
-            
-            // Update Marker
-            if (state.userMarker) {
-                state.userMarker.setLatLng([userLat, userLng]);
-            } else { 
-                const icon = getUserMarkerIcon(); 
-                state.userMarker = L.marker([userLat, userLng], { icon: icon, interactive: false, keyboard: false }).addTo(state.map);
-            }
-            
-            // Center map ONLY on first find or if requested? 
-            // Better: only if it's the first time we locate or user requested "Locate Me"
-            if (!state.hasLocatedUser || forceCenter) {
-                 state.map.setView([userLat, userLng], 18);
-                 state.hasLocatedUser = true;
-            }
-
-            document.getElementById('status-indicator').innerText = "Verbunden"; 
-            
-            // Update List View Button State (if exists)
-            const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
-            if (listLocateBtn) {
-                // User requirement: Hide button if GPS is active/granted
-                listLocateBtn.classList.add('hidden');
-            }
-            
-            // Check Proximity
-            if (window.checkProximity) window.checkProximity(userLat, userLng);
-            
-            // Refresh List (to show distances)
-            if (window.refreshStationList) window.refreshStationList();
-            // Refresh Timeline (to show distances)
-            if (window.renderTimeline) window.renderTimeline();
-
+            applyPosition(pos);
+            startWatch();
         },
         (err) => {
-            setLoading(false);
-            const shouldNotify = shouldShowGpsErrorToast(err);
-            if (shouldNotify) console.warn("GPS Watch Error", err);
-
-            // TIMEOUT is common (indoors/first fix). Retry once with relaxed settings.
-            if (err && err.code === 3) {
-                document.getElementById('status-indicator').innerText = "GPS Timeout";
-
-                if (!state._gpsTimeoutRetried) {
-                    state._gpsTimeoutRetried = true;
-                    if (!timeoutRetryToastShown) {
-                        timeoutRetryToastShown = true;
-                        showToast('GPS Timeout – ich versuche es noch einmal. Ggf. kurz nach draußen gehen.', 'info');
-                    }
-                    try { if (state.watchId) navigator.geolocation.clearWatch(state.watchId); } catch (e) { }
-                    setTimeout(() => locateUser(cb), 400);
-                    return;
-                }
-
-                if (shouldNotify && !timeoutFinalToastShown) {
-                    timeoutFinalToastShown = true;
-                    showToast('GPS Timeout – kein Signal. Bitte Standort prüfen.', 'error');
-                }
+            if (context.requestToken !== state.gpsRequestToken) return;
+            if (err?.code === 1) {
+                context.denied = true;
+                clearGpsWatch();
+                handleFinalError(err);
                 return;
             }
-
-            // User requirement: Show button if GPS denied/error
-            const listLocateBtn = document.querySelector('#view-list button[onclick="locateUser()"]');
-            if (listLocateBtn) listLocateBtn.classList.remove('hidden');
-
-            document.getElementById('status-indicator').innerText = "GPS Fehler";
-            if (shouldNotify) {
-                showToast("GPS Fehler: " + (err?.message || err), 'error');
-            }
+            startWatch();
+            startRelaxedFallback();
         },
-        {
-            enableHighAccuracy: state._gpsTimeoutRetried ? false : true,
-            timeout: state._gpsTimeoutRetried ? 20000 : 15000,
-            maximumAge: state._gpsTimeoutRetried ? 30000 : 5000
-        }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
     );
+
+    // Do not wait for the initial one-shot lookup before starting continuous tracking.
+    setTimeout(startWatch, 1200);
 }
 
 export function calculateRoute(destLat, destLng) {
