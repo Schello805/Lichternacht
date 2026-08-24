@@ -160,6 +160,31 @@ function isValidPosition(position) {
         && Number.isFinite(Number(position?.coords?.longitude));
 }
 
+function getGeolocationStrategy() {
+    const userAgent = navigator.userAgent || '';
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
+        || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
+
+    return {
+        isMobileDevice,
+        initial: {
+            enableHighAccuracy: false,
+            timeout: isMobileDevice ? 15000 : 30000,
+            maximumAge: isMobileDevice ? 120000 : 300000
+        },
+        watch: {
+            enableHighAccuracy: isMobileDevice,
+            timeout: isMobileDevice ? 30000 : 60000,
+            maximumAge: isMobileDevice ? 10000 : 60000
+        },
+        fallback: {
+            enableHighAccuracy: false,
+            timeout: isMobileDevice ? 30000 : 60000,
+            maximumAge: isMobileDevice ? 120000 : 600000
+        }
+    };
+}
+
 export function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([49.158, 10.552], 16);
     const userLocationPane = state.map.createPane('userLocationPane');
@@ -257,6 +282,7 @@ export async function locateUser(cb, options = {}) {
 
     const startedFromUserGesture = options.userInitiated === true || navigator.userActivation?.isActive === true;
     const requestToken = ++state.gpsRequestToken;
+    const geolocationStrategy = getGeolocationStrategy();
 
     if (startedFromUserGesture) {
         await enableCompassFromUserGesture();
@@ -347,7 +373,7 @@ export async function locateUser(cb, options = {}) {
                 (err) => {
                     if (!context.hasFix && err?.code === 1) handleFinalError(err);
                 },
-                { enableHighAccuracy: false, timeout: 30000, maximumAge: 120000 }
+                geolocationStrategy.fallback
             );
         }, 600);
     };
@@ -366,7 +392,9 @@ export async function locateUser(cb, options = {}) {
         if (shouldNotify) console.warn('GPS Watch Error', err);
         if (!context.hasFix && shouldNotify && !timeoutRetryToastShown) {
             timeoutRetryToastShown = true;
-            showToast('Standortsignal ist noch ungenau – die Suche läuft weiter.', 'info');
+            showToast(geolocationStrategy.isMobileDevice
+                ? 'Standortsignal ist noch ungenau – die Suche läuft weiter.'
+                : 'Der Desktop-Standortdienst antwortet noch nicht – die WLAN-Ortung läuft weiter.', 'info');
         }
         startRelaxedFallback();
     };
@@ -377,7 +405,7 @@ export async function locateUser(cb, options = {}) {
         state.watchId = navigator.geolocation.watchPosition(
             applyPosition,
             handleWatchError,
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
+            geolocationStrategy.watch
         );
     };
 
@@ -397,7 +425,7 @@ export async function locateUser(cb, options = {}) {
             startWatch();
             startRelaxedFallback();
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
+        geolocationStrategy.initial
     );
 
     // Do not wait for the initial one-shot lookup before starting continuous tracking.

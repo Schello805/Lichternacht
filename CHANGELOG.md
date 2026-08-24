@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.132] - 2026-08-24
+### Fixed
+- **Desktop-Ortung:** Desktop-Browser verwenden eine tolerantere WLAN-/Netzwerkortung statt dauerhaft erzwungener GPS-Hochgenauigkeit.
+- **Timeouts:** Desktop-Standortdienste erhalten längere Antwortzeiten und dürfen ältere Browsermessungen als schnellen Startwert verwenden.
+
+### Improved
+- **Plattformstrategie:** Smartphones verwenden weiterhin präzises GPS und Kompass; Desktop und Mobilgeräte werden mit passenden Standortoptionen behandelt.
+- **Tests:** Die vollständigen Standort- und Bedienabläufe laufen nun automatisiert in mobilen und Desktop-Browserprofilen.
+
 ## [1.4.131] - 2026-08-24
 ### Fixed
 - **Mobile Standortfreigabe:** GPS wird nicht mehr automatisch beim Laden angefordert, sondern ausschließlich durch einen bewussten Klick auf den Standortbutton.

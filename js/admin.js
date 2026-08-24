@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.131';
+import { parseCsv, toCsv } from './csv.js?v=1.4.132';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.131';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.132';
 
 console.log("js/admin.js module loaded"); // DEBUG
 

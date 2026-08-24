@@ -19,6 +19,15 @@ export default defineConfig({
                 ...devices['Pixel 5'],
                 browserName: 'chromium'
             }
+        },
+        {
+            name: 'chromium-desktop',
+            use: {
+                browserName: 'chromium',
+                viewport: { width: 1280, height: 800 },
+                isMobile: false,
+                hasTouch: false
+            }
         }
     ],
     webServer: {
