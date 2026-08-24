@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.133] - 2026-08-24
+### Fixed
+- **Startansicht:** Die redundanten Buttons „Karte“, „Stationen“ und „Programm“ wurden aus dem Willkommenshinweis entfernt; die Hauptnavigation erscheint nur noch einmal.
+
+### Improved
+- **Tests:** Ein automatischer Mobil- und Desktop-Test verhindert eine erneute doppelte Hauptnavigation.
+
 ## [1.4.132] - 2026-08-24
 ### Fixed
 - **Desktop-Ortung:** Desktop-Browser verwenden eine tolerantere WLAN-/Netzwerkortung statt dauerhaft erzwungener GPS-Hochgenauigkeit.

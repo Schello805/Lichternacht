@@ -2,7 +2,7 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.132';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.133';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
@@ -14,16 +14,16 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.132';
+} from './js/ui.js?v=1.4.133';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail
-} from './js/admin.js?v=1.4.132';
+} from './js/admin.js?v=1.4.133';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.132';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.132';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.133';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.133';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.132";
+const APP_VERSION = "1.4.133";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1444,13 +1444,6 @@ window.onload = async () => {
 
     const visitorClose = document.getElementById('visitor-start-close');
     if (visitorClose) visitorClose.addEventListener('click', window.dismissVisitorStartCard);
-    document.querySelectorAll('[data-visitor-tab]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.getAttribute('data-visitor-tab');
-            if (tab) switchTab(tab);
-            hideVisitorStartCard();
-        });
-    });
 
     // Tracking consent UI (mobile bottom sheet)
     initTrackingConsentUi();

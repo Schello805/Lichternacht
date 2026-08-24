@@ -36,6 +36,17 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+test('welcome card does not duplicate the main navigation', async ({ page }) => {
+    await page.addInitScript(() => localStorage.removeItem('visitor_start_card_dismissed_v1'));
+    await page.goto('/index.html');
+
+    await expect(page.locator('#visitor-start-card')).toBeVisible();
+    await expect(page.locator('#visitor-start-card [data-visitor-tab]')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Karte', exact: true })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Stationen', exact: true })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Programm', exact: true })).toHaveCount(1);
+});
+
 test('location marker stays visible above stations and follows GPS updates', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
