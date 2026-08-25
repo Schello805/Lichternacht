@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.145] - 2026-08-25
+
+- Aktualisiert die Systemkennzahlen im geöffneten Adminbereich automatisch alle fünf Sekunden.
+- Verhindert dabei überlappende Kennzahlen-Abfragen.
+
 ## [1.4.144] - 2026-08-25
 
 - Zeigt die echte CPU-Auslastung zwischen 0 und 100 Prozent statt einer missverständlich umgerechneten Linux-Systemlast.

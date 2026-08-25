@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.144';
+import { parseCsv, toCsv } from './csv.js?v=1.4.145';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.144';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.145';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -12,6 +12,7 @@ const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'l
 const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
+let systemMetricsLoading = false;
 
 function formatBytes(bytes) {
     const value = Number(bytes) || 0;
@@ -76,7 +77,8 @@ async function loadAudienceMetrics() {
 export async function loadSystemMetrics() {
     const container = document.getElementById('admin-system-metrics');
     const updated = document.getElementById('admin-system-updated');
-    if (!container || !state.isAdmin) return;
+    if (!container || !state.isAdmin || systemMetricsLoading) return;
+    systemMetricsLoading = true;
     container.setAttribute('aria-busy', 'true');
 
     try {
@@ -112,11 +114,12 @@ export async function loadSystemMetrics() {
         container.innerHTML = renderMetricCard({ label: 'Systemstatus', value: 'Nicht verfügbar', detail: error.message, icon: 'ph-warning-circle', tone: 'red' });
         if (updated) updated.textContent = 'Die App-Daten funktionieren unabhängig von diesen Serverkennzahlen.';
     } finally {
+        systemMetricsLoading = false;
         container.removeAttribute('aria-busy');
         clearTimeout(systemMetricsTimer);
         systemMetricsTimer = setTimeout(() => {
             if (!document.getElementById('admin-panel')?.classList.contains('hidden')) loadSystemMetrics();
-        }, 60000);
+        }, 5000);
     }
 }
 
