@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.139" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.140" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.139">
+    <link rel="stylesheet" href="style.css?v=1.4.140">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -246,6 +246,22 @@
                     <i class="ph ph-arrow-left"></i> Zur App
                 </button>
             </div>
+
+            <section class="mb-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900 dark:bg-blue-950/30" aria-labelledby="system-status-title">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 id="system-status-title" class="font-bold text-base text-gray-900 dark:text-white">Systemstatus</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Server, Speicher und aktuelle Nutzung. Aktualisierung alle 60 Sekunden.</p>
+                    </div>
+                    <button type="button" onclick="loadSystemMetrics()" class="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-gray-800 dark:text-blue-300">
+                        <i class="ph ph-arrows-clockwise"></i> Aktualisieren
+                    </button>
+                </div>
+                <div id="admin-system-metrics" class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                    <div class="col-span-full rounded-xl bg-white p-4 text-sm text-gray-500 dark:bg-gray-800">Systemdaten werden geladen…</div>
+                </div>
+                <p id="admin-system-updated" class="mt-2 text-[10px] text-gray-400"></p>
+            </section>
 
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <div class="font-bold text-sm p-4 bg-gray-100 dark:bg-gray-600 dark:text-white border-b dark:border-gray-600 flex justify-between items-center">
@@ -1187,7 +1203,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.139', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.140', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1214,7 +1230,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.139"></script>
+    <script type="module" src="main.js?v=1.4.140"></script>
 </body>
 
 </html>

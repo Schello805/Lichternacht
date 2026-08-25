@@ -33,6 +33,7 @@ Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitf
 - Wirkung: „Live/Demnächst“ + Lichter‑Pass Check-ins nur innerhalb dieses Fensters.
 *   **Live-Updates:** Änderungen an Stationen/Events sind sofort bei allen Nutzern sichtbar (Firestore Realtime).
 *   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
+*   **Systemstatus:** Geschütztes Admin-Dashboard für Serverlast, RAM, freien Speicher, Laufzeit, Bildspeicher, aktive Besucher und Admin-Konten.
 *   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
 *   **Stationsbilder:** Komprimierte WebP-Dateien liegen unter `downloads/stations/` auf dem eigenen Server; Firestore speichert nur die URL.
 *   **Feedback:** Integriertes Bug-Reporting per E-Mail.

@@ -10,6 +10,8 @@ import secrets
 import urllib.parse
 import urllib.request
 import urllib.error
+import shutil
+import resource
 from email.message import EmailMessage
 
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -185,6 +187,58 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         with open(os.path.join(LOG_DIR, 'client-errors.log'), 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    def _collect_system_metrics(self):
+        cpu_count = os.cpu_count() or 1
+        load_1, load_5, load_15 = os.getloadavg() if hasattr(os, 'getloadavg') else (0.0, 0.0, 0.0)
+        cpu_load_percent = min(999.0, max(0.0, load_1 / cpu_count * 100))
+
+        memory_total = 0
+        memory_available = 0
+        try:
+            with open('/proc/meminfo', 'r', encoding='utf-8') as meminfo:
+                values = {}
+                for line in meminfo:
+                    key, raw = line.split(':', 1)
+                    values[key] = int(raw.strip().split()[0]) * 1024
+                memory_total = values.get('MemTotal', 0)
+                memory_available = values.get('MemAvailable', values.get('MemFree', 0))
+        except (OSError, ValueError):
+            pass
+
+        disk = shutil.disk_usage(os.getcwd())
+        image_bytes = 0
+        image_count = 0
+        for root, _, files in os.walk(STATION_IMAGE_DIR):
+            for filename in files:
+                try:
+                    image_bytes += os.path.getsize(os.path.join(root, filename))
+                    image_count += 1
+                except OSError:
+                    pass
+
+        uptime_seconds = 0
+        try:
+            with open('/proc/uptime', 'r', encoding='utf-8') as uptime_file:
+                uptime_seconds = int(float(uptime_file.read().split()[0]))
+        except (OSError, ValueError, IndexError):
+            pass
+
+        process_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if os.uname().sysname == 'Darwin':
+            process_rss_bytes = int(process_rss)
+        else:
+            process_rss_bytes = int(process_rss * 1024)
+
+        return {
+            "ok": True,
+            "generatedAt": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            "cpu": {"count": cpu_count, "loadPercent": round(cpu_load_percent, 1), "load1": round(load_1, 2), "load5": round(load_5, 2), "load15": round(load_15, 2)},
+            "memory": {"total": memory_total, "available": memory_available, "usedPercent": round((1 - memory_available / memory_total) * 100, 1) if memory_total else None},
+            "disk": {"total": disk.total, "free": disk.free, "usedPercent": round(disk.used / disk.total * 100, 1) if disk.total else None},
+            "service": {"uptimeSeconds": uptime_seconds, "processRss": process_rss_bytes},
+            "images": {"count": image_count, "bytes": image_bytes}
+        }
+
     def do_POST(self):
         if self.path.split('?', 1)[0] == '/api/station-image':
             if not self._verify_admin_token():
@@ -266,6 +320,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if self.path.split('?', 1)[0] == '/api/system-metrics':
+            if not self._verify_admin_token():
+                self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
+                return
+            try:
+                self._send_json(200, self._collect_system_metrics())
+            except Exception:
+                self._send_json(500, {"ok": False, "error": "Systemdaten konnten nicht gelesen werden"})
+            return
         if self.path == '/api/health':
             self._send_json(200, {"ok": True})
             return

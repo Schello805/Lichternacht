@@ -180,3 +180,15 @@ test('station image endpoint rejects unauthenticated uploads', async ({ request 
     expect(response.status()).toBe(403);
     await expect(response.json()).resolves.toMatchObject({ ok: false });
 });
+
+test('system metrics are protected and visible only in admin UI', async ({ request, page }) => {
+    const response = await request.get('/api/system-metrics');
+    expect(response.status()).toBe(403);
+
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.getByRole('heading', { name: 'Systemstatus' })).toBeVisible();
+    await expect(page.locator('#admin-system-metrics')).toBeVisible();
+});

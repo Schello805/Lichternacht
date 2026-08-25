@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.140] - 2026-08-25
+
+### Hinzugefügt
+- Der Adminbereich zeigt ein geschütztes Systemstatus-Dashboard mit CPU/Serverlast, RAM, freiem Speicher, aktiven Besuchern, Admin-Konten, Stations-/Programmzahl, Bildspeicher und Server-Laufzeit.
+- Kennzahlen aktualisieren sich alle 60 Sekunden oder manuell. Grün steht für unkritisch, Orange für erhöht, Rot für kritisch und Blau für reine Informationen.
+
 ## [1.4.139] - 2026-08-25
 
 ### Geändert

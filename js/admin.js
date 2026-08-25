@@ -2,15 +2,124 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.139';
+import { parseCsv, toCsv } from './csv.js?v=1.4.140';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.139';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.140';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
 const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
+let systemMetricsTimer = null;
+
+function formatBytes(bytes) {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let size = value;
+    let unit = 'B';
+    for (const nextUnit of units) {
+        size /= 1024;
+        unit = nextUnit;
+        if (size < 1024) break;
+    }
+    return `${size >= 10 ? size.toFixed(0) : size.toFixed(1)} ${unit}`;
+}
+
+function formatUptime(seconds) {
+    const total = Math.max(0, Number(seconds) || 0);
+    const days = Math.floor(total / 86400);
+    const hours = Math.floor((total % 86400) / 3600);
+    return days > 0 ? `${days} T. ${hours} Std.` : `${hours} Std. ${Math.floor((total % 3600) / 60)} Min.`;
+}
+
+function metricTone(percent) {
+    if (!Number.isFinite(Number(percent))) return 'blue';
+    if (Number(percent) >= 85) return 'red';
+    if (Number(percent) >= 65) return 'orange';
+    return 'green';
+}
+
+function renderMetricCard({ label, value, detail = '', icon = 'ph-info', tone = 'blue' }) {
+    const tones = {
+        green: 'border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300',
+        orange: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300',
+        red: 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300',
+        blue: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300'
+    };
+    return `<div class="rounded-xl border p-3 ${tones[tone] || tones.blue}">
+        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-80"><i class="ph ${icon} text-sm"></i>${escapeHtml(label)}</div>
+        <div class="mt-1 text-lg font-black leading-tight">${escapeHtml(value)}</div>
+        ${detail ? `<div class="mt-1 text-[10px] opacity-75">${escapeHtml(detail)}</div>` : ''}
+    </div>`;
+}
+
+async function loadAudienceMetrics() {
+    if (state.useLocalStorage || !state.db) return { activeVisitors: null, admins: null };
+    try {
+        const { collection, query, where, getCountFromServer } = state.fb;
+        const presenceRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'presence');
+        const activeQuery = query(presenceRef, where('lastSeen', '>', new Date(Date.now() - 2 * 60 * 1000)));
+        const usersRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'users');
+        const [presenceCount, adminCount] = await Promise.all([
+            getCountFromServer(activeQuery),
+            getCountFromServer(usersRef)
+        ]);
+        return { activeVisitors: presenceCount.data().count, admins: adminCount.data().count };
+    } catch (error) {
+        console.warn('Audience metrics load failed', error);
+        return { activeVisitors: null, admins: null };
+    }
+}
+
+export async function loadSystemMetrics() {
+    const container = document.getElementById('admin-system-metrics');
+    const updated = document.getElementById('admin-system-updated');
+    if (!container || !state.isAdmin) return;
+    container.setAttribute('aria-busy', 'true');
+
+    try {
+        const currentUser = state.auth?.currentUser;
+        if (!currentUser || typeof currentUser.getIdToken !== 'function') throw new Error('Admin-Anmeldung fehlt');
+        const [token, audience] = await Promise.all([currentUser.getIdToken(), loadAudienceMetrics()]);
+        const response = await fetch('./api/system-metrics', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'X-Firebase-Api-Key': state.firebaseApiKey
+            },
+            cache: 'no-store'
+        });
+        const metrics = await response.json().catch(() => ({}));
+        if (!response.ok || !metrics.ok) throw new Error(metrics.error || 'Server nicht erreichbar');
+
+        const memoryPercent = Number(metrics.memory?.usedPercent);
+        const diskPercent = Number(metrics.disk?.usedPercent);
+        const cpuPercent = Number(metrics.cpu?.loadPercent);
+        const cards = [
+            { label: 'CPU / Serverlast', value: `${cpuPercent.toFixed(1)} %`, detail: `${metrics.cpu?.count || 0} CPU · Load ${metrics.cpu?.load1 ?? '–'}`, icon: 'ph-cpu', tone: metricTone(cpuPercent) },
+            { label: 'RAM belegt', value: Number.isFinite(memoryPercent) ? `${memoryPercent.toFixed(1)} %` : '–', detail: metrics.memory?.total ? `${formatBytes(metrics.memory.total - metrics.memory.available)} von ${formatBytes(metrics.memory.total)}` : 'Nicht verfügbar', icon: 'ph-memory', tone: metricTone(memoryPercent) },
+            { label: 'Freier Speicher', value: formatBytes(metrics.disk?.free), detail: `${diskPercent.toFixed(1)} % belegt · ${formatBytes(metrics.disk?.total)} gesamt`, icon: 'ph-hard-drives', tone: metricTone(diskPercent) },
+            { label: 'Aktive Besucher', value: audience.activeVisitors ?? '–', detail: 'Geräte der letzten 2 Minuten', icon: 'ph-users-three', tone: 'blue' },
+            { label: 'Admins', value: audience.admins ?? '–', detail: 'Berechtigte Konten', icon: 'ph-shield-check', tone: 'blue' },
+            { label: 'Stationen / Programm', value: `${state.stations.length} / ${state.events.length}`, detail: 'Aktuell geladene Datensätze', icon: 'ph-map-trifold', tone: 'blue' },
+            { label: 'Bildspeicher', value: formatBytes(metrics.images?.bytes), detail: `${metrics.images?.count || 0} optimierte Bilder`, icon: 'ph-image', tone: 'blue' },
+            { label: 'Server-Laufzeit', value: formatUptime(metrics.service?.uptimeSeconds), detail: `API-RAM ${formatBytes(metrics.service?.processRss)}`, icon: 'ph-clock', tone: 'green' }
+        ];
+        container.innerHTML = cards.map(renderMetricCard).join('');
+        if (updated) updated.textContent = `Zuletzt aktualisiert: ${new Date().toLocaleString('de-DE')}`;
+    } catch (error) {
+        console.error('System metrics load failed', error);
+        container.innerHTML = renderMetricCard({ label: 'Systemstatus', value: 'Nicht verfügbar', detail: error.message, icon: 'ph-warning-circle', tone: 'red' });
+        if (updated) updated.textContent = 'Die App-Daten funktionieren unabhängig von diesen Serverkennzahlen.';
+    } finally {
+        container.removeAttribute('aria-busy');
+        clearTimeout(systemMetricsTimer);
+        systemMetricsTimer = setTimeout(() => {
+            if (!document.getElementById('admin-panel')?.classList.contains('hidden')) loadSystemMetrics();
+        }, 60000);
+    }
+}
 
 function getAdminConfigIssues() {
     const issues = [];
@@ -293,6 +402,7 @@ function fillAdminPanel() {
     document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
 
     loadUsers();
+    loadSystemMetrics();
     renderAdminDataTables();
     const search = document.getElementById('admin-table-search');
     if (search) search.oninput = renderAdminDataTables;
