@@ -46,12 +46,42 @@ test('validateStations requires numeric station ids', () => {
     assert.ok(issues.some(issue => issue.field === 'id' && issue.message.includes('Zahl')));
 });
 
+test('validateStations rejects zero ids and detects numerically identical ids', () => {
+    const issues = validateStations([
+        { id: 0, name: 'Nullstation', desc: 'Ort', offer: 'Text', lat: 49, lng: 10, tags: [] },
+        { id: '01', name: 'Station Eins', desc: 'Ort', offer: 'Text', lat: 49, lng: 10, tags: [] },
+        { id: 1, name: 'Station Eins Neu', desc: 'Ort', offer: 'Text', lat: 49, lng: 10, tags: [] }
+    ]);
+
+    assert.ok(issues.some(issue => issue.field === 'id' && issue.message.includes('positive')));
+    assert.ok(issues.some(issue => issue.field === 'id' && issue.message.includes('doppelte')));
+});
+
 test('validateStations warns for invalid optional links', () => {
     const issues = validateStations([
         { id: 3, name: 'Station', desc: 'Ort', offer: 'Text', link: 'javascript:alert(1)', lat: 49, lng: 10, tags: [] }
     ]);
 
     assert.ok(issues.some(issue => issue.field === 'link'));
+});
+
+test('validateStations checks images, likes, duplicate tags and empty coordinates', () => {
+    const issues = validateStations([{
+        id: 3,
+        name: 'Station',
+        desc: 'Ort',
+        offer: 'Text',
+        image: 'javascript:alert(1)',
+        likes: -1,
+        lat: 0,
+        lng: 0,
+        tags: ['Essen', 'essen']
+    }]);
+
+    assert.ok(issues.some(issue => issue.field === 'image'));
+    assert.ok(issues.some(issue => issue.field === 'likes'));
+    assert.ok(issues.some(issue => issue.field === 'tags' && issue.message.includes('doppelte')));
+    assert.ok(issues.some(issue => issue.field === 'lat/lng'));
 });
 
 test('validateEvents requires time and title', () => {
@@ -65,4 +95,21 @@ test('validateEvents warns for invalid optional links', () => {
     const issues = validateEvents([{ id: 'evt-1', time: '18:00', title: 'Show', link: 'ftp://example.test' }]);
 
     assert.ok(issues.some(issue => issue.field === 'link'));
+});
+
+test('validateEvents checks time, location, color and map position', () => {
+    const issues = validateEvents([{
+        id: 'evt-1',
+        time: '27:90',
+        title: 'Show',
+        loc: '',
+        color: 'orange',
+        lat: 0,
+        lng: 0
+    }]);
+
+    assert.ok(issues.some(issue => issue.field === 'time' && issue.severity === 'error'));
+    assert.ok(issues.some(issue => issue.field === 'loc'));
+    assert.ok(issues.some(issue => issue.field === 'color'));
+    assert.ok(issues.some(issue => issue.field === 'lat/lng'));
 });

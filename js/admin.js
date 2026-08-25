@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.133';
+import { parseCsv, toCsv } from './csv.js?v=1.4.134';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.133';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.134';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -16,6 +16,7 @@ function getAdminConfigIssues() {
     const issues = [];
     const eventWindowRaw = String(state.downloads?.icsDate || '').trim();
     const rewards = state.config?.rewards || {};
+    const thresholds = rewards.thresholds || {};
     const prizes = rewards.prizes || {};
 
     if (!eventWindowRaw) {
@@ -24,7 +25,7 @@ function getAdminConfigIssues() {
             where: 'config.eventWindow',
             label: 'Event-Zeitraum',
             field: 'icsDate',
-            message: 'fehlt – Programmstatus und Lichter‑Pass sind dann nicht zeitlich begrenzt'
+            message: 'fehlt – Live-Programmstatus und Lichter‑Pass bleiben aus Sicherheitsgründen inaktiv'
         });
     } else {
         const parsed = parseEventWindowConfig(eventWindowRaw);
@@ -48,6 +49,27 @@ function getAdminConfigIssues() {
     }
 
     if (rewards.enabled === true) {
+        const bronze = Number(thresholds.bronze ?? 80);
+        const silver = Number(thresholds.silver ?? 90);
+        const gold = Number(thresholds.gold ?? 95);
+        const validPercent = value => Number.isFinite(value) && Number.isInteger(value) && value >= 1 && value <= 100;
+        if (![bronze, silver, gold].every(validPercent)) {
+            issues.push({
+                severity: 'error',
+                where: 'config.rewards',
+                label: 'Preis-Schwellen',
+                field: 'thresholds',
+                message: 'müssen ganze Prozentwerte zwischen 1 und 100 sein'
+            });
+        } else if (!(bronze < silver && silver < gold)) {
+            issues.push({
+                severity: 'error',
+                where: 'config.rewards',
+                label: 'Preis-Schwellen',
+                field: 'thresholds',
+                message: 'müssen aufsteigend sein: Bronze < Silber < Gold'
+            });
+        }
         const missingPrizes = ['bronze', 'silver', 'gold']
             .filter(key => !String(prizes[key] || '').trim())
             .map(key => ({ bronze: 'Bronze', silver: 'Silber', gold: 'Gold' }[key]));
@@ -61,6 +83,19 @@ function getAdminConfigIssues() {
             });
         }
     }
+
+    ['flyer1', 'flyer2'].forEach(field => {
+        const value = String(state.downloads?.[field] || '').trim();
+        if (value && !/^https?:\/\//i.test(value)) {
+            issues.push({
+                severity: 'warn',
+                where: 'config.downloads',
+                label: field === 'flyer1' ? 'Flyer 1' : 'Flyer 2',
+                field,
+                message: 'ist keine gültige HTTP(S)-Webadresse'
+            });
+        }
+    });
 
     return issues;
 }
@@ -707,9 +742,9 @@ export function runDataValidation() {
         const primaryLabel = issue.label || issue.where || 'Eintrag';
         const where = issue.where ? `${issue.where}${issue.field ? `.${issue.field}` : ''}` : '';
         const whereSuffix = (where && where !== primaryLabel) ? ` <span class="font-mono opacity-70">${where}</span>` : '';
-        const openBtn = issue.stationId
+        const openBtn = issue.stationId !== undefined && issue.stationId !== null
             ? `<button type="button" class="ml-2 underline font-bold" data-validation-open="station" data-validation-id="${escapeAttr(issue.stationId)}">Öffnen</button>`
-            : (issue.eventId ? `<button type="button" class="ml-2 underline font-bold" data-validation-open="event" data-validation-id="${escapeAttr(issue.eventId)}">Öffnen</button>` : '');
+            : (issue.eventId !== undefined && issue.eventId !== null ? `<button type="button" class="ml-2 underline font-bold" data-validation-open="event" data-validation-id="${escapeAttr(issue.eventId)}">Öffnen</button>` : '');
         return `<div class="${color}"><span class="font-bold">${badge}</span> <span class="font-bold">${primaryLabel}</span>${whereSuffix} – ${issue.message}${openBtn}</div>`;
     };
 
@@ -724,13 +759,12 @@ export function runDataValidation() {
     `;
 
     const details = [
-        ...configIssues.slice(0, 10).map(renderIssue),
-        ...stationIssues.slice(0, 10).map(renderIssue),
-        ...eventIssues.slice(0, 10).map(renderIssue),
+        ...configIssues.map(renderIssue),
+        ...stationIssues.map(renderIssue),
+        ...eventIssues.map(renderIssue),
     ].join('');
 
-    const more = total > 20 ? `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">… weitere Probleme vorhanden (gekürzt).</div>` : '';
-    el.innerHTML = header + details + more;
+    el.innerHTML = header + details;
     el.querySelectorAll('[data-validation-open]').forEach((button) => {
         button.addEventListener('click', () => {
             const type = button.getAttribute('data-validation-open');
@@ -911,7 +945,7 @@ export async function saveDownloads() {
         if (window.renderTimeline) window.renderTimeline();
         showToast("Downloads gespeichert", 'success');
         if (!eventWindowRaw) {
-            setTimeout(() => showToast('Hinweis: Ohne Event-Zeitraum sind Programmstatus und Lichter‑Pass nicht zeitlich begrenzt.', 'info'), 350);
+            setTimeout(() => showToast('Hinweis: Ohne Event-Zeitraum bleiben Live-Programmstatus und Lichter‑Pass inaktiv.', 'info'), 350);
         } else if (parsedEventWindow.startMin === 0 && parsedEventWindow.endMin === (24 * 60 - 1)) {
             setTimeout(() => showToast('Hinweis: Nur Datum gesetzt – Check-ins sind ganztägig möglich.', 'info'), 350);
         } else {

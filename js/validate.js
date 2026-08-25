@@ -23,6 +23,13 @@ function isValidOptionalHttpUrl(value) {
     }
 }
 
+function isValidOptionalImage(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return true;
+    if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw)) return true;
+    return isValidOptionalHttpUrl(raw);
+}
+
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const EVENT_DESC_MAX_LENGTH = 250;
@@ -40,14 +47,15 @@ export function validateStations(stations) {
         const path = `stations[${idx}]`;
         if (!idStr) {
             issues.push({ severity: 'error', where: path, label, stationId: null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id fehlt' });
-        } else if (!/^\d+$/.test(idStr)) {
-            issues.push({ severity: 'error', where: path, label, stationId: idStr, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id muss eine Zahl sein' });
+        } else if (!/^\d+$/.test(idStr) || Number(idStr) < 1) {
+            issues.push({ severity: 'error', where: path, label, stationId: idStr, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id muss eine positive ganze Zahl sein' });
         } else {
-            const prev = seenIds.get(idStr);
+            const normalizedId = String(Number(idStr));
+            const prev = seenIds.get(normalizedId);
             if (prev !== undefined) {
                 issues.push({ severity: 'error', where: path, label, stationId: idStr, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: `doppelte id (${idStr}), schon bei stations[${prev}]` });
             } else {
-                seenIds.set(idStr, idx);
+                seenIds.set(normalizedId, idx);
             }
         }
 
@@ -64,12 +72,23 @@ export function validateStations(stations) {
         }
         if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
             issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'lng', message: `ungültig (${s?.lng})` });
+        } else if (Number.isFinite(lat) && lat === 0 && lng === 0) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'lat/lng', message: 'keine Kartenposition gesetzt (0/0)' });
         }
 
         if (!Array.isArray(s?.tags)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'tags ist kein Array (Filter könnten nicht funktionieren)' });
-        } else if (s.tags.length > STATION_TAG_MAX_COUNT) {
-            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: `zu viele Tags (${s.tags.length}/${STATION_TAG_MAX_COUNT})` });
+        } else {
+            if (s.tags.length > STATION_TAG_MAX_COUNT) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: `zu viele Tags (${s.tags.length}/${STATION_TAG_MAX_COUNT})` });
+            }
+            const normalizedTags = s.tags.map(tag => String(tag || '').trim().toLowerCase());
+            if (normalizedTags.some(tag => !tag)) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'leerer Tag vorhanden' });
+            }
+            if (new Set(normalizedTags.filter(Boolean)).size !== normalizedTags.filter(Boolean).length) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'doppelte Tags vorhanden' });
+            }
         }
 
         if (!isNonEmptyString(s?.desc)) {
@@ -83,6 +102,15 @@ export function validateStations(stations) {
 
         if (!isValidOptionalHttpUrl(s?.link)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'link', message: 'Link ist keine gültige Webadresse' });
+        }
+        if (!isValidOptionalImage(s?.image)) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'image', message: 'Bild ist weder eine gültige Webadresse noch ein unterstütztes Bild' });
+        }
+        if (s?.likes !== undefined && s?.likes !== null && s?.likes !== '') {
+            const likes = toNumber(s.likes);
+            if (!Number.isInteger(likes) || likes < 0) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'likes', message: 'Likes müssen eine nichtnegative ganze Zahl sein' });
+            }
         }
     });
 
@@ -112,6 +140,8 @@ export function validateEvents(events) {
 
         if (!isNonEmptyString(e?.time)) {
             issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'time', message: 'Zeit fehlt' });
+        } else if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(e.time).trim())) {
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'time', message: 'ungültiges Zeitformat (erwartet HH:MM)' });
         }
         if (!isNonEmptyString(e?.title)) {
             issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel fehlt' });
@@ -127,9 +157,21 @@ export function validateEvents(events) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: 'Link ist keine gültige Webadresse' });
         }
 
+        if (!isNonEmptyString(e?.loc)) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'loc', message: 'Ort/Adresse fehlt' });
+        }
+
+        const validColors = new Set(['yellow', 'red', 'blue', 'purple', 'gray']);
+        if (isNonEmptyString(e?.color) && !validColors.has(String(e.color).trim().toLowerCase())) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'color', message: `unbekannte Farbe (${e.color})` });
+        }
+
         // Coordinates are optional for events, but if provided they must be valid.
         const hasLat = e?.lat !== undefined && e?.lat !== null && String(e?.lat).trim() !== '';
         const hasLng = e?.lng !== undefined && e?.lng !== null && String(e?.lng).trim() !== '';
+        if (hasLat !== hasLng) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'lat/lng', message: 'Kartenposition ist unvollständig' });
+        }
         if (hasLat || hasLng) {
             const lat = toNumber(e?.lat);
             const lng = toNumber(e?.lng);
@@ -138,6 +180,8 @@ export function validateEvents(events) {
             }
             if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
                 issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'lng', message: `ungültig (${e?.lng})` });
+            } else if (Number.isFinite(lat) && lat === 0 && lng === 0) {
+                issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'lat/lng', message: 'keine Kartenposition gesetzt (0/0)' });
             }
         }
     });

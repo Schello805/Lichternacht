@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.134] - 2026-08-25
+### Fixed
+- **Datencheck:** Die Prüfung entspricht wieder dem aktuellen Stations-, Programm- und Einstellungsmodell.
+- **Event-Zeitraum:** Der Adminhinweis erklärt korrekt, dass Live-Status und Lichter‑Pass ohne Zeitraum inaktiv bleiben.
+- **Ergebnisliste:** Der Datencheck zeigt wieder alle gefundenen Probleme statt einzelne Kategorien unbemerkt zu kürzen.
+
+### Improved
+- **Stationen:** Zusätzliche Prüfungen für positive/eindeutige Nummern, Kartenposition, Bilder, Likes und doppelte Tags.
+- **Programm:** Zusätzliche Prüfungen für Zeitformat, Ort, Farbe sowie vollständige und gesetzte Kartenpositionen.
+- **Einstellungen:** Preis-Schwellen, Preistexte und Flyer-Webadressen werden mitgeprüft.
+- **Tests:** Der erweiterte Datencheck ist durch zusätzliche automatische Tests abgesichert.
+
 ## [1.4.133] - 2026-08-24
 ### Fixed
 - **Startansicht:** Die redundanten Buttons „Karte“, „Stationen“ und „Programm“ wurden aus dem Willkommenshinweis entfernt; die Hauptnavigation erscheint nur noch einmal.
