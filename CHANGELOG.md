@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.142] - 2026-08-25
+
+- Macht das Deploy-Skript direkt ausführbar und beendet es zuverlässig, wenn `git pull` fehlschlägt.
+
 ## [1.4.141] - 2026-08-25
 
 - Zeigt die Systemkennzahlen als einzigen dauerhaft geöffneten Bereich oben in der Admin-Konsole.

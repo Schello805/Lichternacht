@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # 1. Neueste Version holen
 echo "📥 Hole Änderungen von GitHub..."
-git pull
+git pull --ff-only
 
 # 2. Server-Config aktivieren
 # Wir kopieren server-htaccess zu .htaccess, damit Apache sie liest.
