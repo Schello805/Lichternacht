@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.144" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.146" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.144">
+    <link rel="stylesheet" href="style.css?v=1.4.146">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -576,6 +576,41 @@
                     <div id="admin-usage-summary" class="text-xs text-gray-600 dark:text-gray-300">
                         Noch keine Auswertung geladen.
                     </div>
+                </div>
+            </details>
+
+            <!-- Audit Log -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden" ontoggle="if(this.open) loadAuditLog()">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>9. Auditlog (pseudonym)</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t dark:border-gray-600">
+                    <p class="text-xs text-gray-500 mt-3 mb-3">Zeigt relevante App-Aktivitäten mit zufälliger Geräte-ID. Es werden keine Namen, Kontaktdaten, GPS-Koordinaten oder Freitexte gespeichert.</p>
+                    <div class="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <select id="admin-audit-role" onchange="filterAuditLog()" class="p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <option value="visitor">Nur Besucher</option>
+                            <option value="admin">Nur Admin</option>
+                            <option value="all">Alle Aktivitäten</option>
+                        </select>
+                        <select id="admin-audit-type" onchange="filterAuditLog()" class="p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <option value="all">Alle Ereignisse</option>
+                            <option value="station_checked_in">Check-ins</option>
+                            <option value="station_liked">Bewertungen</option>
+                            <option value="favorite_added">Favorit hinzugefügt</option>
+                            <option value="favorite_removed">Favorit entfernt</option>
+                            <option value="checkin_removed">Check-in entfernt</option>
+                            <option value="admin_csv_import">CSV-Importe</option>
+                            <option value="admin_config_saved">Konfiguration</option>
+                        </select>
+                        <button type="button" onclick="loadAuditLog()" class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm"><i class="ph ph-arrows-clockwise"></i> Aktualisieren</button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="exportAuditLogCsv()" class="bg-gray-100 text-gray-800 py-2 rounded hover:bg-gray-200 font-bold text-xs border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600">CSV</button>
+                            <button type="button" onclick="clearAuditLog()" class="bg-red-50 text-red-700 py-2 rounded hover:bg-red-100 font-bold text-xs border border-red-200">Löschen</button>
+                        </div>
+                    </div>
+                    <div id="admin-audit-log" class="space-y-2 text-xs text-gray-700 dark:text-gray-200">Noch nicht geladen.</div>
+                    <p class="mt-3 text-[10px] text-gray-400">Es werden maximal die 300 neuesten Einträge angezeigt.</p>
                 </div>
             </details>
 
@@ -1204,7 +1239,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.144', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.146', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1231,7 +1266,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.144"></script>
+    <script type="module" src="main.js?v=1.4.146"></script>
 </body>
 
 </html>

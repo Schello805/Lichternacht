@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.146] - 2026-08-25
+
+- Ergänzt ein pseudonymes Auditlog für Check-ins, Favoriten, Bewertungen und ausgewählte Admin-Aktionen.
+- Fügt Filter für Besucher/Admins und Ereignistypen sowie CSV-Export und Löschfunktion hinzu.
+- Speichert keine Kontaktangaben, GPS-Koordinaten oder Freitexte im Auditlog.
+
 ## [1.4.145] - 2026-08-25
 
 - Aktualisiert die Systemkennzahlen im geöffneten Adminbereich automatisch alle fünf Sekunden.

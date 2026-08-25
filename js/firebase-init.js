@@ -57,6 +57,8 @@ export async function initFirebase() {
         state.fb.increment = fbStore.increment;
         state.fb.query = fbStore.query;
         state.fb.where = fbStore.where;
+        state.fb.orderBy = fbStore.orderBy;
+        state.fb.limit = fbStore.limit;
         state.fb.getCountFromServer = fbStore.getCountFromServer;
         state.fb.writeBatch = fbStore.writeBatch;
 

@@ -2,9 +2,10 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.145';
+import { parseCsv, toCsv } from './csv.js?v=1.4.146';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.145';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.146';
+import { recordAuditEvent } from './audit.js?v=1.4.146';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -13,6 +14,7 @@ const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
+let auditLogEntries = [];
 
 function formatBytes(bytes) {
     const value = Number(bytes) || 0;
@@ -795,6 +797,7 @@ async function importCsvGeneric(file, kind) {
         if (state.useLocalStorage) localStorage.setItem('stations_data', JSON.stringify(state.stations));
         refreshAfterCsvImport();
         showToast('Stationen importiert', 'success');
+        recordAuditEvent('admin_csv_import', { itemType: 'stations', count: mapped.length }, { role: 'admin' });
         return;
     }
 
@@ -834,6 +837,7 @@ async function importCsvGeneric(file, kind) {
         if (state.useLocalStorage) localStorage.setItem('events_data', JSON.stringify(state.events));
         refreshAfterCsvImport();
         showToast('Events importiert', 'success');
+        recordAuditEvent('admin_csv_import', { itemType: 'events', count: mapped.length }, { role: 'admin' });
         return;
     }
 }
@@ -1199,6 +1203,7 @@ export async function saveAppConfig() {
             await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
         }
         showToast("Konfiguration gespeichert", 'success');
+        recordAuditEvent('admin_config_saved', { itemType: 'app' }, { role: 'admin' });
         
         // Update UI immediately
         if (title) document.getElementById('app-title').innerText = title;
@@ -1250,6 +1255,7 @@ export async function saveTrackingConfig() {
             state.config = {...state.config, ...config}; // Update state immediately
         }
         showToast("Tracking Code gespeichert (Neuladen erforderlich)", 'success');
+        recordAuditEvent('admin_config_saved', { itemType: 'tracking' }, { role: 'admin' });
         
     } catch (e) {
         console.error(e);
@@ -1332,6 +1338,7 @@ export async function saveRewardsConfig() {
             state.config = { ...state.config, ...config };
         }
         showToast("Preise gespeichert", 'success');
+        recordAuditEvent('admin_config_saved', { itemType: 'rewards' }, { role: 'admin' });
         if (enabled && missingPrizes.length > 0) {
             setTimeout(() => showToast(`Hinweis: Kein Preistext für ${missingPrizes.join(', ')}.`, 'info'), 350);
         }
@@ -1600,6 +1607,99 @@ export async function sendUsageSummaryEmail() {
     } catch (e) {
         console.error('Usage summary email failed', e);
         showToast('Summary-Mail konnte nicht gesendet werden.', 'error');
+    }
+}
+
+const AUDIT_EVENT_LABELS = {
+    station_checked_in: 'Station eingecheckt',
+    station_liked: 'Station bewertet',
+    favorite_added: 'Favorit hinzugefügt',
+    favorite_removed: 'Favorit entfernt',
+    checkin_removed: 'Check-in entfernt',
+    admin_csv_import: 'CSV importiert',
+    admin_config_saved: 'Konfiguration gespeichert'
+};
+
+function renderAuditLog() {
+    const container = document.getElementById('admin-audit-log');
+    if (!container) return;
+    const role = document.getElementById('admin-audit-role')?.value || 'visitor';
+    const type = document.getElementById('admin-audit-type')?.value || 'all';
+    const filtered = auditLogEntries.filter(entry =>
+        (role === 'all' || entry.actorRole === role) &&
+        (type === 'all' || entry.eventType === type)
+    );
+    if (!filtered.length) {
+        container.innerHTML = '<div class="rounded-lg bg-white/70 p-3 text-gray-500 dark:bg-gray-800/60">Keine passenden Aktivitäten gefunden.</div>';
+        return;
+    }
+    container.innerHTML = filtered.map(entry => {
+        const details = entry.details || {};
+        const station = details.stationName || (details.stationId ? `Station ${details.stationId}` : '');
+        const extra = station || (details.itemType ? `${details.itemType}${details.count ? ` · ${details.count}` : ''}` : '');
+        const date = entry.createdAt ? new Date(entry.createdAt).toLocaleString('de-DE') : '–';
+        const roleClass = entry.actorRole === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700';
+        return `<div class="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
+            <div><span class="mr-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${roleClass}">${entry.actorRole === 'admin' ? 'Admin' : 'Besucher'}</span><strong>${escapeHtml(AUDIT_EVENT_LABELS[entry.eventType] || entry.eventType)}</strong>${extra ? `<span class="ml-2 text-gray-500">${escapeHtml(extra)}</span>` : ''}</div>
+            <div class="text-[10px] text-gray-500"><span class="font-mono">${escapeHtml(entry.actorId || '–')}</span> · ${escapeHtml(date)}</div>
+        </div>`;
+    }).join('');
+}
+
+export async function loadAuditLog() {
+    const container = document.getElementById('admin-audit-log');
+    if (!container || state.useLocalStorage || !state.db) return;
+    container.textContent = 'Auditlog wird geladen…';
+    try {
+        const collectionRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'auditLogs');
+        const auditQuery = state.fb.query(collectionRef, state.fb.orderBy('createdAt', 'desc'), state.fb.limit(300));
+        const snapshot = await state.fb.getDocs(auditQuery);
+        auditLogEntries = [];
+        snapshot.forEach(documentSnapshot => auditLogEntries.push({ id: documentSnapshot.id, ...documentSnapshot.data() }));
+        auditLogEntries.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+        auditLogEntries = auditLogEntries.slice(0, 300);
+        renderAuditLog();
+    } catch (error) {
+        console.error('Audit log load failed', error);
+        container.textContent = 'Auditlog konnte nicht geladen werden. Bitte Firestore-Regeln prüfen.';
+    }
+}
+
+export function filterAuditLog() {
+    renderAuditLog();
+}
+
+export function exportAuditLogCsv() {
+    if (!auditLogEntries.length) {
+        showToast('Bitte zuerst das Auditlog laden.', 'info');
+        return;
+    }
+    const rows = auditLogEntries.map(entry => ({
+        createdAt: entry.createdAt || '',
+        actorRole: entry.actorRole || '',
+        actorId: entry.actorId || '',
+        eventType: entry.eventType || '',
+        stationId: entry.details?.stationId || '',
+        stationName: entry.details?.stationName || '',
+        itemType: entry.details?.itemType || '',
+        count: entry.details?.count ?? '',
+        level: entry.details?.level || ''
+    }));
+    downloadTextFile(`auditlog-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, Object.keys(rows[0]), ';'), 'text/csv');
+}
+
+export async function clearAuditLog() {
+    if (!confirm('Auditlog vollständig und unwiderruflich löschen?')) return;
+    try {
+        const collectionRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'auditLogs');
+        const snapshot = await state.fb.getDocs(collectionRef);
+        await Promise.all(snapshot.docs.map(documentSnapshot => state.fb.deleteDoc(documentSnapshot.ref)));
+        auditLogEntries = [];
+        renderAuditLog();
+        showToast('Auditlog gelöscht', 'success');
+    } catch (error) {
+        console.error('Audit log clear failed', error);
+        showToast('Auditlog konnte nicht gelöscht werden', 'error');
     }
 }
 

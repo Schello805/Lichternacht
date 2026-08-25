@@ -172,6 +172,12 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await dataSection.locator('summary').click();
     await page.getByRole('button', { name: 'Prüfen' }).click();
     await expect(page.locator('#admin-validation-results')).not.toContainText('Noch nicht geprüft.');
+
+    const auditSection = page.locator('details').filter({ hasText: '9. Auditlog (pseudonym)' });
+    await expect(auditSection).not.toHaveAttribute('open', '');
+    await auditSection.locator('summary').click();
+    await expect(page.locator('#admin-audit-role')).toHaveValue('visitor');
+    await expect(page.getByText('keine Namen, Kontaktdaten, GPS-Koordinaten oder Freitexte')).toBeVisible();
 });
 
 test('station image endpoint rejects unauthenticated uploads', async ({ request }) => {

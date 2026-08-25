@@ -8,6 +8,7 @@ import {
     removeStationVisited
 } from './utils.js';
 import * as utils from './utils.js';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.146';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -30,18 +31,7 @@ function getPassInactiveMessage() {
 }
 
 function getAnonymousAnalyticsId() {
-    const key = 'anonymous_analytics_id_v1';
-    try {
-        let id = localStorage.getItem(key);
-        if (!id) {
-            const random = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `anon_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-            id = String(random).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48);
-            localStorage.setItem(key, id);
-        }
-        return id;
-    } catch (e) {
-        return `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    }
+    return getAnonymousAuditId();
 }
 
 async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') {
@@ -256,6 +246,8 @@ export function undoCheckIn(id) {
     updatePassProgress();
     updateCheckInBtn(id);
     showToast('Check-in rückgängig gemacht.', 'success');
+    const station = state.stations.find(item => item.id == id);
+    recordAuditEvent('checkin_removed', { stationId: id, stationName: station?.name || '' });
 
     if (window.refreshMapMarkers) window.refreshMapMarkers();
     if (window.refreshStationList) window.refreshStationList();
@@ -298,6 +290,7 @@ export async function toggleLike(id) {
     }
 
     showToast('Danke für deine Stimme!', 'success');
+    recordAuditEvent('station_liked', { stationId: id, stationName: s?.name || '' });
 
     if (!state.useLocalStorage && state.fb.updateDoc && state.fb.increment) {
         try {
@@ -310,12 +303,15 @@ export async function toggleLike(id) {
 
 export function toggleFavorite(id, fromModal = false) {
     if (window.event) window.event.stopPropagation();
+    const station = state.stations.find(item => item.id == id);
     if (state.favorites.has(id)) {
         state.favorites.delete(id);
         showToast('Aus Favoriten entfernt', 'info');
+        recordAuditEvent('favorite_removed', { stationId: id, stationName: station?.name || '' });
     } else {
         state.favorites.add(id);
         showToast('Zu Favoriten hinzugefügt', 'success');
+        recordAuditEvent('favorite_added', { stationId: id, stationName: station?.name || '' });
     }
     localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
 
@@ -516,6 +512,7 @@ export async function checkIn(id) {
     }
 
     recordAnonymousCheckIn(s, count, newLevel || '');
+    recordAuditEvent('station_checked_in', { stationId: id, stationName: s.name || '', count, level: newLevel || '' });
 
     updateCheckInBtn(id);
     const totalStations = Array.isArray(state.stations) ? state.stations.length : 0;

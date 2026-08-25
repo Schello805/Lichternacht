@@ -84,6 +84,19 @@ service cloud.firestore {
         allow create: if true;
         allow read, update, delete: if isAppAdmin(appId);
       }
+
+      // Pseudonymous activity log. No contact, GPS or free-text fields.
+      match /auditLogs/{logId} {
+        allow create: if request.auth != null &&
+          request.resource.data.keys().hasOnly(['eventType', 'actorId', 'actorRole', 'createdAt', 'details', 'appId']) &&
+          request.resource.data.details.keys().hasOnly(['stationId', 'stationName', 'action', 'count', 'level', 'itemType']) &&
+          (request.resource.data.actorRole == 'visitor' ||
+            (request.resource.data.actorRole == 'admin' && isAppAdmin(appId))) &&
+          request.resource.data.eventType is string &&
+          request.resource.data.actorId is string;
+        allow read, delete: if isAppAdmin(appId);
+        allow update: if false;
+      }
     }
 
     // Config (Downloads)
