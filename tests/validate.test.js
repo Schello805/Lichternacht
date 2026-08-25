@@ -128,3 +128,58 @@ test('validateEvents checks time, location, color and map position', () => {
     assert.ok(issues.some(issue => issue.field === 'color'));
     assert.ok(issues.some(issue => issue.field === 'lat/lng'));
 });
+
+test('validateEvents verifies optional station relationships', () => {
+    const issues = validateEvents([{
+        id: 'evt-1',
+        time: '18:00',
+        title: 'Show',
+        loc: 'Marktplatz',
+        stationId: '99',
+        lat: 49,
+        lng: 10,
+        color: 'yellow'
+    }], [{ id: 1, name: 'Station' }]);
+
+    assert.ok(issues.some(issue => issue.field === 'stationId' && issue.message.includes('existiert nicht')));
+});
+
+test('validators enforce practical text length limits', () => {
+    const stationIssues = validateStations([{
+        id: 1,
+        name: 'x'.repeat(81),
+        desc: 'x'.repeat(161),
+        offer: 'Text',
+        lat: 49,
+        lng: 10,
+        tags: []
+    }]);
+    const eventIssues = validateEvents([{
+        id: 'evt-1',
+        time: '18:00',
+        title: 'x'.repeat(101),
+        loc: 'x'.repeat(161),
+        lat: 49,
+        lng: 10
+    }]);
+
+    assert.ok(stationIssues.some(issue => issue.field === 'name'));
+    assert.ok(stationIssues.some(issue => issue.field === 'desc'));
+    assert.ok(eventIssues.some(issue => issue.field === 'title'));
+    assert.ok(eventIssues.some(issue => issue.field === 'loc'));
+});
+
+test('validateStations rejects tags that break CSV or filtering', () => {
+    const issues = validateStations([{
+        id: 1,
+        name: 'Station',
+        desc: 'Ort',
+        offer: 'Text',
+        lat: 49,
+        lng: 10,
+        tags: ['x'.repeat(31), 'essen|getränke']
+    }]);
+
+    assert.ok(issues.some(issue => issue.field === 'tags' && issue.message.includes('zu lang')));
+    assert.ok(issues.some(issue => issue.field === 'tags' && issue.message.includes('unzulässiges')));
+});

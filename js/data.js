@@ -162,7 +162,7 @@ export async function loadData() {
     // Lightweight auto-validation for stability (does not spam normal visitors)
     try {
         const stationIssues = validateStations(state.stations);
-        const eventIssues = validateEvents(state.events);
+        const eventIssues = validateEvents(state.events, state.stations);
         state.validation = { stations: stationIssues, events: eventIssues };
 
         const totalIssues = stationIssues.length + eventIssues.length;

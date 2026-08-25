@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.136] - 2026-08-25
+### Fixed
+- **Programmpunkte:** Eigenständige Veranstaltungen können nun direkt ohne vorherige Station angelegt werden.
+- **Verknüpfung:** Ein Programmpunkt speichert seine optionale Station dauerhaft über `stationId`; Bearbeiten, CSV und Kartenbezug erhalten diese Beziehung.
+- **Lokaler Modus:** Neue Programmpunkte werden auch lokal in der richtigen Reihenfolge gespeichert und gehen nach dem Neuladen nicht verloren.
+
+### Improved
+- **Admin-Aktionen:** Separate Schaltflächen legen wahlweise eine Station oder einen Programmpunkt an.
+- **Feldvalidierung:** Zusätzliche Grenzen für Namen, Titel, Orte, Links, Tags, App-Texte, Planungshinweise und Live-Nachrichten.
+- **Datencheck:** Ungültige oder verwaiste Stationsverknüpfungen sowie problematische Tag-Trennzeichen werden erkannt.
+- **CSV:** Event-Export und -Import unterstützen die optionale Spalte `stationId`.
+
 ## [1.4.135] - 2026-08-25
 ### Fixed
 - **Stationsformular:** Das bisher unbeschriftete Feld unter den Tags heißt jetzt eindeutig „Öffnungszeit / Hinweis“ und wird ausdrücklich von den Tags abgegrenzt.

@@ -28,6 +28,24 @@ test('station and program forms clearly label non-obvious fields', async ({ page
     await expect(page.locator('label[for="evt-address-search"]')).toContainText('Kartenposition suchen');
 });
 
+test('admin can create a standalone program event without a station', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => window.openNewEvent());
+    await expect(page.locator('#event-modal')).toBeVisible();
+    await expect(page.locator('#evt-linked-station')).toHaveValue('');
+    await page.locator('#evt-time').fill('18:30');
+    await page.locator('#evt-title').fill('Eigenständige Show');
+    await page.locator('#evt-loc').fill('Marktplatz');
+    await page.locator('#event-modal').getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect(page.locator('#event-modal')).toBeHidden();
+    await expect(page.locator('#timeline-container')).toContainText('Eigenständige Show');
+});
+
 test('visitor navigation is accessible and opens all main areas', async ({ page }) => {
     await page.goto('/index.html');
 

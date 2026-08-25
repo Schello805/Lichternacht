@@ -2,14 +2,14 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.135';
+import { parseCsv, toCsv } from './csv.js?v=1.4.136';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.135';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.136';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
-const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'lat', 'lng', 'color'];
+const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 
 function getAdminConfigIssues() {
@@ -18,6 +18,23 @@ function getAdminConfigIssues() {
     const rewards = state.config?.rewards || {};
     const thresholds = rewards.thresholds || {};
     const prizes = rewards.prizes || {};
+    const title = String(state.config?.title || '').trim();
+    const subtitle = String(state.config?.subtitle || '').trim();
+    const planningText = String(state.config?.planningText || '').trim();
+
+    if (!title) {
+        issues.push({ severity: 'warn', where: 'config.app', label: 'App-Titel', field: 'title', message: 'fehlt' });
+    } else if (title.length > 80) {
+        issues.push({ severity: 'warn', where: 'config.app', label: 'App-Titel', field: 'title', message: 'zu lang (max. 80 Zeichen)' });
+    }
+    if (subtitle.length > 120) {
+        issues.push({ severity: 'warn', where: 'config.app', label: 'Untertitel', field: 'subtitle', message: 'zu lang (max. 120 Zeichen)' });
+    }
+    if (state.config?.planningMode === true && !planningText) {
+        issues.push({ severity: 'warn', where: 'config.app', label: 'Planungsmodus', field: 'planningText', message: 'aktiv, aber Hinweistext fehlt' });
+    } else if (planningText.length > 300) {
+        issues.push({ severity: 'warn', where: 'config.app', label: 'Planungshinweis', field: 'planningText', message: 'zu lang (max. 300 Zeichen)' });
+    }
 
     if (!eventWindowRaw) {
         issues.push({
@@ -192,6 +209,7 @@ function renderAdminDataTables() {
         e.desc,
         e.link,
         e.loc,
+        e.stationId,
         e.lat,
         e.lng,
         e.color
@@ -222,6 +240,7 @@ function renderAdminDataTables() {
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.desc || '')}</td>
             <td class="py-2 pr-2 text-center">${formatLink(e.link)}</td>
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.loc || '')}</td>
+            <td class="py-2 pr-2">${escapeHtml(e.stationId || '')}</td>
             <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(e.lat))}</td>
             <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(e.lng))}</td>
             <td class="py-2 pr-2">${escapeHtml(e.color || '')}</td>
@@ -241,11 +260,11 @@ function renderAdminDataTables() {
         </div>
         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
             <div class="px-3 py-2 font-bold">Events (${events.length}/${(state.events || []).length})</div>
-            <table class="w-full min-w-[980px]">
+            <table class="w-full min-w-[1060px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">ID</th><th class="text-left py-2">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Beschreibung</th><th class="text-center py-2">Link</th><th class="text-left py-2">Ort</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Farbe</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">ID</th><th class="text-left py-2">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Beschreibung</th><th class="text-center py-2">Link</th><th class="text-left py-2">Ort</th><th class="text-left py-2">Station</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Farbe</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
-                <tbody>${eventRows || '<tr><td colspan="10" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
+                <tbody>${eventRows || '<tr><td colspan="11" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -562,6 +581,7 @@ export function exportEventsCsv() {
         description: e.desc ?? '',
         link: e.link ?? '',
         loc: e.loc ?? '',
+        stationId: e.stationId ?? '',
         lat: e.lat ?? '',
         lng: e.lng ?? '',
         color: e.color ?? ''
@@ -579,6 +599,7 @@ export function downloadEventsCsvTemplate() {
         description: 'Kurze Beschreibung',
         link: 'https://beispiel.de',
         loc: 'Johanniskirche',
+        stationId: '5',
         lat: '49.1620',
         lng: '10.5550',
         color: 'yellow'
@@ -662,6 +683,7 @@ async function importCsvGeneric(file, kind) {
                 desc: (r.description ?? '').toString().trim(),
                 link: (r.link ?? '').toString().trim(),
                 loc: (r.loc ?? '').toString().trim(),
+                stationId: (r.stationId ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
                 color: (r.color ?? '').toString().trim() || 'yellow'
@@ -672,7 +694,7 @@ async function importCsvGeneric(file, kind) {
             return evt;
         });
 
-        const issues = validateEvents(mapped);
+        const issues = validateEvents(mapped, state.stations);
         const errors = issues.filter(issue => issue.severity === 'error');
         if (errors.length > 0) {
             throw new Error(`CSV hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
@@ -718,7 +740,7 @@ export async function importEventsCsv() {
 
 export function runDataValidation() {
     const stationIssues = validateStations(state.stations);
-    const eventIssues = validateEvents(state.events);
+    const eventIssues = validateEvents(state.events, state.stations);
     const configIssues = getAdminConfigIssues();
 
     state.validation = {
@@ -790,6 +812,10 @@ export function runDataValidation() {
 }
 
 export function handleAdminAdd(type) {
+    if (type === 'event') {
+        if (window.openNewEvent) window.openNewEvent();
+        return;
+    }
     // Determine type based on where it's called or just generic
     // Actually the button calls handleAdminAdd() without args usually, 
     // but let's assume we want to add a Station by default if no type.
@@ -959,8 +985,12 @@ export async function saveDownloads() {
 }
 
 export async function sendBroadcast() {
-    const text = document.getElementById('admin-broadcast-text').value;
+    const text = document.getElementById('admin-broadcast-text').value.trim();
     if (!text) return;
+    if (text.length > 200) {
+        showToast('Nachricht ist zu lang: maximal 200 Zeichen.', 'error');
+        return;
+    }
     
     if (!confirm(`Nachricht senden an alle?\n"${text}"`)) return;
 
@@ -1030,6 +1060,10 @@ export async function saveAppConfig() {
     
     const title = (titleRaw || '').trim();
     const subtitle = (subtitleRaw || '').trim();
+    if (title.length > 80 || subtitle.length > 120 || String(planningText || '').trim().length > 300) {
+        showToast('Titel, Untertitel oder Planungshinweis überschreiten die erlaubte Länge.', 'error');
+        return;
+    }
     const ignoredFields = [];
     if (!title && String(titleRaw || '').length === 0) ignoredFields.push('Titel');
     if (!subtitle && String(subtitleRaw || '').length === 0) ignoredFields.push('Untertitel');

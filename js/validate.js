@@ -34,6 +34,12 @@ const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const EVENT_DESC_MAX_LENGTH = 250;
 const STATION_TIME_MAX_LENGTH = 80;
+const STATION_NAME_MAX_LENGTH = 80;
+const STATION_ADDRESS_MAX_LENGTH = 160;
+const EVENT_TITLE_MAX_LENGTH = 100;
+const EVENT_LOCATION_MAX_LENGTH = 160;
+const URL_MAX_LENGTH = 2048;
+const TAG_MAX_LENGTH = 30;
 
 export function validateStations(stations) {
     const issues = [];
@@ -64,6 +70,8 @@ export function validateStations(stations) {
             issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: '', field: 'name', message: 'Name fehlt/leer' });
         } else if (String(s.name).trim().length < 3) {
             issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: String(s.name).trim(), field: 'name', message: 'Name zu kurz (mind. 3 Zeichen)' });
+        } else if (String(s.name).trim().length > STATION_NAME_MAX_LENGTH) {
+            issues.push({ severity: 'error', where: path, label, stationId: idStr || null, stationName: String(s.name).trim(), field: 'name', message: `Name zu lang (max. ${STATION_NAME_MAX_LENGTH} Zeichen)` });
         }
 
         const lat = toNumber(s?.lat);
@@ -90,10 +98,19 @@ export function validateStations(stations) {
             if (new Set(normalizedTags.filter(Boolean)).size !== normalizedTags.filter(Boolean).length) {
                 issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'doppelte Tags vorhanden' });
             }
+            if (s.tags.some(tag => String(tag || '').trim().length > TAG_MAX_LENGTH)) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: `Tag zu lang (max. ${TAG_MAX_LENGTH} Zeichen)` });
+            }
+            if (s.tags.some(tag => /[|,]/.test(String(tag || '')))) {
+                issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'tags', message: 'Tag enthält unzulässiges Komma oder |' });
+            }
         }
 
         if (!isNonEmptyString(s?.desc)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: 'Adresse/Ort fehlt' });
+        }
+        if (String(s?.desc || '').length > STATION_ADDRESS_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'desc', message: `Adresse/Ort zu lang (${String(s.desc).length}/${STATION_ADDRESS_MAX_LENGTH} Zeichen)` });
         }
         if (!isNonEmptyString(s?.offer)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'offer', message: 'Angebot/Werbetext fehlt' });
@@ -103,6 +120,9 @@ export function validateStations(stations) {
 
         if (!isValidOptionalHttpUrl(s?.link)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'link', message: 'Link ist keine gültige Webadresse' });
+        }
+        if (String(s?.link || '').length > URL_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'link', message: `Link zu lang (max. ${URL_MAX_LENGTH} Zeichen)` });
         }
         if (!isValidOptionalImage(s?.image)) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'image', message: 'Bild ist weder eine gültige Webadresse noch ein unterstütztes Bild' });
@@ -121,7 +141,7 @@ export function validateStations(stations) {
     return issues;
 }
 
-export function validateEvents(events) {
+export function validateEvents(events, stations = []) {
     const issues = [];
     const seenIds = new Map();
 
@@ -151,6 +171,8 @@ export function validateEvents(events) {
             issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel fehlt' });
         } else if (String(e.title).trim().length < 3) {
             issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: 'Titel zu kurz (mind. 3 Zeichen)' });
+        } else if (String(e.title).trim().length > EVENT_TITLE_MAX_LENGTH) {
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'title', message: `Titel zu lang (max. ${EVENT_TITLE_MAX_LENGTH} Zeichen)` });
         }
 
         if (isNonEmptyString(e?.desc) && String(e.desc).length > EVENT_DESC_MAX_LENGTH) {
@@ -160,9 +182,19 @@ export function validateEvents(events) {
         if (!isValidOptionalHttpUrl(e?.link)) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: 'Link ist keine gültige Webadresse' });
         }
+        if (String(e?.link || '').length > URL_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: `Link zu lang (max. ${URL_MAX_LENGTH} Zeichen)` });
+        }
 
         if (!isNonEmptyString(e?.loc)) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'loc', message: 'Ort/Adresse fehlt' });
+        } else if (String(e.loc).trim().length > EVENT_LOCATION_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'loc', message: `Ort/Adresse zu lang (${String(e.loc).trim().length}/${EVENT_LOCATION_MAX_LENGTH} Zeichen)` });
+        }
+
+        const stationId = String(e?.stationId || '').trim();
+        if (stationId && Array.isArray(stations) && !stations.some(station => String(station?.id) === stationId)) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'stationId', message: `verknüpfte Station ${stationId} existiert nicht` });
         }
 
         const validColors = new Set(['yellow', 'red', 'blue', 'purple', 'gray']);

@@ -5,12 +5,18 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.135';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.136';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const STATION_TIME_MAX_LENGTH = 80;
 const EVENT_DESC_MAX_LENGTH = 250;
+const STATION_NAME_MAX_LENGTH = 80;
+const STATION_ADDRESS_MAX_LENGTH = 160;
+const EVENT_TITLE_MAX_LENGTH = 100;
+const EVENT_LOCATION_MAX_LENGTH = 160;
+const URL_MAX_LENGTH = 2048;
+const TAG_MAX_LENGTH = 30;
 
 function normalizeExternalLink(value) {
     const raw = String(value || '').trim();
@@ -681,6 +687,14 @@ window.addNewTag = () => {
     
     const cleanTag = newTag.toLowerCase().trim();
     if (!cleanTag) return;
+    if (cleanTag.length > TAG_MAX_LENGTH) {
+        showToast(`Tag ist zu lang: maximal ${TAG_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+    if (/[|,]/.test(cleanTag)) {
+        showToast('Tags dürfen kein Komma oder | enthalten.', 'error');
+        return;
+    }
     
     // Add to input if not exists
     if (!tags.includes(cleanTag)) {
@@ -844,6 +858,14 @@ export async function saveStationChanges() {
         showToast("Name muss mindestens 3 Zeichen haben", 'error');
         return;
     }
+    if (newName.length > STATION_NAME_MAX_LENGTH) {
+        showToast(`Name ist zu lang: maximal ${STATION_NAME_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+    if (newDesc.length > STATION_ADDRESS_MAX_LENGTH) {
+        showToast(`Adresse/Ort ist zu lang: maximal ${STATION_ADDRESS_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
 
     if (newOffer.length > STATION_OFFER_MAX_LENGTH) {
         showToast(`Angebot/Werbetext ist zu lang: maximal ${STATION_OFFER_MAX_LENGTH} Zeichen`, 'error');
@@ -852,6 +874,10 @@ export async function saveStationChanges() {
 
     if (newLink === null) {
         showToast("Link ist ungültig. Bitte als Webadresse eingeben.", 'error');
+        return;
+    }
+    if (String(newLink || '').length > URL_MAX_LENGTH) {
+        showToast(`Link ist zu lang: maximal ${URL_MAX_LENGTH} Zeichen`, 'error');
         return;
     }
 
@@ -1038,11 +1064,18 @@ export function createEventForStation(id) {
     openModal('event-modal');
 }
 
+export function openNewEvent() {
+    resetEventModal();
+    state.activeEventId = null;
+    openModal('event-modal');
+}
+
 export function editEvent(id) {
     const e = state.events.find(x => x.id == id);
     if (!e) return;
     
     state.activeEventId = e.id;
+    populateEventStationSelect(e.stationId || '');
     
     document.getElementById('evt-time').value = e.time;
     document.getElementById('evt-title').value = e.title;
@@ -1079,9 +1112,15 @@ function resetEventModal() {
     document.getElementById('evt-desc').oninput = updateEventDescCounter;
     
     // Populate Station Select
-    const sel = document.getElementById('evt-linked-station');
-    sel.innerHTML = '<option value="">Keine Station</option>' + 
-        state.stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    populateEventStationSelect('');
+}
+
+function populateEventStationSelect(selectedId = '') {
+    const select = document.getElementById('evt-linked-station');
+    if (!select) return;
+    select.innerHTML = '<option value="">Keine Station (eigenständiger Programmpunkt)</option>' +
+        state.stations.map(station => `<option value="${escapeHtml(station.id)}">#${escapeHtml(station.id)} · ${escapeHtml(station.name)}</option>`).join('');
+    select.value = String(selectedId || '');
 }
 
 export function applyStationToEvent(val) {
@@ -1111,6 +1150,7 @@ export async function saveEventChanges() {
     const lat = parseFloat(document.getElementById('evt-lat').value);
     const lng = parseFloat(document.getElementById('evt-lng').value);
     const color = document.getElementById('evt-color').value;
+    const stationId = document.getElementById('evt-linked-station').value.trim();
     
     if (!time || !title) {
         showToast("Zeit und Titel sind Pflicht!", 'error');
@@ -1121,6 +1161,14 @@ export async function saveEventChanges() {
         showToast("Titel muss mindestens 3 Zeichen haben", 'error');
         return;
     }
+    if (title.length > EVENT_TITLE_MAX_LENGTH) {
+        showToast(`Titel ist zu lang: maximal ${EVENT_TITLE_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+    if (loc.length > EVENT_LOCATION_MAX_LENGTH) {
+        showToast(`Ort/Adresse ist zu lang: maximal ${EVENT_LOCATION_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
 
     if (desc.length > EVENT_DESC_MAX_LENGTH) {
         showToast(`Beschreibung ist zu lang: maximal ${EVENT_DESC_MAX_LENGTH} Zeichen`, 'error');
@@ -1129,6 +1177,14 @@ export async function saveEventChanges() {
 
     if (link === null) {
         showToast("Link ist ungültig. Bitte als Webadresse eingeben.", 'error');
+        return;
+    }
+    if (String(link || '').length > URL_MAX_LENGTH) {
+        showToast(`Link ist zu lang: maximal ${URL_MAX_LENGTH} Zeichen`, 'error');
+        return;
+    }
+    if (stationId && !state.stations.some(station => String(station.id) === stationId)) {
+        showToast('Die verknüpfte Station existiert nicht mehr.', 'error');
         return;
     }
 
@@ -1155,11 +1211,17 @@ export async function saveEventChanges() {
         desc,
         link: link || '',
         loc,
+        stationId: stationId || '',
         lat: lat || 0,
         lng: lng || 0,
         color
     };
-    
+
+    const existingIndex = state.events.findIndex(event => event.id == evt.id);
+    const previousEvent = existingIndex >= 0 ? state.events[existingIndex] : null;
+    if (existingIndex >= 0) state.events[existingIndex] = evt;
+    else state.events.push(evt);
+
     try {
         await saveData('event', evt);
         showToast("Programmpunkt gespeichert", 'success');
@@ -1167,17 +1229,11 @@ export async function saveEventChanges() {
             setTimeout(() => showToast(`Hinweis: ${eventHints.join(' · ')}`, 'info'), 350);
         }
         
-        // Update State
-        if (state.activeEventId) {
-            const idx = state.events.findIndex(x => x.id == evt.id);
-            if (idx >= 0) state.events[idx] = evt;
-        } else {
-            state.events.push(evt);
-        }
-        
         renderTimeline();
         closeModal('event-modal');
     } catch (e) {
+        if (existingIndex >= 0) state.events[existingIndex] = previousEvent;
+        else state.events = state.events.filter(event => event !== evt);
         console.error(e);
         showToast("Fehler beim Speichern", 'error');
     }
@@ -1557,8 +1613,11 @@ function downloadSingleEventIcs(event) {
 }
 
 function getEventLocationInfo(event) {
-    const lat = parseFloat(event.lat);
-    const lng = parseFloat(event.lng);
+    const linkedStation = String(event.stationId || '').trim()
+        ? state.stations.find(station => String(station.id) === String(event.stationId))
+        : null;
+    const lat = parseFloat(linkedStation?.lat ?? event.lat);
+    const lng = parseFloat(linkedStation?.lng ?? event.lng);
     const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001);
     if (!hasCoords) return { hasCoords: false, lat: null, lng: null, stationId: null, distanceText: '' };
 
@@ -1585,7 +1644,7 @@ function getEventLocationInfo(event) {
         hasCoords,
         lat,
         lng,
-        stationId: (coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null,
+        stationId: linkedStation?.id ?? ((coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null),
         distanceText
     };
 }
