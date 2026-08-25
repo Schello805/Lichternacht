@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.136" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.137" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.136">
+    <link rel="stylesheet" href="style.css?v=1.4.137">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -253,7 +253,7 @@
                 </div>
                 <div class="p-4">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort, <span class="font-mono">offer</span> für den sichtbaren Angebotstext und <span class="font-mono">time</span> für den optionalen Öffnungszeit-/Zusatzhinweis. Events nutzen <span class="font-mono">description</span> für die Beschreibung und optional <span class="font-mono">stationId</span> zur dauerhaften Verknüpfung mit einer Station. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
+                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Events nutzen <span class="font-mono">description</span> für die Beschreibung und optional <span class="font-mono">stationId</span> zur dauerhaften Verknüpfung mit einer Station. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -821,9 +821,6 @@
                                 <p id="modal-subtitle"
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
-                                <p id="modal-time" class="hidden -mt-2 mb-4 text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                    <i class="ph ph-clock"></i><span></span>
-                                </p>
                             </div>
                             <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
                                 class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors"
@@ -930,12 +927,6 @@
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
 
-                        <label for="edit-time" class="text-xs font-bold text-gray-500 uppercase mt-3 block"
-                            title="Optionaler Öffnungszeit- oder Verfügbarkeitshinweis, der im Stationsdetail angezeigt wird.">Öffnungszeit / Hinweis ⓘ</label>
-                        <p class="text-[11px] text-gray-400 mb-2">Gehört nicht zu den Tags. Optional, z.B. „ab 18:00 Uhr“ oder „nur bis 21:00 Uhr“.</p>
-                        <input id="edit-time" maxlength="80" class="w-full mb-4 p-2 border rounded"
-                            placeholder="z.B. ab 18:00 Uhr"
-                            title="Optionaler Hinweis, wenn die Station nur zu bestimmten Zeiten verfügbar ist.">
                         <div class="flex gap-2">
                             <button onclick="deleteStation()"
                                 class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
@@ -1196,7 +1187,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.136', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.137', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1223,7 +1214,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.136"></script>
+    <script type="module" src="main.js?v=1.4.137"></script>
 </body>
 
 </html>

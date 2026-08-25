@@ -84,21 +84,6 @@ test('validateStations checks images, likes, duplicate tags and empty coordinate
     assert.ok(issues.some(issue => issue.field === 'lat/lng'));
 });
 
-test('validateStations limits the optional opening-time hint', () => {
-    const issues = validateStations([{
-        id: 4,
-        name: 'Station',
-        desc: 'Ort',
-        offer: 'Text',
-        time: 'x'.repeat(81),
-        lat: 49,
-        lng: 10,
-        tags: []
-    }]);
-
-    assert.ok(issues.some(issue => issue.field === 'time' && issue.message.includes('81/80')));
-});
-
 test('validateEvents requires time and title', () => {
     const issues = validateEvents([{ id: 'evt-1', time: '', title: '' }]);
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.137] - 2026-08-25
+
+### Geändert
+- Der separate Öffnungszeit-/Hinweiswert für Stationen wurde aus Formular, Detailansicht, Tabellenübersicht, Datencheck und CSV entfernt. Zeitliche Hinweise gehören jetzt in den Angebotstext.
+
 ## [1.4.136] - 2026-08-25
 ### Fixed
 - **Programmpunkte:** Eigenständige Veranstaltungen können nun direkt ohne vorherige Station angelegt werden.

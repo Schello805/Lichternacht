@@ -2,13 +2,13 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.136';
+import { parseCsv, toCsv } from './csv.js?v=1.4.137';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.136';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.137';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
-const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'time', 'likes'];
+const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
 const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 
@@ -199,7 +199,6 @@ function renderAdminDataTables() {
         s.lng,
         formatTags(s.tags),
         s.image,
-        s.time,
         s.likes
     )).sort((a, b) => adminTableSort.direction === 'asc' ? compareStationValues(a, b) : compareStationValues(b, a));
     const events = (state.events || []).filter(e => matches(
@@ -226,7 +225,6 @@ function renderAdminDataTables() {
             <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(s.lng))}</td>
             <td class="py-2 pr-2">${escapeHtml(formatTags(s.tags))}</td>
             <td class="py-2 pr-2 text-center">${formatImage(s.image)}</td>
-            <td class="py-2 pr-2">${escapeHtml(s.time || '')}</td>
             <td class="py-2 pr-2 text-right">${escapeHtml(s.likes ?? '')}</td>
             <td class="py-2 text-right"><button type="button" data-admin-edit="station" data-admin-id="${escapeAttr(s.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
         </tr>
@@ -253,9 +251,9 @@ function renderAdminDataTables() {
             <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
             <table class="w-full min-w-[1180px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Öffnungshinweis</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
-                <tbody>${stationRows || '<tr><td colspan="12" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
+                <tbody>${stationRows || '<tr><td colspan="11" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
             </table>
         </div>
         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
@@ -546,7 +544,6 @@ export function exportStationsCsv() {
         lng: s.lng ?? '',
         tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
         image: s.image ?? '',
-        time: s.time ?? '',
         likes: s.likes ?? ''
     }));
     const csv = toCsv(rows, STATION_CSV_COLUMNS, ';');
@@ -565,7 +562,6 @@ export function downloadStationsCsvTemplate() {
         lng: '10.5550',
         tags: 'Essen|Getränke',
         image: '',
-        time: 'ab 18:00 Uhr',
         likes: ''
     }], STATION_CSV_COLUMNS, ';');
     downloadTextFile('stations-vorlage.csv', csv, 'text/csv');
@@ -636,8 +632,6 @@ async function importCsvGeneric(file, kind) {
             };
             const image = (r.image ?? '').toString().trim();
             if (image) station.image = image;
-            const time = (r.time ?? '').toString().trim();
-            if (time) station.time = time;
             const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
             if (Number.isFinite(likes)) station.likes = likes;
 

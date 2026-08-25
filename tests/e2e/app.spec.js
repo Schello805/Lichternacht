@@ -22,8 +22,6 @@ test('visitor can open a station detail modal from the station list', async ({ p
 test('station and program forms clearly label non-obvious fields', async ({ page }) => {
     await page.goto('/index.html');
 
-    await expect(page.getByText('Öffnungszeit / Hinweis ⓘ', { exact: true })).toHaveCount(1);
-    await expect(page.getByText('Gehört nicht zu den Tags.', { exact: false })).toHaveCount(1);
     await expect(page.locator('label[for="evt-loc"]')).toContainText('Ort / Adresse');
     await expect(page.locator('label[for="evt-address-search"]')).toContainText('Kartenposition suchen');
 });
