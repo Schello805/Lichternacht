@@ -61,7 +61,7 @@ ProxyPass        "/api/"  "http://127.0.0.1:8000/api/"
 ProxyPassReverse "/api/"  "http://127.0.0.1:8000/api/"
 ```
 
-Der Proxy wird für Feedback, technische Fehlerprotokolle und den geschützten Stationsbild-Upload verwendet. Stationsbilder werden unter `downloads/stations/` abgelegt. Der Python-Dienst benötigt dort Schreibrechte.
+Der Proxy wird für Feedback, technische Fehlerprotokolle und die geschützten Bild-Uploads verwendet. Stations- und Programmbilder werden unter `downloads/stations/` beziehungsweise `downloads/events/` abgelegt. Der Python-Dienst benötigt dort Schreibrechte.
 
 Dann Apache reload:
 

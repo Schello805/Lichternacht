@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.149] - 2026-08-25
+
+- Speichert Programmbilder zuverlässig im Projektverzeichnis und liefert absolute Bildpfade aus.
+- Schneidet neue Stations- und Programmbilder beim Upload mittig auf das Format 1:1 zu.
+- Zeigt Programmbilder in der Zeitleiste platzsparend quadratisch und im Detail konsequent im Format 1:1 an.
+
 ## [1.4.148] - 2026-08-25
 
 - Synchronisiert „Likes zurücksetzen“ mit den lokalen Abstimmungssperren aller Besuchergeräte.

@@ -14,9 +14,10 @@ import shutil
 import resource
 from email.message import EmailMessage
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
 PORT = int(os.environ.get('PORT', '8000'))
-UPLOAD_DIR = 'downloads'
+UPLOAD_DIR = os.path.join(BASE_DIR, 'downloads')
 STATION_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'stations')
 EVENT_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'events')
 LOG_DIR = 'logs'
@@ -298,7 +299,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             target_url_dir = 'events' if is_event else 'stations'
             with open(os.path.join(target_dir, filename), 'wb') as image_file:
                 image_file.write(image_data)
-            self._send_json(200, {"ok": True, "url": f"./downloads/{target_url_dir}/{filename}"})
+            self._send_json(200, {"ok": True, "url": f"/downloads/{target_url_dir}/{filename}"})
             return
 
         if self.path == '/api/client-error':

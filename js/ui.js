@@ -5,8 +5,8 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.148';
-import { recordAuditEvent } from './audit.js?v=1.4.148';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.149';
+import { recordAuditEvent } from './audit.js?v=1.4.149';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1025,12 +1025,15 @@ async function compressStationImage(file) {
         });
     }
     const maxEdge = 1200;
-    const scale = Math.min(1, maxEdge / Math.max(source.width, source.height));
+    const sourceEdge = Math.min(source.width, source.height);
+    const sourceX = Math.max(0, (source.width - sourceEdge) / 2);
+    const sourceY = Math.max(0, (source.height - sourceEdge) / 2);
+    const targetEdge = Math.max(1, Math.min(maxEdge, sourceEdge));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(source.width * scale));
-    canvas.height = Math.max(1, Math.round(source.height * scale));
+    canvas.width = targetEdge;
+    canvas.height = targetEdge;
     const context = canvas.getContext('2d');
-    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    context.drawImage(source, sourceX, sourceY, sourceEdge, sourceEdge, 0, 0, targetEdge, targetEdge);
     source.close?.();
     if (objectUrl) URL.revokeObjectURL(objectUrl);
 
@@ -1852,7 +1855,7 @@ export function openProgramEvent(id) {
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
         <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
-            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-48 w-full object-cover rounded-t-2xl">` : ''}
+            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="aspect-square w-full object-cover rounded-t-2xl">` : ''}
             <div class="p-5">
             <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 sm:hidden"></div>
             <div class="flex items-start justify-between gap-3">
@@ -2053,7 +2056,7 @@ export function renderTimeline() {
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
             <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
-                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="mb-3 h-28 w-full rounded-lg object-cover sm:h-32">` : ''}
+                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="mb-3 aspect-square w-24 rounded-lg object-cover sm:w-28">` : ''}
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>

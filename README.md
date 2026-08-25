@@ -35,7 +35,7 @@ Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitf
 *   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
 *   **Systemstatus:** Geschütztes Admin-Dashboard für Serverlast, RAM, freien Speicher, Laufzeit, Bildspeicher, aktive Besucher und Admin-Konten.
 *   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
-*   **Stationsbilder:** Komprimierte WebP-Dateien liegen unter `downloads/stations/` auf dem eigenen Server; Firestore speichert nur die URL.
+*   **Stations- und Programmbilder:** Quadratisch zugeschnittene, komprimierte WebP-Dateien liegen unter `downloads/stations/` beziehungsweise `downloads/events/` auf dem eigenen Server; Firestore speichert nur die URL.
 *   **Feedback:** Integriertes Bug-Reporting per E-Mail.
 
 ## 📂 Projektstruktur
