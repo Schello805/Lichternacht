@@ -6,6 +6,7 @@ import json
 import time
 import smtplib
 import ssl
+import re
 from email.message import EmailMessage
 
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -126,17 +127,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp.send_message(msg)
 
     def _write_client_error_log(self, data):
+        def sanitize(value, limit):
+            text = str(value or '')
+            text = re.sub(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', '[E-Mail entfernt]', text, flags=re.I)
+            text = re.sub(r'([?&](?:lat|lng|latitude|longitude|email|name|station|checkin)=[^\s&#]*)', '[Parameter entfernt]', text, flags=re.I)
+            text = re.sub(r'\b-?\d{1,3}\.\d{4,}\s*[,;/ ]\s*-?\d{1,3}\.\d{4,}\b', '[Koordinaten entfernt]', text)
+            return text[:limit]
+
         entry = {
             "ts": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-            "ip": self.client_address[0] if self.client_address else "unknown",
-            "type": str(data.get("type") or "error")[:60],
-            "message": str(data.get("message") or "")[:1000],
-            "source": str(data.get("source") or "")[:500],
+            "type": sanitize(data.get("type") or "error", 60),
+            "message": sanitize(data.get("message"), 1000),
+            "source": sanitize(data.get("source"), 500).split('?', 1)[0],
             "line": data.get("line") or 0,
             "column": data.get("column") or 0,
-            "href": str(data.get("href") or "")[:1000],
-            "userAgent": str(data.get("userAgent") or "")[:500],
-            "stack": str(data.get("stack") or "")[:4000]
+            "page": sanitize(data.get("page"), 300).split('?', 1)[0],
+            "appVersion": sanitize(data.get("appVersion"), 40),
+            "stack": sanitize(data.get("stack"), 4000)
         }
         with open(os.path.join(LOG_DIR, 'client-errors.log'), 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")

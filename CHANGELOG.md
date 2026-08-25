@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.138] - 2026-08-25
+
+### Hinzugefügt
+- Stationsbilder werden vor dem Upload auf maximal 1200 Pixel verkleinert, als WebP komprimiert und in Firebase Storage statt als Base64 in Firestore gespeichert.
+- Vor CSV-/JSON-Importen, Demo-Daten-Uploads und dem Jahreswechsel wird automatisch eine vollständige JSON-Sicherheitskopie heruntergeladen.
+- Leere Stationssuchen erklären aktive Filter und bieten eine direkte Rücksetz-Aktion.
+- Stationen und Programmpunkte zeigen ihren Zusammenhang sowie Favoriten- und Besuchsstatus deutlicher.
+
+### Verbessert
+- Check-ins unterscheiden sichtbar zwischen GPS-Suche, zu großer Entfernung und erfolgreichem Besuch.
+- Hauptaktionen bleiben in langen mobilen Stations- und Programmformularen beim Scrollen erreichbar.
+- Automatische technische Fehlerprotokolle enthalten keine IP-Adresse, Kontakt-, Standort- oder Check-in-Daten; sensible Inhalte werden serverseitig bereinigt.
+
 ## [1.4.137] - 2026-08-25
 
 ### Geändert

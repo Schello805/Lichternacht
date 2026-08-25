@@ -19,6 +19,19 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('empty station search explains active filters and can reset them', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#nav-list').click();
+    await page.locator('#search-input').fill('unauffindbare-teststation-xyz');
+
+    await expect(page.getByRole('heading', { name: 'Keine passenden Stationen' })).toBeVisible();
+    await expect(page.locator('#stations-list')).toContainText('unauffindbare-teststation-xyz');
+    await page.getByRole('button', { name: 'Filter zurücksetzen' }).click();
+
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#stations-list > button')).not.toHaveCount(0);
+});
+
 test('station and program forms clearly label non-obvious fields', async ({ page }) => {
     await page.goto('/index.html');
 
@@ -42,6 +55,22 @@ test('admin can create a standalone program event without a station', async ({ p
 
     await expect(page.locator('#event-modal')).toBeHidden();
     await expect(page.locator('#timeline-container')).toContainText('Eigenständige Show');
+});
+
+test('linked program event identifies its station in the timeline', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => window.openNewEvent());
+    await page.locator('#evt-linked-station').selectOption('1');
+    await page.locator('#evt-time').fill('19:15');
+    await page.locator('#evt-title').fill('Verknüpfte Vorführung');
+    await page.locator('#event-modal').getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect(page.locator('#timeline-container')).toContainText('Bei Station #1');
+    await expect(page.locator('#timeline-container')).toContainText('Deutsches Pinsel- & Bürstenmuseum');
 });
 
 test('visitor navigation is accessible and opens all main areas', async ({ page }) => {

@@ -27,6 +27,7 @@ export const state = {
     },
     useLocalStorage: false,
     db: null,
+    storage: null,
     auth: null,
     appId: null,
     // Firebase functions container

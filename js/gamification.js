@@ -373,6 +373,7 @@ export async function checkIn(id) {
     const key = String(id);
 
     if (visitedStations.has(key)) {
+        updateCheckInBtn(id);
         showToast('Diese Station ist bereits als besucht markiert.', 'info');
         return;
     }
@@ -385,6 +386,7 @@ export async function checkIn(id) {
     if (!state.userLocation) {
         // Auto-locate
         if (window.locateUser) {
+            setCheckInButtonState(id, 'searching');
             showToast('Standort wird angefragt… bitte GPS erlauben.', 'info');
             window.locateUser(() => checkIn(id));
         } else {
@@ -395,6 +397,7 @@ export async function checkIn(id) {
 
     const gpsAgeMs = Date.now() - Number(state.gpsLastFixAt || 0);
     if (!state.gpsLastFixAt || gpsAgeMs > 60000) {
+        setCheckInButtonState(id, 'searching');
         showToast('Der Standort ist nicht mehr aktuell – GPS wird neu bestimmt.', 'info');
         if (window.locateUser) window.locateUser(() => checkIn(id));
         return;
@@ -413,6 +416,7 @@ export async function checkIn(id) {
     const ALLOWED_RADIUS = 25; // 25m
 
     if (dist > ALLOWED_RADIUS) {
+        setCheckInButtonState(id, 'too-far', Math.round(dist));
         showToast(`Noch zu weit weg: ca. ${dist.toFixed(0)} m entfernt (max. ${ALLOWED_RADIUS} m).`, 'error');
         
         // Visual Feedback: Show circle on map
@@ -544,18 +548,42 @@ export async function checkIn(id) {
     }
 }
 
+function setCheckInButtonState(id, status, distance = 0) {
+    const button = document.getElementById('checkin-btn');
+    if (!button || String(state.activeStationId) !== String(id)) return;
+    button.dataset.status = status;
+    button.disabled = status === 'searching';
+    button.classList.remove('bg-gray-900', 'bg-red-50', 'text-white', 'text-red-700', 'border', 'border-red-200', 'hover:bg-black');
+
+    if (status === 'searching') {
+        button.innerHTML = '<i class="ph ph-spinner animate-spin text-xl mr-2"></i><span>GPS wird gesucht…</span>';
+        button.classList.add('bg-gray-700', 'text-white');
+        window.setTimeout(() => {
+            if (button.dataset.status === 'searching') updateCheckInBtn(id);
+        }, 30000);
+        return;
+    }
+
+    if (status === 'too-far') {
+        button.innerHTML = `<i class="ph ph-warning-circle text-xl mr-2"></i><span>Zu weit entfernt · ca. ${distance} m</span>`;
+        button.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+    }
+}
+
 export function updateCheckInBtn(id) {
     const btn = document.getElementById('checkin-btn');
     if (!btn) return;
 
     const visitedStations = getVisitedStationIdSet();
+    btn.dataset.status = visitedStations.has(String(id)) ? 'success' : 'idle';
+    btn.classList.remove('bg-gray-700', 'bg-red-50', 'text-red-700', 'border-red-200');
 
     if (visitedStations.has(String(id))) {
         btn.innerHTML = `
             <div class="flex items-center justify-between w-full">
                 <div class="flex items-center">
                     <i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i>
-                    <span class="text-green-600 font-bold">Besucht</span>
+                    <span class="text-green-600 font-bold">Erfolgreich besucht</span>
                 </div>
                 <button type="button" onclick="window.undoCheckIn(${JSON.stringify(id)})" aria-label="Check-in rückgängig" title="Rückgängig"
                     class="ml-3 w-9 h-9 rounded-full border border-red-200 bg-white text-red-600 flex items-center justify-center shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow active:scale-95 transition">

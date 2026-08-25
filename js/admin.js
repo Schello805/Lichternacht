@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.137';
+import { parseCsv, toCsv } from './csv.js?v=1.4.138';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.137';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.138';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -441,6 +441,7 @@ export async function deleteUser(uid, email) {
 
 export async function uploadSeedData() {
     if (!confirm("ACHTUNG: Dies überschreibt/ergänzt die Datenbank mit den Demo-Daten. Fortfahren?")) return;
+    downloadAutomaticBackup('Vor Upload der Demo-Daten');
     
     try {
         let count = 0;
@@ -481,6 +482,7 @@ export async function importData() {
         }
 
         if (confirm(`Importieren? ${data.stations?.length || 0} Stationen, ${data.events?.length || 0} Events.`)) {
+            downloadAutomaticBackup('Vor JSON-Import');
             if (data.stations) {
                 for (const s of data.stations) await saveData('station', s);
             }
@@ -504,6 +506,22 @@ function downloadTextFile(filename, content, mime = 'text/plain') {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+function downloadAutomaticBackup(reason) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backup = {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        reason,
+        appId: state.appId,
+        stations: state.stations || [],
+        events: state.events || [],
+        config: state.config || {},
+        downloads: state.downloads || {}
+    };
+    downloadTextFile(`lichternacht-backup-${timestamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
+    showToast('Sicherheitskopie wurde vor der Änderung heruntergeladen', 'info');
 }
 
 function normalizeTags(tagsValue) {
@@ -659,6 +677,7 @@ async function importCsvGeneric(file, kind) {
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
         if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
+        downloadAutomaticBackup('Vor Stations-CSV-Import');
         for (const s of mapped) await saveData('station', s);
         state.stations = mergeImportedItems(state.stations, mapped);
         if (state.useLocalStorage) localStorage.setItem('stations_data', JSON.stringify(state.stations));
@@ -697,6 +716,7 @@ async function importCsvGeneric(file, kind) {
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
         if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
+        downloadAutomaticBackup('Vor Event-CSV-Import');
         for (const e of mapped) await saveData('event', e);
         state.events = mergeImportedItems(state.events, mapped);
         if (state.useLocalStorage) localStorage.setItem('events_data', JSON.stringify(state.events));
@@ -1535,6 +1555,8 @@ export async function startNewYear() {
     
     const code = prompt("Bitte 'RESET' eingeben zur Bestätigung:");
     if (code !== 'RESET') return;
+
+    downloadAutomaticBackup('Vor Jahreswechsel');
 
     showToast("Starte Reset... Bitte warten.", 'info');
 

@@ -8,8 +8,8 @@
             try {
                 const body = JSON.stringify({
                     ...payload,
-                    href: location.href,
-                    userAgent: navigator.userAgent,
+                    page: location.pathname,
+                    appVersion: document.querySelector('script[src*="main.js?v="]')?.src.match(/v=([^&]+)/)?.[1] || '',
                     ts: new Date().toISOString()
                 });
                 if (navigator.sendBeacon) {
@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.137" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.138" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.137">
+    <link rel="stylesheet" href="style.css?v=1.4.138">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -837,7 +837,7 @@
 
                         <!-- Check-In Button -->
                         <button id="checkin-btn" onclick="checkIn(window.activeStationId)"
-                            class="w-full mb-4 py-3 rounded-xl bg-gray-900 text-white shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 hover:bg-black">
+                            class="sticky bottom-2 sm:static z-20 w-full mb-4 py-3 rounded-xl bg-gray-900 text-white shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 hover:bg-black">
                             <i class="ph ph-map-pin text-xl"></i>
                             <span>Einchecken</span>
                         </button>
@@ -927,7 +927,7 @@
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
 
-                        <div class="flex gap-2">
+                        <div class="sticky bottom-0 z-20 -mx-6 px-6 py-3 bg-white/95 backdrop-blur border-t border-gray-100 flex gap-2">
                             <button onclick="deleteStation()"
                                 class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
                             <button onclick="document.getElementById('modal-edit-mode').classList.add('hidden'); document.getElementById('modal-view-mode').classList.remove('hidden');"
@@ -1000,7 +1000,7 @@
                     <option value="gray">Grau</option>
                 </select>
 
-                <div class="flex gap-2">
+                <div class="sticky bottom-0 z-20 -mx-6 -mb-6 px-6 py-3 bg-white/95 backdrop-blur border-t border-gray-100 flex gap-2">
                     <button onclick="deleteEvent()" id="btn-delete-event"
                         class="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 hidden">Löschen</button>
                     <button onclick="closeEventModal()"
@@ -1187,7 +1187,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.137', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.138', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1214,7 +1214,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.137"></script>
+    <script type="module" src="main.js?v=1.4.138"></script>
 </body>
 
 </html>

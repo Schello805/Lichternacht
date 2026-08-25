@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == 'michael@schellenberger.biz';
+    }
+
+    function isAppAdmin(appId) {
+      return isSuperAdmin() || (
+        request.auth != null &&
+        firestore.exists(/databases/(default)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid))
+      );
+    }
+
+    match /station-images/{appId}/{fileName} {
+      allow read: if true;
+      allow write: if isAppAdmin(appId)
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+  }
+}

@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.137';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.138';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -291,6 +291,7 @@ export const TAG_TRANSLATIONS = {
 };
 
 let currentFilter = 'all';
+let currentSearchQuery = '';
 
 export function renderFilterBar() {
     const container = document.getElementById('filter-bar');
@@ -531,9 +532,32 @@ export function renderList(stations) {
 
     const visitedStations = getVisitedStationIdSet();
 
+    if (listToRender.length === 0) {
+        const filterLabel = currentFilter === 'all'
+            ? 'Alle Stationen'
+            : currentFilter === 'favorites'
+                ? 'Favoriten'
+                : currentFilter === 'visited'
+                    ? 'Besucht'
+                    : currentFilter === 'proximity'
+                        ? 'In der Nähe'
+                        : (TAG_TRANSLATIONS[currentFilter] || currentFilter);
+        const searchText = currentSearchQuery ? ` · Suche „${escapeHtml(currentSearchQuery)}“` : '';
+        container.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-gray-300 bg-white/80 dark:bg-gray-800 p-6 text-center">
+                <i class="ph ph-magnifying-glass text-3xl text-gray-400"></i>
+                <h3 class="mt-2 font-bold text-gray-800 dark:text-white">Keine passenden Stationen</h3>
+                <p class="mt-1 text-sm text-gray-500">Aktiv: ${escapeHtml(filterLabel)}${searchText}</p>
+                <button type="button" onclick="resetStationFilters()" class="mt-4 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white">Filter zurücksetzen</button>
+            </div>`;
+        return;
+    }
+
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
         const isVisited = visitedStations.has(String(s.id));
+        const isFavorite = state.favorites.has(s.id) || state.favorites.has(String(s.id));
+        const hasProgram = (state.events || []).some(event => String(event.stationId || '') === String(s.id));
         const likeCount = s.likes || 0;
         const stationImage = normalizeStationImage(s.image);
         
@@ -556,7 +580,7 @@ export function renderList(stations) {
         }
 
         return `
-        <button type="button" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
+        <button type="button" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
                 ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
@@ -569,6 +593,11 @@ export function renderList(stations) {
                         </div>
                     </div>
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(s.desc || '')}</p>
+                    <div class="mt-2 flex gap-1.5 flex-wrap">
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ph ph-map-pin"></i> Station</span>
+                        ${hasProgram ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-calendar-star"></i> Mit Programm</span>' : ''}
+                        ${isFavorite ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700"><i class="ph-fill ph-star"></i> Favorit</span>' : ''}
+                    </div>
                     <div class="mt-2 flex gap-1.5 flex-wrap">
                         ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
                     </div>
@@ -585,7 +614,8 @@ export function refreshStationList() {
 
 export function filterStations(query) {
     // Basic filter implementation
-    const lower = query.toLowerCase();
+    currentSearchQuery = String(query || '').trim();
+    const lower = currentSearchQuery.toLowerCase();
     const filtered = state.stations.filter(s => 
         s.name.toLowerCase().includes(lower) || 
         (s.desc && s.desc.toLowerCase().includes(lower))
@@ -595,6 +625,9 @@ export function filterStations(query) {
 
 export function filterList(tag) {
     currentFilter = tag;
+    currentSearchQuery = '';
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
     renderFilterBar();
     
     if (tag === 'all') {
@@ -637,6 +670,17 @@ export function filterList(tag) {
     const filtered = state.stations.filter(s => s.tags && s.tags.includes(tag));
     renderList(filtered);
 }
+
+export function resetStationFilters() {
+    currentFilter = 'all';
+    currentSearchQuery = '';
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+    renderFilterBar();
+    renderList(state.stations);
+}
+
+window.resetStationFilters = resetStationFilters;
 
 // --- Helper for Tag Picking ---
 function renderTagPicker() {
@@ -956,58 +1000,82 @@ export async function deleteStation(id) {
     }
 }
 
-export function handleImageUpload(input) {
+async function compressStationImage(file) {
+    if (!file.type.startsWith('image/')) throw new Error('Bitte eine Bilddatei auswählen.');
+    if (file.size > 15 * 1024 * 1024) throw new Error('Das Originalbild ist zu groß (maximal 15 MB).');
+
+    let source;
+    let objectUrl = '';
+    if (typeof createImageBitmap === 'function') {
+        source = await createImageBitmap(file);
+    } else {
+        objectUrl = URL.createObjectURL(file);
+        source = await new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Das Bild konnte nicht gelesen werden.'));
+            image.src = objectUrl;
+        });
+    }
+    const maxEdge = 1200;
+    const scale = Math.min(1, maxEdge / Math.max(source.width, source.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(source.width * scale));
+    canvas.height = Math.max(1, Math.round(source.height * scale));
+    const context = canvas.getContext('2d');
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    source.close?.();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.78));
+    if (!blob) throw new Error('Das Bild konnte nicht verarbeitet werden.');
+    return blob;
+}
+
+export async function handleImageUpload(input) {
     const file = input.files[0];
     if (!file) return;
+    const station = state.stations.find(item => item.id == state.activeStationId);
+    if (!station) return;
+    const uploadButton = document.getElementById('image-upload-btn');
+    const originalLabel = uploadButton?.innerHTML;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Resize Image before saving (simple canvas resize)
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Max bounds
-            const MAX_WIDTH = 800;
-            const MAX_HEIGHT = 600;
-            let width = img.width;
-            let height = img.height;
+    try {
+        if (uploadButton) {
+            uploadButton.disabled = true;
+            uploadButton.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i><span>Bild wird optimiert…</span>';
+        }
+        const blob = await compressStationImage(file);
+        let imageUrl;
 
-            if (width > height) {
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-            } else {
-                if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
-                }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            
-            // Update active station immediately
-            const s = state.stations.find(x => x.id == state.activeStationId);
-            if (s) {
-                s.image = dataUrl;
-                // Update Preview (Main)
-                const imgContainer = document.getElementById('modal-image-container');
-                imgContainer.innerHTML = `<img src="${s.image}" class="w-full h-48 object-cover rounded-t-2xl">`;
-                imgContainer.classList.remove('hidden');
-                
-                // Update Preview (Edit Button)
-                updateImageUploadUI(s.image);
-            }
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+        if (!state.useLocalStorage && state.storage && state.fb.ref && state.fb.uploadBytes && state.fb.getDownloadURL) {
+            const safeId = String(station.id).replace(/[^a-zA-Z0-9_-]/g, '-');
+            const storageRef = state.fb.ref(state.storage, `station-images/${state.appId}/${safeId}-${Date.now()}.webp`);
+            await state.fb.uploadBytes(storageRef, blob, { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' });
+            imageUrl = await state.fb.getDownloadURL(storageRef);
+        } else {
+            imageUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        station.image = imageUrl;
+        const imageContainer = document.getElementById('modal-image-container');
+        imageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Bild von ${escapeHtml(station.name)}" class="w-full h-48 object-cover rounded-t-2xl">`;
+        imageContainer.classList.remove('hidden');
+        updateImageUploadUI(imageUrl);
+        showToast(`Bild optimiert (${Math.max(1, Math.round(blob.size / 1024))} KB) und hochgeladen`, 'success');
+    } catch (error) {
+        console.error('Station image upload failed', error);
+        showToast(error?.message || 'Bild konnte nicht hochgeladen werden', 'error');
+        if (uploadButton && originalLabel) uploadButton.innerHTML = originalLabel;
+    } finally {
+        if (uploadButton) uploadButton.disabled = false;
+        input.value = '';
+    }
 }
 
 export function clearStationImage() {
@@ -1854,6 +1922,9 @@ export function renderTimeline() {
         let showMapBtn = '';
 
         const locationInfo = getEventLocationInfo(e);
+        const linkedStation = e.stationId
+            ? (state.stations || []).find(station => String(station.id) === String(e.stationId))
+            : null;
         if (locationInfo.hasCoords) {
             if (locationInfo.distanceText) {
                 distInfo = `
@@ -1893,6 +1964,7 @@ export function renderTimeline() {
                         </div>` : ''}
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
+                ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(linkedStation.id)} · ${escapeHtml(linkedStation.name)}</span>` : ''}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>

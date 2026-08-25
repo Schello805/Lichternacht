@@ -22,6 +22,7 @@ Die App sendet Bugreports an `POST /api/bug-report` (Apache Proxy → `server.py
 ### Fehler-Monitoring
 
 JavaScript-Fehler werden zusätzlich an `POST /api/client-error` gesendet und serverseitig in `logs/client-errors.log` protokolliert.
+Das Protokoll enthält keine IP-Adresse, keinen User-Agent, keine Kontaktangaben, keine Check-ins und keine Standortdaten. Potenzielle E-Mail-Adressen, Koordinaten und sensible URL-Parameter werden serverseitig entfernt.
 Der Ordner `logs/` ist absichtlich ignoriert und gehört nicht ins Git-Repo.
 
 ### Event-Datum / Zeitfenster
