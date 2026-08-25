@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.134';
+import { parseCsv, toCsv } from './csv.js?v=1.4.135';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.134';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.135';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -234,7 +234,7 @@ function renderAdminDataTables() {
             <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
             <table class="w-full min-w-[1180px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Zeit</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Öffnungshinweis</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
                 <tbody>${stationRows || '<tr><td colspan="12" class="p-3 text-gray-500">Keine Stationen gefunden.</td></tr>'}</tbody>
             </table>
@@ -546,7 +546,7 @@ export function downloadStationsCsvTemplate() {
         lng: '10.5550',
         tags: 'Essen|Getränke',
         image: '',
-        time: '',
+        time: 'ab 18:00 Uhr',
         likes: ''
     }], STATION_CSV_COLUMNS, ';');
     downloadTextFile('stations-vorlage.csv', csv, 'text/csv');

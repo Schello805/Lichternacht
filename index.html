@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.134" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.135" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.134">
+    <link rel="stylesheet" href="style.css?v=1.4.135">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -253,7 +253,7 @@
                 </div>
                 <div class="p-4">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Events nutzen <span class="font-mono">description</span> für die Beschreibung. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
+                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort, <span class="font-mono">offer</span> für den sichtbaren Angebotstext und <span class="font-mono">time</span> für den optionalen Öffnungszeit-/Zusatzhinweis. Events nutzen <span class="font-mono">description</span> für die Beschreibung. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -819,6 +819,9 @@
                                 <p id="modal-subtitle"
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
+                                <p id="modal-time" class="hidden -mt-2 mb-4 text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                    <i class="ph ph-clock"></i><span></span>
+                                </p>
                             </div>
                             <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
                                 class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors"
@@ -886,8 +889,6 @@
                         <input id="edit-lat" type="hidden">
                         <input id="edit-lng" type="hidden">
 
-                        <p class="text-[11px] text-gray-400 italic mb-3">Tipp: Als Admin kannst du die Marker direkt auf
-                            der Karte verschieben.</p>
                         <p class="text-[11px] text-gray-400 italic mb-3">Als Admin kannst du auch die Marker direkt auf
                             der Karte ziehen, sobald du eingeloggt bist – die Anzeige hilft dir, die Station
                             wiederzufinden.</p>
@@ -926,11 +927,12 @@
                         <input id="edit-tags" class="w-full mb-2 p-2 border rounded hidden" placeholder="z.B. food, drink">
                         <div id="available-tags" class="flex flex-wrap gap-2 mb-2"></div>
 
-
-
-                        <input id="edit-time" class="w-full mb-4 p-2 border rounded"
-                            placeholder="Uhrzeit (z.B. 'ab 18:00')"
-                            title="Optionaler Hinweis, wenn eine Station erst ab einer bestimmten Uhrzeit aktiv ist.">
+                        <label for="edit-time" class="text-xs font-bold text-gray-500 uppercase mt-3 block"
+                            title="Optionaler Öffnungszeit- oder Verfügbarkeitshinweis, der im Stationsdetail angezeigt wird.">Öffnungszeit / Hinweis ⓘ</label>
+                        <p class="text-[11px] text-gray-400 mb-2">Gehört nicht zu den Tags. Optional, z.B. „ab 18:00 Uhr“ oder „nur bis 21:00 Uhr“.</p>
+                        <input id="edit-time" maxlength="80" class="w-full mb-4 p-2 border rounded"
+                            placeholder="z.B. ab 18:00 Uhr"
+                            title="Optionaler Hinweis, wenn die Station nur zu bestimmten Zeiten verfügbar ist.">
                         <div class="flex gap-2">
                             <button onclick="deleteStation()"
                                 class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200" title="Station löschen"><i class="ph ph-trash"></i></button>
@@ -960,6 +962,7 @@
                 <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)" maxlength="250" title="Optionaler Zusatztext, maximal 250 Zeichen.">
                 <label class="text-[10px] font-bold uppercase text-gray-400" title="Optionaler Weblink, der im Programmdetail als Button angezeigt wird.">Link ⓘ</label>
                 <input id="evt-link" type="url" class="w-full mb-2 p-2 border rounded" placeholder="https://beispiel.de" title="Optional. Wird als Button im Programmdetail angezeigt.">
+                <label for="evt-loc" class="text-[10px] font-bold uppercase text-gray-400" title="Sichtbarer Veranstaltungsort des Programmpunkts.">Ort / Adresse ⓘ</label>
                 <input id="evt-loc" class="w-full mb-2 p-2 border rounded"
                     placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)"
                     title="Ort, der im Programm angezeigt wird. Für Kartenbezug zusätzlich Koordinaten setzen.">
@@ -974,6 +977,7 @@
                 </div>
 
                 <div class="mb-2">
+                    <label for="evt-address-search" class="text-[10px] font-bold uppercase text-gray-400" title="Sucht eine Adresse und trägt die Koordinaten für den Kartenbezug ein.">Kartenposition suchen ⓘ</label>
                     <input id="evt-address-search" class="w-full mb-1 p-2 border rounded text-xs"
                         placeholder="Adresse suchen (optional, z.B. Kirche Bechhofen)">
                     <button onclick="searchAddress()"
@@ -985,9 +989,10 @@
                     </button>
                 </div>
 
+                <label class="text-[10px] font-bold uppercase text-gray-400" title="Technische Kartenkoordinaten; normalerweise über Suche oder Karte wählen setzen.">Kartenkoordinaten ⓘ</label>
                 <div class="flex gap-2 mb-2">
-                    <input id="evt-lat" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Lat (49...)" title="Breitengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
-                    <input id="evt-lng" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Lng (10...)" title="Längengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
+                    <input id="evt-lat" aria-label="Breitengrad" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Breitengrad (49...)" title="Breitengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
+                    <input id="evt-lng" aria-label="Längengrad" type="number" step="any" class="w-1/2 p-2 border rounded text-xs" placeholder="Längengrad (10...)" title="Längengrad für den Kartenbezug. Kann über Karte wählen gesetzt werden.">
                     <button onclick="fillEventCoords()" class="bg-gray-200 px-2 rounded"
                         title="Nimm Kartenmitte">📍</button>
                 </div>
@@ -1188,7 +1193,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.134', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.135', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1215,7 +1220,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.134"></script>
+    <script type="module" src="main.js?v=1.4.135"></script>
 </body>
 
 </html>

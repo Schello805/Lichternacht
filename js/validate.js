@@ -33,6 +33,7 @@ function isValidOptionalImage(value) {
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
 const EVENT_DESC_MAX_LENGTH = 250;
+const STATION_TIME_MAX_LENGTH = 80;
 
 export function validateStations(stations) {
     const issues = [];
@@ -111,6 +112,9 @@ export function validateStations(stations) {
             if (!Number.isInteger(likes) || likes < 0) {
                 issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'likes', message: 'Likes müssen eine nichtnegative ganze Zahl sein' });
             }
+        }
+        if (String(s?.time || '').length > STATION_TIME_MAX_LENGTH) {
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'time', message: `Öffnungszeit/Hinweis zu lang (${String(s.time).length}/${STATION_TIME_MAX_LENGTH} Zeichen)` });
         }
     });
 

@@ -5,10 +5,11 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.134';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.135';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
+const STATION_TIME_MAX_LENGTH = 80;
 const EVENT_DESC_MAX_LENGTH = 250;
 
 function normalizeExternalLink(value) {
@@ -46,6 +47,13 @@ export function openModal(target) {
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-subtitle').innerText = s.desc || '';
         document.getElementById('modal-desc').innerText = s.offer || s.desc || 'Keine Beschreibung verfügbar.';
+        const timeEl = document.getElementById('modal-time');
+        if (timeEl) {
+            const timeText = String(s.time || '').trim();
+            const textEl = timeEl.querySelector('span');
+            if (textEl) textEl.textContent = timeText;
+            timeEl.classList.toggle('hidden', !timeText);
+        }
         
         // Fix ID Display
         const numEl = document.getElementById('modal-number');
@@ -830,6 +838,7 @@ export async function saveStationChanges() {
     // Parse Tags
     const tagsInput = document.getElementById('edit-tags').value;
     const newTags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    const newTime = document.getElementById('edit-time').value.trim();
 
     if (newName.length < 3) {
         showToast("Name muss mindestens 3 Zeichen haben", 'error');
@@ -848,6 +857,11 @@ export async function saveStationChanges() {
 
     if (newTags.length > STATION_TAG_MAX_COUNT) {
         showToast(`Zu viele Tags: maximal ${STATION_TAG_MAX_COUNT} pro Station`, 'error');
+        return;
+    }
+
+    if (newTime.length > STATION_TIME_MAX_LENGTH) {
+        showToast(`Öffnungszeit/Hinweis ist zu lang: maximal ${STATION_TIME_MAX_LENGTH} Zeichen`, 'error');
         return;
     }
 
@@ -872,7 +886,7 @@ export async function saveStationChanges() {
     s.lat = newLat;
     s.lng = newLng;
     s.tags = newTags;
-    s.time = document.getElementById('edit-time').value;
+    s.time = newTime;
 
     const stationHints = [];
     if (!String(newDesc || '').trim()) stationHints.push('Adresse/Ort fehlt');

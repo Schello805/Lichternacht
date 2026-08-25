@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.135] - 2026-08-25
+### Fixed
+- **Stationsformular:** Das bisher unbeschriftete Feld unter den Tags heißt jetzt eindeutig „Öffnungszeit / Hinweis“ und wird ausdrücklich von den Tags abgegrenzt.
+- **Stationsdetail:** Hinterlegte Öffnungszeit- und Verfügbarkeitshinweise sind nun auch für Besucher sichtbar.
+- **Programmeditor:** Ort, Adresssuche und Kartenkoordinaten besitzen klare sichtbare Beschriftungen.
+
+### Improved
+- **Formularpflege:** Ein doppelter Kartenhinweis wurde entfernt; Öffnungshinweise sind auf 80 Zeichen begrenzt und im Datencheck enthalten.
+- **CSV:** Die Bedeutung der Stationsspalte `time` wird im Adminbereich und in der Vorlage erklärt.
+
 ## [1.4.134] - 2026-08-25
 ### Fixed
 - **Datencheck:** Die Prüfung entspricht wieder dem aktuellen Stations-, Programm- und Einstellungsmodell.
