@@ -170,3 +170,13 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await page.getByRole('button', { name: 'Prüfen' }).click();
     await expect(page.locator('#admin-validation-results')).not.toContainText('Noch nicht geprüft.');
 });
+
+test('station image endpoint rejects unauthenticated uploads', async ({ request }) => {
+    const response = await request.post('/api/station-image?station=1', {
+        headers: { 'Content-Type': 'image/webp' },
+        data: Buffer.from('not-a-webp')
+    });
+
+    expect(response.status()).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ ok: false });
+});

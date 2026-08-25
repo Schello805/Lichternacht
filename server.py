@@ -1,21 +1,27 @@
 import http.server
 import socketserver
 import os
-import cgi
 import json
 import time
 import smtplib
 import ssl
 import re
+import secrets
+import urllib.parse
+import urllib.request
+import urllib.error
 from email.message import EmailMessage
 
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
 PORT = int(os.environ.get('PORT', '8000'))
 UPLOAD_DIR = 'downloads'
+STATION_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'stations')
 LOG_DIR = 'logs'
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+if not os.path.exists(STATION_IMAGE_DIR):
+    os.makedirs(STATION_IMAGE_DIR)
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
@@ -126,6 +132,37 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp.login(user, password)
                 smtp.send_message(msg)
 
+    def _verify_admin_token(self):
+        authorization = self.headers.get('Authorization', '')
+        api_key = self.headers.get('X-Firebase-Api-Key', '').strip()
+        if not authorization.startswith('Bearer ') or not api_key:
+            return False
+        token = authorization[7:].strip()
+        if not token or len(token) > 5000:
+            return False
+
+        endpoint = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + urllib.parse.quote(api_key)
+        request = urllib.request.Request(
+            endpoint,
+            data=json.dumps({'idToken': token}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                payload = json.loads(response.read().decode('utf-8'))
+        except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
+            return False
+
+        users = payload.get('users') or []
+        email = str(users[0].get('email') or '').strip().lower() if users else ''
+        allowed = {
+            item.strip().lower()
+            for item in os.environ.get('ADMIN_EMAILS', 'michael@schellenberger.biz').split(',')
+            if item.strip()
+        }
+        return bool(email and email in allowed)
+
     def _write_client_error_log(self, data):
         def sanitize(value, limit):
             text = str(value or '')
@@ -149,6 +186,33 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def do_POST(self):
+        if self.path.split('?', 1)[0] == '/api/station-image':
+            if not self._verify_admin_token():
+                self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
+                return
+            if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'image/webp':
+                self._send_json(400, {"ok": False, "error": "Nur optimierte WebP-Bilder sind erlaubt"})
+                return
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 2 * 1024 * 1024:
+                self._send_json(413, {"ok": False, "error": "Bild ist leer oder größer als 2 MB"})
+                return
+
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            station_id = re.sub(r'[^a-zA-Z0-9_-]', '-', str((query.get('station') or ['station'])[0]))[:40] or 'station'
+            filename = f"{station_id}-{int(time.time())}-{secrets.token_hex(6)}.webp"
+            image_data = self.rfile.read(length)
+            if not image_data.startswith(b'RIFF') or image_data[8:12] != b'WEBP':
+                self._send_json(400, {"ok": False, "error": "Ungültige WebP-Datei"})
+                return
+            with open(os.path.join(STATION_IMAGE_DIR, filename), 'wb') as image_file:
+                image_file.write(image_data)
+            self._send_json(200, {"ok": True, "url": f"./downloads/stations/{filename}"})
+            return
+
         if self.path == '/api/client-error':
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                 self._send_json(400, {"ok": False, "error": "invalid_content_type"})
@@ -198,52 +262,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json(500, {"ok": False, "error": str(e)})
             return
 
-        if self.path == '/upload':
-            try:
-                content_type, pdict = cgi.parse_header(self.headers['content-type'])
-                if content_type == 'multipart/form-data':
-                    pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
-                    fields = cgi.parse_multipart(self.rfile, pdict)
-                    
-                    # Get file data
-                    # Note: This simple parser might behave differently depending on python version/environment
-                    # For robustness in a simple script, we assume standard multipart
-                    
-                    files = fields.get('file')
-                    filenames = fields.get('filename') # Sometimes filename is separate or in the object
-                    
-                    # cgi.parse_multipart is tricky with binary files in newer python versions
-                    # Let's use a more robust approach with cgi.FieldStorage for the file
-                    
-                    form = cgi.FieldStorage(
-                        fp=self.rfile,
-                        headers=self.headers,
-                        environ={'REQUEST_METHOD': 'POST',
-                                 'CONTENT_TYPE': self.headers['Content-Type'],
-                                 }
-                    )
-                    
-                    if 'file' in form:
-                        fileitem = form['file']
-                        if fileitem.filename:
-                            fn = os.path.basename(fileitem.filename)
-                            save_path = os.path.join(UPLOAD_DIR, fn)
-                            with open(save_path, 'wb') as f:
-                                f.write(fileitem.file.read())
-                            
-                            self.send_response(200)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            self.wfile.write(bytes(f'{{"url": "{UPLOAD_DIR}/{fn}"}}', 'utf-8'))
-                            return
-
-            except Exception as e:
-                print(e)
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(bytes(f'{{"error": "{str(e)}"}}', 'utf-8'))
-                return
-        
         self.send_response(404)
         self.end_headers()
 

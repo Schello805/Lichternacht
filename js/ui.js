@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.138';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.139';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1048,11 +1048,26 @@ export async function handleImageUpload(input) {
         const blob = await compressStationImage(file);
         let imageUrl;
 
-        if (!state.useLocalStorage && state.storage && state.fb.ref && state.fb.uploadBytes && state.fb.getDownloadURL) {
-            const safeId = String(station.id).replace(/[^a-zA-Z0-9_-]/g, '-');
-            const storageRef = state.fb.ref(state.storage, `station-images/${state.appId}/${safeId}-${Date.now()}.webp`);
-            await state.fb.uploadBytes(storageRef, blob, { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' });
-            imageUrl = await state.fb.getDownloadURL(storageRef);
+        if (!state.useLocalStorage) {
+            const currentUser = state.auth?.currentUser;
+            if (!currentUser || typeof currentUser.getIdToken !== 'function') {
+                throw new Error('Bitte erneut als Admin anmelden.');
+            }
+            const token = await currentUser.getIdToken();
+            const response = await fetch(`./api/station-image?station=${encodeURIComponent(station.id)}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Firebase-Api-Key': state.firebaseApiKey,
+                    'Content-Type': 'image/webp'
+                },
+                body: blob
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.url) {
+                throw new Error(result.error || 'Der Server hat den Bild-Upload abgelehnt.');
+            }
+            imageUrl = result.url;
         } else {
             imageUrl = await new Promise((resolve, reject) => {
                 const reader = new FileReader();

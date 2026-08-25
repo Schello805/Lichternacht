@@ -1,9 +1,16 @@
 # Changelog
 
+## [1.4.139] - 2026-08-25
+
+### Geändert
+- Firebase Storage wurde vollständig entfernt. Optimierte Stationsbilder werden kostenneutral und geschützt auf dem eigenen Webserver unter `downloads/stations/` gespeichert; Firestore enthält nur die URL.
+- Der Server akzeptiert Bild-Uploads nur mit gültigem Firebase-Admin-Login, WebP-Dateityp und maximal 2 MB Größe.
+- `deploy.sh` startet den API-Dienst nach Backend-Updates automatisch neu.
+
 ## [1.4.138] - 2026-08-25
 
 ### Hinzugefügt
-- Stationsbilder werden vor dem Upload auf maximal 1200 Pixel verkleinert, als WebP komprimiert und in Firebase Storage statt als Base64 in Firestore gespeichert.
+- Stationsbilder werden vor dem Upload auf maximal 1200 Pixel verkleinert und als WebP komprimiert; Firestore speichert nur eine Bild-URL statt Base64-Daten.
 - Vor CSV-/JSON-Importen, Demo-Daten-Uploads und dem Jahreswechsel wird automatisch eine vollständige JSON-Sicherheitskopie heruntergeladen.
 - Leere Stationssuchen erklären aktive Filter und bieten eine direkte Rücksetz-Aktion.
 - Stationen und Programmpunkte zeigen ihren Zusammenhang sowie Favoriten- und Besuchsstatus deutlicher.

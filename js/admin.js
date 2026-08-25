@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.138';
+import { parseCsv, toCsv } from './csv.js?v=1.4.139';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.138';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.139';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -925,17 +925,7 @@ export function uploadFlyer(inputId, outputId) {
     const output = document.getElementById(outputId);
     
     if (input.files && input.files[0]) {
-        // Since we don't have a backend for arbitrary file upload easily without auth/storage setup validation,
-        // and we want to keep it simple:
-        // Ideally we would upload to Firebase Storage here.
-        // For now, let's show an alert that this requires Storage configuration.
-        // OR: Read as Base64 (DataURL) but that's huge for PDFs.
-        
-        // Let's assume the user puts a URL manually for now if they don't have storage.
-        // But if they selected a file, we can try to upload if `state.fb` has storage.
-        
-        showToast("Upload-Funktion benötigt Firebase Storage Konfiguration. Bitte URL manuell eingeben.", 'info');
-        console.warn("File upload not fully implemented without Storage bucket config.");
+        showToast("Flyer bitte weiterhin als vorhandene PDF-URL eintragen.", 'info');
     }
 }
 

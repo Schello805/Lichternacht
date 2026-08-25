@@ -25,15 +25,14 @@ export async function initFirebase() {
         const fbApp = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
         const fbAuth = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
         const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
-        const fbStorage = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js");
         console.log("Firebase Firestore loaded:", Object.keys(fbStore));
 
         // Make all Firebase exports available (avoids missing functions like doc/query in some call sites)
-        Object.assign(state.fb, fbAuth, fbStore, fbStorage);
+        Object.assign(state.fb, fbAuth, fbStore);
 
         const app = fbApp.initializeApp(firebaseConfig);
         state.auth = fbAuth.getAuth(app);
-        state.storage = fbStorage.getStorage(app);
+        state.firebaseApiKey = apiKey;
         state.db = (typeof fbStore.initializeFirestore === 'function')
             ? fbStore.initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false })
             : fbStore.getFirestore(app);
@@ -60,10 +59,6 @@ export async function initFirebase() {
         state.fb.where = fbStore.where;
         state.fb.getCountFromServer = fbStore.getCountFromServer;
         state.fb.writeBatch = fbStore.writeBatch;
-        state.fb.ref = fbStorage.ref;
-        state.fb.uploadBytes = fbStorage.uploadBytes;
-        state.fb.getDownloadURL = fbStorage.getDownloadURL;
-        state.fb.deleteObject = fbStorage.deleteObject;
 
         state.useLocalStorage = false;
 

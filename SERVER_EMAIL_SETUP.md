@@ -8,7 +8,7 @@ Im Webroot (`/var/www/html/Lichternacht`) eine `.env` anlegen (liegt in `.gitign
 
 - Datei: `.env` (siehe `.env.example`)
 - Pflicht: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`
-- Optional: `SMTP_PORT`, `SMTP_SSL`, `BUGREPORT_TO`, `BUGREPORT_FROM`
+- Optional: `SMTP_PORT`, `SMTP_SSL`, `BUGREPORT_TO`, `BUGREPORT_FROM`, `ADMIN_EMAILS`
 
 ## 2) Python-API als Dienst starten (systemd)
 
@@ -43,7 +43,7 @@ systemctl enable --now lichternacht-api
 systemctl status lichternacht-api
 ```
 
-## 3) Apache Reverse Proxy für `/api/bug-report`
+## 3) Apache Reverse Proxy für `/api/`
 
 Apache muss die Requests an den Python‑Dienst auf `127.0.0.1:8000` weiterleiten.
 
@@ -59,11 +59,9 @@ In deinem vHost (oder einer Site-Config) ergänzen (Vorlage im Repo: `server/apa
 ```apache
 ProxyPass        "/api/"  "http://127.0.0.1:8000/api/"
 ProxyPassReverse "/api/"  "http://127.0.0.1:8000/api/"
-
-# optional, falls du /upload per Backend nutzen willst:
-ProxyPass        "/upload"  "http://127.0.0.1:8000/upload"
-ProxyPassReverse "/upload"  "http://127.0.0.1:8000/upload"
 ```
+
+Der Proxy wird für Feedback, technische Fehlerprotokolle und den geschützten Stationsbild-Upload verwendet. Stationsbilder werden unter `downloads/stations/` abgelegt. Der Python-Dienst benötigt dort Schreibrechte.
 
 Dann Apache reload:
 
