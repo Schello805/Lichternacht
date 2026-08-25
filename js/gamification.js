@@ -8,7 +8,7 @@ import {
     removeStationVisited
 } from './utils.js';
 import * as utils from './utils.js';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.146';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.147';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;

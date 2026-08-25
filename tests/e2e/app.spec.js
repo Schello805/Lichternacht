@@ -37,6 +37,7 @@ test('station and program forms clearly label non-obvious fields', async ({ page
 
     await expect(page.locator('label[for="evt-loc"]')).toContainText('Ort / Adresse');
     await expect(page.locator('label[for="evt-address-search"]')).toContainText('Kartenposition suchen');
+    await expect(page.getByText('Programmbild ⓘ')).toHaveCount(1);
 });
 
 test('admin can create a standalone program event without a station', async ({ page }) => {
@@ -182,6 +183,16 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
 
 test('station image endpoint rejects unauthenticated uploads', async ({ request }) => {
     const response = await request.post('/api/station-image?station=1', {
+        headers: { 'Content-Type': 'image/webp' },
+        data: Buffer.from('not-a-webp')
+    });
+
+    expect(response.status()).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ ok: false });
+});
+
+test('event image endpoint rejects unauthenticated uploads', async ({ request }) => {
+    const response = await request.post('/api/event-image?event=e1', {
         headers: { 'Content-Type': 'image/webp' },
         data: Buffer.from('not-a-webp')
     });

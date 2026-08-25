@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.147] - 2026-08-25
+
+- Ermöglicht optimierte Bilder für Programmpunkte und zeigt sie in Zeitleiste und Programmdetail an.
+- Ergänzt Programmbilder in CSV-Import, CSV-Export, Tabellenübersicht und Datencheck.
+- Trennt Link-, Like- und Favoritenaktionen im Stationskopf deutlicher.
+- Protokolliert Link-, Like-, Favoriten-, Teilen-, Routen-, Navigations- und Programmaktionen eindeutig und exportierbar.
+
 ## [1.4.146] - 2026-08-25
 
 - Ergänzt ein pseudonymes Auditlog für Check-ins, Favoriten, Bewertungen und ausgewählte Admin-Aktionen.

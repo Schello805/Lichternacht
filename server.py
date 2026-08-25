@@ -18,12 +18,15 @@ HOST = os.environ.get('BIND_HOST', '127.0.0.1')
 PORT = int(os.environ.get('PORT', '8000'))
 UPLOAD_DIR = 'downloads'
 STATION_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'stations')
+EVENT_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'events')
 LOG_DIR = 'logs'
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 if not os.path.exists(STATION_IMAGE_DIR):
     os.makedirs(STATION_IMAGE_DIR)
+if not os.path.exists(EVENT_IMAGE_DIR):
+    os.makedirs(EVENT_IMAGE_DIR)
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
@@ -233,7 +236,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         disk = shutil.disk_usage(os.getcwd())
         image_bytes = 0
         image_count = 0
-        for root, _, files in os.walk(STATION_IMAGE_DIR):
+        for root, _, files in os.walk(UPLOAD_DIR):
             for filename in files:
                 try:
                     image_bytes += os.path.getsize(os.path.join(root, filename))
@@ -265,7 +268,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         }
 
     def do_POST(self):
-        if self.path.split('?', 1)[0] == '/api/station-image':
+        image_endpoint = self.path.split('?', 1)[0]
+        if image_endpoint in ('/api/station-image', '/api/event-image'):
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
                 return
@@ -281,15 +285,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
-            station_id = re.sub(r'[^a-zA-Z0-9_-]', '-', str((query.get('station') or ['station'])[0]))[:40] or 'station'
-            filename = f"{station_id}-{int(time.time())}-{secrets.token_hex(6)}.webp"
+            is_event = image_endpoint == '/api/event-image'
+            query_key = 'event' if is_event else 'station'
+            fallback_id = 'event' if is_event else 'station'
+            content_id = re.sub(r'[^a-zA-Z0-9_-]', '-', str((query.get(query_key) or [fallback_id])[0]))[:40] or fallback_id
+            filename = f"{content_id}-{int(time.time())}-{secrets.token_hex(6)}.webp"
             image_data = self.rfile.read(length)
             if not image_data.startswith(b'RIFF') or image_data[8:12] != b'WEBP':
                 self._send_json(400, {"ok": False, "error": "Ungültige WebP-Datei"})
                 return
-            with open(os.path.join(STATION_IMAGE_DIR, filename), 'wb') as image_file:
+            target_dir = EVENT_IMAGE_DIR if is_event else STATION_IMAGE_DIR
+            target_url_dir = 'events' if is_event else 'stations'
+            with open(os.path.join(target_dir, filename), 'wb') as image_file:
                 image_file.write(image_data)
-            self._send_json(200, {"ok": True, "url": f"./downloads/stations/{filename}"})
+            self._send_json(200, {"ok": True, "url": f"./downloads/{target_url_dir}/{filename}"})
             return
 
         if self.path == '/api/client-error':

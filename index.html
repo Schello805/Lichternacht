@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.146" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.147" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.146">
+    <link rel="stylesheet" href="style.css?v=1.4.147">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -600,6 +600,10 @@
                             <option value="favorite_added">Favorit hinzugefügt</option>
                             <option value="favorite_removed">Favorit entfernt</option>
                             <option value="checkin_removed">Check-in entfernt</option>
+                            <option value="station_link_opened">Stationslink geöffnet</option>
+                            <option value="station_shared">Station geteilt</option>
+                            <option value="route_opened">Route aufgerufen</option>
+                            <option value="navigation_started">Navigation gestartet</option>
                             <option value="admin_csv_import">CSV-Importe</option>
                             <option value="admin_config_saved">Konfiguration</option>
                         </select>
@@ -860,8 +864,8 @@
                                         class="ph ph-x text-xl"></i></button>
                             </div>
                         </div>
-                        <div class="flex justify-between items-start">
-                            <div>
+                        <div class="flex items-start gap-4">
+                            <div class="min-w-0 flex-1">
                                 <div class="flex items-start gap-2">
                                     <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
                                     <button id="modal-link-btn" type="button"
@@ -874,17 +878,19 @@
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
                             </div>
-                            <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
-                                class="p-2 mr-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors"
-                                title="Gefällt mir" aria-label="Gefällt mir">
-                                <i class="ph ph-thumbs-up text-xl text-gray-400"></i>
-                                <span class="ml-1 text-xs font-bold text-gray-500">0</span>
-                            </button>
-                            <button id="modal-fav-btn" onclick="toggleFavorite(window.activeStationId, true)"
-                                class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
-                                title="Favorit" aria-label="Favorit">
-                                <i class="ph ph-star text-2xl"></i>
-                            </button>
+                            <div class="shrink-0 flex items-center gap-3 border-l border-gray-200 pl-3 dark:border-gray-600">
+                                <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
+                                    class="p-2 rounded-full bg-gray-100 border border-gray-200 flex items-center transition-colors"
+                                    title="Gefällt mir" aria-label="Gefällt mir">
+                                    <i class="ph ph-thumbs-up text-xl text-gray-400"></i>
+                                    <span class="ml-1 text-xs font-bold text-gray-500">0</span>
+                                </button>
+                                <button id="modal-fav-btn" onclick="toggleFavorite(window.activeStationId, true)"
+                                    class="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                                    title="Favorit" aria-label="Favorit">
+                                    <i class="ph ph-star text-2xl"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Check-In Button -->
@@ -1008,6 +1014,13 @@
                 <input id="evt-desc" class="w-full mb-2 p-2 border rounded" placeholder="Beschreibung (optional)" maxlength="250" title="Optionaler Zusatztext, maximal 250 Zeichen.">
                 <label class="text-[10px] font-bold uppercase text-gray-400" title="Optionaler Weblink, der im Programmdetail als Button angezeigt wird.">Link ⓘ</label>
                 <input id="evt-link" type="url" maxlength="2048" class="w-full mb-2 p-2 border rounded" placeholder="https://beispiel.de" title="Optional. Wird als Button im Programmdetail angezeigt.">
+                <label class="text-[10px] font-bold uppercase text-gray-400" title="Optionales Bild für diesen Programmpunkt. Es wird automatisch verkleinert und komprimiert.">Programmbild ⓘ</label>
+                <div id="evt-image-preview" class="hidden mb-2 h-32 overflow-hidden rounded-lg border border-gray-200"></div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="file" id="evt-image-upload" accept="image/*" class="hidden" onchange="handleEventImageUpload(this)">
+                    <button type="button" id="evt-image-upload-btn" onclick="document.getElementById('evt-image-upload').click()" class="bg-blue-50 text-blue-700 border border-blue-200 rounded py-2 text-xs font-bold hover:bg-blue-100"><i class="ph ph-image"></i> Bild wählen</button>
+                    <button type="button" id="evt-image-remove-btn" onclick="clearEventImage()" class="hidden bg-red-50 text-red-700 border border-red-200 rounded py-2 text-xs font-bold hover:bg-red-100"><i class="ph ph-trash"></i> Bild entfernen</button>
+                </div>
                 <label for="evt-loc" class="text-[10px] font-bold uppercase text-gray-400" title="Sichtbarer Veranstaltungsort des Programmpunkts.">Ort / Adresse ⓘ</label>
                 <input id="evt-loc" maxlength="160" class="w-full mb-2 p-2 border rounded"
                     placeholder="Ort / Adresse (z.B. Kirche, Marktplatz, Wiese)"
@@ -1239,7 +1252,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.146', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.147', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1266,7 +1279,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.146"></script>
+    <script type="module" src="main.js?v=1.4.147"></script>
 </body>
 
 </html>

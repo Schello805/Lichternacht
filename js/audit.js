@@ -1,7 +1,7 @@
 import { state } from './state.js';
 
 const VISITOR_ID_KEY = 'anonymous_audit_id_v1';
-const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'action', 'count', 'level', 'itemType']);
+const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']);
 
 export function getAnonymousAuditId() {
     try {

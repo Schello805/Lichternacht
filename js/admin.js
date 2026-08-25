@@ -2,15 +2,15 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.146';
+import { parseCsv, toCsv } from './csv.js?v=1.4.147';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.146';
-import { recordAuditEvent } from './audit.js?v=1.4.146';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.147';
+import { recordAuditEvent } from './audit.js?v=1.4.147';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
-const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'loc', 'stationId', 'lat', 'lng', 'color'];
+const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
@@ -320,6 +320,7 @@ function renderAdminDataTables() {
         e.title,
         e.desc,
         e.link,
+        e.image,
         e.loc,
         e.stationId,
         e.lat,
@@ -350,6 +351,7 @@ function renderAdminDataTables() {
             <td class="py-2 pr-2 font-bold">${escapeHtml(e.title)}</td>
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.desc || '')}</td>
             <td class="py-2 pr-2 text-center">${formatLink(e.link)}</td>
+            <td class="py-2 pr-2 text-center">${formatImage(e.image)}</td>
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(e.loc || '')}</td>
             <td class="py-2 pr-2">${escapeHtml(e.stationId || '')}</td>
             <td class="py-2 pr-2 font-mono">${escapeHtml(formatCoord(e.lat))}</td>
@@ -373,9 +375,9 @@ function renderAdminDataTables() {
             <div class="px-3 py-2 font-bold">Events (${events.length}/${(state.events || []).length})</div>
             <table class="w-full min-w-[1060px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
-                    <tr><th class="text-left py-2 px-3">ID</th><th class="text-left py-2">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Beschreibung</th><th class="text-center py-2">Link</th><th class="text-left py-2">Ort</th><th class="text-left py-2">Station</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Farbe</th><th class="text-right py-2 px-3">Aktion</th></tr>
+                    <tr><th class="text-left py-2 px-3">ID</th><th class="text-left py-2">Zeit</th><th class="text-left py-2">Titel</th><th class="text-left py-2">Beschreibung</th><th class="text-center py-2">Link</th><th class="text-center py-2">Bild</th><th class="text-left py-2">Ort</th><th class="text-left py-2">Station</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Farbe</th><th class="text-right py-2 px-3">Aktion</th></tr>
                 </thead>
-                <tbody>${eventRows || '<tr><td colspan="11" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
+                <tbody>${eventRows || '<tr><td colspan="12" class="p-3 text-gray-500">Keine Events gefunden.</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -708,6 +710,7 @@ export function exportEventsCsv() {
         title: e.title ?? '',
         description: e.desc ?? '',
         link: e.link ?? '',
+        image: e.image ?? '',
         loc: e.loc ?? '',
         stationId: e.stationId ?? '',
         lat: e.lat ?? '',
@@ -726,6 +729,7 @@ export function downloadEventsCsvTemplate() {
         title: 'Eröffnung',
         description: 'Kurze Beschreibung',
         link: 'https://beispiel.de',
+        image: '',
         loc: 'Johanniskirche',
         stationId: '5',
         lat: '49.1620',
@@ -758,6 +762,7 @@ async function importCsvGeneric(file, kind) {
                 desc: (r.address ?? '').toString().trim(),
                 offer: (r.offer ?? '').toString().trim(),
                 link: (r.link ?? '').toString().trim(),
+                image: (r.image ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
                 tags: normalizeTags(r.tags),
@@ -1616,6 +1621,14 @@ const AUDIT_EVENT_LABELS = {
     favorite_added: 'Favorit hinzugefügt',
     favorite_removed: 'Favorit entfernt',
     checkin_removed: 'Check-in entfernt',
+    station_link_opened: 'Stationslink geöffnet',
+    station_shared: 'Station geteilt',
+    route_opened: 'Route aufgerufen',
+    navigation_started: 'Navigation gestartet',
+    program_link_opened: 'Programmlink geöffnet',
+    program_map_opened: 'Programmpunkt auf Karte gezeigt',
+    program_route_opened: 'Route zum Programmpunkt aufgerufen',
+    program_calendar_saved: 'Programmpunkt im Kalender gespeichert',
     admin_csv_import: 'CSV importiert',
     admin_config_saved: 'Konfiguration gespeichert'
 };
@@ -1635,13 +1648,19 @@ function renderAuditLog() {
     }
     container.innerHTML = filtered.map(entry => {
         const details = entry.details || {};
-        const station = details.stationName || (details.stationId ? `Station ${details.stationId}` : '');
-        const extra = station || (details.itemType ? `${details.itemType}${details.count ? ` · ${details.count}` : ''}` : '');
+        const stationLabel = details.stationId
+            ? `Station #${details.stationId}${details.stationName ? ` „${details.stationName}“` : ''}`
+            : (details.stationName || '');
+        const eventLabel = details.eventId
+            ? `Programmpunkt „${details.eventTitle || details.eventId}“`
+            : (details.eventTitle || '');
+        const target = stationLabel || eventLabel || (details.itemType ? `${details.itemType}${details.count ? ` (${details.count})` : ''}` : '');
         const date = entry.createdAt ? new Date(entry.createdAt).toLocaleString('de-DE') : '–';
         const roleClass = entry.actorRole === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700';
+        const actionLabel = AUDIT_EVENT_LABELS[entry.eventType] || entry.eventType;
         return `<div class="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
-            <div><span class="mr-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${roleClass}">${entry.actorRole === 'admin' ? 'Admin' : 'Besucher'}</span><strong>${escapeHtml(AUDIT_EVENT_LABELS[entry.eventType] || entry.eventType)}</strong>${extra ? `<span class="ml-2 text-gray-500">${escapeHtml(extra)}</span>` : ''}</div>
-            <div class="text-[10px] text-gray-500"><span class="font-mono">${escapeHtml(entry.actorId || '–')}</span> · ${escapeHtml(date)}</div>
+            <div class="min-w-0"><div class="mb-1 flex items-center gap-2"><span class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${roleClass}">${entry.actorRole === 'admin' ? 'Admin' : 'Besucher'}</span><strong>${escapeHtml(actionLabel)}</strong></div>${target ? `<div class="text-gray-600 dark:text-gray-300">${escapeHtml(target)}</div>` : ''}</div>
+            <div class="text-[10px] text-gray-500 sm:text-right"><div>${escapeHtml(date)}</div><div class="font-mono" title="Pseudonyme Akteur-ID">ID: ${escapeHtml(entry.actorId || '–')}</div></div>
         </div>`;
     }).join('');
 }
@@ -1679,8 +1698,11 @@ export function exportAuditLogCsv() {
         actorRole: entry.actorRole || '',
         actorId: entry.actorId || '',
         eventType: entry.eventType || '',
+        action: AUDIT_EVENT_LABELS[entry.eventType] || entry.eventType || '',
         stationId: entry.details?.stationId || '',
         stationName: entry.details?.stationName || '',
+        eventId: entry.details?.eventId || '',
+        eventTitle: entry.details?.eventTitle || '',
         itemType: entry.details?.itemType || '',
         count: entry.details?.count ?? '',
         level: entry.details?.level || ''

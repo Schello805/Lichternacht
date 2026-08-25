@@ -5,7 +5,8 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.146';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.147';
+import { recordAuditEvent } from './audit.js?v=1.4.147';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -16,6 +17,7 @@ const EVENT_TITLE_MAX_LENGTH = 100;
 const EVENT_LOCATION_MAX_LENGTH = 160;
 const URL_MAX_LENGTH = 2048;
 const TAG_MAX_LENGTH = 30;
+let eventImageDraft = '';
 
 function normalizeExternalLink(value) {
     const raw = String(value || '').trim();
@@ -74,6 +76,7 @@ export function openModal(target) {
         
         if (btnRoute) {
             btnRoute.onclick = () => {
+                recordAuditEvent('route_opened', { stationId: s.id, stationName: s.name || '' });
                 closeModal();
                 switchTab('map');
                 // Wait for tab switch animation/layout so Leaflet can render routing correctly
@@ -88,6 +91,7 @@ export function openModal(target) {
         
         if (btnMaps) {
             btnMaps.onclick = () => {
+                recordAuditEvent('navigation_started', { stationId: s.id, stationName: s.name || '' });
                 const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
                 window.open(url, '_blank');
             };
@@ -97,7 +101,10 @@ export function openModal(target) {
             const externalLink = normalizeExternalLink(s.link);
             btnLink.classList.toggle('hidden', !externalLink);
             btnLink.classList.toggle('flex', !!externalLink);
-            btnLink.onclick = externalLink ? () => window.open(externalLink, '_blank', 'noopener') : null;
+            btnLink.onclick = externalLink ? () => {
+                recordAuditEvent('station_link_opened', { stationId: s.id, stationName: s.name || '' });
+                window.open(externalLink, '_blank', 'noopener');
+            } : null;
         }
 
         const modal = document.getElementById('detail-modal');
@@ -1092,6 +1099,69 @@ export async function handleImageUpload(input) {
     }
 }
 
+function updateEventImageUI(imageUrl = '') {
+    const preview = document.getElementById('evt-image-preview');
+    const removeButton = document.getElementById('evt-image-remove-btn');
+    if (!preview || !removeButton) return;
+    if (imageUrl) {
+        preview.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Vorschau Programmbild" class="h-full w-full object-cover">`;
+        preview.classList.remove('hidden');
+        removeButton.classList.remove('hidden');
+    } else {
+        preview.innerHTML = '';
+        preview.classList.add('hidden');
+        removeButton.classList.add('hidden');
+    }
+}
+
+export async function handleEventImageUpload(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const uploadButton = document.getElementById('evt-image-upload-btn');
+    try {
+        uploadButton.disabled = true;
+        uploadButton.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Wird optimiert…';
+        const blob = await compressStationImage(file);
+        let imageUrl;
+        if (!state.useLocalStorage) {
+            const currentUser = state.auth?.currentUser;
+            if (!currentUser?.getIdToken) throw new Error('Bitte erneut als Admin anmelden.');
+            const eventId = state.activeEventId || `evt_${Date.now()}`;
+            if (!state.activeEventId) state.activeEventId = eventId;
+            const response = await fetch(`./api/event-image?event=${encodeURIComponent(eventId)}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${await currentUser.getIdToken()}`, 'Content-Type': 'image/webp' },
+                body: blob
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.url) throw new Error(result.error || 'Der Server hat den Bild-Upload abgelehnt.');
+            imageUrl = result.url;
+        } else {
+            imageUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        eventImageDraft = imageUrl;
+        updateEventImageUI(imageUrl);
+        showToast(`Programmbild optimiert (${Math.max(1, Math.round(blob.size / 1024))} KB)`, 'success');
+    } catch (error) {
+        console.error('Event image upload failed', error);
+        showToast(error?.message || 'Programmbild konnte nicht hochgeladen werden', 'error');
+    } finally {
+        uploadButton.disabled = false;
+        uploadButton.innerHTML = '<i class="ph ph-image"></i> Bild wählen';
+        input.value = '';
+    }
+}
+
+export function clearEventImage() {
+    eventImageDraft = '';
+    updateEventImageUI('');
+}
+
 export function clearStationImage() {
     const s = state.stations.find(x => x.id == state.activeStationId);
     if (s) {
@@ -1151,6 +1221,8 @@ export function editEvent(id) {
     document.getElementById('evt-lat').value = e.lat;
     document.getElementById('evt-lng').value = e.lng;
     document.getElementById('evt-color').value = e.color || 'yellow';
+    eventImageDraft = normalizeStationImage(e.image);
+    updateEventImageUI(eventImageDraft);
     updateEventDescCounter();
     document.getElementById('evt-desc').oninput = updateEventDescCounter;
     
@@ -1173,6 +1245,8 @@ function resetEventModal() {
     document.getElementById('evt-lng').value = '';
     document.getElementById('evt-color').value = 'yellow';
     document.getElementById('evt-linked-station').value = '';
+    eventImageDraft = '';
+    updateEventImageUI('');
     document.getElementById('btn-delete-event').classList.add('hidden');
     updateEventDescCounter();
     document.getElementById('evt-desc').oninput = updateEventDescCounter;
@@ -1280,7 +1354,8 @@ export async function saveEventChanges() {
         stationId: stationId || '',
         lat: lat || 0,
         lng: lng || 0,
-        color
+        color,
+        image: eventImageDraft
     };
 
     const existingIndex = state.events.findIndex(event => event.id == evt.id);
@@ -1769,13 +1844,16 @@ export function openProgramEvent(id) {
     };
     const status = getProgramStatus(event, context);
     const locationInfo = getEventLocationInfo(event);
+    const eventImage = normalizeStationImage(event.image);
 
     const overlay = document.createElement('div');
     overlay.id = 'program-event-modal';
     overlay.className = 'fixed inset-0 z-[6500] flex items-end sm:items-center justify-center p-0 sm:p-4';
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
-        <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 border border-gray-200 dark:border-gray-700">
+        <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-48 w-full object-cover rounded-t-2xl">` : ''}
+            <div class="p-5">
             <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 sm:hidden"></div>
             <div class="flex items-start justify-between gap-3">
                 <div>
@@ -1818,6 +1896,7 @@ export function openProgramEvent(id) {
                     <i class="ph ph-calendar-plus"></i> In Kalender speichern
                 </button>
             </div>
+            </div>
         </div>
     `;
 
@@ -1825,16 +1904,24 @@ export function openProgramEvent(id) {
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
 
-    document.getElementById('program-calendar')?.addEventListener('click', () => downloadSingleEventIcs(event));
+    document.getElementById('program-calendar')?.addEventListener('click', () => {
+        recordAuditEvent('program_calendar_saved', { eventId: event.id, eventTitle: event.title || '' });
+        downloadSingleEventIcs(event);
+    });
     document.getElementById('program-link')?.addEventListener('click', () => {
         const externalLink = normalizeExternalLink(event.link);
-        if (externalLink) window.open(externalLink, '_blank', 'noopener');
+        if (externalLink) {
+            recordAuditEvent('program_link_opened', { eventId: event.id, eventTitle: event.title || '' });
+            window.open(externalLink, '_blank', 'noopener');
+        }
     });
     document.getElementById('program-show-map')?.addEventListener('click', () => {
+        recordAuditEvent('program_map_opened', { eventId: event.id, eventTitle: event.title || '' });
         close();
         flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId, 19);
     });
     document.getElementById('program-route')?.addEventListener('click', () => {
+        recordAuditEvent('program_route_opened', { eventId: event.id, eventTitle: event.title || '' });
         close();
         switchTab('map');
         setTimeout(() => {
@@ -1966,6 +2053,7 @@ export function renderTimeline() {
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
             <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
+                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="mb-3 h-28 w-full rounded-lg object-cover sm:h-32">` : ''}
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>

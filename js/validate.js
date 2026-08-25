@@ -181,6 +181,9 @@ export function validateEvents(events, stations = []) {
         if (String(e?.link || '').length > URL_MAX_LENGTH) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: `Link zu lang (max. ${URL_MAX_LENGTH} Zeichen)` });
         }
+        if (!isValidOptionalImage(e?.image)) {
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'image', message: 'Bild ist weder eine gültige Webadresse noch ein unterstütztes Bild' });
+        }
 
         if (!isNonEmptyString(e?.loc)) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'loc', message: 'Ort/Adresse fehlt' });

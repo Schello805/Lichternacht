@@ -2,28 +2,29 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.146';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/map.js?v=1.4.147';
 import { loadData, syncGlobalConfig } from './js/data.js';
 import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js';
 import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
-    handleImageUpload, editStation, openEventModal, closeEventModal,
+    handleImageUpload, handleEventImageUpload, clearEventImage, editStation, openEventModal, closeEventModal,
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.146';
+} from './js/ui.js?v=1.4.147';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog
-} from './js/admin.js?v=1.4.146';
+} from './js/admin.js?v=1.4.147';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.146';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.146';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.147';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.147';
+import { recordAuditEvent } from './js/audit.js?v=1.4.147';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.146";
+const APP_VERSION = "1.4.147";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1216,6 +1217,8 @@ window.closeHelpModal = closeHelpModal;
 window.saveStationChanges = saveStationChanges;
 window.deleteStation = deleteStation;
 window.handleImageUpload = handleImageUpload;
+window.handleEventImageUpload = handleEventImageUpload;
+window.clearEventImage = clearEventImage;
 window.editStation = editStation;
 window.createEventForStation = createEventForStation;
 window.openNewEvent = openNewEvent;
@@ -1230,7 +1233,11 @@ window.searchStationAddress = searchStationAddress;
 window.startStationPicker = startStationPicker;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
-window.shareStation = shareStation;
+window.shareStation = (id) => {
+    const station = state.stations.find(item => item.id == id);
+    recordAuditEvent('station_shared', { stationId: id, stationName: station?.name || '' });
+    return shareStation(id);
+};
 window.filterStations = filterStations;
 window.filterList = filterList;
 window.locateUser = locateUser;

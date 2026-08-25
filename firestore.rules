@@ -89,7 +89,7 @@ service cloud.firestore {
       match /auditLogs/{logId} {
         allow create: if request.auth != null &&
           request.resource.data.keys().hasOnly(['eventType', 'actorId', 'actorRole', 'createdAt', 'details', 'appId']) &&
-          request.resource.data.details.keys().hasOnly(['stationId', 'stationName', 'action', 'count', 'level', 'itemType']) &&
+          request.resource.data.details.keys().hasOnly(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']) &&
           (request.resource.data.actorRole == 'visitor' ||
             (request.resource.data.actorRole == 'admin' && isAppAdmin(appId))) &&
           request.resource.data.eventType is string &&
