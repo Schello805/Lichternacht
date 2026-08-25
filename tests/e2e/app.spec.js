@@ -167,6 +167,9 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await page.getByRole('button', { name: 'Login' }).click();
 
     await expect(page.locator('#admin-panel')).toBeVisible();
+    const dataSection = page.locator('details').filter({ hasText: '1. Daten (Excel/Tabelle)' });
+    await expect(dataSection).not.toHaveAttribute('open', '');
+    await dataSection.locator('summary').click();
     await page.getByRole('button', { name: 'Prüfen' }).click();
     await expect(page.locator('#admin-validation-results')).not.toContainText('Noch nicht geprüft.');
 });

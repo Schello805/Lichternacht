@@ -97,7 +97,7 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-    <link href="./dist/output.css?v=1.4.140" rel="stylesheet">
+    <link href="./dist/output.css?v=1.4.141" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
@@ -125,7 +125,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.140">
+    <link rel="stylesheet" href="style.css?v=1.4.141">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -263,11 +263,12 @@
                 <p id="admin-system-updated" class="mt-2 text-[10px] text-gray-400"></p>
             </section>
 
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
-                <div class="font-bold text-sm p-4 bg-gray-100 dark:bg-gray-600 dark:text-white border-b dark:border-gray-600 flex justify-between items-center">
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
                     <span>1. Daten (Excel/Tabelle)</span>
-                </div>
-                <div class="p-4">
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 border-t dark:border-gray-600">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
                         Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Events nutzen <span class="font-mono">description</span> für die Beschreibung und optional <span class="font-mono">stationId</span> zur dauerhaften Verknüpfung mit einer Station. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
                     </p>
@@ -335,7 +336,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </details>
 
             <!-- App Config -->
             <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
@@ -1203,7 +1204,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.140', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.141', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1230,7 +1231,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.140"></script>
+    <script type="module" src="main.js?v=1.4.141"></script>
 </body>
 
 </html>

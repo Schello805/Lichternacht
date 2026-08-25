@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.141] - 2026-08-25
+
+- Zeigt die Systemkennzahlen als einzigen dauerhaft geöffneten Bereich oben in der Admin-Konsole.
+- Klappt den Bereich „Daten (Excel/Tabelle)“ wie alle weiteren Verwaltungsbereiche standardmäßig ein.
+
 ## [1.4.140] - 2026-08-25
 
 ### Hinzugefügt
