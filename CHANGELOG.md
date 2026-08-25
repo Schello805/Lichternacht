@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.148] - 2026-08-25
+
+- Synchronisiert „Likes zurücksetzen“ mit den lokalen Abstimmungssperren aller Besuchergeräte.
+- Erlaubt nach einem Admin-Reset beim nächsten Laden wieder eine neue Abstimmung, ohne Favoriten oder Check-ins zu löschen.
+
 ## [1.4.147] - 2026-08-25
 
 - Ermöglicht optimierte Bilder für Programmpunkte und zeigt sie in Zeitleiste und Programmdetail an.

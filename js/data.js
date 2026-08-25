@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
 import { validateStations, validateEvents } from './validate.js';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.148';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -247,6 +248,12 @@ export async function syncGlobalConfig() {
                     // Refresh if needed (though usually this runs on startup)
                     if (window.refreshStationList) window.refreshStationList();
                 }
+            }
+
+            if (applyLikesResetToken(localStorage, data.likesResetToken)) {
+                console.log("Likes reset token triggered! Clearing local vote locks...");
+                showToast("Likes wurden zurückgesetzt. Du kannst wieder abstimmen.", 'info');
+                if (window.refreshStationList) window.refreshStationList();
             }
         } else {
             console.log("No global config found, using default:", state.appId);

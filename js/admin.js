@@ -2,10 +2,11 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.147';
+import { parseCsv, toCsv } from './csv.js?v=1.4.148';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.147';
-import { recordAuditEvent } from './audit.js?v=1.4.147';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.148';
+import { recordAuditEvent } from './audit.js?v=1.4.148';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.148';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1741,9 +1742,9 @@ export async function resetLikes() {
 
     try {
         if (state.useLocalStorage) {
-            // Local mode: Just update state and save
             state.stations.forEach(s => s.likes = 0);
             localStorage.setItem('stations_data', JSON.stringify(state.stations));
+            applyLikesResetToken(localStorage, Date.now());
         } else {
             // Firebase mode: Batch update
             // Note: Firestore Batch limit is 500. We might need chunks if stations > 500.
@@ -1758,9 +1759,15 @@ export async function resetLikes() {
             });
             
             await batch.commit();
+
+            const resetToken = Date.now();
+            const globalConfigRef = doc(state.db, 'global', 'config');
+            await state.fb.setDoc(globalConfigRef, { likesResetToken: resetToken }, { merge: true });
+            state.config.likesResetToken = resetToken;
+            applyLikesResetToken(localStorage, resetToken);
         }
         
-        showToast("Alle Likes wurden zurückgesetzt.", 'success');
+        showToast("Alle Likes und Abstimmungssperren wurden zurückgesetzt.", 'success');
         // Refresh UI
         if (window.renderList) window.renderList(state.stations);
         if (window.openStation && state.activeStationId) {
