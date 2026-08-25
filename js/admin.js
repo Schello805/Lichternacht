@@ -2,9 +2,9 @@
 import { state } from './state.js';
 import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js';
 import { saveData, seedStations, seedEvents } from './data.js';
-import { parseCsv, toCsv } from './csv.js?v=1.4.142';
+import { parseCsv, toCsv } from './csv.js?v=1.4.143';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.142';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.143';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -85,8 +85,7 @@ export async function loadSystemMetrics() {
         const [token, audience] = await Promise.all([currentUser.getIdToken(), loadAudienceMetrics()]);
         const response = await fetch('./api/system-metrics', {
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'X-Firebase-Api-Key': state.firebaseApiKey
+                'Authorization': `Bearer ${token}`
             },
             cache: 'no-store'
         });

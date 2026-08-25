@@ -136,7 +136,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def _verify_admin_token(self):
         authorization = self.headers.get('Authorization', '')
-        api_key = self.headers.get('X-Firebase-Api-Key', '').strip()
+        api_key = os.environ.get('FIREBASE_API_KEY', '').strip()
+        if not api_key:
+            try:
+                with open('config.js', 'r', encoding='utf-8') as config_file:
+                    match = re.search(r'apiKey\s*:\s*["\']([^"\']+)["\']', config_file.read())
+                    api_key = match.group(1).strip() if match else ''
+            except OSError:
+                api_key = ''
         if not authorization.startswith('Bearer ') or not api_key:
             return False
         token = authorization[7:].strip()
@@ -147,7 +154,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         request = urllib.request.Request(
             endpoint,
             data=json.dumps({'idToken': token}).encode('utf-8'),
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json',
+                'Referer': os.environ.get('FIREBASE_AUTH_REFERER', 'https://lichternacht-bechhofen.de/')
+            },
             method='POST'
         )
         try:

@@ -5,7 +5,7 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.142';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.143';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1058,7 +1058,6 @@ export async function handleImageUpload(input) {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'X-Firebase-Api-Key': state.firebaseApiKey,
                     'Content-Type': 'image/webp'
                 },
                 body: blob

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.143] - 2026-08-25
+
+- Bindet die geschützten Systemkennzahlen fest an die servereigene Firebase-Konfiguration.
+- Unterstützt Firebase-API-Schlüssel mit Domainbeschränkung bei der serverseitigen Admin-Prüfung.
+
 ## [1.4.142] - 2026-08-25
 
 - Macht das Deploy-Skript direkt ausführbar und beendet es zuverlässig, wenn `git pull` fehlschlägt.
