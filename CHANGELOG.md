@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.144] - 2026-08-25
+
+- Zeigt die echte CPU-Auslastung zwischen 0 und 100 Prozent statt einer missverständlich umgerechneten Linux-Systemlast.
+
 ## [1.4.143] - 2026-08-25
 
 - Bindet die geschützten Systemkennzahlen fest an die servereigene Firebase-Konfiguration.

@@ -200,7 +200,22 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _collect_system_metrics(self):
         cpu_count = os.cpu_count() or 1
         load_1, load_5, load_15 = os.getloadavg() if hasattr(os, 'getloadavg') else (0.0, 0.0, 0.0)
-        cpu_load_percent = min(999.0, max(0.0, load_1 / cpu_count * 100))
+        cpu_load_percent = min(100.0, max(0.0, load_1 / cpu_count * 100))
+        try:
+            def read_cpu_times():
+                with open('/proc/stat', 'r', encoding='utf-8') as cpu_file:
+                    values = [int(value) for value in cpu_file.readline().split()[1:]]
+                idle = values[3] + (values[4] if len(values) > 4 else 0)
+                return sum(values), idle
+
+            total_before, idle_before = read_cpu_times()
+            time.sleep(0.1)
+            total_after, idle_after = read_cpu_times()
+            total_delta = total_after - total_before
+            if total_delta > 0:
+                cpu_load_percent = max(0.0, min(100.0, (1 - (idle_after - idle_before) / total_delta) * 100))
+        except (OSError, ValueError, IndexError):
+            pass
 
         memory_total = 0
         memory_available = 0
