@@ -16,6 +16,16 @@ let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
 let gpsFallbackTimer = null;
+let proximityCleanupToken = 0;
+
+function getValidCoordinates(lat, lng) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+    if (Math.abs(latitude) < 0.0001 && Math.abs(longitude) < 0.0001) return null;
+    return { latitude, longitude };
+}
 
 function getUserMarkerIcon() {
     const heading = Number.isFinite(Number(state.compassHeading)) ? Number(state.compassHeading) : 0;
@@ -216,6 +226,7 @@ function restoreMapOverlays() {
 }
 
 export function refreshMapMarkers() {
+    if (!state.map) return;
     state.markers.forEach(m => m.marker.remove());
     state.markers = [];
 
@@ -224,7 +235,9 @@ export function refreshMapMarkers() {
     const lastChecked = localStorage.getItem('last_checked_station');
 
     state.stations.forEach(s => {
-        const isActive = state.activeStationId && state.activeStationId === s.id;
+        const coordinates = getValidCoordinates(s.lat, s.lng);
+        if (!coordinates) return;
+        const isActive = state.activeStationId != null && String(state.activeStationId) === String(s.id);
         const isVisited = visitedStations.has(String(s.id));
         const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
         const color = (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
@@ -239,7 +252,7 @@ export function refreshMapMarkers() {
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin;
         const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
-            .setLngLat([Number(s.lng), Number(s.lat)])
+            .setLngLat([coordinates.longitude, coordinates.latitude])
             .addTo(state.map);
         
         icon.addEventListener('click', () => {
@@ -433,6 +446,11 @@ export async function locateUser(cb, options = {}) {
 }
 
 export function calculateRoute(destLat, destLng) {
+    const destination = getValidCoordinates(destLat, destLng);
+    if (!destination) {
+        showToast('Für diese Station ist keine gültige Kartenposition hinterlegt.', 'error');
+        return;
+    }
     if (!state.userLocation) {
         showToast("GPS wird benötigt – Standort wird aktiviert...", 'info');
         locateUser(() => calculateRoute(destLat, destLng));
@@ -440,7 +458,7 @@ export function calculateRoute(destLat, destLng) {
     }
     showToast("Route wird berechnet...", 'info');
     const start = `${state.userLocation.lng},${state.userLocation.lat}`;
-    const end = `${Number(destLng)},${Number(destLat)}`;
+    const end = `${destination.longitude},${destination.latitude}`;
     fetch(`https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`)
         .then(response => {
             if (!response.ok) throw new Error('Routing-Dienst nicht erreichbar');
@@ -460,8 +478,12 @@ export function calculateRoute(destLat, destLng) {
 }
 
 export function resetMap() {
+    if (!state.map) return;
     if (state.stations.length > 0) {
-        fitCoordinates(state.stations.map(station => [Number(station.lng), Number(station.lat)]), 50);
+        fitCoordinates(state.stations
+            .map(station => getValidCoordinates(station.lat, station.lng))
+            .filter(Boolean)
+            .map(coordinates => [coordinates.longitude, coordinates.latitude]), 50);
     } else {
         state.map.flyTo({ center: [10.552, 49.158], zoom: 16 });
     }
@@ -496,6 +518,7 @@ function renderRoute(geometry) {
 }
 
 function fitCoordinates(coordinates, padding = 50) {
+    if (!state.map || !Array.isArray(coordinates)) return;
     const valid = coordinates.filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
     if (!valid.length) return;
     const bounds = valid.reduce((result, coordinate) => result.extend(coordinate), new maplibregl.LngLatBounds(valid[0], valid[0]));
@@ -525,10 +548,15 @@ function renderProximityCircle(circle) {
 
 export function showProximityRadius(station, userLocation, radius = 25) {
     if (!state.map) return;
+    const stationCoordinates = getValidCoordinates(station?.lat, station?.lng);
+    const userCoordinates = getValidCoordinates(userLocation?.lat, userLocation?.lng);
+    if (!stationCoordinates || !userCoordinates) return;
+    const cleanupToken = ++proximityCleanupToken;
     state.proximityCircle = { lat: Number(station.lat), lng: Number(station.lng), radius };
     renderProximityCircle(state.proximityCircle);
-    fitCoordinates([[Number(station.lng), Number(station.lat)], [Number(userLocation.lng), Number(userLocation.lat)]], 50);
+    fitCoordinates([[stationCoordinates.longitude, stationCoordinates.latitude], [userCoordinates.longitude, userCoordinates.latitude]], 50);
     setTimeout(() => {
+        if (cleanupToken !== proximityCleanupToken) return;
         [PROXIMITY_FILL_LAYER_ID, PROXIMITY_LINE_LAYER_ID].forEach(id => {
             if (state.map?.getLayer(id)) state.map.removeLayer(id);
         });

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.155] - 2026-08-26
+
+- Härtet die MapLibre-Karte gegen fehlende oder ungültige Stationskoordinaten ab.
+- Verhindert, dass ein älterer Check-in-Radius einen neueren Kartenradius entfernt.
+- Bereinigt verbliebene Leaflet-Verweise und ergänzt einen Browser-Regressions-Test.
+
 ## [1.4.154] - 2026-08-26
 
 - Zeigt über interaktiven Schaltflächen wie „Gefällt mir“ und „Favorit“ den üblichen Handzeiger statt des Hilfe-Cursors.

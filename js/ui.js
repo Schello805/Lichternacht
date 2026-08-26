@@ -2,12 +2,12 @@
 import { state } from './state.js';
 import { showToast, getDistance, getVisitedStationIdSet } from './utils.js';
 import * as utils from './utils.js';
-import { saveData, deleteData } from './data.js?v=1.4.154';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.154';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.154';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.154';
-import { recordAuditEvent } from './audit.js?v=1.4.154';
-import { normalizeImageUrl } from './image-url.js?v=1.4.154';
+import { saveData, deleteData } from './data.js?v=1.4.155';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.155';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.155';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.155';
+import { recordAuditEvent } from './audit.js?v=1.4.155';
+import { normalizeImageUrl } from './image-url.js?v=1.4.155';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -78,7 +78,7 @@ export function openModal(target) {
                 recordAuditEvent('route_opened', { stationId: s.id, stationName: s.name || '' });
                 closeModal();
                 switchTab('map');
-                // Wait for tab switch animation/layout so Leaflet can render routing correctly
+                // Wait for the tab layout before resizing MapLibre and drawing the route.
                 setTimeout(() => {
                     try {
                         if (state.map) state.map.resize();

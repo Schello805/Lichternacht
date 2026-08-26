@@ -6,7 +6,7 @@ Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
 ## ✨ Features
 
 *   **Offline-First (PWA):** Funktioniert dank Service Worker und Caching auch bei schlechtem Netz komplett offline.
-*   **Interaktive Karte:** Leaflet-Karte mit Standort-Tracking und Routing.
+*   **Interaktive Karte:** MapLibre-Vektorkarte mit Standort-Tracking und Routing.
 *   **Gamification:** Lichter-Pass, Check-Ins, Likes und Favoriten.
 *   **Onboarding:** Mini-Tour (Kurze Tour) für neue Nutzer; kann über die Hilfe („Tour erneut anzeigen“) erneut gestartet werden.
 
@@ -184,7 +184,7 @@ Stelle sicher, dass in der Firebase Console:
 
 - **Frontend:** HTML5, Vanilla JS, TailwindCSS (Local Build)
 - **Backend:** Firebase (Firestore, Auth)
-- **Maps:** Leaflet.js & OpenStreetMap
+- **Maps:** MapLibre GL JS, OpenFreeMap & OpenStreetMap
 - **Icons:** Phosphor Icons
 - **PWA:** Workbox (Service Worker)
 

@@ -28,6 +28,19 @@ test('vector map renders stations without an API-key warning', async ({ page }) 
     await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenStreetMap');
 });
 
+test('vector map ignores stations with invalid coordinates without crashing', async ({ page }) => {
+    await page.goto('/index.html');
+    const markerCount = await page.locator('.maplibregl-marker .station-pin').count();
+
+    await page.evaluate(() => {
+        window.state.stations.push({ id: 'invalid-map-test', name: 'Ungültige Position', lat: '', lng: 'kein-wert' });
+        window.refreshMapMarkers();
+    });
+
+    await expect(page.locator('.maplibregl-marker .station-pin')).toHaveCount(markerCount);
+    await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
