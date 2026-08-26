@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.152] - 2026-08-26
+
+- Hält den blauen GPS-Punkt bei Kompass- und Standortupdates korrekt auf seiner Kartenposition.
+- Verhindert, dass MapLibre-Positionierungsklassen beim Aktualisieren des Kompasssymbols verloren gehen.
+
 ## [1.4.151] - 2026-08-26
 
 - Ersetzt die CARTO-Rasterkarte durch eine scharfe MapLibre-Vektorkarte mit OpenFreeMap ohne API-Key.

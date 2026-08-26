@@ -5,9 +5,9 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.151';
-import { recordAuditEvent } from './audit.js?v=1.4.151';
-import { normalizeImageUrl } from './image-url.js?v=1.4.151';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.152';
+import { recordAuditEvent } from './audit.js?v=1.4.152';
+import { normalizeImageUrl } from './image-url.js?v=1.4.152';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;

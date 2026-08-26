@@ -119,11 +119,13 @@ test('location marker stays visible above stations and follows GPS updates', asy
 
     const marker = page.locator('.user-loc');
     await expect(marker).toBeVisible();
+    await expect(marker).toHaveClass(/maplibregl-marker/);
     await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
 
     const initialPosition = await marker.getAttribute('style');
     await context.setGeolocation({ latitude: 49.1582, longitude: 10.5501, accuracy: 8 });
     await expect.poll(() => marker.getAttribute('style')).not.toBe(initialPosition);
+    await expect(marker).toHaveClass(/maplibregl-marker/);
 
     const markerZIndex = await marker.evaluate(element => getComputedStyle(element).zIndex);
     expect(Number(markerZIndex)).toBeGreaterThan(600);

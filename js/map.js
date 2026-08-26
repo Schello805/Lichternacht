@@ -32,7 +32,6 @@ function updateUserMarkerHeading() {
     try {
         const element = state.userMarker.getElement();
         const replacement = getUserMarkerIcon();
-        element.className = replacement.className;
         element.innerHTML = replacement.innerHTML;
     } catch (e) { }
 }
