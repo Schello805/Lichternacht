@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.154] - 2026-08-26
+
+- Zeigt über interaktiven Schaltflächen wie „Gefällt mir“ und „Favorit“ den üblichen Handzeiger statt des Hilfe-Cursors.
+
 ## [1.4.153] - 2026-08-26
 
 - Behebt den Abbruch der internen Route beim Schließen des Stationsfensters.

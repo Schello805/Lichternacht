@@ -149,6 +149,10 @@ h3,
     cursor: help;
 }
 
+.fast-tooltip-trigger:is(button, a, [role="button"]) {
+    cursor: pointer;
+}
+
 /* Loading Spinner */
 .spinner {
     width: 24px;
