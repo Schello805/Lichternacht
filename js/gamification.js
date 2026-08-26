@@ -8,7 +8,8 @@ import {
     removeStationVisited
 } from './utils.js';
 import * as utils from './utils.js';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.150';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.151';
+import { showProximityRadius } from './map.js?v=1.4.151';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -416,32 +417,7 @@ export async function checkIn(id) {
         showToast(`Noch zu weit weg: ca. ${dist.toFixed(0)} m entfernt (max. ${ALLOWED_RADIUS} m).`, 'error');
         
         // Visual Feedback: Show circle on map
-        if (state.map && window.L) {
-            // Remove old temp circle if exists
-            if (state.tempCircle) state.map.removeLayer(state.tempCircle);
-            
-            state.tempCircle = L.circle([s.lat, s.lng], {
-                color: 'red',
-                fillColor: '#f03',
-                fillOpacity: 0.2,
-                radius: ALLOWED_RADIUS
-            }).addTo(state.map);
-
-            // Zoom to show both user and station
-            const group = L.featureGroup([
-                L.marker([state.userLocation.lat, state.userLocation.lng]),
-                L.marker([s.lat, s.lng])
-            ]);
-            state.map.fitBounds(group.getBounds(), { padding: [50, 50] });
-
-            // Remove circle after 5s
-            setTimeout(() => {
-                if (state.tempCircle) {
-                    state.map.removeLayer(state.tempCircle);
-                    state.tempCircle = null;
-                }
-            }, 5000);
-        }
+        if (state.map) showProximityRadius(s, state.userLocation, ALLOWED_RADIUS);
         return;
     }
 

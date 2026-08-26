@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.151] - 2026-08-26
+
+- Ersetzt die CARTO-Rasterkarte durch eine scharfe MapLibre-Vektorkarte mit OpenFreeMap ohne API-Key.
+- Migriert Stationsmarker, Admin-Verschieben, GPS/Kompass, Kartenfokus und Check-in-Radius auf MapLibre.
+- Zeichnet interne Routen als Vektorlinie und erhält helle sowie dunkle Kartenstile.
+
 ## [1.4.150] - 2026-08-26
 
 - Korrigiert die Anzeige hochgeladener Stations- und Programmbilder aus `/downloads/`.

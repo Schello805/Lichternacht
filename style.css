@@ -45,9 +45,10 @@ h3,
     padding-bottom: 80px;
 }
 
-/* Map cleanups */
-.leaflet-routing-container {
-    display: none !important;
+/* MapLibre controls */
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+    z-index: 20;
 }
 
 /* Admin specific */

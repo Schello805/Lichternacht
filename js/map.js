@@ -1,7 +1,16 @@
 import { state } from './state.js';
 import { showToast, getVisitedStationIdSet } from './utils.js';
+import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
-let tileLayer;
+const MAP_STYLES = {
+    light: 'https://tiles.openfreemap.org/styles/positron',
+    dark: 'https://tiles.openfreemap.org/styles/dark'
+};
+const ROUTE_SOURCE_ID = 'active-route';
+const ROUTE_LAYER_ID = 'active-route-line';
+const PROXIMITY_SOURCE_ID = 'checkin-radius';
+const PROXIMITY_FILL_LAYER_ID = 'checkin-radius-fill';
+const PROXIMITY_LINE_LAYER_ID = 'checkin-radius-line';
 const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
 let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
@@ -12,23 +21,19 @@ function getUserMarkerIcon() {
     const heading = Number.isFinite(Number(state.compassHeading)) ? Number(state.compassHeading) : 0;
     const headingClass = state.compassEnabled ? 'is-heading-active' : '';
     const headingStyle = state.compassEnabled ? `style="transform: rotate(${heading}deg);"` : '';
-    return L.divIcon({
-        html: `
-            <div class="user-location-marker ${headingClass}">
-                <div class="user-location-heading" ${headingStyle}></div>
-                <div class="user-location-dot"></div>
-            </div>
-        `,
-        className: 'user-loc',
-        iconSize: [54, 54],
-        iconAnchor: [27, 27]
-    });
+    const element = document.createElement('div');
+    element.className = 'user-loc';
+    element.innerHTML = `<div class="user-location-marker ${headingClass}"><div class="user-location-heading" ${headingStyle}></div><div class="user-location-dot"></div></div>`;
+    return element;
 }
 
 function updateUserMarkerHeading() {
     if (!state.userMarker) return;
     try {
-        state.userMarker.setIcon(getUserMarkerIcon());
+        const element = state.userMarker.getElement();
+        const replacement = getUserMarkerIcon();
+        element.className = replacement.className;
+        element.innerHTML = replacement.innerHTML;
     } catch (e) { }
 }
 
@@ -186,34 +191,33 @@ function getGeolocationStrategy() {
 }
 
 export function initMap() {
-    state.map = L.map('map', { zoomControl: false }).setView([49.158, 10.552], 16);
-    const userLocationPane = state.map.createPane('userLocationPane');
-    userLocationPane.style.zIndex = '750';
-    userLocationPane.style.pointerEvents = 'none';
-    updateMapTiles(document.documentElement.classList.contains('dark'));
+    state.map = new maplibregl.Map({
+        container: 'map',
+        style: document.documentElement.classList.contains('dark') ? MAP_STYLES.dark : MAP_STYLES.light,
+        center: [10.552, 49.158],
+        zoom: 16,
+        maxZoom: 20,
+        attributionControl: false
+    });
+    state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
+    state.map.dragRotate.disable();
+    state.map.touchZoomRotate.disableRotation();
+    state.map.on('style.load', restoreMapOverlays);
 }
 
 export function updateMapTiles(isDark) {
     if (!state.map) return;
     console.log('Update Map Tiles:', isDark ? 'DARK' : 'LIGHT');
-    
-    if (tileLayer) {
-        state.map.removeLayer(tileLayer);
-        tileLayer = null; // Clear reference
-    }
-    
-    const tileUrl = isDark
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        
-    tileLayer = L.tileLayer(tileUrl, { 
-        attribution: '&copy; OpenStreetMap &copy; CARTO', 
-        maxZoom: 19 
-    }).addTo(state.map);
+    state.map.setStyle(isDark ? MAP_STYLES.dark : MAP_STYLES.light);
+}
+
+function restoreMapOverlays() {
+    if (state.routeGeometry) renderRoute(state.routeGeometry);
+    if (state.proximityCircle) renderProximityCircle(state.proximityCircle);
 }
 
 export function refreshMapMarkers() {
-    state.markers.forEach(m => state.map.removeLayer(m.marker));
+    state.markers.forEach(m => m.marker.remove());
     state.markers = [];
 
     const visitedStations = getVisitedStationIdSet();
@@ -229,18 +233,17 @@ export function refreshMapMarkers() {
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         
-        const icon = L.divIcon({
-            className: 'custom-pin',
-            html: `<div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        });
+        const icon = document.createElement('div');
+        icon.className = 'custom-pin';
+        icon.innerHTML = `<div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`;
         
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin;
-        const marker = L.marker([s.lat, s.lng], { icon: icon, draggable: isDraggable }).addTo(state.map);
+        const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
+            .setLngLat([Number(s.lng), Number(s.lat)])
+            .addTo(state.map);
         
-        marker.on('click', () => {
+        icon.addEventListener('click', () => {
             // Prevent click when dragging
             if (marker._isDragging) return;
             if (window.openModal) window.openModal(s);
@@ -248,9 +251,9 @@ export function refreshMapMarkers() {
 
         if (isDraggable) {
             marker.on('dragstart', () => { marker._isDragging = true; });
-            marker.on('dragend', (e) => {
+            marker.on('dragend', () => {
                 setTimeout(() => { marker._isDragging = false; }, 100); // Debounce click
-                const newPos = e.target.getLatLng();
+                const newPos = marker.getLngLat();
                 
                 // Update Local State
                 s.lat = newPos.lat;
@@ -322,20 +325,18 @@ export async function locateUser(cb, options = {}) {
         }
 
         if (state.userMarker) {
-            state.userMarker.setLatLng([userLat, userLng]);
-            state.userMarker.setIcon(getUserMarkerIcon());
+            state.userMarker.setLngLat([userLng, userLat]);
+            updateUserMarkerHeading();
         } else if (state.map) {
-            state.userMarker = L.marker([userLat, userLng], {
-                icon: getUserMarkerIcon(),
-                pane: 'userLocationPane',
-                interactive: false,
-                keyboard: false,
-                zIndexOffset: 10000
-            }).addTo(state.map);
+            state.userMarker = new maplibregl.Marker({ element: getUserMarkerIcon(), anchor: 'center' })
+                .setLngLat([userLng, userLat])
+                .addTo(state.map);
+            state.userMarker.getElement().style.zIndex = '10000';
+            state.userMarker.getElement().style.pointerEvents = 'none';
         }
 
         if (state.map && (!state.hasLocatedUser || context.forceCenter)) {
-            state.map.setView([userLat, userLng], Math.max(state.map.getZoom(), 18));
+            state.map.flyTo({ center: [userLng, userLat], zoom: Math.max(state.map.getZoom(), 18) });
             state.hasLocatedUser = true;
         }
 
@@ -438,20 +439,93 @@ export function calculateRoute(destLat, destLng) {
         locateUser(() => calculateRoute(destLat, destLng));
         return;
     }
-    if (state.routingControl) { state.map.removeControl(state.routingControl); state.routingControl = null; }
-    state.routingControl = L.Routing.control({
-        waypoints: [L.latLng(state.userLocation.lat, state.userLocation.lng), L.latLng(destLat, destLng)],
-        routeWhileDragging: false, show: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true,
-        lineOptions: { styles: [{ color: '#3b82f6', opacity: 0.7, weight: 5 }] }
-    }).addTo(state.map);
     showToast("Route wird berechnet...", 'info');
+    const start = `${state.userLocation.lng},${state.userLocation.lat}`;
+    const end = `${Number(destLng)},${Number(destLat)}`;
+    fetch(`https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`)
+        .then(response => {
+            if (!response.ok) throw new Error('Routing-Dienst nicht erreichbar');
+            return response.json();
+        })
+        .then(result => {
+            const geometry = result.routes?.[0]?.geometry;
+            if (!geometry) throw new Error('Keine Route gefunden');
+            state.routeGeometry = geometry;
+            renderRoute(geometry);
+            fitCoordinates(geometry.coordinates, 70);
+        })
+        .catch(error => {
+            console.error('Route calculation failed', error);
+            showToast('Route konnte nicht berechnet werden.', 'error');
+        });
 }
 
 export function resetMap() {
     if (state.stations.length > 0) {
-        const bounds = L.latLngBounds(state.stations.map(s => [s.lat, s.lng]));
-        state.map.fitBounds(bounds, { padding: [50, 50] });
+        fitCoordinates(state.stations.map(station => [Number(station.lng), Number(station.lat)]), 50);
     } else {
-        state.map.setView([49.158, 10.552], 16);
+        state.map.flyTo({ center: [10.552, 49.158], zoom: 16 });
     }
+}
+
+function setGeoJsonLayer(sourceId, layers, data) {
+    if (!state.map?.isStyleLoaded()) return;
+    const source = state.map.getSource(sourceId);
+    if (source) source.setData(data);
+    else state.map.addSource(sourceId, { type: 'geojson', data });
+    layers.forEach(layer => {
+        if (!state.map.getLayer(layer.id)) state.map.addLayer(layer);
+    });
+}
+
+function renderRoute(geometry) {
+    setGeoJsonLayer(ROUTE_SOURCE_ID, [{
+        id: ROUTE_LAYER_ID,
+        type: 'line',
+        source: ROUTE_SOURCE_ID,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#3b82f6', 'line-opacity': 0.8, 'line-width': 5 }
+    }], { type: 'Feature', properties: {}, geometry });
+}
+
+function fitCoordinates(coordinates, padding = 50) {
+    const valid = coordinates.filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+    if (!valid.length) return;
+    const bounds = valid.reduce((result, coordinate) => result.extend(coordinate), new maplibregl.LngLatBounds(valid[0], valid[0]));
+    state.map.fitBounds(bounds, { padding, maxZoom: 18, duration: 700 });
+}
+
+function createCircleGeometry(lat, lng, radiusMeters, points = 64) {
+    const earthRadius = 6378137;
+    const latitude = Number(lat) * Math.PI / 180;
+    const coordinates = [];
+    for (let index = 0; index <= points; index++) {
+        const angle = index / points * Math.PI * 2;
+        const offsetLat = radiusMeters * Math.sin(angle) / earthRadius;
+        const offsetLng = radiusMeters * Math.cos(angle) / (earthRadius * Math.cos(latitude));
+        coordinates.push([Number(lng) + offsetLng * 180 / Math.PI, Number(lat) + offsetLat * 180 / Math.PI]);
+    }
+    return { type: 'Polygon', coordinates: [coordinates] };
+}
+
+function renderProximityCircle(circle) {
+    const data = { type: 'Feature', properties: {}, geometry: createCircleGeometry(circle.lat, circle.lng, circle.radius) };
+    setGeoJsonLayer(PROXIMITY_SOURCE_ID, [
+        { id: PROXIMITY_FILL_LAYER_ID, type: 'fill', source: PROXIMITY_SOURCE_ID, paint: { 'fill-color': '#ff0033', 'fill-opacity': 0.2 } },
+        { id: PROXIMITY_LINE_LAYER_ID, type: 'line', source: PROXIMITY_SOURCE_ID, paint: { 'line-color': '#dc2626', 'line-width': 2 } }
+    ], data);
+}
+
+export function showProximityRadius(station, userLocation, radius = 25) {
+    if (!state.map) return;
+    state.proximityCircle = { lat: Number(station.lat), lng: Number(station.lng), radius };
+    renderProximityCircle(state.proximityCircle);
+    fitCoordinates([[Number(station.lng), Number(station.lat)], [Number(userLocation.lng), Number(userLocation.lat)]], 50);
+    setTimeout(() => {
+        [PROXIMITY_FILL_LAYER_ID, PROXIMITY_LINE_LAYER_ID].forEach(id => {
+            if (state.map?.getLayer(id)) state.map.removeLayer(id);
+        });
+        if (state.map?.getSource(PROXIMITY_SOURCE_ID)) state.map.removeSource(PROXIMITY_SOURCE_ID);
+        state.proximityCircle = null;
+    }, 5000);
 }

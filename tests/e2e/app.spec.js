@@ -19,6 +19,15 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('vector map renders stations without an API-key warning', async ({ page }) => {
+    await page.goto('/index.html');
+
+    await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+    await expect(page.locator('.maplibregl-marker .station-pin')).not.toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('API KEY REQUIRED');
+    await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenStreetMap');
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
@@ -116,8 +125,8 @@ test('location marker stays visible above stations and follows GPS updates', asy
     await context.setGeolocation({ latitude: 49.1582, longitude: 10.5501, accuracy: 8 });
     await expect.poll(() => marker.getAttribute('style')).not.toBe(initialPosition);
 
-    const paneZIndex = await marker.evaluate(element => getComputedStyle(element.parentElement).zIndex);
-    expect(Number(paneZIndex)).toBeGreaterThan(600);
+    const markerZIndex = await marker.evaluate(element => getComputedStyle(element).zIndex);
+    expect(Number(markerZIndex)).toBeGreaterThan(600);
 });
 
 test('location button remains usable during a GPS search', async ({ context, page }) => {

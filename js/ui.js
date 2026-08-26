@@ -5,9 +5,9 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.150';
-import { recordAuditEvent } from './audit.js?v=1.4.150';
-import { normalizeImageUrl } from './image-url.js?v=1.4.150';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.151';
+import { recordAuditEvent } from './audit.js?v=1.4.151';
+import { normalizeImageUrl } from './image-url.js?v=1.4.151';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -81,7 +81,7 @@ export function openModal(target) {
                 // Wait for tab switch animation/layout so Leaflet can render routing correctly
                 setTimeout(() => {
                     try {
-                        if (state.map) state.map.invalidateSize();
+                        if (state.map) state.map.resize();
                     } catch (e) { }
                     if (window.calculateRoute) window.calculateRoute(s.lat, s.lng);
                 }, 250);
@@ -235,7 +235,7 @@ export function switchTab(tab) {
     if (tab === 'map') {
         setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
-            if (state.map) state.map.invalidateSize();
+            if (state.map) state.map.resize();
         }, 50);
     }
 }
@@ -1495,7 +1495,7 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
 
         return state.markers
             .map(item => {
-                const pos = item.marker?.getLatLng ? item.marker.getLatLng() : null;
+                const pos = item.marker?.getLngLat ? item.marker.getLngLat() : null;
                 if (!pos) return null;
                 return { item, distance: getDistance(Number(lat), Number(lng), pos.lat, pos.lng) };
             })
@@ -1508,7 +1508,8 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
         document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
         document.querySelectorAll('.map-target-highlight').forEach(el => el.classList.remove('map-target-highlight'));
         state.markers.forEach(item => {
-            if (item.marker?.setZIndexOffset) item.marker.setZIndexOffset(0);
+            const element = item.marker?.getElement?.();
+            if (element) element.style.zIndex = '';
         });
     }
 
@@ -1519,8 +1520,8 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
             return;
         }
 
-        if (entry.marker.setZIndexOffset) entry.marker.setZIndexOffset(10000);
         const iconDiv = entry.marker.getElement();
+        iconDiv.style.zIndex = '10000';
         const pinDiv = iconDiv?.querySelector('.station-pin') || iconDiv?.querySelector('div');
         if (!iconDiv || !pinDiv) {
             if (attempt < 6) setTimeout(() => applyMapHighlight(attempt + 1), 250);
@@ -1532,7 +1533,7 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
         setTimeout(() => {
             iconDiv.classList.remove('map-target-highlight');
             pinDiv.classList.remove('highlight-pin');
-            if (entry.marker?.setZIndexOffset) entry.marker.setZIndexOffset(0);
+            iconDiv.style.zIndex = '';
         }, 8000);
     }
     
@@ -1540,8 +1541,8 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
     // Allow tab switch animation to start
     setTimeout(() => {
         if (state.map) {
-            try { state.map.invalidateSize(); } catch (e) { }
-            state.map.setView([lat, lng], zoom, { animate: true });
+            try { state.map.resize(); } catch (e) { }
+            state.map.flyTo({ center: [Number(lng), Number(lat)], zoom, duration: 700 });
             
             clearMapHighlights();
             showToast("Station auf der Karte markiert", 'info');
@@ -1927,7 +1928,7 @@ export function openProgramEvent(id) {
         close();
         switchTab('map');
         setTimeout(() => {
-            try { if (state.map) state.map.invalidateSize(); } catch (e) { }
+            try { if (state.map) state.map.resize(); } catch (e) { }
             if (window.calculateRoute) window.calculateRoute(locationInfo.lat, locationInfo.lng);
         }, 250);
     });

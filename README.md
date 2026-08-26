@@ -36,6 +36,7 @@ Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitf
 *   **Systemstatus:** Geschütztes Admin-Dashboard für Serverlast, RAM, freien Speicher, Laufzeit, Bildspeicher, aktive Besucher und Admin-Konten.
 *   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
 *   **Stations- und Programmbilder:** Quadratisch zugeschnittene, komprimierte WebP-Dateien liegen unter `downloads/stations/` beziehungsweise `downloads/events/` auf dem eigenen Server; Firestore speichert nur die URL.
+*   **Karte:** MapLibre GL rendert Vektorkarten von OpenFreeMap ohne projektspezifischen API-Key. Die MapLibre-Laufzeit liegt lokal unter `vendor/maplibre/`.
 *   **Feedback:** Integriertes Bug-Reporting per E-Mail.
 
 ## 📂 Projektstruktur
