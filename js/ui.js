@@ -5,8 +5,9 @@ import * as utils from './utils.js';
 import { saveData, deleteData } from './data.js';
 import { refreshMapMarkers } from './map.js';
 import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.149';
-import { recordAuditEvent } from './audit.js?v=1.4.149';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.150';
+import { recordAuditEvent } from './audit.js?v=1.4.150';
+import { normalizeImageUrl } from './image-url.js?v=1.4.150';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -32,9 +33,7 @@ function normalizeExternalLink(value) {
 }
 
 function normalizeStationImage(value) {
-    const raw = String(value || '').trim();
-    if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw)) return raw;
-    return normalizeExternalLink(raw) || '';
+    return normalizeImageUrl(value);
 }
 
 // --- Modal & Tab Handling ---

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.150] - 2026-08-26
+
+- Korrigiert die Anzeige hochgeladener Stations- und Programmbilder aus `/downloads/`.
+- Löst interne Bildpfade zuverlässig gegen die Domain der Web-App auf.
+
 ## [1.4.149] - 2026-08-25
 
 - Speichert Programmbilder zuverlässig im Projektverzeichnis und liefert absolute Bildpfade aus.
