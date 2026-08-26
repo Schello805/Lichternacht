@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.153] - 2026-08-26
+
+- Behebt den Abbruch der internen Route beim Schließen des Stationsfensters.
+- Verwendet für alle Kartenfunktionen ausschließlich das neue MapLibre-Modul und umgeht alte Leaflet-Caches.
+- Ergänzt einen mobilen und Desktop-Browsertest für die gezeichnete interne Route.
+
 ## [1.4.152] - 2026-08-26
 
 - Hält den blauen GPS-Punkt bei Kompass- und Standortupdates korrekt auf seiner Kartenposition.

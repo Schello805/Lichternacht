@@ -131,6 +131,26 @@ test('location marker stays visible above stations and follows GPS updates', asy
     expect(Number(markerZIndex)).toBeGreaterThan(600);
 });
 
+test('internal route is drawn on the MapLibre map', async ({ context, page }) => {
+    await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
+    await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 10 });
+    await page.route('**/route/v1/driving/**', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ routes: [{ geometry: { type: 'LineString', coordinates: [[10.5484, 49.15714], [10.55191, 49.15712]] } }] })
+    }));
+    await page.goto('/index.html');
+    await page.locator('#map-locate-btn').click();
+    await expect(page.locator('.user-loc')).toBeVisible();
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').first().click();
+    await page.locator('#btn-internal-route').click();
+
+    await expect.poll(() => page.evaluate(() => Boolean(window.state?.routeGeometry))).toBe(true);
+    await expect.poll(() => page.evaluate(() => Boolean(window.state?.map?.getLayer('active-route-line')))).toBe(true);
+    await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+});
+
 test('location button remains usable during a GPS search', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await page.goto('/index.html');

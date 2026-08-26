@@ -2,12 +2,12 @@
 import { state } from './state.js';
 import { showToast, getDistance, getVisitedStationIdSet } from './utils.js';
 import * as utils from './utils.js';
-import { saveData, deleteData } from './data.js';
-import { refreshMapMarkers } from './map.js';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.152';
-import { recordAuditEvent } from './audit.js?v=1.4.152';
-import { normalizeImageUrl } from './image-url.js?v=1.4.152';
+import { saveData, deleteData } from './data.js?v=1.4.153';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.153';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.153';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.153';
+import { recordAuditEvent } from './audit.js?v=1.4.153';
+import { normalizeImageUrl } from './image-url.js?v=1.4.153';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1178,7 +1178,7 @@ export function fillStationCoords() {
     // This assumes the map marker drag event calls this or updates the inputs directly.
     // If not, we might need to hook this up.
     // For now, let's leave it as a placeholder or implementing if we know the marker context.
-    // Actually, in admin mode, map.js should update these inputs.
+    // Im Adminmodus aktualisiert das Kartenmodul diese Eingaben.
     console.log("fillStationCoords called - inputs should be updated by map drag event");
 }
 

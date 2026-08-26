@@ -56,7 +56,7 @@ Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitf
 │   ├── data.js         # Daten-Management & Seed-Daten
 │   ├── firebase-init.js# Firebase Initialisierung
 │   ├── gamification.js # Lichter-Pass, Levels, Likes
-│   ├── map.js          # Leaflet Karte & Logik
+│   ├── maplibre-map.js # MapLibre-Vektorkarte & Logik
 │   ├── state.js        # Globaler State (Store)
 │   ├── ui.js           # UI-Rendering & Interaktionen
 │   └── utils.js        # Hilfsfunktionen

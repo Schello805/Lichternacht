@@ -468,13 +468,21 @@ export function resetMap() {
 }
 
 function setGeoJsonLayer(sourceId, layers, data) {
-    if (!state.map?.isStyleLoaded()) return;
-    const source = state.map.getSource(sourceId);
-    if (source) source.setData(data);
-    else state.map.addSource(sourceId, { type: 'geojson', data });
-    layers.forEach(layer => {
-        if (!state.map.getLayer(layer.id)) state.map.addLayer(layer);
-    });
+    if (!state.map) return;
+    const addLayer = () => {
+        const source = state.map.getSource(sourceId);
+        if (source) source.setData(data);
+        else state.map.addSource(sourceId, { type: 'geojson', data });
+        layers.forEach(layer => {
+            if (!state.map.getLayer(layer.id)) state.map.addLayer(layer);
+        });
+    };
+    try {
+        addLayer();
+    } catch (error) {
+        if (!String(error?.message || error).includes('Style is not done loading')) throw error;
+        state.map.once('style.load', addLayer);
+    }
 }
 
 function renderRoute(geometry) {
