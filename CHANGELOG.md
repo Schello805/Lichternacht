@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.156] - 2026-08-26
+
+- Zeigt im Header einen kompakten, automatisch wechselnden Countdown bis zur Lichternacht.
+- Wechselt am Veranstaltungstag zu Startzeit, Live-Status und Abschlussmeldung.
+
 ## [1.4.155] - 2026-08-26
 
 - Härtet die MapLibre-Karte gegen fehlende oder ungültige Stationskoordinaten ab.

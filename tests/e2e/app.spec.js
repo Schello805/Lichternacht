@@ -124,6 +124,20 @@ test('welcome card does not duplicate the main navigation', async ({ page }) => 
     await expect(page.getByRole('button', { name: 'Programm', exact: true })).toHaveCount(1);
 });
 
+test('header shows a compact countdown for the configured event window', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const date = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}.${tomorrow.getFullYear()}`;
+        window.state.downloads.icsDate = `${date} 17:00-22:30`;
+        window.updateHeaderCountdown();
+    });
+
+    await expect(page.locator('#app-countdown')).toBeVisible();
+    await expect(page.locator('#app-countdown')).toContainText(/Noch 1 Tag|Start in/);
+});
+
 test('location marker stays visible above stations and follows GPS updates', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });

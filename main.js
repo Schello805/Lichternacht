@@ -2,10 +2,10 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.155';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.155';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.155';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.155';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.156';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.156';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.156';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.156';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,23 +14,68 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.155';
+} from './js/ui.js?v=1.4.156';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog
-} from './js/admin.js?v=1.4.155';
+} from './js/admin.js?v=1.4.156';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.155';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.155';
-import { recordAuditEvent } from './js/audit.js?v=1.4.155';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.156';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.156';
+import { recordAuditEvent } from './js/audit.js?v=1.4.156';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.155";
+const APP_VERSION = "1.4.156";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
 window.flyToStation = flyToStation;
 window.closePlanningBanner = closePlanningBanner;
 window.pendingAdminOpen = false;
+
+function eventWindowDate(dateKey, minutes, addDay = false) {
+    const [year, month, day] = String(dateKey || '').split('-').map(Number);
+    if (![year, month, day, minutes].every(Number.isFinite)) return null;
+    const date = new Date(year, month - 1, day + (addDay ? 1 : 0), Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatRemainingTime(milliseconds) {
+    const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60000));
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    if (totalMinutes > 2880) return `Noch ${Math.ceil(totalMinutes / 1440)} Tage bis zur Lichternacht`;
+    if (days > 0) return `Noch ${days} Tag${days === 1 ? '' : 'e'} · ${hours} Std.`;
+    if (hours > 0) return `Start in ${hours} Std. · ${minutes} Min.`;
+    return `Start in ${Math.max(1, minutes)} Min.`;
+}
+
+function updateHeaderCountdown(now = new Date()) {
+    const element = document.getElementById('app-countdown');
+    if (!element) return;
+    const eventWindow = utils.getConfiguredEventWindow?.();
+    if (!eventWindow?.dateKey) {
+        element.classList.add('hidden');
+        element.textContent = '';
+        return;
+    }
+
+    const start = eventWindowDate(eventWindow.dateKey, eventWindow.startMin);
+    const crossesMidnight = eventWindow.endMin < eventWindow.startMin;
+    const end = eventWindowDate(eventWindow.dateKey, eventWindow.endMin, crossesMidnight);
+    if (!start || !end) return;
+
+    if (now < start) {
+        element.textContent = formatRemainingTime(start.getTime() - now.getTime());
+    } else if (now <= end) {
+        element.textContent = `● Lichternacht läuft · bis ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')} Uhr`;
+    } else {
+        element.textContent = 'Lichternacht beendet · Danke fürs Mitmachen!';
+    }
+    element.classList.remove('hidden');
+}
+
+window.updateHeaderCountdown = updateHeaderCountdown;
 
 // Forced Reload Mechanism for Major Updates
 const lastVersion = localStorage.getItem('app_version');
@@ -1464,6 +1509,8 @@ window.onload = async () => {
     // Check for upcoming events every minute
     setInterval(checkUpcomingEvents, 60000);
     checkUpcomingEvents(); // Initial check
+    updateHeaderCountdown();
+    setInterval(updateHeaderCountdown, 60000);
     updateProgramNotificationButton();
     setInterval(remindPrizeClaimAfterEvent, 60000);
     setTimeout(remindPrizeClaimAfterEvent, 1500);
