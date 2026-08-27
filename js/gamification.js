@@ -5,11 +5,12 @@ import {
     getVisitedStationRecords,
     getVisitedStationIdSet,
     markStationVisited,
-    removeStationVisited
+    removeStationVisited,
+    vibrateFeedback
 } from './utils.js';
 import * as utils from './utils.js';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.156';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.156';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.157';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.157';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -291,6 +292,7 @@ export async function toggleLike(id) {
     }
 
     showToast('Danke für deine Stimme!', 'success');
+    vibrateFeedback(20);
     recordAuditEvent('station_liked', { stationId: id, stationName: s?.name || '' });
 
     if (!state.useLocalStorage && state.fb.updateDoc && state.fb.increment) {
@@ -315,6 +317,7 @@ export function toggleFavorite(id, fromModal = false) {
         recordAuditEvent('favorite_added', { stationId: id, stationName: station?.name || '' });
     }
     localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
+    vibrateFeedback(15);
 
     // Update UI
     if (fromModal) updateModalFavBtn(id);
@@ -494,6 +497,7 @@ export async function checkIn(id) {
     const totalStations = Array.isArray(state.stations) ? state.stations.length : 0;
     const rewardProgressText = getNextRewardProgressText(count, totalStations);
     showToast(`${s.name || 'Station'} gespeichert! ${rewardProgressText || '🏆'}`, 'success');
+    vibrateFeedback([35, 35, 60]);
 
     // Update map marker styles (visited ring / last-checked pulse)
     if (window.refreshMapMarkers) window.refreshMapMarkers();

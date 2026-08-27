@@ -19,6 +19,29 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('station modal supports swipe-down and favorite vibration feedback', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__vibrationCalls = [];
+        Object.defineProperty(navigator, 'vibrate', { configurable: true, value: pattern => {
+            window.__vibrationCalls.push(pattern);
+            return true;
+        } });
+    });
+    await page.goto('/index.html');
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').first().click();
+    await page.locator('#modal-fav-btn').click();
+    await expect.poll(() => page.evaluate(() => window.__vibrationCalls.length)).toBeGreaterThan(0);
+
+    await page.evaluate(() => {
+        const handle = document.getElementById('modal-drag-handle');
+        handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientY: 100 }));
+        window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientY: 200 }));
+        window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientY: 200 }));
+    });
+    await expect(page.locator('#detail-modal')).toBeHidden();
+});
+
 test('vector map renders stations without an API-key warning', async ({ page }) => {
     await page.goto('/index.html');
 
@@ -39,6 +62,15 @@ test('vector map ignores stations with invalid coordinates without crashing', as
 
     await expect(page.locator('.maplibregl-marker .station-pin')).toHaveCount(markerCount);
     await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+});
+
+test('mobile map clusters close stations and zooms in on tap', async ({ page }) => {
+    await page.goto('/index.html');
+    const cluster = page.locator('.station-cluster').first();
+    await expect(cluster).toBeVisible();
+    const zoomBefore = await page.evaluate(() => window.state.map.getZoom());
+    await cluster.dispatchEvent('click');
+    await expect.poll(() => page.evaluate(() => window.state.map.getZoom())).toBeGreaterThan(zoomBefore);
 });
 
 test('empty station search explains active filters and can reset them', async ({ page }) => {
@@ -100,13 +132,14 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await page.goto('/index.html');
 
     const mapButton = page.getByRole('button', { name: 'Karte' });
-    const stationButton = page.getByRole('button', { name: 'Stationen' });
+    const stationButton = page.getByRole('button', { name: 'Stationen', exact: true });
     const programButton = page.getByRole('button', { name: 'Programm' });
 
     await expect(mapButton).toHaveAttribute('aria-current', 'page');
     await stationButton.click();
     await expect(stationButton).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('#view-list')).toBeVisible();
+    if (page.viewportSize().width < 640) await expect(page.locator('#floating-status')).toBeHidden();
 
     await programButton.click();
     await expect(programButton).toHaveAttribute('aria-current', 'page');

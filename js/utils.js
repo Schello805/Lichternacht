@@ -265,6 +265,14 @@ export function showToast(message, type = 'info') {
     }, 3000);
 }
 
+export function vibrateFeedback(pattern = 20) {
+    try {
+        if (navigator.vibrate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+            navigator.vibrate(pattern);
+        }
+    } catch (e) { }
+}
+
 export function setLoading(active, text = "Lade...") {
     const overlay = document.getElementById('loading-overlay');
     const textEl = document.getElementById('loading-text');

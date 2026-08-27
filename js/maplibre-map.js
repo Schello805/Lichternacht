@@ -159,6 +159,8 @@ function setGpsUiStatus(status) {
         button.classList.toggle('ring-2', connected);
         button.classList.toggle('ring-blue-500', connected);
         button.classList.toggle('animate-pulse', searching);
+        button.dataset.gpsStatus = status;
+        button.title = labels[status] || 'Eigenen Standort bestimmen';
     });
 }
 
@@ -212,6 +214,49 @@ export function initMap() {
     state.map.dragRotate.disable();
     state.map.touchZoomRotate.disableRotation();
     state.map.on('style.load', restoreMapOverlays);
+    state.map.on('moveend', updateMarkerClusters);
+}
+
+function clearClusterMarkers() {
+    (state.clusterMarkers || []).forEach(marker => marker.remove());
+    state.clusterMarkers = [];
+}
+
+function updateMarkerClusters() {
+    clearClusterMarkers();
+    if (!state.map || state.isAdmin || state.map.getZoom() >= 18 || !Array.isArray(state.markers)) {
+        state.markers.forEach(item => { item.marker.getElement().style.display = ''; });
+        return;
+    }
+
+    const remaining = [...state.markers];
+    while (remaining.length) {
+        const first = remaining.shift();
+        const firstPoint = state.map.project(first.marker.getLngLat());
+        const group = [first];
+        for (let index = remaining.length - 1; index >= 0; index--) {
+            const point = state.map.project(remaining[index].marker.getLngLat());
+            if (Math.hypot(point.x - firstPoint.x, point.y - firstPoint.y) <= 46) {
+                group.push(remaining.splice(index, 1)[0]);
+            }
+        }
+        if (group.length === 1) {
+            first.marker.getElement().style.display = '';
+            continue;
+        }
+        group.forEach(item => { item.marker.getElement().style.display = 'none'; });
+        const positions = group.map(item => item.marker.getLngLat());
+        const center = positions.reduce((sum, position) => ({ lng: sum.lng + position.lng, lat: sum.lat + position.lat }), { lng: 0, lat: 0 });
+        center.lng /= positions.length;
+        center.lat /= positions.length;
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'station-cluster';
+        element.textContent = String(group.length);
+        element.setAttribute('aria-label', `${group.length} Stationen – hineinzoomen`);
+        element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
+        state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
+    }
 }
 
 export function updateMapTiles(isDark) {
@@ -227,6 +272,7 @@ function restoreMapOverlays() {
 
 export function refreshMapMarkers() {
     if (!state.map) return;
+    clearClusterMarkers();
     state.markers.forEach(m => m.marker.remove());
     state.markers = [];
 
@@ -286,6 +332,7 @@ export function refreshMapMarkers() {
 
         state.markers.push({ id: s.id, marker: marker });
     });
+    updateMarkerClusters();
 }
 
 export async function locateUser(cb, options = {}) {

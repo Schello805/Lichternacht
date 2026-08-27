@@ -17,6 +17,7 @@ export const state = {
     stations: [],
     events: [],
     markers: [],
+    clusterMarkers: [],
     isAdmin: false,
     activeStationId: null,
     activeEventId: null,

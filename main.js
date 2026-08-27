@@ -2,10 +2,10 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.156';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.156';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.156';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.156';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.157';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.157';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.157';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.157';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,17 +14,17 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.156';
+} from './js/ui.js?v=1.4.157';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog
-} from './js/admin.js?v=1.4.156';
+} from './js/admin.js?v=1.4.157';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.156';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.156';
-import { recordAuditEvent } from './js/audit.js?v=1.4.156';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.157';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.157';
+import { recordAuditEvent } from './js/audit.js?v=1.4.157';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.156";
+const APP_VERSION = "1.4.157";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -76,6 +76,47 @@ function updateHeaderCountdown(now = new Date()) {
 }
 
 window.updateHeaderCountdown = updateHeaderCountdown;
+
+function initStationModalSwipe() {
+    const handle = document.getElementById('modal-drag-handle');
+    const content = document.getElementById('modal-content');
+    if (!handle || !content || handle.dataset.swipeReady === 'true') return;
+    handle.dataset.swipeReady = 'true';
+    handle.style.touchAction = 'none';
+    let startY = null;
+
+    handle.addEventListener('pointerdown', event => {
+        startY = event.clientY;
+        content.style.transition = 'none';
+    });
+    window.addEventListener('pointermove', event => {
+        if (startY == null) return;
+        const distance = Math.max(0, event.clientY - startY);
+        content.style.transform = `translateY(${distance}px)`;
+    });
+    const finish = event => {
+        if (startY == null) return;
+        const distance = Math.max(0, event.clientY - startY);
+        startY = null;
+        content.style.transition = 'transform 180ms ease';
+        if (distance >= 70) {
+            content.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                content.style.transform = '';
+                content.style.transition = '';
+                closeModal();
+            }, 180);
+        } else {
+            content.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                content.style.transform = '';
+                content.style.transition = '';
+            }, 180);
+        }
+    };
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+}
 
 // Forced Reload Mechanism for Major Updates
 const lastVersion = localStorage.getItem('app_version');
@@ -1473,6 +1514,7 @@ function initFastTooltips() {
 
 window.onload = async () => {
     initFastTooltips();
+    initStationModalSwipe();
 
     // Try to load config.js dynamically to avoid 404 console spam if missing
     try {

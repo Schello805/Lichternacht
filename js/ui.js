@@ -2,12 +2,12 @@
 import { state } from './state.js';
 import { showToast, getDistance, getVisitedStationIdSet } from './utils.js';
 import * as utils from './utils.js';
-import { saveData, deleteData } from './data.js?v=1.4.156';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.156';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.156';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.156';
-import { recordAuditEvent } from './audit.js?v=1.4.156';
-import { normalizeImageUrl } from './image-url.js?v=1.4.156';
+import { saveData, deleteData } from './data.js?v=1.4.157';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.157';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.157';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.157';
+import { recordAuditEvent } from './audit.js?v=1.4.157';
+import { normalizeImageUrl } from './image-url.js?v=1.4.157';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -109,6 +109,10 @@ export function openModal(target) {
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
         if (modal) {
+            if (content) {
+                content.style.transform = '';
+                content.style.transition = '';
+            }
             modal.classList.remove('hidden');
             // Animate in - Double RAF for safety
             requestAnimationFrame(() => {
@@ -184,6 +188,7 @@ export function closeModal(id) {
 
 export function switchTab(tab) {
     console.log("switchTab called for:", tab);
+    document.getElementById('floating-status')?.classList.toggle('is-non-map', tab !== 'map');
 
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel && !adminPanel.classList.contains('hidden') && window.closeAdminPage) {
@@ -561,6 +566,8 @@ export function renderList(stations) {
 
     container.innerHTML = listToRender.map(s => {
         const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
+        const visibleTags = translatedTags.slice(0, 2);
+        const remainingTagCount = Math.max(0, translatedTags.length - visibleTags.length);
         const isVisited = visitedStations.has(String(s.id));
         const isFavorite = state.favorites.has(s.id) || state.favorites.has(String(s.id));
         const hasProgram = (state.events || []).some(event => String(event.stationId || '') === String(s.id));
@@ -605,7 +612,8 @@ export function renderList(stations) {
                         ${isFavorite ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700"><i class="ph-fill ph-star"></i> Favorit</span>' : ''}
                     </div>
                     <div class="mt-2 flex gap-1.5 flex-wrap">
-                        ${translatedTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
+                        ${visibleTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
+                        ${remainingTagCount ? `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">+${remainingTagCount}</span>` : ''}
                     </div>
                     ${distInfo}
                 </div>
@@ -1806,15 +1814,11 @@ function getProgramStatus(event, context) {
     const [hour, minute] = String(event.time || '00:00').split(':').map(Number);
     const eventTimeVal = (Number(hour) || 0) * 60 + (Number(minute) || 0);
     const diff = eventTimeVal - context.currentTimeVal;
-    const configuredLabel = context.configuredWindow && typeof utils.formatEventDateDe === 'function'
-        ? utils.formatEventDateDe(context.configuredWindow.dateKey)
-        : '';
-
     if (!context.hasConfiguredEventDate) {
         return { key: 'no-date', label: 'Datum fehlt', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
     }
     if (context.configuredWindow && !context.isEventDay) {
-        return { key: 'date', label: configuredLabel ? `am ${configuredLabel}` : 'geplant', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
+        return { key: 'date', label: 'Geplant', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
     }
     if (diff > 0) {
         return { key: diff <= 30 ? 'soon' : 'upcoming', label: formatCountdown(diff), className: diff <= 30 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', isPast: false, eventTimeVal };
@@ -1855,7 +1859,7 @@ export function openProgramEvent(id) {
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
         <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
-            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="aspect-square w-full object-cover rounded-t-2xl">` : ''}
+            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
             <div class="p-5">
             <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 sm:hidden"></div>
             <div class="flex items-start justify-between gap-3">
@@ -2056,7 +2060,9 @@ export function renderTimeline() {
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
             <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
-                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="mb-3 aspect-square w-24 rounded-lg object-cover sm:w-28">` : ''}
+                <div class="flex items-start gap-3">
+                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="aspect-square w-16 shrink-0 rounded-lg object-cover sm:w-20">` : ''}
+                <div class="min-w-0 flex-1">
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>
@@ -2071,12 +2077,14 @@ export function renderTimeline() {
                 <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
                 ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(linkedStation.id)} · ${escapeHtml(linkedStation.name)}</span>` : ''}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${escapeHtml(e.desc)}</p>
-                <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 gap-1 flex-wrap">
+                <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${escapeHtml(e.loc)}</span>
                     ${distInfo}
                     ${showMapBtn}
-                    <span class="ml-auto text-[10px] text-gray-400 flex items-center gap-1">Details <i class="ph ph-caret-right"></i></span>
+                    <span class="ml-auto text-[11px] text-gray-500 dark:text-gray-300 flex items-center gap-1">Details <i class="ph ph-caret-right"></i></span>
+                </div>
+                </div>
                 </div>
             </div>
         </div>

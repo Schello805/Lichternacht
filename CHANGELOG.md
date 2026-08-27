@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.157] - 2026-08-26
+
+- Gruppiert nahe Kartenmarker mobil zu antippbaren Clustern und zeigt den GPS-Status farblich am Standortbutton.
+- Verdichtet Stations- und Programmansichten, verkleinert Bilder und blendet schwebende Zähler außerhalb der Karte mobil aus.
+- Ergänzt Wischen zum Schließen des Stationsfensters sowie dezente Vibration bei Favorit, Bewertung und Check-in.
+
 ## [1.4.156] - 2026-08-26
 
 - Zeigt im Header einen kompakten, automatisch wechselnden Countdown bis zur Lichternacht.
