@@ -352,7 +352,7 @@ export async function locateUser(cb, options = {}) {
     }
 
     const forceCenter = !cb;
-    const context = { requestToken, forceCenter, cb, cbCalled: false, hasFix: false, watchStarted: false, denied: false };
+    const context = { requestToken, forceCenter, centerApplied: false, cb, cbCalled: false, hasFix: false, watchStarted: false, denied: false };
 
     clearGpsWatch();
     if (gpsFallbackTimer) clearTimeout(gpsFallbackTimer);
@@ -394,7 +394,8 @@ export async function locateUser(cb, options = {}) {
             state.userMarker.getElement().style.pointerEvents = 'none';
         }
 
-        if (state.map && (!state.hasLocatedUser || context.forceCenter)) {
+        if (state.map && !context.centerApplied && (!state.hasLocatedUser || context.forceCenter)) {
+            context.centerApplied = true;
             state.map.flyTo({ center: [userLng, userLat], zoom: Math.max(state.map.getZoom(), 18) });
             state.hasLocatedUser = true;
         }

@@ -73,6 +73,23 @@ test('mobile map clusters close stations and zooms in on tap', async ({ page }) 
     await expect.poll(() => page.evaluate(() => window.state.map.getZoom())).toBeGreaterThan(zoomBefore);
 });
 
+test('GPS watch centers once and then allows free map movement', async ({ page, context }) => {
+    await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
+    await context.setGeolocation({ latitude: 49.157, longitude: 10.548 });
+    await page.goto('/index.html');
+    await page.locator('#map-locate-btn').click();
+    await expect.poll(() => page.evaluate(() => window.state.hasLocatedUser)).toBe(true);
+
+    await page.evaluate(() => window.state.map.jumpTo({ center: [10.56, 49.165] }));
+    const manuallySelectedCenter = await page.evaluate(() => window.state.map.getCenter().toArray());
+    await context.setGeolocation({ latitude: 49.1571, longitude: 10.5481 });
+    await page.waitForTimeout(500);
+
+    const centerAfterGpsUpdate = await page.evaluate(() => window.state.map.getCenter().toArray());
+    expect(centerAfterGpsUpdate[0]).toBeCloseTo(manuallySelectedCenter[0], 4);
+    expect(centerAfterGpsUpdate[1]).toBeCloseTo(manuallySelectedCenter[1], 4);
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();

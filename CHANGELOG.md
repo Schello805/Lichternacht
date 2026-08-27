@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.158] - 2026-08-27
+- GPS zentriert die Karte nur beim Aktivieren einmalig; anschließend bleibt freies Verschieben und Suchen möglich.
+- Browser-Test sichert ab, dass laufende Standortupdates die manuell gewählte Kartenposition nicht überschreiben.
+
 ## [1.4.157] - 2026-08-26
 
 - Gruppiert nahe Kartenmarker mobil zu antippbaren Clustern und zeigt den GPS-Status farblich am Standortbutton.
