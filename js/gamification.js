@@ -9,8 +9,8 @@ import {
     vibrateFeedback
 } from './utils.js';
 import * as utils from './utils.js';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.158';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.158';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.159';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.159';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -320,7 +320,15 @@ export function toggleFavorite(id, fromModal = false) {
     vibrateFeedback(15);
 
     // Update UI
-    if (fromModal) updateModalFavBtn(id);
+    if (fromModal) {
+        updateModalFavBtn(id);
+        const modalFavoriteButton = document.getElementById('modal-fav-btn');
+        if (modalFavoriteButton) {
+            modalFavoriteButton.classList.remove('favorite-feedback');
+            requestAnimationFrame(() => modalFavoriteButton.classList.add('favorite-feedback'));
+            setTimeout(() => modalFavoriteButton.classList.remove('favorite-feedback'), 420);
+        }
+    }
     // Refresh list if needed (we don't have access to renderList here easily, but that's fine)
     // We could dispatch an event or just let the user refresh.
     // Actually, we should update the list icon if visible.

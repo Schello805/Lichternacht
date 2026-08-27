@@ -267,10 +267,10 @@ export function showToast(message, type = 'info') {
 
 export function vibrateFeedback(pattern = 20) {
     try {
-        if (navigator.vibrate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-            navigator.vibrate(pattern);
-        }
+        if (typeof navigator.vibrate !== 'function') return false;
+        return navigator.vibrate(pattern);
     } catch (e) { }
+    return false;
 }
 
 export function setLoading(active, text = "Lade...") {

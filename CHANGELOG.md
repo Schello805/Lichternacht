@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.159] - 2026-08-27
+- Stationsdetails lassen sich auf dem Smartphone über die gesamte nicht interaktive Fläche nach unten schließen.
+- Favoriten erhalten zusätzlich zur Android-Vibration ein deutliches visuelles Feedback; iOS Safari bietet keine Web-Vibrationsschnittstelle.
+
 ## [1.4.158] - 2026-08-27
 - GPS zentriert die Karte nur beim Aktivieren einmalig; anschließend bleibt freies Verschieben und Suchen möglich.
 - Browser-Test sichert ab, dass laufende Standortupdates die manuell gewählte Kartenposition nicht überschreiben.

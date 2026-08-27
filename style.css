@@ -95,6 +95,20 @@ h3,
     touch-action: none;
 }
 
+#modal-content {
+    overscroll-behavior-y: contain;
+}
+
+@keyframes favorite-feedback {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.28); background-color: rgba(234, 179, 8, 0.2); }
+    100% { transform: scale(1); }
+}
+
+.favorite-feedback {
+    animation: favorite-feedback 380ms ease-out;
+}
+
 #modal-drag-handle::after {
     content: "";
     position: absolute;

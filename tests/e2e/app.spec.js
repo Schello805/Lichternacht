@@ -32,10 +32,11 @@ test('station modal supports swipe-down and favorite vibration feedback', async 
     await page.locator('#stations-list > button').first().click();
     await page.locator('#modal-fav-btn').click();
     await expect.poll(() => page.evaluate(() => window.__vibrationCalls.length)).toBeGreaterThan(0);
+    await expect(page.locator('#modal-fav-btn')).toHaveClass(/favorite-feedback/);
 
     await page.evaluate(() => {
-        const handle = document.getElementById('modal-drag-handle');
-        handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientY: 100 }));
+        const modalBody = document.getElementById('modal-number');
+        modalBody.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientX: 100, clientY: 100 }));
         window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientY: 200 }));
         window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientY: 200 }));
     });

@@ -2,10 +2,10 @@ import { state } from './js/state.js';
 import { shareStation, showToast } from './js/utils.js';
 import * as utils from './js/utils.js';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.158';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.158';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.158';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.158';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.159';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.159';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.159';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.159';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,17 +14,17 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.158';
+} from './js/ui.js?v=1.4.159';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog
-} from './js/admin.js?v=1.4.158';
+} from './js/admin.js?v=1.4.159';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.158';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.158';
-import { recordAuditEvent } from './js/audit.js?v=1.4.158';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.159';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.159';
+import { recordAuditEvent } from './js/audit.js?v=1.4.159';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.158";
+const APP_VERSION = "1.4.159";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -80,26 +80,37 @@ window.updateHeaderCountdown = updateHeaderCountdown;
 function initStationModalSwipe() {
     const handle = document.getElementById('modal-drag-handle');
     const content = document.getElementById('modal-content');
-    if (!handle || !content || handle.dataset.swipeReady === 'true') return;
-    handle.dataset.swipeReady = 'true';
-    handle.style.touchAction = 'none';
+    if (!handle || !content || content.dataset.swipeReady === 'true') return;
+    content.dataset.swipeReady = 'true';
     let startY = null;
+    let startX = null;
+    let dragging = false;
 
-    handle.addEventListener('pointerdown', event => {
-        startY = event.clientY;
+    const isInteractive = target => Boolean(target?.closest?.('button, a, input, textarea, select, label, [contenteditable="true"]'));
+
+    const beginSwipe = (target, clientX, clientY) => {
+        if (isInteractive(target) || content.scrollTop > 0) return;
+        startY = clientY;
+        startX = clientX;
+        dragging = false;
         content.style.transition = 'none';
-    });
-    window.addEventListener('pointermove', event => {
+    };
+    const moveSwipe = (clientX, clientY, event) => {
         if (startY == null) return;
-        const distance = Math.max(0, event.clientY - startY);
+        const distance = Math.max(0, clientY - startY);
+        const horizontalDistance = Math.abs(clientX - startX);
+        if (!dragging && (distance < 8 || horizontalDistance > distance)) return;
+        dragging = true;
+        if (event.cancelable) event.preventDefault();
         content.style.transform = `translateY(${distance}px)`;
-    });
-    const finish = event => {
+    };
+    const finishSwipe = clientY => {
         if (startY == null) return;
-        const distance = Math.max(0, event.clientY - startY);
+        const distance = Math.max(0, clientY - startY);
         startY = null;
+        startX = null;
         content.style.transition = 'transform 180ms ease';
-        if (distance >= 70) {
+        if (dragging && distance >= 70) {
             content.style.transform = 'translateY(100%)';
             setTimeout(() => {
                 content.style.transform = '';
@@ -113,9 +124,30 @@ function initStationModalSwipe() {
                 content.style.transition = '';
             }, 180);
         }
+        dragging = false;
     };
-    window.addEventListener('pointerup', finish);
-    window.addEventListener('pointercancel', finish);
+
+    content.addEventListener('pointerdown', event => beginSwipe(event.target, event.clientX, event.clientY));
+    window.addEventListener('pointermove', event => moveSwipe(event.clientX, event.clientY, event));
+    window.addEventListener('pointerup', event => finishSwipe(event.clientY));
+    window.addEventListener('pointercancel', event => finishSwipe(event.clientY));
+
+    content.addEventListener('touchstart', event => {
+        const touch = event.touches[0];
+        if (touch) beginSwipe(event.target, touch.clientX, touch.clientY);
+    }, { passive: true });
+    content.addEventListener('touchmove', event => {
+        const touch = event.touches[0];
+        if (touch) moveSwipe(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    content.addEventListener('touchend', event => {
+        const touch = event.changedTouches[0];
+        finishSwipe(touch?.clientY ?? startY);
+    });
+    content.addEventListener('touchcancel', event => {
+        const touch = event.changedTouches[0];
+        finishSwipe(touch?.clientY ?? startY);
+    });
 }
 
 // Forced Reload Mechanism for Major Updates
