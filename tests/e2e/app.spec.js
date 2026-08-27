@@ -164,6 +164,21 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+test('program details can be dismissed by swiping the modal body down', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));
+    await expect(page.locator('#program-event-modal')).toBeVisible();
+
+    await page.evaluate(() => {
+        const title = document.querySelector('#program-event-modal h2');
+        title.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientX: 100, clientY: 100 }));
+        window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: 100, clientY: 200 }));
+        window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientX: 100, clientY: 200 }));
+    });
+
+    await expect(page.locator('#program-event-modal')).toBeHidden();
+});
+
 test('welcome card does not duplicate the main navigation', async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem('visitor_start_card_dismissed_v1'));
     await page.goto('/index.html');

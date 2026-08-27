@@ -95,7 +95,8 @@ h3,
     touch-action: none;
 }
 
-#modal-content {
+#modal-content,
+.swipe-dismiss-sheet {
     overscroll-behavior-y: contain;
 }
 

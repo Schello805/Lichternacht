@@ -273,6 +273,65 @@ export function vibrateFeedback(pattern = 20) {
     return false;
 }
 
+export function attachSwipeToDismiss(content, onDismiss, threshold = 70) {
+    if (!content || typeof onDismiss !== 'function' || content.dataset.swipeReady === 'true') return;
+    content.dataset.swipeReady = 'true';
+    let startY = null;
+    let startX = null;
+    let dragging = false;
+    const isInteractive = target => Boolean(target?.closest?.('button, a, input, textarea, select, label, [contenteditable="true"]'));
+
+    const beginSwipe = (target, clientX, clientY) => {
+        if (isInteractive(target) || content.scrollTop > 0) return;
+        startY = clientY;
+        startX = clientX;
+        dragging = false;
+        content.style.transition = 'none';
+    };
+    const moveSwipe = (clientX, clientY, event) => {
+        if (startY == null) return;
+        const distance = Math.max(0, clientY - startY);
+        const horizontalDistance = Math.abs(clientX - startX);
+        if (!dragging && (distance < 8 || horizontalDistance > distance)) return;
+        dragging = true;
+        if (event.cancelable) event.preventDefault();
+        content.style.transform = `translateY(${distance}px)`;
+    };
+    const finishSwipe = clientY => {
+        if (startY == null) return;
+        const distance = Math.max(0, clientY - startY);
+        startY = null;
+        startX = null;
+        content.style.transition = 'transform 180ms ease';
+        if (dragging && distance >= threshold) {
+            content.style.transform = 'translateY(100%)';
+            setTimeout(onDismiss, 180);
+        } else {
+            content.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                content.style.transform = '';
+                content.style.transition = '';
+            }, 180);
+        }
+        dragging = false;
+    };
+
+    content.addEventListener('pointerdown', event => beginSwipe(event.target, event.clientX, event.clientY));
+    window.addEventListener('pointermove', event => moveSwipe(event.clientX, event.clientY, event));
+    window.addEventListener('pointerup', event => finishSwipe(event.clientY));
+    window.addEventListener('pointercancel', event => finishSwipe(event.clientY));
+    content.addEventListener('touchstart', event => {
+        const touch = event.touches[0];
+        if (touch) beginSwipe(event.target, touch.clientX, touch.clientY);
+    }, { passive: true });
+    content.addEventListener('touchmove', event => {
+        const touch = event.touches[0];
+        if (touch) moveSwipe(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    content.addEventListener('touchend', event => finishSwipe(event.changedTouches[0]?.clientY ?? startY));
+    content.addEventListener('touchcancel', event => finishSwipe(event.changedTouches[0]?.clientY ?? startY));
+}
+
 export function setLoading(active, text = "Lade...") {
     const overlay = document.getElementById('loading-overlay');
     const textEl = document.getElementById('loading-text');

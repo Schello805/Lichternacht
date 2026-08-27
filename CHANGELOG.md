@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.160] - 2026-08-27
+- Programmpunkt-Details lassen sich auf dem Smartphone ebenfalls über die gesamte nicht interaktive Fläche nach unten schließen.
+- Die Wischlogik wird jetzt gemeinsam von Stations- und Programm-Modals verwendet.
+
 ## [1.4.159] - 2026-08-27
 - Stationsdetails lassen sich auf dem Smartphone über die gesamte nicht interaktive Fläche nach unten schließen.
 - Favoriten erhalten zusätzlich zur Android-Vibration ein deutliches visuelles Feedback; iOS Safari bietet keine Web-Vibrationsschnittstelle.

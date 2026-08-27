@@ -2,12 +2,12 @@
 import { state } from './state.js';
 import { showToast, getDistance, getVisitedStationIdSet } from './utils.js';
 import * as utils from './utils.js';
-import { saveData, deleteData } from './data.js?v=1.4.159';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.159';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.159';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.159';
-import { recordAuditEvent } from './audit.js?v=1.4.159';
-import { normalizeImageUrl } from './image-url.js?v=1.4.159';
+import { saveData, deleteData } from './data.js?v=1.4.160';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.160';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.160';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.160';
+import { recordAuditEvent } from './audit.js?v=1.4.160';
+import { normalizeImageUrl } from './image-url.js?v=1.4.160';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1858,10 +1858,12 @@ export function openProgramEvent(id) {
     overlay.className = 'fixed inset-0 z-[6500] flex items-end sm:items-center justify-center p-0 sm:p-4';
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
-        <div class="relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div id="program-event-modal-content" class="swipe-dismiss-sheet relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
             ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
             <div class="p-5">
-            <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 sm:hidden"></div>
+            <div class="w-16 h-6 -mt-3 mb-1 mx-auto relative sm:hidden" aria-label="Fenster nach unten wischen">
+                <span class="absolute left-1/2 top-1/2 w-12 h-1 -translate-x-1/2 -translate-y-1/2 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
+            </div>
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
@@ -1909,6 +1911,7 @@ export function openProgramEvent(id) {
 
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
+    utils.attachSwipeToDismiss(document.getElementById('program-event-modal-content'), close);
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
 
     document.getElementById('program-calendar')?.addEventListener('click', () => {
