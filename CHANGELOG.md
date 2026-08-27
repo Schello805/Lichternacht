@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.161] - 2026-08-27
+- Alle Browser-Module laden `utils.js` mit der aktuellen Versionskennung, damit alte Service-Worker-Caches keine fehlenden Exporte verursachen.
+- Browser-Test sichert den produktiven Modulstart ohne JavaScript-Importfehler ab.
+
 ## [1.4.160] - 2026-08-27
 - Programmpunkt-Details lassen sich auf dem Smartphone ebenfalls über die gesamte nicht interaktive Fläche nach unten schließen.
 - Die Wischlogik wird jetzt gemeinsam von Stations- und Programm-Modals verwendet.
