@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.165] - 2026-08-30
+- Cache-sichere Inline-Regeln erzwingen kreisrunde 48-Pixel-Kartenbuttons und entfernen alte GPS-Statuspunkte zuverlässig.
+- Beim GPS-Statuswechsel werden eventuell verbliebene Ring-Klassen älterer Versionen aktiv entfernt.
+
 ## [1.4.164] - 2026-08-30
 - GPS- und Kartenübersichts-Button sind auf Smartphones exakt kreisrund.
 - Der missverständliche GPS-Statuspunkt und der dauerhaft blaue Aktivrahmen wurden entfernt; Status bleibt über Beschriftung und Tooltip zugänglich.

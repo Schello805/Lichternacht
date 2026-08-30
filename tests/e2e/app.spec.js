@@ -240,6 +240,8 @@ test('location marker stays visible above stations and follows GPS updates', asy
         return [Math.round(box.width), Math.round(box.height)];
     }));
     expect(controlSizes).toEqual([[48, 48], [48, 48]]);
+    const gpsStatusDotContent = await page.locator('#map-locate-btn').evaluate(button => getComputedStyle(button, '::after').content);
+    expect(gpsStatusDotContent).toBe('none');
 
     const initialPosition = await marker.getAttribute('style');
     await context.setGeolocation({ latitude: 49.1582, longitude: 10.5501, accuracy: 8 });
