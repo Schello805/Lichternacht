@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     formatEventWindowDe,
+    formatPlanningCountdown,
     isWithinEventWindowNow,
     parseEventDateKey,
     parseEventWindowConfig,
@@ -36,6 +37,12 @@ test('isWithinEventWindowNow respects configured date and time', () => {
 
 test('isWithinEventWindowNow keeps the pass inactive without an event window', () => {
     assert.equal(isWithinEventWindowNow(null, new Date('2026-11-22T18:00:00+01:00')), false);
+});
+
+test('formatPlanningCountdown shows days and hours until event start', () => {
+    const windowConfig = parseEventWindowConfig('22.11.2026 17:00-23:00');
+    assert.equal(formatPlanningCountdown(windowConfig, new Date('2026-11-20T14:00:00+01:00')), 'Noch 2 Tage, 3 Std.');
+    assert.equal(formatPlanningCountdown(null, new Date('2026-11-20T14:00:00+01:00')), '');
 });
 
 test('toCsvValue quotes values that need escaping', () => {

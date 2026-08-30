@@ -237,6 +237,24 @@ export function getConfiguredEventWindow() {
     return parseEventWindowConfig(state.downloads?.icsDate);
 }
 
+export function formatPlanningCountdown(windowConfig, now = new Date()) {
+    if (!windowConfig?.dateKey || !Number.isFinite(windowConfig.startMin)) return '';
+    const [year, month, day] = windowConfig.dateKey.split('-').map(Number);
+    const startHour = Math.floor(windowConfig.startMin / 60);
+    const startMinute = windowConfig.startMin % 60;
+    const start = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
+    const remainingMs = start.getTime() - now.getTime();
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) return '';
+
+    const totalMinutes = Math.floor(remainingMs / 60000);
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const minutes = totalMinutes % 60;
+    if (days > 0) return `Noch ${days} ${days === 1 ? 'Tag' : 'Tage'}, ${hours} Std.`;
+    if (hours > 0) return `Noch ${hours} Std., ${minutes} Min.`;
+    return `Noch ${Math.max(1, minutes)} Min.`;
+}
+
 export function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;

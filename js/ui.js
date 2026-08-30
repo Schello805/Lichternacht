@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.161';
-import * as utils from './utils.js?v=1.4.161';
-import { saveData, deleteData } from './data.js?v=1.4.161';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.161';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.161';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.161';
-import { recordAuditEvent } from './audit.js?v=1.4.161';
-import { normalizeImageUrl } from './image-url.js?v=1.4.161';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.162';
+import * as utils from './utils.js?v=1.4.162';
+import { saveData, deleteData } from './data.js?v=1.4.162';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.162';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.162';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.162';
+import { recordAuditEvent } from './audit.js?v=1.4.162';
+import { normalizeImageUrl } from './image-url.js?v=1.4.162';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -389,7 +389,10 @@ export function checkPlanningMode() {
 
     // 2. Remove EXISTING banner (static or dynamic) to ensure clean slate
     const existing = document.getElementById('planning-banner');
-    if (existing) existing.remove();
+    if (existing) {
+        if (existing._countdownInterval) window.clearInterval(existing._countdownInterval);
+        existing.remove();
+    }
 
     // 3. If NOT active, we are done (banner removed above)
     if (!isActive) return;
@@ -412,6 +415,8 @@ export function checkPlanningMode() {
     `;
 
     const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
+    const configuredEventWindow = utils.getConfiguredEventWindow?.();
+    const initialCountdown = utils.formatPlanningCountdown?.(configuredEventWindow) || '';
 
     const isDark = document.documentElement.classList.contains('dark');
     const cardBg = isDark ? '#111827' : 'white';
@@ -454,6 +459,20 @@ export function checkPlanningMode() {
                 transition: background 0.2s;
             " onmouseover="this.style.background='${closeHoverBg}'" onmouseout="this.style.background='${closeBg}'">&times;</button>
             
+            ${initialCountdown ? `<div id="planning-countdown" style="
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 36px 18px;
+                padding: 8px 14px;
+                border-radius: 999px;
+                background: rgba(234, 179, 8, 0.14);
+                color: #a16207;
+                font-size: 15px;
+                font-weight: 800;
+                letter-spacing: 0.01em;
+            "><span style="margin-right: 6px;">⏳</span>${initialCountdown}</div>` : ''}
+
             <div style="font-size: 64px; margin-bottom: 16px; line-height: 1;">🚧</div>
             
             <h2 style="
@@ -493,6 +512,19 @@ export function checkPlanningMode() {
 
     document.body.appendChild(overlay);
 
+    if (initialCountdown) {
+        overlay._countdownInterval = window.setInterval(() => {
+            const countdown = overlay.querySelector('#planning-countdown');
+            const value = utils.formatPlanningCountdown?.(configuredEventWindow) || '';
+            if (!countdown || !value) {
+                if (countdown) countdown.remove();
+                window.clearInterval(overlay._countdownInterval);
+                return;
+            }
+            countdown.innerHTML = `<span style="margin-right: 6px;">⏳</span>${value}`;
+        }, 60000);
+    }
+
     // Trigger Animation
     requestAnimationFrame(() => {
         overlay.style.opacity = '1';
@@ -502,7 +534,10 @@ export function checkPlanningMode() {
 
 export function closePlanningBanner() {
     const banner = document.getElementById('planning-banner');
-    if (banner) banner.remove();
+    if (banner) {
+        if (banner._countdownInterval) window.clearInterval(banner._countdownInterval);
+        banner.remove();
+    }
 }
 
 export function renderList(stations) {

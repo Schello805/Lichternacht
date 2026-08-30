@@ -204,6 +204,26 @@ test('header shows a compact countdown for the configured event window', async (
     await expect(page.locator('#app-countdown')).toContainText(/Noch 1 Tag|Start in/);
 });
 
+test('planning popup shows countdown only when an event date is configured', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const eventStart = new Date();
+        eventStart.setDate(eventStart.getDate() + 2);
+        const date = `${String(eventStart.getDate()).padStart(2, '0')}.${String(eventStart.getMonth() + 1).padStart(2, '0')}.${eventStart.getFullYear()}`;
+        window.state.config.planningMode = true;
+        window.state.downloads.icsDate = `${date} 17:00-22:30`;
+        window.checkPlanningMode();
+    });
+
+    await expect(page.locator('#planning-countdown')).toContainText(/Noch \d+ (Tag|Tage), \d+ Std\./);
+    await page.evaluate(() => {
+        window.closePlanningBanner();
+        window.state.downloads.icsDate = '';
+        window.checkPlanningMode();
+    });
+    await expect(page.locator('#planning-countdown')).toHaveCount(0);
+});
+
 test('location marker stays visible above stations and follows GPS updates', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });

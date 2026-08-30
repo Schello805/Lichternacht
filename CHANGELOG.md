@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.162] - 2026-08-30
+- Der Planungshinweis zeigt bei hinterlegtem Veranstaltungstermin einen live aktualisierten Countdown bis zum Start.
+- Ohne gültigen Termin bleibt der bisherige Planungshinweis unverändert.
+
 ## [1.4.161] - 2026-08-27
 - Alle Browser-Module laden `utils.js` mit der aktuellen Versionskennung, damit alte Service-Worker-Caches keine fehlenden Exporte verursachen.
 - Browser-Test sichert den produktiven Modulstart ohne JavaScript-Importfehler ab.
