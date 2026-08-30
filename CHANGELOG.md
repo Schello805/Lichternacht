@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.4.163] - 2026-08-30
+- Der Countdown-Test verwendet lokale Datumskomponenten und läuft dadurch unabhängig von der Zeitzone des GitHub-Actions-Runners.
+
 ## [1.4.162] - 2026-08-30
 - Der Planungshinweis zeigt bei hinterlegtem Veranstaltungstermin einen live aktualisierten Countdown bis zum Start.
 - Ohne gültigen Termin bleibt der bisherige Planungshinweis unverändert.

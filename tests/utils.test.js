@@ -41,8 +41,9 @@ test('isWithinEventWindowNow keeps the pass inactive without an event window', (
 
 test('formatPlanningCountdown shows days and hours until event start', () => {
     const windowConfig = parseEventWindowConfig('22.11.2026 17:00-23:00');
-    assert.equal(formatPlanningCountdown(windowConfig, new Date('2026-11-20T14:00:00+01:00')), 'Noch 2 Tage, 3 Std.');
-    assert.equal(formatPlanningCountdown(null, new Date('2026-11-20T14:00:00+01:00')), '');
+    const localNow = new Date(2026, 10, 20, 14, 0, 0);
+    assert.equal(formatPlanningCountdown(windowConfig, localNow), 'Noch 2 Tage, 3 Std.');
+    assert.equal(formatPlanningCountdown(null, localNow), '');
 });
 
 test('toCsvValue quotes values that need escaping', () => {
