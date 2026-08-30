@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.165';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.165';
-import { parseCsv, toCsv } from './csv.js?v=1.4.165';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.166';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.166';
+import { parseCsv, toCsv } from './csv.js?v=1.4.166';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.165';
-import { recordAuditEvent } from './audit.js?v=1.4.165';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.165';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.166';
+import { recordAuditEvent } from './audit.js?v=1.4.166';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.166';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1020,9 +1020,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.165';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.165';
-import { renderList, renderTimeline } from './ui.js?v=1.4.165';
+import { showToast } from './utils.js?v=1.4.166';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.166';
+import { renderList, renderTimeline } from './ui.js?v=1.4.166';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

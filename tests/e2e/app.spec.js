@@ -164,6 +164,22 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+test('mobile bottom navigation keeps every label fully visible', async ({ page }) => {
+    await page.goto('/index.html');
+    const layout = await page.locator('#bottom-nav').evaluate(nav => {
+        const navBox = nav.getBoundingClientRect();
+        const labels = [...nav.querySelectorAll('.nav-text')].map(label => {
+            const box = label.getBoundingClientRect();
+            return { top: box.top, bottom: box.bottom };
+        });
+        return { navTop: navBox.top, navBottom: navBox.bottom, labels };
+    });
+    for (const label of layout.labels) {
+        expect(label.top).toBeGreaterThanOrEqual(layout.navTop);
+        expect(label.bottom).toBeLessThanOrEqual(layout.navBottom - 8);
+    }
+});
+
 test('program details can be dismissed by swiping the modal body down', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));

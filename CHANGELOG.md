@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.166] - 2026-08-30
+- Die mobile Hauptnavigation erhält normalen unteren Innenabstand zusätzlich zur iPhone-Safe-Area.
+- Icons und Beschriftungen sitzen höher und werden an den äußeren Menüpunkten nicht mehr abgeschnitten.
+
 ## [1.4.165] - 2026-08-30
 - Cache-sichere Inline-Regeln erzwingen kreisrunde 48-Pixel-Kartenbuttons und entfernen alte GPS-Statuspunkte zuverlässig.
 - Beim GPS-Statuswechsel werden eventuell verbliebene Ring-Klassen älterer Versionen aktiv entfernt.

@@ -27,8 +27,21 @@ h3,
     background: #fff;
     border-top: 1px solid #e5e7eb;
     z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom);
+    min-height: calc(5rem + env(safe-area-inset-bottom));
+    padding-top: 0.75rem;
+    padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav > button {
+    min-height: 3.5rem;
+    justify-content: flex-start;
+}
+
+.bottom-nav .nav-text {
+    display: block;
+    line-height: 1.25rem;
+    padding-bottom: 0.125rem;
 }
 
 .tab-active {
