@@ -63,27 +63,15 @@ h3,
     cursor: pointer;
 }
 
-#map-locate-btn,
-#list-locate-btn { position: relative; }
-
-#map-locate-btn::after,
-#list-locate-btn::after {
-    content: "";
-    position: absolute;
-    right: 3px;
-    bottom: 3px;
-    width: 9px;
-    height: 9px;
-    border-radius: 9999px;
-    border: 2px solid #fff;
-    background: #9ca3af;
+.map-control-button {
+    width: 3rem;
+    height: 3rem;
+    min-width: 3rem;
+    min-height: 3rem;
+    padding: 0;
+    border-radius: 50%;
+    aspect-ratio: 1 / 1;
 }
-
-[data-gps-status="connected"]::after { background: #22c55e !important; }
-[data-gps-status="searching"]::after { background: #3b82f6 !important; }
-[data-gps-status="timeout"]::after { background: #f59e0b !important; }
-[data-gps-status="denied"]::after,
-[data-gps-status="error"]::after { background: #ef4444 !important; }
 
 @media (max-width: 639px) {
     #modal-image-container img { height: 10rem !important; }

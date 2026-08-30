@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.164] - 2026-08-30
+- GPS- und Kartenübersichts-Button sind auf Smartphones exakt kreisrund.
+- Der missverständliche GPS-Statuspunkt und der dauerhaft blaue Aktivrahmen wurden entfernt; Status bleibt über Beschriftung und Tooltip zugänglich.
+
 ## [1.4.163] - 2026-08-30
 - Der Countdown-Test verwendet lokale Datumskomponenten und läuft dadurch unabhängig von der Zeitzone des GitHub-Actions-Runners.
 

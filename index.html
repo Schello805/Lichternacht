@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.163" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.164" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.163" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.164" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.163">
+    <link rel="stylesheet" href="style.css?v=1.4.164">
     <style>
         /* Custom Tooltip CSS */
         .tooltip-container {
@@ -721,11 +721,11 @@
                 <!-- Map Controls -->
                 <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
                     <button id="map-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen"
-                        class="bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
+                        class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
                         <i class="ph ph-crosshair text-xl"></i>
                     </button>
-                    <button onclick="resetMap()"
-                        class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors">
+                    <button id="map-home-btn" onclick="resetMap()" aria-label="Kartenübersicht anzeigen"
+                        class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
                         <i class="ph ph-house text-xl"></i>
                     </button>
                 </div>
@@ -752,7 +752,7 @@
                             <input type="text" id="search-input" placeholder="Suche..."
                                 class="w-full bg-white text-gray-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-300 shadow-sm">
                         </div>
-                        <button id="list-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen" class="bg-white text-yellow-600 border border-gray-300 px-3 rounded-lg shadow-sm hover:bg-gray-50 flex items-center justify-center">
+                        <button id="list-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen" class="w-11 h-11 shrink-0 bg-white text-yellow-600 border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 flex items-center justify-center">
                             <i class="ph ph-crosshair text-xl"></i>
                         </button>
                     </div>
@@ -1249,7 +1249,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.163', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.164', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1276,7 +1276,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.163"></script>
+    <script type="module" src="main.js?v=1.4.164"></script>
 </body>
 
 </html>

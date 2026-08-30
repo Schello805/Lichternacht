@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.163';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.164';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -156,8 +156,6 @@ function setGpsUiStatus(status) {
         const connected = status === 'connected';
         button.setAttribute('aria-busy', searching ? 'true' : 'false');
         button.setAttribute('aria-label', connected ? 'Standort erneut bestimmen' : 'Eigenen Standort bestimmen');
-        button.classList.toggle('ring-2', connected);
-        button.classList.toggle('ring-blue-500', connected);
         button.classList.toggle('animate-pulse', searching);
         button.dataset.gpsStatus = status;
         button.title = labels[status] || 'Eigenen Standort bestimmen';

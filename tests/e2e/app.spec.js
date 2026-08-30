@@ -149,7 +149,7 @@ test('linked program event identifies its station in the timeline', async ({ pag
 test('visitor navigation is accessible and opens all main areas', async ({ page }) => {
     await page.goto('/index.html');
 
-    const mapButton = page.getByRole('button', { name: 'Karte' });
+    const mapButton = page.getByRole('button', { name: 'Karte', exact: true });
     const stationButton = page.getByRole('button', { name: 'Stationen', exact: true });
     const programButton = page.getByRole('button', { name: 'Programm' });
 
@@ -234,6 +234,12 @@ test('location marker stays visible above stations and follows GPS updates', asy
     await expect(marker).toBeVisible();
     await expect(marker).toHaveClass(/maplibregl-marker/);
     await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
+    await expect(page.locator('#map-locate-btn')).not.toHaveClass(/ring-blue-500/);
+    const controlSizes = await page.locator('#map-locate-btn, #map-home-btn').evaluateAll(buttons => buttons.map(button => {
+        const box = button.getBoundingClientRect();
+        return [Math.round(box.width), Math.round(box.height)];
+    }));
+    expect(controlSizes).toEqual([[48, 48], [48, 48]]);
 
     const initialPosition = await marker.getAttribute('style');
     await context.setGeolocation({ latitude: 49.1582, longitude: 10.5501, accuracy: 8 });

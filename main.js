@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.163';
-import * as utils from './js/utils.js?v=1.4.163';
+import { shareStation, showToast } from './js/utils.js?v=1.4.164';
+import * as utils from './js/utils.js?v=1.4.164';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.163';
-import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.163';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.163';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.163';
+import { initMap, updateMapTiles, locateUser, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.164';
+import { loadData, syncGlobalConfig } from './js/data.js?v=1.4.164';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.164';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.164';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,17 +14,17 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.163';
+} from './js/ui.js?v=1.4.164';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsCsv, exportEventsCsv, downloadStationsCsvTemplate, downloadEventsCsvTemplate, importStationsCsv, importEventsCsv, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog
-} from './js/admin.js?v=1.4.163';
+} from './js/admin.js?v=1.4.164';
 
-import { updateAdminUiAvailability } from './js/admin.js?v=1.4.163';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.163';
-import { recordAuditEvent } from './js/audit.js?v=1.4.163';
+import { updateAdminUiAvailability } from './js/admin.js?v=1.4.164';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.164';
+import { recordAuditEvent } from './js/audit.js?v=1.4.164';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.163";
+const APP_VERSION = "1.4.164";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
