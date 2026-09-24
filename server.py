@@ -369,8 +369,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
-class ReusableTCPServer(socketserver.TCPServer):
+class ReusableTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
 print(f"Server läuft auf http://{HOST}:{PORT}")
 print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")

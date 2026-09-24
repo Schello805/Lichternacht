@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.167] - 2026-09-23
+- Versionskennungen werden zentral aus `package.json` geprüft und bei Bedarf automatisch synchronisiert.
+- Header-Countdown und PWA-Installation sind aus `main.js` in eigenständige, übersichtliche Module ausgelagert.
+- Doppelte Admin- und PWA-Initialisierungen wurden entfernt.
+- Der lokale App-Server verarbeitet parallele Browseranfragen gleichzeitig statt nacheinander.
+
 ## [1.4.166] - 2026-08-30
 - Die mobile Hauptnavigation erhält normalen unteren Innenabstand zusätzlich zur iPhone-Safe-Area.
 - Icons und Beschriftungen sitzen höher und werden an den äußeren Menüpunkten nicht mehr abgeschnitten.
