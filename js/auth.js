@@ -1,15 +1,26 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.171';
-import { loadData } from './data.js?v=1.4.171';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.171';
-import { renderTimeline } from './ui.js?v=1.4.171';
+import { showToast } from './utils.js?v=1.4.172';
+import { loadData } from './data.js?v=1.4.172';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.172';
+import { renderTimeline } from './ui.js?v=1.4.172';
+
+function setLoginError(message = '') {
+    const errorElement = document.getElementById('login-error');
+    if (!errorElement) return;
+    errorElement.textContent = message;
+    errorElement.classList.toggle('hidden', !message);
+}
 
 export async function performLogin() {
     console.log("performLogin called");
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
 
-    if (!email || !pass) { showToast('Bitte Email und Passwort eingeben', 'error'); return; }
+    setLoginError();
+    if (!email || !pass) {
+        setLoginError('Bitte E-Mail und Passwort eingeben.');
+        return;
+    }
 
     if (!state.fb || typeof state.fb.signInWithEmailAndPassword !== 'function') {
         // Local-dev fallback: allow enabling admin mode without Firebase so you can test station creation.
@@ -28,7 +39,7 @@ export async function performLogin() {
             return;
         }
 
-        showToast('Fehler: Firebase nicht initialisiert (config.js fehlt?)', 'error');
+        setLoginError('Anmeldung ist gerade nicht verfügbar. Bitte Verbindung prüfen und erneut versuchen.');
         console.error("Firebase auth functions missing in state.fb");
         return;
     }
@@ -41,6 +52,7 @@ export async function performLogin() {
         const modal = document.getElementById('login-modal');
         if (modal) {
             modal.classList.add('hidden');
+            setLoginError();
             console.log("Modal closed");
         } else {
             console.error("Login modal not found");
@@ -49,7 +61,10 @@ export async function performLogin() {
         showToast('Erfolgreich angemeldet', 'success');
     } catch (e) {
         console.error("Login error:", e);
-        showToast('Login fehlgeschlagen: ' + e.message, 'error');
+        const message = e?.code === 'auth/invalid-credential'
+            ? 'E-Mail oder Passwort ist nicht korrekt.'
+            : 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.';
+        setLoginError(message);
     }
 }
 

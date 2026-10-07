@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.172] - 2026-10-07
+
+- Login-Fehler werden direkt und lesbar im geöffneten Login-Fenster angezeigt.
+- Das Veranstaltungsdatum wird beim schnellen Mobilstart korrekt aus der zwischengespeicherten Konfiguration übernommen.
+- Globale Hinweise liegen bei geöffneten Dialogen nicht mehr hinter dem Blur-Hintergrund.
+
 ## [1.4.171] - 2026-10-07
 
 - Firebase verwendet Long-Polling nur noch bei automatisch erkanntem Bedarf statt auf jedem Gerät.

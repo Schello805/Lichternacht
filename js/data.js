@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.171';
+import { showToast } from './utils.js?v=1.4.172';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.171';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.172';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -79,6 +79,9 @@ export function hydrateVisitorDataCache() {
         state.events = Array.isArray(cached?.events) ? cached.events : [...seedEvents];
         if (cached?.config && typeof cached.config === 'object') {
             state.config = { ...state.config, ...cached.config };
+            if (cached.config.downloads) {
+                state.downloads = { ...state.downloads, ...cached.config.downloads };
+            }
         }
     } catch (error) {
         console.warn('Lokaler Daten-Cache konnte nicht gelesen werden.', error);
