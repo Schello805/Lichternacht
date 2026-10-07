@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.169';
+import { showToast } from './utils.js?v=1.4.170';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.169';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.170';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -47,6 +47,50 @@ export const seedEvents = [
     { id: "e4", time: "20:00", title: "Feuershow", desc: "Kirchplatz", loc: "Kirche", color: "purple", lat: 49.15796, lng: 10.55103 },
     { id: "e5", time: "21:00", title: "Party", desc: "TSV Sportheim", loc: "Sportheim", color: "red", lat: 49.16455, lng: 10.56021 }
 ];
+
+const VISITOR_DATA_CACHE_KEY = 'visitor_data_cache_v1';
+
+function renderLoadedData() {
+    if (window.updatePassProgress) window.updatePassProgress();
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
+    if (window.renderList) window.renderList(state.stations);
+    if (window.renderTimeline) window.renderTimeline();
+    if (window.renderFilterBar) window.renderFilterBar();
+    if (window.checkPlanningMode) window.checkPlanningMode();
+    if (window.updateVisitorStartCard) window.updateVisitorStartCard();
+    if (window.updateHeaderCountdown) window.updateHeaderCountdown();
+}
+
+export function hydrateVisitorDataCache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(VISITOR_DATA_CACHE_KEY) || 'null');
+        state.stations = Array.isArray(cached?.stations) && cached.stations.length
+            ? cached.stations
+            : [...seedStations];
+        state.events = Array.isArray(cached?.events) ? cached.events : [...seedEvents];
+        if (cached?.config && typeof cached.config === 'object') {
+            state.config = { ...state.config, ...cached.config };
+        }
+    } catch (error) {
+        console.warn('Lokaler Daten-Cache konnte nicht gelesen werden.', error);
+        state.stations = [...seedStations];
+        state.events = [...seedEvents];
+    }
+    renderLoadedData();
+}
+
+function persistVisitorDataCache() {
+    try {
+        localStorage.setItem(VISITOR_DATA_CACHE_KEY, JSON.stringify({
+            stations: state.stations,
+            events: state.events,
+            config: state.config,
+            savedAt: Date.now()
+        }));
+    } catch (error) {
+        console.warn('Lokaler Daten-Cache konnte nicht gespeichert werden.', error);
+    }
+}
 
 export async function loadData() {
     if (state.useLocalStorage) {
@@ -111,6 +155,7 @@ export async function loadData() {
                 state.events = [];
                 eSnap.forEach(doc => state.events.push(doc.data()));
             }
+            persistVisitorDataCache();
         } catch (e) {
             console.warn("Firestore load failed (CORS/Offline?), falling back to seed data.", e);
             showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
@@ -118,14 +163,7 @@ export async function loadData() {
             state.events = seedEvents;
         }
     }
-    if (window.updatePassProgress) window.updatePassProgress();
-    if (window.refreshMapMarkers) window.refreshMapMarkers();
-    if (window.renderList) window.renderList(state.stations);
-    if (window.renderTimeline) window.renderTimeline();
-    if (window.renderFilterBar) window.renderFilterBar();
-    if (window.checkPlanningMode) window.checkPlanningMode();
-    if (window.updateVisitorStartCard) window.updateVisitorStartCard();
-    if (window.updateHeaderCountdown) window.updateHeaderCountdown();
+    renderLoadedData();
 
     // Deep link: open a station via ?station=28
     // Runs after data + UI are ready.

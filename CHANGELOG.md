@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.170] - 2026-10-07
+
+- Stationen und Programm werden auf Mobilgeräten sofort aus einem lokalen Cache angezeigt und anschließend im Hintergrund mit Firebase aktualisiert.
+- Beim allerersten Start stehen bis zum Cloud-Abruf direkt die mitgelieferten Stationsdaten bereit.
+
 ## [1.4.169] - 2026-10-07
 
 - Lichter-Pass, freiwilliges Gewinnspiel und die Trennung von Likes und Favoriten werden verständlicher erklärt.
