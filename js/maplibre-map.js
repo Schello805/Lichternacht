@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.168';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.169';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -143,13 +143,27 @@ function setGpsUiStatus(status) {
     state.gpsStatus = status;
     const statusIndicator = document.getElementById('status-indicator');
     const labels = {
-        searching: 'Suche…',
-        connected: 'Verbunden',
-        timeout: 'GPS Timeout',
-        denied: 'Standort gesperrt',
-        error: 'GPS Fehler'
+        idle: 'GPS aus',
+        searching: 'Standort wird gesucht',
+        connected: 'GPS aktiv',
+        timeout: 'Standortsuche läuft weiter',
+        denied: 'GPS gesperrt',
+        error: 'GPS nicht verfügbar'
     };
-    if (statusIndicator) statusIndicator.innerText = labels[status] || 'GPS';
+    const label = labels[status] || labels.idle;
+    if (statusIndicator) statusIndicator.innerText = label;
+
+    ['map-gps-status', 'list-gps-status'].forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) return;
+        element.textContent = id === 'list-gps-status' && status === 'idle'
+            ? `${label} · aktivieren für Entfernung und Gehzeit`
+            : label;
+        element.classList.toggle('text-green-700', status === 'connected');
+        element.classList.toggle('dark:text-green-300', status === 'connected');
+        element.classList.toggle('text-orange-700', status === 'searching' || status === 'timeout');
+        element.classList.toggle('text-red-700', status === 'denied' || status === 'error');
+    });
 
     getLocationButtons().forEach(button => {
         const searching = status === 'searching';
@@ -159,7 +173,7 @@ function setGpsUiStatus(status) {
         button.classList.remove('ring-2', 'ring-blue-500');
         button.classList.toggle('animate-pulse', searching);
         button.dataset.gpsStatus = status;
-        button.title = labels[status] || 'Eigenen Standort bestimmen';
+        button.title = label;
     });
 }
 
@@ -201,6 +215,7 @@ function getGeolocationStrategy() {
 }
 
 export function initMap() {
+    setGpsUiStatus('idle');
     state.map = new maplibregl.Map({
         container: 'map',
         style: document.documentElement.classList.contains('dark') ? MAP_STYLES.dark : MAP_STYLES.light,

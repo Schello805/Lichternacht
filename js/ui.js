@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.168';
-import * as utils from './utils.js?v=1.4.168';
-import { saveData, deleteData } from './data.js?v=1.4.168';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.168';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.168';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.168';
-import { recordAuditEvent } from './audit.js?v=1.4.168';
-import { normalizeImageUrl } from './image-url.js?v=1.4.168';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.169';
+import * as utils from './utils.js?v=1.4.169';
+import { saveData, deleteData } from './data.js?v=1.4.169';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.169';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.169';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.169';
+import { recordAuditEvent } from './audit.js?v=1.4.169';
+import { normalizeImageUrl } from './image-url.js?v=1.4.169';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -46,6 +46,16 @@ export function openModal(target) {
     } else if (typeof target === 'object' && target !== null) {
         // Station Object
         const s = target;
+        const detailModal = document.getElementById('detail-modal');
+        if (state.map && detailModal?.classList.contains('hidden') && !state.modalReturnCamera) {
+            const center = state.map.getCenter();
+            state.modalReturnCamera = {
+                center: [center.lng, center.lat],
+                zoom: state.map.getZoom(),
+                bearing: state.map.getBearing(),
+                pitch: state.map.getPitch()
+            };
+        }
         state.activeStationId = s.id;
         window.activeStationId = s.id; // Wichtig für HTML onclicks
         
@@ -76,6 +86,7 @@ export function openModal(target) {
         if (btnRoute) {
             btnRoute.onclick = () => {
                 recordAuditEvent('route_opened', { stationId: s.id, stationName: s.name || '' });
+                state.skipModalMapRestore = true;
                 closeModal();
                 switchTab('map');
                 // Wait for the tab layout before resizing MapLibre and drawing the route.
@@ -178,6 +189,11 @@ export function closeModal(id) {
         // Wait for animation
         setTimeout(() => {
             if (modal) modal.classList.add('hidden');
+            if (state.modalReturnCamera && !state.skipModalMapRestore && state.map) {
+                try { state.map.easeTo({ ...state.modalReturnCamera, duration: 350 }); } catch (e) { }
+            }
+            state.modalReturnCamera = null;
+            state.skipModalMapRestore = false;
         }, 300);
         return;
     }

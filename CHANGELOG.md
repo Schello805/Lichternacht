@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.169] - 2026-10-07
+
+- Lichter-Pass, freiwilliges Gewinnspiel und die Trennung von Likes und Favoriten werden verständlicher erklärt.
+- GPS- und Offline-Status sind als Text sichtbar; Stationslisten weisen auf Entfernung und Gehzeit hin.
+- Stationsmodale stellen beim Schließen die vorherige Kartenansicht wieder her, außer beim Start einer Route.
+
 ## [1.4.168] - 2026-10-07
 - Der Besucherhinweis bietet einen klaren Einstieg zum Aktivieren des Standorts und Finden der Stationen.
 - Stationsaktionen unterscheiden verständlich zwischen der Route in der App und der Navigation mit Google Maps.

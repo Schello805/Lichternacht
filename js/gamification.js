@@ -7,10 +7,10 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.168';
-import * as utils from './utils.js?v=1.4.168';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.168';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.168';
+} from './utils.js?v=1.4.169';
+import * as utils from './utils.js?v=1.4.169';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.169';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.169';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -591,7 +591,10 @@ export function updatePassProgress() {
     const count = getVisitedStationRecords().length;
     const total = Array.isArray(state.stations) ? state.stations.length : 0;
     const el = document.getElementById('pass-progress');
-    if (el) el.innerHTML = `<i class="ph-fill ph-trophy mr-1"></i><span class="font-bold">${count}/${total}</span>`;
+    if (el) {
+        el.innerHTML = `<i class="ph-fill ph-trophy"></i><span class="font-bold">Sammeln ${count}/${total}</span>`;
+        el.setAttribute('aria-label', `Lichter-Pass: ${count} von ${total} Stationen gesammelt. Erklärung öffnen.`);
+    }
 }
 
 // Allow other modules to refresh the badge after async data loads

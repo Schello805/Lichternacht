@@ -21,6 +21,8 @@ export const state = {
     isAdmin: false,
     activeStationId: null,
     activeEventId: null,
+    modalReturnCamera: null,
+    skipModalMapRestore: false,
     activeTab: "map",
     favorites: new Set(),
     downloads: { flyer1: '', flyer2: '', icsDate: '' },

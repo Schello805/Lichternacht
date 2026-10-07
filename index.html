@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.168" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.169" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.168" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.169" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.168">
+    <link rel="stylesheet" href="style.css?v=1.4.169">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -681,6 +681,13 @@
                 <div id="visitor-start-next" class="mt-3 text-xs rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-100 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-200">
                     Gleich siehst du, was als Nächstes wichtig ist.
                 </div>
+                <div class="mt-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">
+                    <strong>Lichter-Pass:</strong> Stationen vor Ort sammeln. Ab 3 Check-ins kannst du freiwillig am Gewinnspiel teilnehmen. Sammeln funktioniert ohne Name und E-Mail.
+                </div>
+                <div class="mt-2 flex items-center justify-between gap-2 rounded-lg bg-blue-50 px-2.5 py-2 text-[11px] text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                    <span id="app-availability-status" class="flex items-center gap-1.5"><i class="ph ph-wifi-high"></i> Offline-Verfügbarkeit wird geprüft…</span>
+                    <button id="visitor-install-app" type="button" class="hidden shrink-0 font-bold underline underline-offset-2">Installieren</button>
+                </div>
                 <button id="visitor-start-location" type="button" class="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-sm font-extrabold text-white shadow-md active:scale-[0.98] flex items-center justify-center gap-2">
                     <i class="ph-fill ph-crosshair text-lg"></i>
                     Standort aktivieren &amp; Stationen finden
@@ -709,9 +716,10 @@
             </div>
             <!-- Lichter Pass Progress -->
             <div id="pass-progress"
-                class="pointer-events-auto flex items-center text-xs bg-yellow-500/90 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm cursor-pointer"
+                title="Lichter-Pass: Stationen sammeln" aria-label="Lichter-Pass öffnen"
+                class="pointer-events-auto flex items-center gap-1 text-xs bg-yellow-500/90 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm cursor-pointer"
                 onclick="showPassInfo()">
-                <i class="ph-fill ph-trophy mr-1.5"></i><span class="font-bold">0</span>
+                <i class="ph-fill ph-trophy"></i><span class="font-bold">Sammeln 0/0</span>
             </div>
         </div>
 
@@ -752,6 +760,7 @@
                         class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
                         <i class="ph ph-house text-xl"></i>
                     </button>
+                    <div id="map-gps-status" role="status" class="self-end whitespace-nowrap rounded-full bg-gray-900/75 px-2.5 py-1 text-[10px] font-bold text-white shadow">GPS aus</div>
                 </div>
 
                 <!-- Routing Info -->
@@ -780,6 +789,7 @@
                             <i class="ph ph-crosshair text-xl"></i>
                         </button>
                     </div>
+                    <div id="list-gps-status" role="status" class="mb-2 text-[11px] font-medium text-gray-500">GPS aus · aktivieren für Entfernung und Gehzeit</div>
                     <div id="filter-bar" class="flex flex-col gap-1.5">
                         <!-- Filters rendered by JS -->
                         <div class="grid grid-cols-4 gap-1.5">
@@ -915,6 +925,7 @@
                                 </button>
                             </div>
                         </div>
+                        <p class="-mt-2 mb-3 text-right text-[10px] text-gray-400 dark:text-gray-500">Gefällt mir = öffentliche Bewertung · Stern = private Merkliste</p>
 
                         <!-- Check-In Button -->
                         <button id="checkin-btn" onclick="checkIn(window.activeStationId)"
@@ -1275,7 +1286,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.168', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.169', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1302,7 +1313,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.168"></script>
+    <script type="module" src="main.js?v=1.4.169"></script>
 </body>
 
 </html>
