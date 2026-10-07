@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.171] - 2026-10-07
+
+- Firebase verwendet Long-Polling nur noch bei automatisch erkanntem Bedarf statt auf jedem Gerät.
+- Stations- und Programmdaten werden parallel geladen; blockierte Cloud-Abfragen brechen spätestens nach zehn Sekunden ab.
+- Die Jahreskonfiguration blockiert den App-Start höchstens sechs Sekunden.
+
 ## [1.4.170] - 2026-10-07
 
 - Stationen und Programm werden auf Mobilgeräten sofort aus einem lokalen Cache angezeigt und anschließend im Hintergrund mit Firebase aktualisiert.

@@ -34,7 +34,7 @@ export async function initFirebase() {
         state.auth = fbAuth.getAuth(app);
         state.firebaseApiKey = apiKey;
         state.db = (typeof fbStore.initializeFirestore === 'function')
-            ? fbStore.initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false })
+            ? fbStore.initializeFirestore(app, { experimentalAutoDetectLongPolling: true, useFetchStreams: false })
             : fbStore.getFirestore(app);
 
         // Bind functions to state.fb

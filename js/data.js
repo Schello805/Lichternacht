@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.170';
+import { showToast } from './utils.js?v=1.4.171';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.170';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.171';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -49,6 +49,15 @@ export const seedEvents = [
 ];
 
 const VISITOR_DATA_CACHE_KEY = 'visitor_data_cache_v1';
+const FIREBASE_READ_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, label, timeoutMs = FIREBASE_READ_TIMEOUT_MS) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = window.setTimeout(() => reject(new Error(`${label} nach ${timeoutMs / 1000} Sekunden abgebrochen`)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
 
 function renderLoadedData() {
     if (window.updatePassProgress) window.updatePassProgress();
@@ -119,7 +128,10 @@ export async function loadData() {
 
             // Load Config & Downloads
             try {
-                const configSnap = await getDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'));
+                const configSnap = await withTimeout(
+                    getDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config')),
+                    'Konfiguration'
+                );
                 if (configSnap.exists()) {
                     const data = configSnap.data();
                     state.config = { ...state.config, ...data };
@@ -135,8 +147,12 @@ export async function loadData() {
             } catch (e) { console.warn("Config load error", e); }
 
             const sCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'stations');
-            const sSnap = await getDocs(sCol);
-            
+            const eCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'events');
+            const [sSnap, eSnap] = await withTimeout(
+                Promise.all([getDocs(sCol), getDocs(eCol)]),
+                'Stations- und Programmdaten'
+            );
+
             if (sSnap.empty) {
                 console.log("Firestore stations empty, using seed data");
                 state.stations = [...seedStations];
@@ -145,9 +161,6 @@ export async function loadData() {
                 sSnap.forEach(doc => state.stations.push(doc.data()));
             }
 
-            const eCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'events');
-            const eSnap = await getDocs(eCol);
-            
             if (eSnap.empty) {
                 console.log("Firestore events empty, using seed data");
                 state.events = [...seedEvents];
@@ -249,7 +262,7 @@ export async function syncGlobalConfig() {
     try {
         const { doc, getDoc } = state.fb;
         const docRef = doc(state.db, 'global', 'config');
-        const docSnap = await getDoc(docRef);
+        const docSnap = await withTimeout(getDoc(docRef), 'Jahreskonfiguration', 6000);
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.activeYear) {
