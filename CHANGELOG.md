@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.168] - 2026-10-07
+- Der Besucherhinweis bietet einen klaren Einstieg zum Aktivieren des Standorts und Finden der Stationen.
+- Stationsaktionen unterscheiden verständlich zwischen der Route in der App und der Navigation mit Google Maps.
+- Der Programmkopf zeigt am Veranstaltungsabend „Jetzt“ und „Als Nächstes“ gleichzeitig, inklusive Minuten, Ort, Details und direktem Kartenaufruf.
+
 ## [1.4.167] - 2026-09-23
 - Versionskennungen werden zentral aus `package.json` geprüft und bei Bedarf automatisch synchronisiert.
 - Header-Countdown und PWA-Installation sind aus `main.js` in eigenständige, übersichtliche Module ausgelagert.

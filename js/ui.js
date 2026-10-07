@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.167';
-import * as utils from './utils.js?v=1.4.167';
-import { saveData, deleteData } from './data.js?v=1.4.167';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.167';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.167';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.167';
-import { recordAuditEvent } from './audit.js?v=1.4.167';
-import { normalizeImageUrl } from './image-url.js?v=1.4.167';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.168';
+import * as utils from './utils.js?v=1.4.168';
+import { saveData, deleteData } from './data.js?v=1.4.168';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.168';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.168';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.168';
+import { recordAuditEvent } from './audit.js?v=1.4.168';
+import { normalizeImageUrl } from './image-url.js?v=1.4.168';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1933,7 +1933,7 @@ export function openProgramEvent(id) {
                         <i class="ph ph-map-pin"></i> Auf Karte zeigen
                     </button>
                     <button type="button" id="program-route" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 dark:bg-gray-700">
-                        <i class="ph ph-route"></i> Route
+                        <i class="ph ph-route"></i> Route in der App anzeigen
                     </button>
                 ` : `<div class="text-sm text-gray-500 dark:text-gray-400">Für diesen Programmpunkt ist noch keine Kartenposition hinterlegt.</div>`}
                 <button type="button" id="program-calendar" class="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-2">
@@ -2141,37 +2141,45 @@ export function renderTimeline() {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatWindow(configuredWindow)}.</p>`;
             return;
         }
-        // PRIORITY 1: Currently Active Event
-        if (currentActiveEvent) {
-             headerDisplay.innerHTML = `
-                <div class="flex gap-3 items-center" onclick="document.getElementById('timeline-scroll-target')?.scrollIntoView({behavior: 'smooth', block: 'center'})">
-                    <div class="bg-red-500 text-white p-2 rounded-lg text-center min-w-[50px] animate-pulse">
-                        <span class="block font-bold text-sm leading-tight">LIVE</span>
+        const spotlightCard = (event, type) => {
+            const location = getEventLocationInfo(event);
+            const eventMinutes = getProgramStatus(event, statusContext).eventTimeVal;
+            const minutesUntil = Math.max(1, eventMinutes - currentTimeVal);
+            const isLive = type === 'current';
+            const label = isLive ? 'Jetzt' : `Als Nächstes · in ${minutesUntil} Min.`;
+            const buttonId = isLive ? 'program-current-map' : 'program-next-map';
+            return `
+                <div class="rounded-xl border ${isLive ? 'border-red-300 bg-red-500/20' : 'border-white/25 bg-white/10'} p-3">
+                    <div class="flex items-start gap-3">
+                        <div class="${isLive ? 'bg-red-500 animate-pulse' : 'bg-white/20'} rounded-lg px-2 py-1.5 text-center min-w-[58px]">
+                            <span class="block text-[10px] font-extrabold uppercase">${isLive ? 'Live' : escapeHtml(event.time)}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs ${isLive ? 'text-red-100' : 'text-white/80'} uppercase font-extrabold tracking-wide">${label}</p>
+                            <p class="font-extrabold text-white leading-tight">${escapeHtml(event.title)}</p>
+                            <p class="mt-0.5 text-xs text-white/85 truncate"><i class="ph-fill ph-map-pin"></i> ${escapeHtml(event.loc || 'Ort nicht angegeben')}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-xs text-red-200 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
-                            <span class="w-2 h-2 bg-red-500 rounded-full animate-ping inline-block"></span> Jetzt läuft
-                        </p>
-                        <p class="font-bold text-white leading-tight">${currentActiveEvent.title}</p>
-                        <p class="text-xs text-white/80 truncate">${currentActiveEvent.loc}</p>
+                    <div class="mt-2 grid ${location.hasCoords ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+                        <button type="button" data-program-event="${escapeHtml(event.id)}" class="rounded-lg bg-white/15 px-2 py-2 text-xs font-bold text-white border border-white/20">Details</button>
+                        ${location.hasCoords ? `<button type="button" id="${buttonId}" class="rounded-lg bg-white px-2 py-2 text-xs font-extrabold text-gray-900"><i class="ph-fill ph-map-pin"></i> Auf Karte zeigen</button>` : ''}
                     </div>
-                </div>
-            `;
-        } 
-        // PRIORITY 2: Next Event
-        else if (nextEvent) {
-            headerDisplay.innerHTML = `
-                <div class="flex gap-3 items-center" onclick="document.getElementById('timeline-scroll-target')?.scrollIntoView({behavior: 'smooth', block: 'center'})">
-                    <div class="bg-white/20 p-2 rounded-lg text-center min-w-[50px]">
-                        <span class="block font-bold text-sm leading-tight">${nextEvent.time}</span>
-                    </div>
-                    <div>
-                        <p class="text-xs text-white/80 uppercase font-bold tracking-wider">Demnächst</p>
-                        <p class="font-bold text-white leading-tight">${nextEvent.title}</p>
-                        <p class="text-xs text-white/80 truncate">${nextEvent.loc}</p>
-                    </div>
-                </div>
-            `;
+                </div>`;
+        };
+
+        if (currentActiveEvent || nextEvent) {
+            headerDisplay.innerHTML = `<div class="space-y-2">${currentActiveEvent ? spotlightCard(currentActiveEvent, 'current') : ''}${nextEvent ? spotlightCard(nextEvent, 'next') : ''}</div>`;
+            headerDisplay.querySelectorAll('[data-program-event]').forEach(button => {
+                button.addEventListener('click', () => openProgramEvent(button.dataset.programEvent));
+            });
+            const bindMapButton = (buttonId, event) => {
+                const button = document.getElementById(buttonId);
+                if (!button || !event) return;
+                const location = getEventLocationInfo(event);
+                button.addEventListener('click', () => flyToStation(location.lat, location.lng, location.stationId, 19));
+            };
+            bindMapButton('program-current-map', currentActiveEvent);
+            bindMapButton('program-next-map', nextEvent);
         } else {
             headerDisplay.innerHTML = `<p class="text-white/80 text-sm">Heute keine weiteren Programmpunkte.</p>`;
         }

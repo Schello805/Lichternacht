@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
         localStorage.setItem('tutorial_seen', 'true');
         localStorage.setItem('mini_tour_seen_v1', 'true');
         localStorage.setItem('visitor_start_card_dismissed_v1', 'true');
+        localStorage.setItem('visitor_start_card_dismissed_v2', 'true');
     });
 });
 
@@ -197,13 +198,24 @@ test('program details can be dismissed by swiping the modal body down', async ({
 
 test('welcome card does not duplicate the main navigation', async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem('visitor_start_card_dismissed_v1'));
+    await page.addInitScript(() => localStorage.removeItem('visitor_start_card_dismissed_v2'));
     await page.goto('/index.html');
 
     await expect(page.locator('#visitor-start-card')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Standort aktivieren & Stationen finden' })).toBeVisible();
     await expect(page.locator('#visitor-start-card [data-visitor-tab]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Karte', exact: true })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Stationen', exact: true })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Programm', exact: true })).toHaveCount(1);
+});
+
+test('station route actions clearly distinguish app route and Google Maps', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').first().click();
+
+    await expect(page.getByRole('button', { name: 'Route in der App anzeigen' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mit Google Maps navigieren' })).toBeVisible();
 });
 
 test('header shows a compact countdown for the configured event window', async ({ page }) => {
