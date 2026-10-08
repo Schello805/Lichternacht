@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.174';
-import * as utils from './utils.js?v=1.4.174';
-import { saveData, deleteData } from './data.js?v=1.4.174';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.174';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.174';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.174';
-import { recordAuditEvent } from './audit.js?v=1.4.174';
-import { normalizeImageUrl } from './image-url.js?v=1.4.174';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.175';
+import * as utils from './utils.js?v=1.4.175';
+import { saveData, deleteData } from './data.js?v=1.4.175';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.175';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.175';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.175';
+import { recordAuditEvent } from './audit.js?v=1.4.175';
+import { normalizeImageUrl } from './image-url.js?v=1.4.175';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -899,7 +899,7 @@ function updateImageUploadUI(imageSrc) {
         btn.className = "w-full h-48 relative rounded-lg overflow-hidden border border-gray-300 group cursor-pointer";
         btn.innerHTML = `
             <img src="${imageSrc}" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold gap-2">
+            <div class="image-upload-overlay absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold gap-2">
                 <i class="ph ph-camera text-xl"></i>
                 <span>Ändern</span>
             </div>
