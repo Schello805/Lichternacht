@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
+    await page.route('https://www.gstatic.com/firebasejs/**', route => route.abort());
+    const originalGoto = page.goto.bind(page);
+    page.goto = async (...args) => {
+        const response = await originalGoto(...args);
+        if (!String(args[0]).includes('help.html')) {
+            await page.waitForFunction(() => window.__appReady === true);
+        }
+        return response;
+    };
     await page.addInitScript(() => {
         localStorage.setItem('tracking_consent', 'denied');
         localStorage.setItem('tutorial_seen', 'true');
@@ -297,6 +306,10 @@ test('internal route is drawn on the MapLibre map', async ({ context, page }) =>
 
     await expect.poll(() => page.evaluate(() => Boolean(window.state?.routeGeometry))).toBe(true);
     await expect.poll(() => page.evaluate(() => Boolean(window.state?.map?.getLayer('active-route-line')))).toBe(true);
+    await expect(page.locator('#route-info')).toBeVisible();
+    await page.locator('#route-info button').click();
+    await expect(page.locator('#route-info')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => Boolean(window.state?.map?.getLayer('active-route-line')))).toBe(false);
     await expect(page.locator('.maplibregl-canvas')).toBeVisible();
 });
 

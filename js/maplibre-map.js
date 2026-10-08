@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.187';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.188';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -581,12 +581,26 @@ export function calculateRoute(destLat, destLng) {
             if (!geometry) throw new Error('Keine Route gefunden');
             state.routeGeometry = geometry;
             renderRoute(geometry);
+            document.getElementById('route-info')?.classList.remove('hidden');
             fitCoordinates(geometry.coordinates, 70);
         })
         .catch(error => {
             console.error('Route calculation failed', error);
             showToast('Route konnte nicht berechnet werden.', 'error');
         });
+}
+
+export function clearRoute() {
+    state.routeGeometry = null;
+    const routeInfo = document.getElementById('route-info');
+    routeInfo?.classList.add('hidden');
+    if (!state.map) return;
+    try {
+        if (state.map.getLayer(ROUTE_LAYER_ID)) state.map.removeLayer(ROUTE_LAYER_ID);
+        if (state.map.getSource(ROUTE_SOURCE_ID)) state.map.removeSource(ROUTE_SOURCE_ID);
+    } catch (error) {
+        console.warn('Route could not be cleared', error);
+    }
 }
 
 export function resetMap() {

@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.187';
-import * as utils from './js/utils.js?v=1.4.187';
+import { shareStation, showToast } from './js/utils.js?v=1.4.188';
+import * as utils from './js/utils.js?v=1.4.188';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.187';
-import { hydrateVisitorDataCache, loadData, syncGlobalConfig } from './js/data.js?v=1.4.187';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.187';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.187';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.188';
+import { hydrateVisitorDataCache, loadData, syncGlobalConfig } from './js/data.js?v=1.4.188';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.188';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.188';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,17 +14,17 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.187';
+} from './js/ui.js?v=1.4.188';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability
-} from './js/admin.js?v=1.4.187';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.187';
-import { recordAuditEvent } from './js/audit.js?v=1.4.187';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.187';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.187';
+} from './js/admin.js?v=1.4.188';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.188';
+import { recordAuditEvent } from './js/audit.js?v=1.4.188';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.188';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.188';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.187";
+const APP_VERSION = "1.4.188";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1219,6 +1219,7 @@ window.filterStations = filterStations;
 window.filterList = filterList;
 window.locateUser = locateUser;
 window.calculateRoute = calculateRoute;
+window.clearRoute = clearRoute;
 window.resetMap = resetMap;
 window.refreshMapMarkers = refreshMapMarkers;
 window.generateICS = generateICS;
@@ -1522,7 +1523,7 @@ window.onload = async () => {
             userCountEl.classList.add('flex');
             userCountEl.title = 'Aktive Nutzer: nur dieses Gerät (Offline)';
         }
-        loadData();
+        await loadData();
     }
 
     // Tracking: only load after explicit user consent.
@@ -1564,6 +1565,9 @@ window.onload = async () => {
             }, 900);
         }
     } catch (e) { }
+
+    window.__appReady = true;
+    window.dispatchEvent(new Event('lichternacht:ready'));
 
     // Defensive: if flags already set, ensure prompt is not visible
     try {

@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.187';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.187';
-import { parseCsv, toCsv } from './csv.js?v=1.4.187';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.188';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.188';
+import { parseCsv, toCsv } from './csv.js?v=1.4.188';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.187';
-import { recordAuditEvent } from './audit.js?v=1.4.187';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.187';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.188';
+import { recordAuditEvent } from './audit.js?v=1.4.188';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.188';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -654,7 +654,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.187';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.188';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -951,7 +951,7 @@ async function importRowsGeneric(rows, kind, options = {}) {
             return evt;
         });
 
-        const issues = validateEvents(mapped, state.stations);
+        const issues = validateEvents(mapped, options.stations || state.stations);
         const errors = issues.filter(issue => issue.severity === 'error');
         if (errors.length > 0) {
             throw new Error(`Tabelle hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
@@ -1042,7 +1042,7 @@ export async function syncGoogleSheets() {
             fetchGoogleSheetRows(sheetId, 'Programm', token)
         ]);
         const stations = await importRowsGeneric(stationRows, 'stations', { dryRun: true });
-        const events = await importRowsGeneric(eventRows, 'events', { dryRun: true });
+        const events = await importRowsGeneric(eventRows, 'events', { dryRun: true, stations: stations.mapped });
         const warningCount = stations.warnings.length + events.warnings.length;
         const warningText = warningCount ? `\n\nDer Datencheck meldet ${warningCount} Hinweis(e).` : '';
         if (!confirm(`Google Sheet synchronisieren? ${stations.mapped.length} Stationen und ${events.mapped.length} Programmpunkte werden gespeichert/überschrieben.${warningText}`)) return;
@@ -1235,9 +1235,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.187';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.187';
-import { renderList, renderTimeline } from './ui.js?v=1.4.187';
+import { showToast } from './utils.js?v=1.4.188';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.188';
+import { renderList, renderTimeline } from './ui.js?v=1.4.188';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
