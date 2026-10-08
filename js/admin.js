@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.183';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.183';
-import { toCsv } from './csv.js?v=1.4.183';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.184';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.184';
+import { toCsv } from './csv.js?v=1.4.184';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.183';
-import { recordAuditEvent } from './audit.js?v=1.4.183';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.183';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.184';
+import { recordAuditEvent } from './audit.js?v=1.4.184';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.184';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -652,7 +652,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.183';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.184';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -695,6 +695,16 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
         width: Math.min(55, Math.max(12, key.length + 2, ...rows.map(row => String(row[key] ?? '').length + 2)))
     }));
     rows.forEach(row => worksheet.addRow(columns.map(column => row[column] ?? '')));
+    const linkColumnIndex = columns.indexOf('link') + 1;
+    if (linkColumnIndex > 0) {
+        rows.forEach((row, index) => {
+            const link = String(row.link || '').trim();
+            if (!/^https?:\/\//i.test(link)) return;
+            const cell = worksheet.getRow(index + 2).getCell(linkColumnIndex);
+            cell.value = { text: link, hyperlink: link };
+            cell.font = { color: { argb: 'FF2563EB' }, underline: true };
+        });
+    }
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
     worksheet.autoFilter = { from: 'A1', to: `${worksheet.getColumn(columns.length).letter}1` };
@@ -707,13 +717,17 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
     URL.revokeObjectURL(url);
 }
 
-async function readExcelTable(file) {
+async function readExcelTable(file, expectedColumns) {
     const ExcelJS = await loadExcelJs();
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await file.arrayBuffer());
     const worksheet = workbook.worksheets[0];
     if (!worksheet || worksheet.rowCount < 2) return [];
     const headers = worksheet.getRow(1).values.slice(1).map(value => normalizeExcelCellValue(value).trim());
+    const missingColumns = expectedColumns.filter(column => !headers.includes(column));
+    if (missingColumns.length) {
+        throw new Error(`Falsche oder veraltete Vorlage. Fehlende Spalten: ${missingColumns.join(', ')}`);
+    }
     const rows = [];
     worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
@@ -821,7 +835,8 @@ export async function downloadEventsTableTemplate() {
 
 async function importTableGeneric(file, kind) {
     if (!file) throw new Error('Bitte zuerst eine XLSX-Datei auswählen.');
-    const rows = await readExcelTable(file);
+    const columns = kind === 'stations' ? STATION_TABLE_COLUMNS : EVENT_TABLE_COLUMNS;
+    const rows = await readExcelTable(file, columns);
     if (!rows.length) {
         showToast('Die Tabelle ist leer oder ungültig.', 'error');
         return;
@@ -848,7 +863,7 @@ async function importTableGeneric(file, kind) {
             const image = (r.image ?? '').toString().trim();
             if (image) station.image = image;
             const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
-            if (Number.isFinite(likes)) station.likes = likes;
+            station.likes = Number.isFinite(likes) ? Math.max(0, likes) : 0;
 
             if (!station.name) {
                 throw new Error(`Station: name fehlt in Zeile ${idx + 2}`);
@@ -1098,9 +1113,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.183';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.183';
-import { renderList, renderTimeline } from './ui.js?v=1.4.183';
+import { showToast } from './utils.js?v=1.4.184';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.184';
+import { renderList, renderTimeline } from './ui.js?v=1.4.184';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

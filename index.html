@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.183" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.184" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.183" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.184" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.183">
+    <link rel="stylesheet" href="style.css?v=1.4.184">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -902,14 +902,7 @@
                         </div>
                         <div class="flex items-start gap-4">
                             <div class="min-w-0 flex-1">
-                                <div class="flex items-start gap-2">
-                                    <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
-                                    <button id="modal-link-btn" type="button"
-                                        class="hidden mt-0.5 shrink-0 w-8 h-8 rounded-full bg-blue-50 text-blue-700 border border-blue-100 items-center justify-center hover:bg-blue-100"
-                                        title="Link öffnen" aria-label="Link öffnen">
-                                        <i class="ph ph-link text-base"></i>
-                                    </button>
-                                </div>
+                                <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
                                 <p id="modal-subtitle"
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
                                 </p>
@@ -942,6 +935,11 @@
                         <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
+                        <button id="modal-link-btn" type="button"
+                            class="hidden w-full mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 items-center justify-center gap-2 active:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                            title="Webseite oder Angebot öffnen" aria-label="Webseite oder Angebot öffnen">
+                            <i class="ph ph-link text-lg"></i><span>Webseite / Angebot öffnen</span>
+                        </button>
                         <div class="grid grid-cols-3 gap-2 mt-4">
                             <button onclick="shareStation(window.activeStationId)"
                                 class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-2 rounded-lg flex flex-col items-center justify-center gap-1 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] leading-tight"><i
@@ -1289,7 +1287,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.183', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.184', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1316,7 +1314,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.183"></script>
+    <script type="module" src="main.js?v=1.4.184"></script>
 </body>
 
 </html>
