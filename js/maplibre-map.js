@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.178';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.179';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -156,6 +156,7 @@ function setGpsUiStatus(status) {
     ['map-gps-status', 'list-gps-status'].forEach(id => {
         const element = document.getElementById(id);
         if (!element) return;
+        element.classList.toggle('hidden', status === 'connected');
         element.textContent = id === 'list-gps-status' && status === 'idle'
             ? `${label} · aktivieren für Entfernung und Gehzeit`
             : label;
@@ -170,7 +171,20 @@ function setGpsUiStatus(status) {
         const connected = status === 'connected';
         button.setAttribute('aria-busy', searching ? 'true' : 'false');
         button.setAttribute('aria-label', connected ? 'Standort erneut bestimmen' : 'Eigenen Standort bestimmen');
-        button.classList.remove('ring-2', 'ring-blue-500');
+        button.classList.remove(
+            'ring-2', 'ring-blue-500',
+            'bg-white', 'dark:bg-gray-800', 'text-yellow-600', 'dark:text-yellow-500',
+            'bg-blue-600', 'dark:bg-blue-600', 'bg-green-600', 'dark:bg-green-600',
+            'text-white', 'border-gray-200', 'dark:border-gray-700',
+            'border-blue-700', 'dark:border-blue-500', 'border-green-700', 'dark:border-green-500'
+        );
+        button.classList.add(
+            connected ? 'bg-green-600' : 'bg-blue-600',
+            connected ? 'dark:bg-green-600' : 'dark:bg-blue-600',
+            'text-white',
+            connected ? 'border-green-700' : 'border-blue-700',
+            connected ? 'dark:border-green-500' : 'dark:border-blue-500'
+        );
         button.classList.toggle('animate-pulse', searching);
         button.dataset.gpsStatus = status;
         button.title = label;
