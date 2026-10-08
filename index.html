@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.181" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.182" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.181" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.182" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.181">
+    <link rel="stylesheet" href="style.css?v=1.4.182">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -289,42 +289,42 @@
                 </summary>
                 <div class="p-4 border-t dark:border-gray-600">
                     <p class="text-xs text-gray-500 mt-3 mb-4">
-                        Export/Import als CSV (z.B. für Excel). Der Export nutzt Semikolon <span class="font-mono">;</span> als Spaltentrenner. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Events nutzen <span class="font-mono">description</span> für die Beschreibung und optional <span class="font-mono">stationId</span> zur dauerhaften Verknüpfung mit einer Station. Spalte <span class="font-mono">tags</span> nutzt <span class="font-mono">|</span> als Trenner innerhalb einer Zelle.
+                        Export und Import als echte Excel-Tabelle (.xlsx). Damit bleiben Spalten, Umlaute und Zellinhalte zuverlässig erhalten. Stationen nutzen <span class="font-mono">address</span> für Adresse/Ort und <span class="font-mono">offer</span> für den sichtbaren Angebotstext. Programmpunkte können über <span class="font-mono">stationId</span> dauerhaft mit einer Station verknüpft werden. Mehrere Tags in einer Zelle werden mit <span class="font-mono">|</span> getrennt.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                             <div class="font-bold text-sm mb-2">Stationen</div>
                             <div class="flex gap-2">
-                                <button type="button" onclick="exportStationsCsv()"
-                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
-                                <button type="button" onclick="downloadStationsCsvTemplate()"
+                                <button type="button" onclick="exportStationsTable()"
+                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Excel exportieren</button>
+                                <button type="button" onclick="downloadStationsTableTemplate()"
                                     class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold border border-gray-200 dark:border-gray-600">Vorlage</button>
                             </div>
-                            <input id="admin-stations-csv" type="file" accept=".csv,text/csv"
+                            <input id="admin-stations-table" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                 class="w-full mt-2 text-xs" />
-                            <button type="button" onclick="importStationsCsv()" data-online-only="true"
+                            <button type="button" onclick="importStationsTable()" data-online-only="true"
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
-                                Import CSV (Cloud)
+                                Excel importieren (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">CSV mit Semikolon <span class="font-mono">;</span> trennen. Import überschreibt Stationen mit gleicher ID.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Stationen mit gleicher ID. Vorher wird automatisch eine Sicherung erstellt.</div>
                         </div>
 
                         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                             <div class="font-bold text-sm mb-2">Events</div>
                             <div class="flex gap-2">
-                                <button type="button" onclick="exportEventsCsv()"
-                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Export CSV</button>
-                                <button type="button" onclick="downloadEventsCsvTemplate()"
+                                <button type="button" onclick="exportEventsTable()"
+                                    class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-xs font-bold">Excel exportieren</button>
+                                <button type="button" onclick="downloadEventsTableTemplate()"
                                     class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold border border-gray-200 dark:border-gray-600">Vorlage</button>
                             </div>
-                            <input id="admin-events-csv" type="file" accept=".csv,text/csv"
+                            <input id="admin-events-table" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                 class="w-full mt-2 text-xs" />
-                            <button type="button" onclick="importEventsCsv()" data-online-only="true"
+                            <button type="button" onclick="importEventsTable()" data-online-only="true"
                                 class="w-full mt-2 bg-white border border-red-500 text-red-600 px-3 py-2 rounded hover:bg-red-50 text-xs font-bold">
-                                Import CSV (Cloud)
+                                Excel importieren (Cloud)
                             </button>
-                            <div class="text-[10px] text-gray-500 mt-1">CSV mit Semikolon <span class="font-mono">;</span> trennen. Import überschreibt Events mit gleicher ID.</div>
+                            <div class="text-[10px] text-gray-500 mt-1">Import überschreibt Programmpunkte mit gleicher ID. Vorher wird automatisch eine Sicherung erstellt.</div>
                         </div>
                     </div>
 
@@ -623,7 +623,8 @@
                             <option value="station_shared">Station geteilt</option>
                             <option value="route_opened">Route aufgerufen</option>
                             <option value="navigation_started">Navigation gestartet</option>
-                            <option value="admin_csv_import">CSV-Importe</option>
+                            <option value="admin_table_import">Excel-Importe</option>
+                            <option value="admin_csv_import">Frühere CSV-Importe</option>
                             <option value="admin_config_saved">Konfiguration</option>
                         </select>
                         <button type="button" onclick="loadAuditLog()" class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm"><i class="ph ph-arrows-clockwise"></i> Aktualisieren</button>
@@ -1288,7 +1289,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.181', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.182', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1315,7 +1316,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.181"></script>
+    <script type="module" src="main.js?v=1.4.182"></script>
 </body>
 
 </html>

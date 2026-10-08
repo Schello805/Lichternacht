@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.181';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.181';
-import { parseCsv, toCsv } from './csv.js?v=1.4.181';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.182';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.182';
+import { toCsv } from './csv.js?v=1.4.182';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.181';
-import { recordAuditEvent } from './audit.js?v=1.4.181';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.181';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.182';
+import { recordAuditEvent } from './audit.js?v=1.4.182';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.182';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
-const STATION_CSV_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
-const EVENT_CSV_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color'];
+const STATION_TABLE_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
+const EVENT_TABLE_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
@@ -580,7 +580,7 @@ export async function uploadSeedData() {
 export async function importData() {
     const el = document.getElementById('export-area');
     if (!el) {
-        showToast("JSON-Import wurde entfernt. Bitte CSV Import nutzen.", 'info');
+        showToast("JSON-Import wurde entfernt. Bitte den Excel-Import nutzen.", 'info');
         return;
     }
     const json = el.value;
@@ -640,10 +640,85 @@ function downloadAutomaticBackup(reason) {
 
 function normalizeTags(tagsValue) {
     if (!tagsValue) return [];
-    // Prefer pipe-separated list inside CSV cell, fallback to comma.
+    // Prefer pipe-separated tags inside one table cell, fallback to comma.
     const raw = String(tagsValue);
     const parts = raw.includes('|') ? raw.split('|') : raw.split(',');
     return parts.map(s => s.trim()).filter(Boolean);
+}
+
+let excelJsPromise = null;
+function loadExcelJs() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    if (excelJsPromise) return excelJsPromise;
+    excelJsPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.182';
+        script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
+        script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
+        document.head.appendChild(script);
+    });
+    return excelJsPromise;
+}
+
+function normalizeExcelCellValue(value) {
+    if (value === null || value === undefined) return '';
+    if (value instanceof Date) {
+        const hours = String(value.getHours()).padStart(2, '0');
+        const minutes = String(value.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+    if (typeof value === 'object') {
+        if (value.text !== undefined) return String(value.text);
+        if (value.hyperlink !== undefined) return String(value.hyperlink);
+        if (value.result !== undefined) return normalizeExcelCellValue(value.result);
+        if (Array.isArray(value.richText)) return value.richText.map(part => part.text || '').join('');
+    }
+    return String(value);
+}
+
+async function downloadExcelTable(rows, columns, filename, sheetName) {
+    const ExcelJS = await loadExcelJs();
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 1 }] });
+    worksheet.columns = columns.map(key => ({
+        header: key,
+        key,
+        width: Math.min(55, Math.max(12, key.length + 2, ...rows.map(row => String(row[key] ?? '').length + 2)))
+    }));
+    rows.forEach(row => worksheet.addRow(columns.map(column => row[column] ?? '')));
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    worksheet.autoFilter = { from: 'A1', to: `${worksheet.getColumn(columns.length).letter}1` };
+    const buffer = await workbook.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+async function readExcelTable(file) {
+    const ExcelJS = await loadExcelJs();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet || worksheet.rowCount < 2) return [];
+    const headers = worksheet.getRow(1).values.slice(1).map(value => normalizeExcelCellValue(value).trim());
+    const rows = [];
+    worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const item = {};
+        let hasValue = false;
+        headers.forEach((header, index) => {
+            if (!header) return;
+            const value = normalizeExcelCellValue(row.getCell(index + 1).value).trim();
+            item[header] = value;
+            if (value) hasValue = true;
+        });
+        if (hasValue) rows.push(item);
+    });
+    return rows;
 }
 
 function mergeImportedItems(collection, importedItems) {
@@ -653,7 +728,7 @@ function mergeImportedItems(collection, importedItems) {
     return Array.from(itemMap.values());
 }
 
-function refreshAfterCsvImport() {
+function refreshAfterTableImport() {
     if (window.renderList) window.renderList(state.stations);
     if (window.renderTimeline) window.renderTimeline();
     if (window.renderFilterBar) window.renderFilterBar();
@@ -664,7 +739,7 @@ function refreshAfterCsvImport() {
     try { runDataValidation(); } catch (e) { }
 }
 
-export function exportStationsCsv() {
+export async function exportStationsTable() {
     renderAdminDataTables();
     const rows = (state.stations || []).map(s => ({
         id: s.id ?? '',
@@ -678,13 +753,12 @@ export function exportStationsCsv() {
         image: s.image ?? '',
         likes: s.likes ?? ''
     }));
-    const csv = toCsv(rows, STATION_CSV_COLUMNS, ';');
-    downloadTextFile('stations.csv', csv, 'text/csv');
-    showToast('stations.csv heruntergeladen', 'success');
+    await downloadExcelTable(rows, STATION_TABLE_COLUMNS, 'stationen.xlsx', 'Stationen');
+    showToast('stationen.xlsx heruntergeladen', 'success');
 }
 
-export function downloadStationsCsvTemplate() {
-    const csv = toCsv([{
+export async function downloadStationsTableTemplate() {
+    await downloadExcelTable([{
         id: '',
         name: 'Beispielstation',
         address: 'Adresse oder Ort',
@@ -695,12 +769,11 @@ export function downloadStationsCsvTemplate() {
         tags: 'Essen|Getränke',
         image: '',
         likes: ''
-    }], STATION_CSV_COLUMNS, ';');
-    downloadTextFile('stations-vorlage.csv', csv, 'text/csv');
+    }], STATION_TABLE_COLUMNS, 'stationen-vorlage.xlsx', 'Stationen');
     showToast('Stations-Vorlage heruntergeladen', 'success');
 }
 
-export function exportEventsCsv() {
+export async function exportEventsTable() {
     renderAdminDataTables();
     const rows = (state.events || []).map(e => ({
         id: e.id ?? '',
@@ -715,13 +788,12 @@ export function exportEventsCsv() {
         lng: e.lng ?? '',
         color: e.color ?? ''
     }));
-    const csv = toCsv(rows, EVENT_CSV_COLUMNS, ';');
-    downloadTextFile('events.csv', csv, 'text/csv');
-    showToast('events.csv heruntergeladen', 'success');
+    await downloadExcelTable(rows, EVENT_TABLE_COLUMNS, 'programm.xlsx', 'Programm');
+    showToast('programm.xlsx heruntergeladen', 'success');
 }
 
-export function downloadEventsCsvTemplate() {
-    const csv = toCsv([{
+export async function downloadEventsTableTemplate() {
+    await downloadExcelTable([{
         id: '',
         time: '17:00',
         title: 'Eröffnung',
@@ -733,17 +805,15 @@ export function downloadEventsCsvTemplate() {
         lat: '49.1620',
         lng: '10.5550',
         color: 'yellow'
-    }], EVENT_CSV_COLUMNS, ';');
-    downloadTextFile('events-vorlage.csv', csv, 'text/csv');
+    }], EVENT_TABLE_COLUMNS, 'programm-vorlage.xlsx', 'Programm');
     showToast('Event-Vorlage heruntergeladen', 'success');
 }
 
-async function importCsvGeneric(file, kind) {
-    if (!file) return;
-    const text = await file.text();
-    const rows = parseCsv(text);
+async function importTableGeneric(file, kind) {
+    if (!file) throw new Error('Bitte zuerst eine XLSX-Datei auswählen.');
+    const rows = await readExcelTable(file);
     if (!rows.length) {
-        showToast('CSV ist leer oder ungültig.', 'error');
+        showToast('Die Tabelle ist leer oder ungültig.', 'error');
         return;
     }
 
@@ -788,19 +858,19 @@ async function importCsvGeneric(file, kind) {
         const issues = validateStations(mapped);
         const errors = issues.filter(issue => issue.severity === 'error');
         if (errors.length > 0) {
-            throw new Error(`CSV hat ${errors.length} Fehler. Bitte erst Datencheck/Vorlage nutzen. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
+            throw new Error(`Tabelle hat ${errors.length} Fehler. Bitte erst Datencheck/Vorlage nutzen. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
         }
         const warnings = issues.filter(issue => issue.severity === 'warn');
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
-        if (!confirm(`CSV importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
-        downloadAutomaticBackup('Vor Stations-CSV-Import');
+        if (!confirm(`Tabelle importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
+        downloadAutomaticBackup('Vor Stations-Tabellenimport');
         for (const s of mapped) await saveData('station', s);
         state.stations = mergeImportedItems(state.stations, mapped);
         if (state.useLocalStorage) localStorage.setItem('stations_data', JSON.stringify(state.stations));
-        refreshAfterCsvImport();
+        refreshAfterTableImport();
         showToast('Stationen importiert', 'success');
-        recordAuditEvent('admin_csv_import', { itemType: 'stations', count: mapped.length }, { role: 'admin' });
+        recordAuditEvent('admin_table_import', { itemType: 'stations', count: mapped.length }, { role: 'admin' });
         return;
     }
 
@@ -813,6 +883,7 @@ async function importCsvGeneric(file, kind) {
                 title: (r.title ?? '').toString().trim(),
                 desc: (r.description ?? '').toString().trim(),
                 link: (r.link ?? '').toString().trim(),
+                image: (r.image ?? '').toString().trim(),
                 loc: (r.loc ?? '').toString().trim(),
                 stationId: (r.stationId ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
@@ -828,28 +899,28 @@ async function importCsvGeneric(file, kind) {
         const issues = validateEvents(mapped, state.stations);
         const errors = issues.filter(issue => issue.severity === 'error');
         if (errors.length > 0) {
-            throw new Error(`CSV hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
+            throw new Error(`Tabelle hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
         }
         const warnings = issues.filter(issue => issue.severity === 'warn');
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
-        if (!confirm(`CSV importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
-        downloadAutomaticBackup('Vor Event-CSV-Import');
+        if (!confirm(`Tabelle importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
+        downloadAutomaticBackup('Vor Programm-Tabellenimport');
         for (const e of mapped) await saveData('event', e);
         state.events = mergeImportedItems(state.events, mapped);
         if (state.useLocalStorage) localStorage.setItem('events_data', JSON.stringify(state.events));
-        refreshAfterCsvImport();
+        refreshAfterTableImport();
         showToast('Events importiert', 'success');
-        recordAuditEvent('admin_csv_import', { itemType: 'events', count: mapped.length }, { role: 'admin' });
+        recordAuditEvent('admin_table_import', { itemType: 'events', count: mapped.length }, { role: 'admin' });
         return;
     }
 }
 
-export async function importStationsCsv() {
-    const input = document.getElementById('admin-stations-csv');
+export async function importStationsTable() {
+    const input = document.getElementById('admin-stations-table');
     const file = input?.files?.[0];
     try {
-        await importCsvGeneric(file, 'stations');
+        await importTableGeneric(file, 'stations');
     } catch (e) {
         console.error(e);
         showToast('Import Fehler: ' + e.message, 'error');
@@ -858,11 +929,11 @@ export async function importStationsCsv() {
     }
 }
 
-export async function importEventsCsv() {
-    const input = document.getElementById('admin-events-csv');
+export async function importEventsTable() {
+    const input = document.getElementById('admin-events-table');
     const file = input?.files?.[0];
     try {
-        await importCsvGeneric(file, 'events');
+        await importTableGeneric(file, 'events');
     } catch (e) {
         console.error(e);
         showToast('Import Fehler: ' + e.message, 'error');
@@ -996,7 +1067,7 @@ export function handleAdminAdd(type) {
 export function dumpData() {
     const el = document.getElementById('export-area');
     if (!el) {
-        showToast("JSON Export wurde entfernt. Bitte CSV Export nutzen.", 'info');
+        showToast("JSON-Export wurde entfernt. Bitte den Excel-Export nutzen.", 'info');
         return;
     }
     const data = {
@@ -1009,7 +1080,7 @@ export function dumpData() {
 }
 
 export function downloadDataJs() {
-    showToast("data.js Export wurde entfernt. Bitte CSV Export nutzen.", 'info');
+    showToast("data.js-Export wurde entfernt. Bitte den Excel-Export nutzen.", 'info');
     return;
     const data = {
         stations: state.stations,
@@ -1017,9 +1088,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.181';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.181';
-import { renderList, renderTimeline } from './ui.js?v=1.4.181';
+import { showToast } from './utils.js?v=1.4.182';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.182';
+import { renderList, renderTimeline } from './ui.js?v=1.4.182';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -1628,6 +1699,7 @@ const AUDIT_EVENT_LABELS = {
     program_route_opened: 'Route zum Programmpunkt aufgerufen',
     program_calendar_saved: 'Programmpunkt im Kalender gespeichert',
     admin_csv_import: 'CSV importiert',
+    admin_table_import: 'Excel-Tabelle importiert',
     admin_config_saved: 'Konfiguration gespeichert'
 };
 
