@@ -32,15 +32,14 @@
   # Standort und Kompass ausschließlich für diese App erlauben.
   Header always set Permissions-Policy "geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)"
 
-  # Never cache Service Worker, Config, Manifest & HTML
+  # Cache everything else aggressively
+  <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|webp|js|css|swf)$">
+    Header set Cache-Control "max-age=31536000, public"
+  </FilesMatch>
+
   <FilesMatch "^(service-worker\.js|sw\.js|config\.js|manifest\.json|.*\.html|.*\.htm|.*\.xml)$">
     Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
-  </FilesMatch>
-
-  # Cache everything else aggressively
-  <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|webp|js|css|swf)$">
-    Header set Cache-Control "max-age=31536000, public"
   </FilesMatch>
 </IfModule>

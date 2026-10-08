@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.173';
+const CACHE_NAME = 'lichternacht-v1.4.174';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
 const FONT_CACHE = 'google-fonts';
@@ -25,6 +25,11 @@ if (workbox) {
     console.log(`Yay! Workbox is loaded 🎉`);
     workbox.core.skipWaiting();
     workbox.core.clientsClaim();
+
+    workbox.routing.registerRoute(
+        ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('/config.js'),
+        new workbox.strategies.NetworkOnly()
+    );
 
     workbox.routing.registerRoute(
         ({ request, url }) => isSameOriginAppAsset(request, url),
