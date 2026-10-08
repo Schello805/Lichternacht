@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-    await page.route('https://www.gstatic.com/firebasejs/**', route => route.abort());
+    await page.route('**/config.js*', route => route.fulfill({
+        contentType: 'application/javascript',
+        body: `var __firebase_config = '{"apiKey":""}'; var __app_id = 'e2e-test';`
+    }));
     const originalGoto = page.goto.bind(page);
     page.goto = async (...args) => {
         const response = await originalGoto(...args);

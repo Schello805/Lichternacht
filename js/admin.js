@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.188';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.188';
-import { parseCsv, toCsv } from './csv.js?v=1.4.188';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.189';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.189';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.189';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.188';
-import { recordAuditEvent } from './audit.js?v=1.4.188';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.188';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.189';
+import { recordAuditEvent } from './audit.js?v=1.4.189';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.189';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -654,7 +654,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.188';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.189';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -885,8 +885,8 @@ async function importRowsGeneric(rows, kind, options = {}) {
                 offer: (r.offer ?? '').toString().trim(),
                 link: normalizeImportedUrl(r.link),
                 image: normalizeImportedUrl(r.image),
-                lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
-                lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
+                lat: parseLocalizedNumber(r.lat) || 0,
+                lng: parseLocalizedNumber(r.lng) || 0,
                 tags: normalizeTags(r.tags),
             };
             const image = normalizeImportedUrl(r.image);
@@ -941,8 +941,8 @@ async function importRowsGeneric(rows, kind, options = {}) {
                 image: normalizeImportedUrl(r.image),
                 loc: (r.loc ?? '').toString().trim(),
                 stationId: (r.stationId ?? '').toString().trim(),
-                lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
-                lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
+                lat: parseLocalizedNumber(r.lat) || 0,
+                lng: parseLocalizedNumber(r.lng) || 0,
                 color: (r.color ?? '').toString().trim() || 'yellow'
             };
             if (!evt.time || !evt.title) {
@@ -1235,9 +1235,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.188';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.188';
-import { renderList, renderTimeline } from './ui.js?v=1.4.188';
+import { showToast } from './utils.js?v=1.4.189';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.189';
+import { renderList, renderTimeline } from './ui.js?v=1.4.189';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

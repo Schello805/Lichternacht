@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseCsv, toCsv } from '../js/csv.js';
+import { parseCsv, parseLocalizedNumber, toCsv } from '../js/csv.js';
 
 test('parseCsv detects semicolon separated files', () => {
     const rows = parseCsv('id;name;address;offer\n1;Museum;Straße 1;Genussgalerie, Cocktails\n');
@@ -30,4 +30,15 @@ test('toCsv supports custom semicolon delimiter', () => {
     const csv = toCsv([{ id: 1, offer: 'A;B' }], ['id', 'offer'], ';');
 
     assert.equal(csv, 'id;offer\n1;"A;B"\n');
+});
+
+test('parseLocalizedNumber accepts decimal commas and decimal points', () => {
+    assert.equal(parseLocalizedNumber('49,15714'), 49.15714);
+    assert.equal(parseLocalizedNumber('10.5484'), 10.5484);
+});
+
+test('parseLocalizedNumber accepts localized grouped numbers', () => {
+    assert.equal(parseLocalizedNumber('1.234,56'), 1234.56);
+    assert.equal(parseLocalizedNumber('1,234.56'), 1234.56);
+    assert.ok(Number.isNaN(parseLocalizedNumber('ungültig')));
 });

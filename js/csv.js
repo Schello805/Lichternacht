@@ -16,6 +16,28 @@ export function toCsv(rows, headers, delimiter = ',') {
     return out.join('\n') + '\n';
 }
 
+export function parseLocalizedNumber(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+
+    let normalized = String(value ?? '')
+        .replace(/[\s\u00A0\u202F]/g, '')
+        .trim();
+    if (!normalized) return NaN;
+
+    const commaIndex = normalized.lastIndexOf(',');
+    const dotIndex = normalized.lastIndexOf('.');
+    if (commaIndex !== -1 && dotIndex !== -1) {
+        normalized = commaIndex > dotIndex
+            ? normalized.replace(/\./g, '').replace(',', '.')
+            : normalized.replace(/,/g, '');
+    } else if (commaIndex !== -1) {
+        normalized = normalized.replace(',', '.');
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 function detectDelimiter(headerLine) {
     const candidates = [',', ';', '\t'];
     const counts = Object.fromEntries(candidates.map(candidate => [candidate, 0]));
