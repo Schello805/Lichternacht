@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.179';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.180';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -436,6 +436,7 @@ export async function locateUser(cb, options = {}) {
         const userLng = Number(pos.coords.longitude);
         const fixTimestamp = Number.isFinite(Number(pos.timestamp)) ? Number(pos.timestamp) : Date.now();
         const isFreshFix = Date.now() - fixTimestamp <= 60000;
+        const hadUserLocation = Boolean(state.userLocation);
         state.userLocation = { lat: userLat, lng: userLng };
         state.gpsAccuracy = Number.isFinite(Number(pos.coords.accuracy)) ? Number(pos.coords.accuracy) : null;
         state.gpsLastFixAt = fixTimestamp;
@@ -469,7 +470,8 @@ export async function locateUser(cb, options = {}) {
         }
 
         if (window.checkProximity) window.checkProximity(userLat, userLng);
-        if (window.refreshStationList) window.refreshStationList();
+        if (!hadUserLocation && window.refreshStationList) window.refreshStationList();
+        else if (window.updateStationDistances) window.updateStationDistances();
         if (window.renderTimeline) window.renderTimeline();
     };
 
@@ -484,7 +486,7 @@ export async function locateUser(cb, options = {}) {
             console.warn('GPS Error', err);
             showToast(message, 'error');
         }
-        if (denied) showLocationPermissionHelp();
+        if (denied && startedFromUserGesture) showLocationPermissionHelp();
     };
 
     const startRelaxedFallback = () => {

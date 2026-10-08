@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.179';
-import * as utils from './utils.js?v=1.4.179';
-import { saveData, deleteData } from './data.js?v=1.4.179';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.179';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.179';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.179';
-import { recordAuditEvent } from './audit.js?v=1.4.179';
-import { normalizeImageUrl } from './image-url.js?v=1.4.179';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.180';
+import * as utils from './utils.js?v=1.4.180';
+import { saveData, deleteData } from './data.js?v=1.4.180';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.180';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.180';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.180';
+import { recordAuditEvent } from './audit.js?v=1.4.180';
+import { normalizeImageUrl } from './image-url.js?v=1.4.180';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -637,14 +637,14 @@ export function renderList(stations) {
             
             distInfo = `
                 <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 font-medium border-t border-gray-100 pt-2 dark:border-gray-700">
-                    <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ph-fill ph-navigation-arrow"></i> ${distStr}</span>
-                    <span class="flex items-center gap-1"><i class="ph-fill ph-person-simple-walk"></i> ca. ${minutes} min</span>
+                    <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ph-fill ph-navigation-arrow"></i> <span data-station-distance>${distStr}</span></span>
+                    <span class="flex items-center gap-1"><i class="ph-fill ph-person-simple-walk"></i> <span data-station-walk-time>ca. ${minutes} min</span></span>
                 </div>
             `;
         }
 
         return `
-        <button type="button" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
+        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
                 ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
@@ -671,6 +671,23 @@ export function renderList(stations) {
             </div>
         </button>
     `}).join('');
+}
+
+export function updateStationDistances() {
+    if (!state.userLocation) return;
+    document.querySelectorAll('#stations-list [data-station-lat][data-station-lng]').forEach(card => {
+        const lat = Number(card.dataset.stationLat);
+        const lng = Number(card.dataset.stationLng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const walkingDistance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng) * 1.3;
+        const distanceLabel = walkingDistance > 1000
+            ? `${(walkingDistance / 1000).toFixed(1)} km`
+            : `${Math.round(walkingDistance)} m`;
+        const distanceElement = card.querySelector('[data-station-distance]');
+        const timeElement = card.querySelector('[data-station-walk-time]');
+        if (distanceElement) distanceElement.textContent = distanceLabel;
+        if (timeElement) timeElement.textContent = `ca. ${Math.ceil(walkingDistance / 80)} min`;
+    });
 }
 
 export function refreshStationList() {
