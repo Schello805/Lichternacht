@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.182';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.182';
-import { toCsv } from './csv.js?v=1.4.182';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.183';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.183';
+import { toCsv } from './csv.js?v=1.4.183';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.182';
-import { recordAuditEvent } from './audit.js?v=1.4.182';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.182';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.183';
+import { recordAuditEvent } from './audit.js?v=1.4.183';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.183';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -652,7 +652,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.182';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.183';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -660,7 +660,7 @@ function loadExcelJs() {
     return excelJsPromise;
 }
 
-function normalizeExcelCellValue(value) {
+function normalizeExcelCellValue(value, fallbackText = '') {
     if (value === null || value === undefined) return '';
     if (value instanceof Date) {
         const hours = String(value.getHours()).padStart(2, '0');
@@ -668,10 +668,19 @@ function normalizeExcelCellValue(value) {
         return `${hours}:${minutes}`;
     }
     if (typeof value === 'object') {
-        if (value.text !== undefined) return String(value.text);
-        if (value.hyperlink !== undefined) return String(value.hyperlink);
-        if (value.result !== undefined) return normalizeExcelCellValue(value.result);
+        if (typeof value.hyperlink === 'string') return value.hyperlink;
+        if (value.hyperlink && typeof value.hyperlink === 'object') {
+            const target = value.hyperlink.target || value.hyperlink.address || value.hyperlink.location;
+            if (typeof target === 'string') return target;
+        }
+        if (typeof value.text === 'string') return value.text;
+        if (value.result !== undefined) return normalizeExcelCellValue(value.result, fallbackText);
         if (Array.isArray(value.richText)) return value.richText.map(part => part.text || '').join('');
+        if (typeof value.formula === 'string') {
+            const hyperlinkMatch = value.formula.match(/^HYPERLINK\(\s*["']([^"']+)["']/i);
+            if (hyperlinkMatch) return hyperlinkMatch[1];
+        }
+        return typeof fallbackText === 'string' && fallbackText !== '[object Object]' ? fallbackText : '';
     }
     return String(value);
 }
@@ -712,7 +721,8 @@ async function readExcelTable(file) {
         let hasValue = false;
         headers.forEach((header, index) => {
             if (!header) return;
-            const value = normalizeExcelCellValue(row.getCell(index + 1).value).trim();
+            const cell = row.getCell(index + 1);
+            const value = normalizeExcelCellValue(cell.value, cell.text).trim();
             item[header] = value;
             if (value) hasValue = true;
         });
@@ -1088,9 +1098,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.182';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.182';
-import { renderList, renderTimeline } from './ui.js?v=1.4.182';
+import { showToast } from './utils.js?v=1.4.183';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.183';
+import { renderList, renderTimeline } from './ui.js?v=1.4.183';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
