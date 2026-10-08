@@ -72,6 +72,13 @@ test('validateStations accepts HTTPS links containing invisible spreadsheet char
     assert.ok(!issues.some(issue => issue.field === 'link'));
 });
 
+test('validateStations rejects Instagram pages as station images', () => {
+    const issues = validateStations([
+        { id: 3, name: 'Station', desc: 'Ort', offer: 'Text', image: 'https://www.instagram.com/la_piccola_romana/?hl=de', lat: 49, lng: 10, tags: [] }
+    ]);
+    assert.ok(issues.some(issue => issue.field === 'image' && issue.message.includes('Instagram')));
+});
+
 test('validateStations checks images, likes, duplicate tags and empty coordinates', () => {
     const issues = validateStations([{
         id: 3,

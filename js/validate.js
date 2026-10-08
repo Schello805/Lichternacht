@@ -27,7 +27,15 @@ function isValidOptionalImage(value) {
     const raw = String(value || '').trim();
     if (!raw) return true;
     if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw)) return true;
-    return isValidOptionalHttpUrl(raw);
+    if (!isValidOptionalHttpUrl(raw)) return false;
+    try {
+        const withProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+        const hostname = new URL(withProtocol).hostname.replace(/^www\./, '').toLowerCase();
+        if (hostname === 'instagram.com' || hostname.endsWith('.instagram.com')) return false;
+    } catch (e) {
+        return false;
+    }
+    return true;
 }
 
 const STATION_OFFER_MAX_LENGTH = 250;
@@ -124,7 +132,7 @@ export function validateStations(stations) {
             issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'link', message: `Link zu lang (max. ${URL_MAX_LENGTH} Zeichen)` });
         }
         if (!isValidOptionalImage(s?.image)) {
-            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'image', message: 'Bild ist weder eine gültige Webadresse noch ein unterstütztes Bild' });
+            issues.push({ severity: 'warn', where: path, label, stationId: idStr || null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'image', message: 'Bild ist keine direkte Bildadresse; Webseiten wie Instagram gehören in die Spalte link' });
         }
         if (s?.likes !== undefined && s?.likes !== null && s?.likes !== '') {
             const likes = toNumber(s.likes);
@@ -182,7 +190,7 @@ export function validateEvents(events, stations = []) {
             issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'link', message: `Link zu lang (max. ${URL_MAX_LENGTH} Zeichen)` });
         }
         if (!isValidOptionalImage(e?.image)) {
-            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'image', message: 'Bild ist weder eine gültige Webadresse noch ein unterstütztes Bild' });
+            issues.push({ severity: 'warn', where: path, label, eventId: idStr || null, field: 'image', message: 'Bild ist keine direkte Bildadresse; Webseiten wie Instagram gehören in die Spalte link' });
         }
 
         if (!isNonEmptyString(e?.loc)) {
