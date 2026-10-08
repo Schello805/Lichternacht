@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.176" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.177" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.176" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.177" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.176">
+    <link rel="stylesheet" href="style.css?v=1.4.177">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -243,9 +243,10 @@
                     aria-label="Darstellung wechseln">
                     <i class="ph ph-moon text-lg sm:text-xl" id="dark-mode-icon"></i>
                 </button>
-                <button onclick="window.requestAdminPage ? window.requestAdminPage() : toggleAdminLogin()" class="text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2"
+                <button onclick="window.requestAdminPage ? window.requestAdminPage() : toggleAdminLogin()" class="relative text-gray-400 hover:text-yellow-600 transition-colors p-1.5 sm:p-2"
                     aria-label="Adminbereich öffnen">
                     <i class="ph ph-lock-key text-lg sm:text-xl" id="lock-icon"></i>
+                    <span id="admin-online-dot" class="hidden absolute right-1 top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-gray-900" title="Admin online" aria-label="Admin online"></span>
                 </button>
             </div>
         </header>
@@ -1287,7 +1288,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.176', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.177', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1314,7 +1315,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.176"></script>
+    <script type="module" src="main.js?v=1.4.177"></script>
 </body>
 
 </html>

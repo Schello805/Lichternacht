@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.176';
-import { loadData } from './data.js?v=1.4.176';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.176';
-import { renderTimeline } from './ui.js?v=1.4.176';
+import { showToast } from './utils.js?v=1.4.177';
+import { loadData } from './data.js?v=1.4.177';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.177';
+import { renderTimeline } from './ui.js?v=1.4.177';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -102,17 +102,20 @@ export async function createNewUser(email, pass) {
 
 export function setAdminState(admin) {
     state.isAdmin = admin;
+    const adminOnlineDot = document.getElementById('admin-online-dot');
     if (state.isAdmin) {
         document.body.classList.add('admin-mode');
         document.getElementById('admin-bar').classList.remove('hidden');
         document.getElementById('lock-icon').classList.replace('ph-lock-key', 'ph-lock-key-open');
         document.getElementById('lock-icon').classList.add('text-green-500');
+        adminOnlineDot?.classList.remove('hidden');
     } else {
         if (window.closeAdminPage) window.closeAdminPage();
         document.body.classList.remove('admin-mode');
         document.getElementById('admin-bar').classList.add('hidden');
         document.getElementById('lock-icon').classList.replace('ph-lock-key-open', 'ph-lock-key');
         document.getElementById('lock-icon').classList.remove('text-green-500');
+        adminOnlineDot?.classList.add('hidden');
     }
     if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
     refreshMapMarkers();
@@ -135,7 +138,6 @@ export function initAuthListener() {
                 setAdminState(false);
                 btn.innerText = "Online";
                 btn.classList.replace('text-gray-500', 'text-green-500');
-                showToast('Online-Modus aktiviert', 'success');
                 await loadData();
                 return;
             }
