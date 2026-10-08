@@ -3,22 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper functions
-    function isSuperAdmin() {
-       return request.auth != null && request.auth.token.email == 'michael@schellenberger.biz';
-    }
-
-    function isAdmin() {
-      // Allow Super Admin OR anyone in the 'users' collection of the CURRENT app (derived from path)
-      return isSuperAdmin() || (
-        request.auth != null && 
-        request.path.size() > 5 &&
-        request.path[3] == 'artifacts' &&
-        exists(/databases/$(database)/documents/artifacts/$(request.path[4])/public/data/users/$(request.auth.uid))
-      );
+    function isGlobalAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/globalAdmins/$(request.auth.uid));
     }
 
     function isAppAdmin(appId) {
-      return isSuperAdmin() || (
+      return isGlobalAdmin() || (
         request.auth != null &&
         exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid))
       );
@@ -31,14 +22,14 @@ service cloud.firestore {
     // Global Config
     match /global/config {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if isGlobalAdmin();
     }
 
     // Global Stats (Champions)
     match /global/stats {
       allow read: if true;
       allow create: if true; // Allow creating if not exists
-      allow update: if isSuperAdmin() || (
+      allow update: if isGlobalAdmin() || (
         // Allow updating stats fields (simplified check)
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['championsCount', 'count_bronze', 'count_silver', 'count_gold', 'count_diamond'])
       );
@@ -49,18 +40,21 @@ service cloud.firestore {
       
       // Users (Admins)
       match /users/{userId} {
-        // Any authenticated user can read the user list (needed for UI) or at least admins
-        allow read: if request.auth != null; 
-        
-        // Only Super Admin can delete/manage users, OR a user can update their own 'lastSeen'
-        allow write: if isSuperAdmin() || (request.auth.uid == userId);
+        allow read: if request.auth != null &&
+          (request.auth.uid == userId || isAppAdmin(appId));
+        allow create, delete: if isGlobalAdmin();
+        allow update: if isGlobalAdmin() || (
+          request.auth != null &&
+          request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen'])
+        );
       }
 
       // Stations
       match /stations/{stationId} {
         allow read: if true;
-        allow create, delete: if isAdmin();
-        allow update: if isAdmin() || (
+        allow create, delete: if isAppAdmin(appId);
+        allow update: if isAppAdmin(appId) || (
           // Allow incrementing likes
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
           isIncrement('likes')
@@ -70,7 +64,7 @@ service cloud.firestore {
       // Events
       match /events/{eventId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAppAdmin(appId);
       }
 
       // Presence (Heartbeat)
@@ -99,23 +93,28 @@ service cloud.firestore {
       }
     }
 
+    match /globalAdmins/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     // Config (Downloads)
     match /artifacts/{appId}/public/config {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAppAdmin(appId);
     }
 
     // Broadcast (Messages)
     match /artifacts/{appId}/public/broadcast {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAppAdmin(appId);
     }
 
     // Reports
     match /artifacts/{appId}/public/reports/{reportId} {
         // Allow all authenticated users (including anonymous auth) to create a report.
         allow create: if request.auth != null;
-        allow read, update, delete: if isAdmin();
+        allow read, update, delete: if isAppAdmin(appId);
     }
   }
 }

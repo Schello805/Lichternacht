@@ -169,6 +169,11 @@ const __firebase_config = JSON.stringify({
 const __app_id = "lichternacht-2025";
 ```
 
+Adminrechte werden nicht anhand einer fest codierten E-Mail vergeben. Der erste globale Admin
+muss nach dem Anlegen des Auth-Nutzers einmalig als Dokument unter
+`globalAdmins/<AUTH_UID>` eingetragen werden. Weitere App-Admins liegen unter
+`artifacts/<APP_ID>/public/data/users/<AUTH_UID>`.
+
 ### 2. Upload auf den Server
 Lade diese Datei manuell (per FTP/SFTP) auf deinen Server.
 
@@ -179,6 +184,7 @@ Stelle sicher, dass in der Firebase Console:
 *   **Authentication:** "Email/Password" und "Anonymous" aktiviert sind.
 *   **Firestore:** Die Datenbank erstellt ist.
 *   **Rules:** Die Regeln aus `firestore.rules` veröffentlicht sind.
+*   **Server-API:** `ADMIN_EMAILS` enthält die erlaubten Admin-E-Mail-Adressen; ohne die Variable bleiben geschützte Server-Endpunkte gesperrt.
 
 ## 📦 Tech Stack
 

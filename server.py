@@ -174,7 +174,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         email = str(users[0].get('email') or '').strip().lower() if users else ''
         allowed = {
             item.strip().lower()
-            for item in os.environ.get('ADMIN_EMAILS', 'michael@schellenberger.biz').split(',')
+            for item in os.environ.get('ADMIN_EMAILS', '').split(',')
             if item.strip()
         }
         return bool(email and email in allowed)

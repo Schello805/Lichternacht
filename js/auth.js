@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.172';
-import { loadData } from './data.js?v=1.4.172';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.172';
-import { renderTimeline } from './ui.js?v=1.4.172';
+import { showToast } from './utils.js?v=1.4.173';
+import { loadData } from './data.js?v=1.4.173';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.173';
+import { renderTimeline } from './ui.js?v=1.4.173';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -143,14 +143,15 @@ export function initAuthListener() {
             // Authenticated Users (Admins)
             const { doc, getDoc, setDoc, serverTimestamp } = state.fb;
             const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', user.uid);
-            
-            // Super Admin Hardcoded Bypass
-            const isSuperAdmin = (user.email === "michael@schellenberger.biz");
+            const globalAdminRef = doc(state.db, 'globalAdmins', user.uid);
             
             try {
-                const userSnap = await getDoc(userRef);
+                const [userSnap, globalAdminSnap] = await Promise.all([
+                    getDoc(userRef),
+                    getDoc(globalAdminRef)
+                ]);
                 
-                if (isSuperAdmin || userSnap.exists()) {
+                if (globalAdminSnap.exists() || userSnap.exists()) {
                     // Valid User -> Update Metadata
                     await setDoc(userRef, {
                         email: user.email,
@@ -177,11 +178,9 @@ export function initAuthListener() {
                 }
             } catch (e) {
                 console.error("Auth Check Error", e);
-                // Fallback for safety
-                if(isSuperAdmin) {
-                     setAdminState(true);
-                     await loadData();
-                }
+                setAdminState(false);
+                await state.fb.signOut(state.auth);
+                showToast("Admin-Berechtigung konnte nicht geprüft werden.", 'error');
             }
 
         } else {

@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.172';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.172';
-import { parseCsv, toCsv } from './csv.js?v=1.4.172';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.173';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.173';
+import { parseCsv, toCsv } from './csv.js?v=1.4.173';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.172';
-import { recordAuditEvent } from './audit.js?v=1.4.172';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.172';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.173';
+import { recordAuditEvent } from './audit.js?v=1.4.173';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.173';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -532,10 +532,7 @@ function renderUserList(users) {
                 <div class="font-bold truncate" title="${u.email}">${u.email}</div>
                 <div class="text-[10px] text-gray-400 truncate">${u.id}</div>
             </div>
-            ${u.email === 'michael@schellenberger.biz' 
-                ? '<span class="text-[10px] bg-blue-100 text-blue-800 px-1 rounded">Super Admin</span>' 
-                : `<button onclick="deleteUser('${u.id}', '${u.email}')" class="text-red-500 hover:bg-red-50 p-1 rounded" title="Löschen"><i class="ph ph-trash"></i></button>`
-            }
+            <button onclick="deleteUser('${u.id}', '${u.email}')" class="text-red-500 hover:bg-red-50 p-1 rounded" title="Löschen"><i class="ph ph-trash"></i></button>
         </div>
     `).join('');
 }
@@ -1020,9 +1017,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.172';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.172';
-import { renderList, renderTimeline } from './ui.js?v=1.4.172';
+import { showToast } from './utils.js?v=1.4.173';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.173';
+import { renderList, renderTimeline } from './ui.js?v=1.4.173';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
