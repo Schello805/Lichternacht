@@ -65,6 +65,13 @@ test('validateStations warns for invalid optional links', () => {
     assert.ok(issues.some(issue => issue.field === 'link'));
 });
 
+test('validateStations accepts HTTPS links containing invisible spreadsheet characters', () => {
+    const issues = validateStations([
+        { id: 3, name: 'Station', desc: 'Ort', offer: 'Text', link: 'https://www.pinselmuseum-bechhofen.de/\u200B', lat: 49, lng: 10, tags: [] }
+    ]);
+    assert.ok(!issues.some(issue => issue.field === 'link'));
+});
+
 test('validateStations checks images, likes, duplicate tags and empty coordinates', () => {
     const issues = validateStations([{
         id: 3,

@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.184';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.184';
-import { toCsv } from './csv.js?v=1.4.184';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.185';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.185';
+import { toCsv } from './csv.js?v=1.4.185';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.184';
-import { recordAuditEvent } from './audit.js?v=1.4.184';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.184';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.185';
+import { recordAuditEvent } from './audit.js?v=1.4.185';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.185';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -652,7 +652,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.184';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.185';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -674,15 +674,19 @@ function normalizeExcelCellValue(value, fallbackText = '') {
             if (typeof target === 'string') return target;
         }
         if (typeof value.text === 'string') return value.text;
-        if (value.result !== undefined) return normalizeExcelCellValue(value.result, fallbackText);
-        if (Array.isArray(value.richText)) return value.richText.map(part => part.text || '').join('');
         if (typeof value.formula === 'string') {
-            const hyperlinkMatch = value.formula.match(/^HYPERLINK\(\s*["']([^"']+)["']/i);
+            const hyperlinkMatch = value.formula.match(/(?:_xlfn\.)?HYPERLINK\(\s*["']([^"']+)["']/i);
             if (hyperlinkMatch) return hyperlinkMatch[1];
         }
+        if (value.result !== undefined) return normalizeExcelCellValue(value.result, fallbackText);
+        if (Array.isArray(value.richText)) return value.richText.map(part => part.text || '').join('');
         return typeof fallbackText === 'string' && fallbackText !== '[object Object]' ? fallbackText : '';
     }
     return String(value);
+}
+
+function normalizeImportedUrl(value) {
+    return String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
 }
 
 async function downloadExcelTable(rows, columns, filename, sheetName) {
@@ -854,13 +858,13 @@ async function importTableGeneric(file, kind) {
                 name: (r.name ?? '').toString().trim(),
                 desc: (r.address ?? '').toString().trim(),
                 offer: (r.offer ?? '').toString().trim(),
-                link: (r.link ?? '').toString().trim(),
-                image: (r.image ?? '').toString().trim(),
+                link: normalizeImportedUrl(r.link),
+                image: normalizeImportedUrl(r.image),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
                 lng: Number.parseFloat((r.lng ?? '').toString().trim()) || 0,
                 tags: normalizeTags(r.tags),
             };
-            const image = (r.image ?? '').toString().trim();
+            const image = normalizeImportedUrl(r.image);
             if (image) station.image = image;
             const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
             station.likes = Number.isFinite(likes) ? Math.max(0, likes) : 0;
@@ -907,8 +911,8 @@ async function importTableGeneric(file, kind) {
                 time: (r.time ?? '').toString().trim(),
                 title: (r.title ?? '').toString().trim(),
                 desc: (r.description ?? '').toString().trim(),
-                link: (r.link ?? '').toString().trim(),
-                image: (r.image ?? '').toString().trim(),
+                link: normalizeImportedUrl(r.link),
+                image: normalizeImportedUrl(r.image),
                 loc: (r.loc ?? '').toString().trim(),
                 stationId: (r.stationId ?? '').toString().trim(),
                 lat: Number.parseFloat((r.lat ?? '').toString().trim()) || 0,
@@ -1113,9 +1117,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.184';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.184';
-import { renderList, renderTimeline } from './ui.js?v=1.4.184';
+import { showToast } from './utils.js?v=1.4.185';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.185';
+import { renderList, renderTimeline } from './ui.js?v=1.4.185';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

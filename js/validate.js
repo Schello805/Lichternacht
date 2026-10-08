@@ -12,7 +12,7 @@ function toNumber(value) {
 }
 
 function isValidOptionalHttpUrl(value) {
-    const raw = String(value || '').trim();
+    const raw = String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
     if (!raw) return true;
     const withProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
     try {

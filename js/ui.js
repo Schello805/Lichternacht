@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.184';
-import * as utils from './utils.js?v=1.4.184';
-import { saveData, deleteData } from './data.js?v=1.4.184';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.184';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.184';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.184';
-import { recordAuditEvent } from './audit.js?v=1.4.184';
-import { normalizeImageUrl } from './image-url.js?v=1.4.184';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.185';
+import * as utils from './utils.js?v=1.4.185';
+import { saveData, deleteData } from './data.js?v=1.4.185';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.185';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.185';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.185';
+import { recordAuditEvent } from './audit.js?v=1.4.185';
+import { normalizeImageUrl } from './image-url.js?v=1.4.185';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -21,7 +21,7 @@ const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
 
 function normalizeExternalLink(value) {
-    const raw = String(value || '').trim();
+    const raw = String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
     if (!raw) return '';
     const withProtocol = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
     try {
