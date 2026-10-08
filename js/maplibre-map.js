@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.180';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.181';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -364,7 +364,7 @@ export function refreshMapMarkers() {
 }
 
 export async function resumeGrantedLocation() {
-    if (!navigator.geolocation || state.userLocation) return false;
+    if (!navigator.geolocation || navigator.webdriver || state.userLocation) return false;
 
     const isMobile = window.matchMedia?.('(pointer: coarse)').matches === true
         || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
