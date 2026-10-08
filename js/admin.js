@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.186';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.186';
-import { toCsv } from './csv.js?v=1.4.186';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.187';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.187';
+import { parseCsv, toCsv } from './csv.js?v=1.4.187';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.186';
-import { recordAuditEvent } from './audit.js?v=1.4.186';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.186';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.187';
+import { recordAuditEvent } from './audit.js?v=1.4.187';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.187';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -390,6 +390,8 @@ function fillAdminPanel() {
     document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
     document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
     document.getElementById('admin-planning-text').value = state.config.planningText || '';
+    const googleSheetInput = document.getElementById('admin-google-sheet-url');
+    if (googleSheetInput) googleSheetInput.value = state.config.googleSheetUrl || '';
 
     document.getElementById('admin-tracking-code').value = state.config.trackingCode || '';
 
@@ -652,7 +654,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.186';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.187';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -689,9 +691,7 @@ function normalizeImportedUrl(value) {
     return String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
 }
 
-async function downloadExcelTable(rows, columns, filename, sheetName) {
-    const ExcelJS = await loadExcelJs();
-    const workbook = new ExcelJS.Workbook();
+function addExcelWorksheet(workbook, rows, columns, sheetName) {
     const worksheet = workbook.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 1 }] });
     worksheet.columns = columns.map(key => ({
         header: key,
@@ -712,6 +712,9 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
     worksheet.autoFilter = { from: 'A1', to: `${worksheet.getColumn(columns.length).letter}1` };
+}
+
+async function downloadExcelWorkbook(workbook, filename) {
     const buffer = await workbook.xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const link = document.createElement('a');
@@ -719,6 +722,28 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+}
+
+async function downloadExcelTable(rows, columns, filename, sheetName) {
+    const ExcelJS = await loadExcelJs();
+    const workbook = new ExcelJS.Workbook();
+    addExcelWorksheet(workbook, rows, columns, sheetName);
+    await downloadExcelWorkbook(workbook, filename);
+}
+
+function getStationTableRows() {
+    return (state.stations || []).map(s => ({
+        id: s.id ?? '', name: s.name ?? '', address: s.desc ?? '', offer: s.offer ?? '', link: s.link ?? '',
+        lat: s.lat ?? '', lng: s.lng ?? '', tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
+        image: s.image ?? '', likes: s.likes ?? ''
+    }));
+}
+
+function getEventTableRows() {
+    return (state.events || []).map(e => ({
+        id: e.id ?? '', time: e.time ?? '', title: e.title ?? '', description: e.desc ?? '', link: e.link ?? '',
+        image: e.image ?? '', loc: e.loc ?? '', stationId: e.stationId ?? '', lat: e.lat ?? '', lng: e.lng ?? '', color: e.color ?? ''
+    }));
 }
 
 async function readExcelTable(file, expectedColumns) {
@@ -769,18 +794,7 @@ function refreshAfterTableImport() {
 
 export async function exportStationsTable() {
     renderAdminDataTables();
-    const rows = (state.stations || []).map(s => ({
-        id: s.id ?? '',
-        name: s.name ?? '',
-        address: s.desc ?? '',
-        offer: s.offer ?? '',
-        link: s.link ?? '',
-        lat: s.lat ?? '',
-        lng: s.lng ?? '',
-        tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
-        image: s.image ?? '',
-        likes: s.likes ?? ''
-    }));
+    const rows = getStationTableRows();
     await downloadExcelTable(rows, STATION_TABLE_COLUMNS, 'stationen.xlsx', 'Stationen');
     showToast('stationen.xlsx heruntergeladen', 'success');
 }
@@ -803,21 +817,23 @@ export async function downloadStationsTableTemplate() {
 
 export async function exportEventsTable() {
     renderAdminDataTables();
-    const rows = (state.events || []).map(e => ({
-        id: e.id ?? '',
-        time: e.time ?? '',
-        title: e.title ?? '',
-        description: e.desc ?? '',
-        link: e.link ?? '',
-        image: e.image ?? '',
-        loc: e.loc ?? '',
-        stationId: e.stationId ?? '',
-        lat: e.lat ?? '',
-        lng: e.lng ?? '',
-        color: e.color ?? ''
-    }));
+    const rows = getEventTableRows();
     await downloadExcelTable(rows, EVENT_TABLE_COLUMNS, 'programm.xlsx', 'Programm');
     showToast('programm.xlsx heruntergeladen', 'success');
+}
+
+export async function exportGoogleSheetsWorkbook() {
+    try {
+        const ExcelJS = await loadExcelJs();
+        const workbook = new ExcelJS.Workbook();
+        addExcelWorksheet(workbook, getStationTableRows(), STATION_TABLE_COLUMNS, 'Stationen');
+        addExcelWorksheet(workbook, getEventTableRows(), EVENT_TABLE_COLUMNS, 'Programm');
+        await downloadExcelWorkbook(workbook, 'lichternacht-google-sheets.xlsx');
+        showToast('Gesamttabelle für Google Sheets heruntergeladen', 'success');
+    } catch (error) {
+        console.error(error);
+        showToast(`Export fehlgeschlagen: ${error.message}`, 'error');
+    }
 }
 
 export async function downloadEventsTableTemplate() {
@@ -841,9 +857,18 @@ async function importTableGeneric(file, kind) {
     if (!file) throw new Error('Bitte zuerst eine XLSX-Datei auswählen.');
     const columns = kind === 'stations' ? STATION_TABLE_COLUMNS : EVENT_TABLE_COLUMNS;
     const rows = await readExcelTable(file, columns);
+    return importRowsGeneric(rows, kind);
+}
+
+async function importRowsGeneric(rows, kind, options = {}) {
     if (!rows.length) {
-        showToast('Die Tabelle ist leer oder ungültig.', 'error');
-        return;
+        throw new Error(`${kind === 'stations' ? 'Stationen' : 'Programm'} ist leer oder ungültig.`);
+    }
+    const expectedColumns = kind === 'stations' ? STATION_TABLE_COLUMNS : EVENT_TABLE_COLUMNS;
+    const availableColumns = Object.keys(rows[0] || {});
+    const missingColumns = expectedColumns.filter(column => !availableColumns.includes(column));
+    if (missingColumns.length) {
+        throw new Error(`${kind === 'stations' ? 'Stationen' : 'Programm'}: fehlende Spalten ${missingColumns.join(', ')}`);
     }
 
     if (kind === 'stations') {
@@ -890,6 +915,7 @@ async function importTableGeneric(file, kind) {
             throw new Error(`Tabelle hat ${errors.length} Fehler. Bitte erst Datencheck/Vorlage nutzen. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
         }
         const warnings = issues.filter(issue => issue.severity === 'warn');
+        if (options.dryRun) return { mapped, warnings };
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
         if (!confirm(`Tabelle importieren? ${mapped.length} Stationen werden gespeichert/überschrieben.${warningText}`)) return;
@@ -931,6 +957,7 @@ async function importTableGeneric(file, kind) {
             throw new Error(`Tabelle hat ${errors.length} Fehler. Erstes Problem: ${errors[0].label} – ${errors[0].message}`);
         }
         const warnings = issues.filter(issue => issue.severity === 'warn');
+        if (options.dryRun) return { mapped, warnings };
         const warningText = warnings.length > 0 ? `\n\nHinweise: ${warnings.length} Warnung(en), z.B. ${warnings[0].label} – ${warnings[0].message}` : '';
 
         if (!confirm(`Tabelle importieren? ${mapped.length} Events werden gespeichert/überschrieben.${warningText}`)) return;
@@ -942,6 +969,97 @@ async function importTableGeneric(file, kind) {
         showToast('Events importiert', 'success');
         recordAuditEvent('admin_table_import', { itemType: 'events', count: mapped.length }, { role: 'admin' });
         return;
+    }
+}
+
+function getGoogleSheetId(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,100})/);
+    return match ? match[1] : '';
+}
+
+async function saveGoogleSheetUrl(url) {
+    const config = { googleSheetUrl: String(url || '').trim() };
+    if (state.useLocalStorage) {
+        const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+        localStorage.setItem('app_config', JSON.stringify({ ...old, ...config }));
+    } else {
+        const { doc, setDoc } = state.fb;
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+    }
+    state.config = { ...(state.config || {}), ...config };
+}
+
+export async function saveGoogleSheetsConfig() {
+    const input = document.getElementById('admin-google-sheet-url');
+    const url = input?.value || '';
+    if (url && !getGoogleSheetId(url)) {
+        showToast('Bitte einen vollständigen Google-Sheets-Link eintragen.', 'error');
+        return;
+    }
+    try {
+        await saveGoogleSheetUrl(url);
+        showToast(url ? 'Google-Sheets-Link gespeichert' : 'Google-Sheets-Link entfernt', 'success');
+    } catch (error) {
+        console.error(error);
+        showToast('Google-Sheets-Link konnte nicht gespeichert werden.', 'error');
+    }
+}
+
+async function fetchGoogleSheetRows(sheetId, sheetName, token) {
+    const response = await fetch(`./api/google-sheet?id=${encodeURIComponent(sheetId)}&sheet=${encodeURIComponent(sheetName)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+    });
+    const body = await response.text();
+    if (!response.ok) {
+        let message = body;
+        try { message = JSON.parse(body).error || body; } catch (error) { }
+        throw new Error(message || `${sheetName} konnte nicht geladen werden.`);
+    }
+    return parseCsv(body);
+}
+
+export async function syncGoogleSheets() {
+    const input = document.getElementById('admin-google-sheet-url');
+    const url = String(input?.value || state.config.googleSheetUrl || '').trim();
+    const sheetId = getGoogleSheetId(url);
+    if (!sheetId) {
+        showToast('Bitte zuerst einen gültigen Google-Sheets-Link eintragen.', 'error');
+        return;
+    }
+    const currentUser = state.auth?.currentUser;
+    if (!currentUser || currentUser.isAnonymous) {
+        showToast('Bitte zuerst als Admin anmelden.', 'error');
+        return;
+    }
+    const button = document.getElementById('admin-google-sheet-sync');
+    if (button) button.disabled = true;
+    try {
+        const token = await currentUser.getIdToken();
+        const [stationRows, eventRows] = await Promise.all([
+            fetchGoogleSheetRows(sheetId, 'Stationen', token),
+            fetchGoogleSheetRows(sheetId, 'Programm', token)
+        ]);
+        const stations = await importRowsGeneric(stationRows, 'stations', { dryRun: true });
+        const events = await importRowsGeneric(eventRows, 'events', { dryRun: true });
+        const warningCount = stations.warnings.length + events.warnings.length;
+        const warningText = warningCount ? `\n\nDer Datencheck meldet ${warningCount} Hinweis(e).` : '';
+        if (!confirm(`Google Sheet synchronisieren? ${stations.mapped.length} Stationen und ${events.mapped.length} Programmpunkte werden gespeichert/überschrieben.${warningText}`)) return;
+        downloadAutomaticBackup('Vor Google-Sheets-Synchronisierung');
+        for (const station of stations.mapped) await saveData('station', station);
+        for (const event of events.mapped) await saveData('event', event);
+        state.stations = mergeImportedItems(state.stations, stations.mapped);
+        state.events = mergeImportedItems(state.events, events.mapped);
+        await saveGoogleSheetUrl(url);
+        refreshAfterTableImport();
+        recordAuditEvent('admin_table_import', { itemType: 'google_sheets', stationCount: stations.mapped.length, eventCount: events.mapped.length }, { role: 'admin' });
+        showToast('Google Sheet erfolgreich synchronisiert', 'success');
+    } catch (error) {
+        console.error(error);
+        showToast(`Synchronisierung fehlgeschlagen: ${error.message}`, 'error');
+    } finally {
+        if (button) button.disabled = false;
     }
 }
 
@@ -1117,9 +1235,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.186';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.186';
-import { renderList, renderTimeline } from './ui.js?v=1.4.186';
+import { showToast } from './utils.js?v=1.4.187';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.187';
+import { renderList, renderTimeline } from './ui.js?v=1.4.187';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

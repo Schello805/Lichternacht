@@ -381,6 +381,12 @@ test('event image endpoint rejects unauthenticated uploads', async ({ request })
     await expect(response.json()).resolves.toMatchObject({ ok: false });
 });
 
+test('Google Sheets synchronization endpoint requires an admin token', async ({ request }) => {
+    const response = await request.get('/api/google-sheet?id=12345678901234567890&sheet=Stationen');
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ error: 'Admin-Anmeldung ungültig' });
+});
+
 test('system metrics are protected and visible only in admin UI', async ({ request, page }) => {
     const response = await request.get('/api/system-metrics');
     expect(response.status()).toBe(403);

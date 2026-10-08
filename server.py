@@ -355,6 +355,33 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/google-sheet':
+            if not self._verify_admin_token():
+                return self._send_json(401, {'error': 'Admin-Anmeldung ungültig'})
+            params = urllib.parse.parse_qs(parsed_path.query)
+            sheet_id = str((params.get('id') or [''])[0]).strip()
+            sheet_name = str((params.get('sheet') or [''])[0]).strip()
+            if not re.fullmatch(r'[A-Za-z0-9_-]{20,100}', sheet_id) or not sheet_name or len(sheet_name) > 80:
+                return self._send_json(400, {'error': 'Google-Sheets-Link oder Tabellenblatt ungültig'})
+            source_url = (
+                'https://docs.google.com/spreadsheets/d/' + urllib.parse.quote(sheet_id, safe='') +
+                '/gviz/tq?tqx=out:csv&sheet=' + urllib.parse.quote(sheet_name, safe='')
+            )
+            request = urllib.request.Request(source_url, headers={'User-Agent': 'Lichternacht-Sync/1.0'})
+            try:
+                with urllib.request.urlopen(request, timeout=15) as response:
+                    csv_data = response.read(2_000_000)
+            except (urllib.error.URLError, urllib.error.HTTPError):
+                return self._send_json(502, {'error': 'Google Sheet nicht erreichbar. Bitte im Web veröffentlichen.'})
+            if csv_data.lstrip().lower().startswith((b'<!doctype', b'<html')):
+                return self._send_json(502, {'error': 'Google liefert keine Tabelle. Bitte das Sheet im Web veröffentlichen.'})
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/csv; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            self.wfile.write(csv_data)
+            return
         if self.path.split('?', 1)[0] == '/api/system-metrics':
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
