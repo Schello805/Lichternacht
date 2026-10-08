@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.175';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.176';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -349,6 +349,18 @@ export function refreshMapMarkers() {
     updateMarkerClusters();
 }
 
+export async function resumeGrantedLocation() {
+    if (!navigator.geolocation || !navigator.permissions?.query || state.userLocation) return false;
+    try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        if (permission.state !== 'granted') return false;
+        await locateUser(() => {}, { userInitiated: false, forceCenter: false });
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 export async function locateUser(cb, options = {}) {
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
@@ -365,7 +377,7 @@ export async function locateUser(cb, options = {}) {
         if (requestToken !== state.gpsRequestToken) return;
     }
 
-    const forceCenter = !cb;
+    const forceCenter = options.forceCenter === true || (!cb && options.forceCenter !== false);
     const context = { requestToken, forceCenter, centerApplied: false, cb, cbCalled: false, hasFix: false, watchStarted: false, denied: false };
 
     clearGpsWatch();
