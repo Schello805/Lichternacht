@@ -1,9 +1,10 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.193';
+const CACHE_NAME = 'lichternacht-v1.4.194';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
 const FONT_CACHE = 'google-fonts';
+const MAP_CACHE = 'map-tiles';
 
 function isFirebaseOrGoogleApi(url) {
     return url.href.includes('firestore.googleapis.com') ||
@@ -63,6 +64,20 @@ if (workbox) {
             cacheName: FONT_CACHE,
         })
     );
+
+    workbox.routing.registerRoute(
+        ({ url }) => url.hostname.endsWith('openfreemap.org') || url.hostname.endsWith('openstreetmap.org'),
+        new workbox.strategies.CacheFirst({
+            cacheName: MAP_CACHE,
+            plugins: [
+                new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 300,
+                    maxAgeSeconds: 7 * 24 * 60 * 60,
+                }),
+            ],
+        })
+    );
 } else {
     console.log(`Boo! Workbox didn't load grimacing`);
 }
@@ -82,7 +97,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (![STATIC_CACHE, IMAGE_CACHE, FONT_CACHE].includes(cacheName)) {
+                    if (![STATIC_CACHE, IMAGE_CACHE, FONT_CACHE, MAP_CACHE].includes(cacheName)) {
                         console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }

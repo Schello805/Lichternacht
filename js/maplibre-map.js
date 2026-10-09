@@ -1,10 +1,22 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.193';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.194';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
     dark: 'https://tiles.openfreemap.org/styles/dark'
+};
+const FALLBACK_RASTER_STYLE = {
+    version: 8,
+    sources: {
+        'fallback-osm': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap-Mitwirkende'
+        }
+    },
+    layers: [{ id: 'fallback-osm', type: 'raster', source: 'fallback-osm' }]
 };
 const ROUTE_SOURCE_ID = 'active-route';
 const ROUTE_LAYER_ID = 'active-route-line';
@@ -17,6 +29,8 @@ let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
 let gpsFallbackTimer = null;
 let proximityCleanupToken = 0;
+let usingFallbackStyle = false;
+let mapFallbackTimer = null;
 
 function getValidCoordinates(lat, lng) {
     const latitude = Number(lat);
@@ -243,6 +257,19 @@ export function initMap() {
     state.map.touchZoomRotate.disableRotation();
     state.map.on('style.load', restoreMapOverlays);
     state.map.on('moveend', updateMarkerClusters);
+    state.map.on('error', () => applyFallbackMapStyle());
+    mapFallbackTimer = window.setTimeout(() => {
+        if (!state.map?.areTilesLoaded?.()) applyFallbackMapStyle();
+    }, 8000);
+}
+
+function applyFallbackMapStyle() {
+    if (!state.map || usingFallbackStyle) return;
+    usingFallbackStyle = true;
+    if (mapFallbackTimer) window.clearTimeout(mapFallbackTimer);
+    mapFallbackTimer = null;
+    state.map.setStyle(FALLBACK_RASTER_STYLE);
+    showToast('Die Karte wurde im Basismodus geladen.', 'info');
 }
 
 function clearClusterMarkers() {
@@ -290,6 +317,10 @@ function updateMarkerClusters() {
 export function updateMapTiles(isDark) {
     if (!state.map) return;
     console.log('Update Map Tiles:', isDark ? 'DARK' : 'LIGHT');
+    if (usingFallbackStyle) {
+        state.map.setStyle(FALLBACK_RASTER_STYLE);
+        return;
+    }
     state.map.setStyle(isDark ? MAP_STYLES.dark : MAP_STYLES.light);
 }
 

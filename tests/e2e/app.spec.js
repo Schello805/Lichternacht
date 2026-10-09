@@ -80,6 +80,15 @@ test('vector map renders stations without an API-key warning', async ({ page }) 
     await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenStreetMap');
 });
 
+test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {
+    await page.route('https://tiles.openfreemap.org/**', route => route.abort());
+    await page.goto('/index.html');
+
+    await expect.poll(() => page.evaluate(() => Boolean(window.state.map.getSource('fallback-osm')))).toBe(true);
+    await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+    await expect(page.locator('.maplibregl-marker .station-pin')).not.toHaveCount(0);
+});
+
 test('vector map ignores stations with invalid coordinates without crashing', async ({ page }) => {
     await page.goto('/index.html');
     const markerCount = await page.locator('.maplibregl-marker .station-pin').count();
