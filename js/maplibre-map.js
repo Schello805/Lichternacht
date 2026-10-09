@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.192';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.193';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -366,33 +366,14 @@ export function refreshMapMarkers() {
 export async function resumeGrantedLocation() {
     if (!navigator.geolocation || navigator.webdriver || state.userLocation) return false;
 
-    const isMobile = window.matchMedia?.('(pointer: coarse)').matches === true
-        || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const startupRequestKey = 'lichternacht-location-requested';
-    let requestedThisSession = false;
-    try {
-        requestedThisSession = sessionStorage.getItem(startupRequestKey) === '1';
-    } catch (error) { }
-
     try {
         const permission = navigator.permissions?.query
             ? await navigator.permissions.query({ name: 'geolocation' })
             : null;
-        const shouldRequest = permission?.state === 'granted'
-            || (isMobile && permission?.state !== 'denied' && !requestedThisSession);
-        if (!shouldRequest) return false;
-
-        if (permission?.state !== 'granted') {
-            try { sessionStorage.setItem(startupRequestKey, '1'); } catch (error) { }
-        }
+        if (permission?.state !== 'granted') return false;
         await locateUser(() => {}, { userInitiated: false, forceCenter: false });
         return true;
     } catch (error) {
-        if (isMobile && !requestedThisSession) {
-            try { sessionStorage.setItem(startupRequestKey, '1'); } catch (storageError) { }
-            await locateUser(() => {}, { userInitiated: false, forceCenter: false });
-            return true;
-        }
         return false;
     }
 }

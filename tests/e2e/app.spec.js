@@ -119,6 +119,31 @@ test('GPS watch centers once and then allows free map movement', async ({ page, 
     expect(centerAfterGpsUpdate[1]).toBeCloseTo(manuallySelectedCenter[1], 4);
 });
 
+test('startup and tab changes do not trigger a new GPS permission prompt', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__gpsRequests = 0;
+        Object.defineProperty(navigator, 'permissions', {
+            configurable: true,
+            value: { query: async () => ({ state: 'prompt' }) }
+        });
+        Object.defineProperty(navigator, 'geolocation', {
+            configurable: true,
+            value: {
+                getCurrentPosition: () => { window.__gpsRequests += 1; },
+                watchPosition: () => { window.__gpsRequests += 1; return 1; },
+                clearWatch: () => {}
+            }
+        });
+    });
+
+    await page.goto('/index.html');
+    await page.locator('#nav-events').click();
+    await page.locator('#nav-list').click();
+    await page.locator('#nav-map').click();
+
+    await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(0);
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
