@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.189" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.190" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.189" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.190" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.189">
+    <link rel="stylesheet" href="style.css?v=1.4.190">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -948,9 +948,9 @@
                             <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
                         </div>
                         <button id="modal-link-btn" type="button"
-                            class="hidden w-full mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 items-center justify-center gap-2 active:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
-                            title="Webseite oder Angebot öffnen" aria-label="Webseite oder Angebot öffnen">
-                            <i class="ph ph-link text-lg"></i><span>Webseite / Angebot öffnen</span>
+                            class="hidden w-fit ml-auto mb-3 rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-xs font-medium text-gray-500 items-center justify-center gap-1.5 active:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:active:bg-gray-800"
+                            title="Webseite öffnen" aria-label="Webseite öffnen">
+                            <i class="ph ph-link text-base"></i><span>Webseite</span>
                         </button>
                         <div class="grid grid-cols-3 gap-2 mt-4">
                             <button onclick="shareStation(window.activeStationId)"
@@ -1299,7 +1299,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.189', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.190', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1326,7 +1326,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.189"></script>
+    <script type="module" src="main.js?v=1.4.190"></script>
 </body>
 
 </html>
