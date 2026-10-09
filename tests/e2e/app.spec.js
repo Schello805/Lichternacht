@@ -32,6 +32,21 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('mobile station modal shows its image and subtle website link', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.stations[0].image = '/icon.png';
+        window.state.stations[0].link = 'https://example.com/station';
+        window.renderList(window.state.stations);
+    });
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').first().click();
+
+    await expect(page.locator('#modal-image-container img')).toBeVisible();
+    await expect(page.locator('#modal-link-btn')).toBeVisible();
+    await expect(page.locator('#modal-link-btn')).toHaveText(/Webseite/);
+});
+
 test('station modal supports swipe-down and favorite vibration feedback', async ({ page }) => {
     await page.addInitScript(() => {
         window.__vibrationCalls = [];

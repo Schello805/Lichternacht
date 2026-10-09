@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.191';
+import { showToast } from './utils.js?v=1.4.192';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.191';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.192';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -68,6 +68,10 @@ function renderLoadedData() {
     if (window.checkPlanningMode) window.checkPlanningMode();
     if (window.updateVisitorStartCard) window.updateVisitorStartCard();
     if (window.updateHeaderCountdown) window.updateHeaderCountdown();
+    const detailModal = document.getElementById('detail-modal');
+    if (state.activeStationId != null && detailModal && !detailModal.classList.contains('hidden') && window.openStation) {
+        window.openStation(state.activeStationId);
+    }
 }
 
 export function hydrateVisitorDataCache() {
@@ -173,10 +177,10 @@ export async function loadData() {
             }
             persistVisitorDataCache();
         } catch (e) {
-            console.warn("Firestore load failed (CORS/Offline?), falling back to seed data.", e);
+            console.warn("Firestore load failed (CORS/Offline?), keeping cached data.", e);
             showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
-            state.stations = seedStations;
-            state.events = seedEvents;
+            if (!Array.isArray(state.stations) || !state.stations.length) state.stations = [...seedStations];
+            if (!Array.isArray(state.events) || !state.events.length) state.events = [...seedEvents];
         }
     }
     renderLoadedData();
