@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.190" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.191" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.190" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.191" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.190">
+    <link rel="stylesheet" href="style.css?v=1.4.191">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -894,7 +894,7 @@
                 <div id="modal-image-container" class="w-full hidden relative"></div>
                 <div id="modal-drag-handle" class="w-16 h-6 mx-auto mt-1 mb-1 cursor-grab" aria-label="Fenster nach unten wischen"></div>
 
-                <div class="p-6 pt-0">
+                <div class="p-4 pt-0 sm:p-6 sm:pt-0">
                     <!-- View Mode -->
                     <div id="modal-view-mode">
                         <div class="flex justify-between items-start mb-2 relative z-10">
@@ -916,7 +916,7 @@
                             <div class="min-w-0 flex-1">
                                 <h2 id="modal-title" class="text-xl font-bold text-gray-900 mb-1 brand-font">Titel</h2>
                                 <p id="modal-subtitle"
-                                    class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-4">Untertitel
+                                    class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-3">Untertitel
                                 </p>
                             </div>
                             <div class="shrink-0 flex items-center gap-3 border-l border-gray-200 pl-3 dark:border-gray-600">
@@ -944,15 +944,15 @@
                         <p class="text-center text-xs text-gray-400 italic mb-4">Sammle Stationen für deinen
                             Lichter-Pass (GPS erforderlich).</p>
 
-                        <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
-                            <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed">Beschreibung...</p>
+                        <div class="bg-gray-50 p-3 rounded-lg mb-3 border border-gray-100 dark:border-gray-700 dark:bg-gray-800/50">
+                            <p id="modal-desc" class="text-gray-700 text-sm leading-relaxed dark:text-gray-200">Beschreibung...</p>
+                            <button id="modal-link-btn" type="button"
+                                class="hidden w-fit ml-auto mt-2 rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 items-center justify-center gap-1.5 active:bg-gray-100 dark:text-gray-400 dark:active:bg-gray-700"
+                                title="Webseite öffnen" aria-label="Webseite öffnen">
+                                <i class="ph ph-link text-sm"></i><span>Webseite</span>
+                            </button>
                         </div>
-                        <button id="modal-link-btn" type="button"
-                            class="hidden w-fit ml-auto mb-3 rounded-lg border border-gray-200 bg-transparent px-3 py-2 text-xs font-medium text-gray-500 items-center justify-center gap-1.5 active:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:active:bg-gray-800"
-                            title="Webseite öffnen" aria-label="Webseite öffnen">
-                            <i class="ph ph-link text-base"></i><span>Webseite</span>
-                        </button>
-                        <div class="grid grid-cols-3 gap-2 mt-4">
+                        <div class="grid grid-cols-3 gap-2 mt-3">
                             <button onclick="shareStation(window.activeStationId)"
                                 class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold py-3 px-2 rounded-lg flex flex-col items-center justify-center gap-1 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] leading-tight"><i
                                     class="ph ph-share-network text-lg"></i><span>Teilen</span></button>
@@ -1299,7 +1299,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.190', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.191', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1326,7 +1326,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.190"></script>
+    <script type="module" src="main.js?v=1.4.191"></script>
 </body>
 
 </html>
