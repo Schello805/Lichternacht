@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.197';
-import * as utils from './utils.js?v=1.4.197';
-import { saveData, deleteData } from './data.js?v=1.4.197';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.197';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.197';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.197';
-import { recordAuditEvent } from './audit.js?v=1.4.197';
-import { normalizeImageUrl } from './image-url.js?v=1.4.197';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.198';
+import * as utils from './utils.js?v=1.4.198';
+import { saveData, deleteData } from './data.js?v=1.4.198';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.198';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.198';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.198';
+import { recordAuditEvent } from './audit.js?v=1.4.198';
+import { normalizeImageUrl } from './image-url.js?v=1.4.198';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -401,21 +401,28 @@ export function checkPlanningMode() {
     if (mode === true || mode === 'true' || mode === 'on' || mode === 1) {
         isActive = true;
     }
-    console.log("checkPlanningMode isActive:", isActive);
+    const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
+    const configuredEventWindow = utils.getConfiguredEventWindow?.();
+    const planningSignature = JSON.stringify({
+        text,
+        date: configuredEventWindow?.dateKey || '',
+        start: configuredEventWindow?.startTime || '',
+        end: configuredEventWindow?.endTime || ''
+    });
 
-    // 2. Remove EXISTING banner (static or dynamic) to ensure clean slate
     const existing = document.getElementById('planning-banner');
+    if (existing && isActive && existing.dataset.planningSignature === planningSignature) return;
     if (existing) {
         if (existing._countdownInterval) window.clearInterval(existing._countdownInterval);
         existing.remove();
     }
 
-    // 3. If NOT active, we are done (banner removed above)
     if (!isActive) return;
+    if (sessionStorage.getItem('planning_banner_dismissed_v1') === planningSignature) return;
 
-    // 4. Create NEW Dynamic Banner (Robuste Methode)
     const overlay = document.createElement('div');
     overlay.id = 'planning-banner';
+    overlay.dataset.planningSignature = planningSignature;
     overlay.style.cssText = `
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -430,8 +437,6 @@ export function checkPlanningMode() {
         transition: opacity 0.3s ease-out;
     `;
 
-    const text = state.config.planningText || "Die nächste Lichternacht ist in Planung. Die hier gezeigten Daten sind noch vom letzten Jahr.";
-    const configuredEventWindow = utils.getConfiguredEventWindow?.();
     const initialCountdown = utils.formatPlanningCountdown?.(configuredEventWindow) || '';
 
     const isDark = document.documentElement.classList.contains('dark');
@@ -551,6 +556,9 @@ export function checkPlanningMode() {
 export function closePlanningBanner() {
     const banner = document.getElementById('planning-banner');
     if (banner) {
+        if (banner.dataset.planningSignature) {
+            sessionStorage.setItem('planning_banner_dismissed_v1', banner.dataset.planningSignature);
+        }
         if (banner._countdownInterval) window.clearInterval(banner._countdownInterval);
         banner.remove();
     }

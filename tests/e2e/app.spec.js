@@ -332,6 +332,27 @@ test('planning popup shows countdown only when an event date is configured', asy
     await expect(page.locator('#planning-countdown')).toHaveCount(0);
 });
 
+test('dismissed planning popup stays closed during data refreshes', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.config.planningMode = true;
+        window.state.config.planningText = 'Neue Planung läuft';
+        window.checkPlanningMode();
+    });
+    await expect(page.locator('#planning-banner')).toBeVisible();
+    await page.getByRole('button', { name: 'Verstanden' }).click();
+    await expect(page.locator('#planning-banner')).toHaveCount(0);
+
+    await page.evaluate(() => window.checkPlanningMode());
+    await expect(page.locator('#planning-banner')).toHaveCount(0);
+
+    await page.evaluate(() => {
+        window.state.config.planningText = 'Planung wurde aktualisiert';
+        window.checkPlanningMode();
+    });
+    await expect(page.locator('#planning-banner')).toBeVisible();
+});
+
 test('location marker stays visible above stations and follows GPS updates', async ({ context, page }) => {
     await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:8000' });
     await context.setGeolocation({ latitude: 49.15714, longitude: 10.5484, accuracy: 12 });
