@@ -48,6 +48,20 @@ test('mobile station modal shows its image and subtle website link', async ({ pa
     await expect(page.locator('#modal-link-btn')).toHaveText(/Webseite/);
 });
 
+test('long station names do not overlap rating actions', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.stations[0].name = 'INTEGRATIONSKEGELCLUB PUDEL';
+        window.openStation(window.state.stations[0].id);
+    });
+    const boxes = await page.evaluate(() => {
+        const title = document.getElementById('modal-title').getBoundingClientRect();
+        const actions = document.getElementById('modal-rating-actions').getBoundingClientRect();
+        return { titleRight: title.right, actionsLeft: actions.left };
+    });
+    expect(boxes.titleRight).toBeLessThanOrEqual(boxes.actionsLeft);
+});
+
 test('station modal supports swipe-down and favorite vibration feedback', async ({ page }) => {
     await page.addInitScript(() => {
         window.__vibrationCalls = [];
