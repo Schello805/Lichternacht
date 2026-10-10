@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.194';
-import * as utils from './js/utils.js?v=1.4.194';
+import { shareStation, showToast } from './js/utils.js?v=1.4.197';
+import * as utils from './js/utils.js?v=1.4.197';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.194';
-import { hydrateVisitorDataCache, loadData, syncGlobalConfig } from './js/data.js?v=1.4.194';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.194';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.194';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers } from './js/maplibre-map.js?v=1.4.197';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.197';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.197';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.197';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,17 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.194';
+} from './js/ui.js?v=1.4.197';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability
-} from './js/admin.js?v=1.4.194';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.194';
-import { recordAuditEvent } from './js/audit.js?v=1.4.194';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.194';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.194';
+} from './js/admin.js?v=1.4.197';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.197';
+import { recordAuditEvent } from './js/audit.js?v=1.4.197';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.197';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.197';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.197';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.194";
+const APP_VERSION = "1.4.197";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1165,6 +1166,19 @@ if (!window.__miniTourPromptHandlerBound) {
 }
 
 initPwaInstall(showToast);
+initOfflineSync();
+const startedWithoutNetwork = !navigator.onLine;
+window.addEventListener('online', () => {
+    if (startedWithoutNetwork && state.useLocalStorage) {
+        window.location.reload();
+        return;
+    }
+    refreshVisitorDataIfStale(0);
+});
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshVisitorDataIfStale();
+});
+window.setInterval(() => refreshVisitorDataIfStale(), 60000);
 window.triggerPwaInstall = () => triggerPwaInstall(showToast);
 
 window.restartMiniTour = () => {
@@ -1503,6 +1517,7 @@ window.onload = async () => {
         
         // 2. Sync Config (might override App ID)
         await syncGlobalConfig();
+        await flushOfflineActions();
         console.log("Using Final App ID:", state.appId);
 
         // 3. Init Listeners

@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.194" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.197" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.194" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.197" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.194">
+    <link rel="stylesheet" href="style.css?v=1.4.197">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -250,6 +250,8 @@
                 </button>
             </div>
         </header>
+
+        <div id="connection-status" class="hidden absolute left-1/2 top-[4.35rem] z-[1100] -translate-x-1/2 items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50/95 px-3 py-1.5 text-[11px] text-amber-900 shadow-md backdrop-blur dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100" role="status" aria-live="polite"></div>
 
         <!-- Admin Page (Global) -->
         <div id="admin-panel"
@@ -1299,7 +1301,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.194', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.197', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1326,7 +1328,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.194"></script>
+    <script type="module" src="main.js?v=1.4.197"></script>
 </body>
 
 </html>

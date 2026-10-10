@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.194';
+const CACHE_NAME = 'lichternacht-v1.4.197';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
 const FONT_CACHE = 'google-fonts';
@@ -50,7 +50,7 @@ if (workbox) {
             cacheName: IMAGE_CACHE,
             plugins: [
                 new workbox.expiration.ExpirationPlugin({
-                    maxEntries: 60,
+                    maxEntries: 100,
                     maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
                 }),
             ],

@@ -43,6 +43,7 @@ test('mobile station modal shows its image and subtle website link', async ({ pa
     await page.locator('#stations-list > button').first().click();
 
     await expect(page.locator('#modal-image-container img')).toBeVisible();
+    await expect(page.locator('#modal-image-container img')).toHaveClass(/object-contain/);
     await expect(page.locator('#modal-link-btn')).toBeVisible();
     await expect(page.locator('#modal-link-btn')).toHaveText(/Webseite/);
 });
@@ -69,6 +70,24 @@ test('station modal supports swipe-down and favorite vibration feedback', async 
         window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientY: 200 }));
     });
     await expect(page.locator('#detail-modal')).toBeHidden();
+});
+
+test('offline mode shows cached-data status and queues visitor actions', async ({ page, context }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.visitorDataSavedAt = Date.now();
+    });
+    await context.setOffline(true);
+    await expect(page.locator('#connection-status')).toBeVisible();
+    await expect(page.locator('#connection-status')).toContainText('Offline');
+    await expect(page.locator('#connection-status')).toContainText('Daten vom');
+
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').first().click();
+    await page.locator('#modal-like-btn').click();
+    const queuedTypes = await page.evaluate(() => JSON.parse(localStorage.getItem('offline_action_queue_v1') || '[]').map(item => item.type));
+    expect(queuedTypes).toContain('like');
+    expect(queuedTypes).toContain('audit');
 });
 
 test('vector map renders stations without an API-key warning', async ({ page }) => {

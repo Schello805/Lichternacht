@@ -25,6 +25,7 @@ export const state = {
     skipModalMapRestore: false,
     activeTab: "map",
     favorites: new Set(),
+    visitorDataSavedAt: 0,
     downloads: { flyer1: '', flyer2: '', icsDate: '' },
     config: {
         title: 'LICHTERNACHT',

@@ -7,10 +7,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.194';
-import * as utils from './utils.js?v=1.4.194';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.194';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.194';
+} from './utils.js?v=1.4.197';
+import * as utils from './utils.js?v=1.4.197';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.197';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.197';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.197';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -37,27 +38,32 @@ function getAnonymousAnalyticsId() {
 }
 
 async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') {
+    const now = new Date();
+    const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const payload = {
+        type: 'checkin',
+        anonymousId: getAnonymousAnalyticsId(),
+        stationId: String(station.id),
+        stationName: String(station.name || `Station ${station.id}`),
+        checkedAt: now.toISOString(),
+        dateKey,
+        hour: now.getHours(),
+        passCountAfter: Number(visitedCount) || 0,
+        reachedLevel: reachedLevel || '',
+        source: 'lichterpass',
+        appId: state.appId || 'unknown'
+    };
+    if (!navigator.onLine) {
+        queueOfflineAction('checkin', payload);
+        return;
+    }
     if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     try {
-        const now = new Date();
-        const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        const hour = now.getHours();
         const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await state.fb.addDoc(colRef, {
-            type: 'checkin',
-            anonymousId: getAnonymousAnalyticsId(),
-            stationId: String(station.id),
-            stationName: String(station.name || `Station ${station.id}`),
-            checkedAt: now.toISOString(),
-            dateKey,
-            hour,
-            passCountAfter: Number(visitedCount) || 0,
-            reachedLevel: reachedLevel || '',
-            source: 'lichterpass',
-            appId: state.appId || 'unknown'
-        });
+        await state.fb.addDoc(colRef, payload);
     } catch (e) {
         console.warn('Anonymous check-in analytics failed', e);
+        queueOfflineAction('checkin', payload);
     }
 }
 
@@ -295,12 +301,19 @@ export async function toggleLike(id) {
     vibrateFeedback(20);
     recordAuditEvent('station_liked', { stationId: id, stationName: s?.name || '' });
 
+    if (!navigator.onLine) {
+        queueOfflineAction('like', { stationId: id });
+        return;
+    }
     if (!state.useLocalStorage && state.fb.updateDoc && state.fb.increment) {
         try {
             const { doc, updateDoc, increment } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'stations', id.toString());
             await updateDoc(ref, { likes: increment(1) });
-        } catch (e) { console.error("Like Error", e); }
+        } catch (e) {
+            console.error("Like Error", e);
+            queueOfflineAction('like', { stationId: id });
+        }
     }
 }
 

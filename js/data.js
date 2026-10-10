@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.194';
+import { showToast } from './utils.js?v=1.4.197';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.194';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.197';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -50,6 +50,8 @@ export const seedEvents = [
 
 const VISITOR_DATA_CACHE_KEY = 'visitor_data_cache_v1';
 const FIREBASE_READ_TIMEOUT_MS = 10000;
+let lastRemoteLoadAt = 0;
+let refreshPromise = null;
 
 function withTimeout(promise, label, timeoutMs = FIREBASE_READ_TIMEOUT_MS) {
     let timer;
@@ -87,6 +89,7 @@ export function hydrateVisitorDataCache() {
                 state.downloads = { ...state.downloads, ...cached.config.downloads };
             }
         }
+        state.visitorDataSavedAt = Number(cached?.savedAt) || 0;
     } catch (error) {
         console.warn('Lokaler Daten-Cache konnte nicht gelesen werden.', error);
         state.stations = [...seedStations];
@@ -97,18 +100,42 @@ export function hydrateVisitorDataCache() {
 
 function persistVisitorDataCache() {
     try {
+        const savedAt = Date.now();
         localStorage.setItem(VISITOR_DATA_CACHE_KEY, JSON.stringify({
             stations: state.stations,
             events: state.events,
             config: state.config,
-            savedAt: Date.now()
+            savedAt
         }));
+        state.visitorDataSavedAt = savedAt;
+        window.dispatchEvent(new CustomEvent('lichternacht:data-updated', { detail: { savedAt } }));
     } catch (error) {
         console.warn('Lokaler Daten-Cache konnte nicht gespeichert werden.', error);
     }
 }
 
-export async function loadData() {
+function preloadVisitorImages() {
+    if (!navigator.onLine) return;
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return;
+    const imageUrls = [...state.events, ...state.stations]
+        .map(item => String(item?.image || '').trim())
+        .filter(Boolean)
+        .filter((url, index, all) => all.indexOf(url) === index)
+        .filter(url => {
+            try { return new URL(url, location.href).origin === location.origin; } catch { return false; }
+        });
+    const preload = async () => {
+        for (let index = 0; index < imageUrls.length; index += 3) {
+            await Promise.allSettled(imageUrls.slice(index, index + 3).map(url => fetch(url, { cache: 'force-cache' })));
+        }
+    };
+    if ('requestIdleCallback' in window) window.requestIdleCallback(preload, { timeout: 5000 });
+    else window.setTimeout(preload, 1200);
+}
+
+export async function loadData(options = {}) {
+    const silent = options.silent === true;
     if (state.useLocalStorage) {
         const sData = localStorage.getItem('stations_data');
         state.stations = sData ? JSON.parse(sData) : seedStations;
@@ -131,34 +158,28 @@ export async function loadData() {
         }
     } else {
         try {
-            const { collection, getDocs, doc, getDoc } = state.fb;
+            const { collection, getDocs, getDocsFromServer, doc, getDoc, getDocFromServer } = state.fb;
+            const readDocument = navigator.onLine && getDocFromServer ? getDocFromServer : getDoc;
+            const readCollection = navigator.onLine && getDocsFromServer ? getDocsFromServer : getDocs;
 
-            // Load Config & Downloads
-            try {
-                const configSnap = await withTimeout(
-                    getDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config')),
-                    'Konfiguration'
-                );
-                if (configSnap.exists()) {
-                    const data = configSnap.data();
-                    state.config = { ...state.config, ...data };
-                    if (data.downloads) state.downloads = data.downloads;
-
-                    // Apply Config to UI
-                    if (state.config.title) {
-                        document.getElementById('app-title').innerText = state.config.title;
-                        document.title = state.config.title;
-                    }
-                    if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
-                }
-            } catch (e) { console.warn("Config load error", e); }
-
+            const configRef = doc(state.db, 'artifacts', state.appId, 'public', 'config');
             const sCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'stations');
             const eCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'events');
-            const [sSnap, eSnap] = await withTimeout(
-                Promise.all([getDocs(sCol), getDocs(eCol)]),
-                'Stations- und Programmdaten'
+            const [configSnap, sSnap, eSnap] = await withTimeout(
+                Promise.all([readDocument(configRef), readCollection(sCol), readCollection(eCol)]),
+                'Aktuelle Veranstaltungsdaten'
             );
+
+            if (configSnap.exists()) {
+                const data = configSnap.data();
+                state.config = { ...state.config, ...data };
+                if (data.downloads) state.downloads = data.downloads;
+                if (state.config.title) {
+                    document.getElementById('app-title').innerText = state.config.title;
+                    document.title = state.config.title;
+                }
+                if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
+            }
 
             if (sSnap.empty) {
                 console.log("Firestore stations empty, using seed data");
@@ -176,9 +197,11 @@ export async function loadData() {
                 eSnap.forEach(doc => state.events.push(doc.data()));
             }
             persistVisitorDataCache();
+            lastRemoteLoadAt = Date.now();
+            preloadVisitorImages();
         } catch (e) {
             console.warn("Firestore load failed (CORS/Offline?), keeping cached data.", e);
-            showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
+            if (!silent) showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
             if (!Array.isArray(state.stations) || !state.stations.length) state.stations = [...seedStations];
             if (!Array.isArray(state.events) || !state.events.length) state.events = [...seedEvents];
         }
@@ -234,6 +257,16 @@ export async function loadData() {
     } catch (e) { }
 }
 
+export function refreshVisitorDataIfStale(maxAgeMs = 45000) {
+    if (!navigator.onLine || state.useLocalStorage || !state.db) return Promise.resolve(false);
+    if (refreshPromise) return refreshPromise;
+    if (Date.now() - lastRemoteLoadAt < maxAgeMs) return Promise.resolve(false);
+    refreshPromise = loadData({ silent: true })
+        .then(() => true)
+        .finally(() => { refreshPromise = null; });
+    return refreshPromise;
+}
+
 export async function saveData(type, item) {
     if (state.useLocalStorage) {
         if (type === 'station') localStorage.setItem('stations_data', JSON.stringify(state.stations));
@@ -267,9 +300,10 @@ export async function deleteData(type, id) {
 
 export async function syncGlobalConfig() {
     try {
-        const { doc, getDoc } = state.fb;
+        const { doc, getDoc, getDocFromServer } = state.fb;
         const docRef = doc(state.db, 'global', 'config');
-        const docSnap = await withTimeout(getDoc(docRef), 'Jahreskonfiguration', 6000);
+        const readDocument = navigator.onLine && getDocFromServer ? getDocFromServer : getDoc;
+        const docSnap = await withTimeout(readDocument(docRef), 'Jahreskonfiguration', 6000);
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.activeYear) {

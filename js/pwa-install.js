@@ -23,6 +23,16 @@ function updateAvailabilityStatus() {
     }
     status.innerHTML = `<i class="ph ${icon}"></i> ${text}`;
     installButton?.classList.toggle('hidden', !deferredPrompt || isStandalone());
+
+    const connectionStatus = document.getElementById('connection-status');
+    if (connectionStatus) {
+        const savedAt = Number(window.state?.visitorDataSavedAt) || 0;
+        const updatedLabel = savedAt
+            ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(savedAt)
+            : 'noch kein Stand gespeichert';
+        connectionStatus.classList.toggle('hidden', navigator.onLine);
+        connectionStatus.innerHTML = `<i class="ph ph-wifi-slash"></i><span><strong>Offline</strong> · Daten vom ${updatedLabel}</span>`;
+    }
 }
 
 export function initPwaInstall(showToast) {
@@ -42,6 +52,7 @@ export function initPwaInstall(showToast) {
     window.addEventListener('online', updateAvailabilityStatus);
     window.addEventListener('offline', updateAvailabilityStatus);
     window.addEventListener('appinstalled', updateAvailabilityStatus);
+    window.addEventListener('lichternacht:data-updated', updateAvailabilityStatus);
     navigator.serviceWorker?.ready.then(updateAvailabilityStatus).catch(() => updateAvailabilityStatus());
     updateAvailabilityStatus();
 }

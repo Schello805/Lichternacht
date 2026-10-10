@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.197';
 
 const VISITOR_ID_KEY = 'anonymous_audit_id_v1';
 const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']);
@@ -18,7 +19,6 @@ export function getAnonymousAuditId() {
 }
 
 export async function recordAuditEvent(eventType, details = {}, options = {}) {
-    if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     const role = options.role === 'admin' || state.isAdmin ? 'admin' : 'visitor';
     const safeDetails = {};
     for (const [key, value] of Object.entries(details || {})) {
@@ -29,17 +29,24 @@ export async function recordAuditEvent(eventType, details = {}, options = {}) {
     const actorId = role === 'admin' && user?.uid
         ? `admin-${String(user.uid).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16)}`
         : getAnonymousAuditId();
+    const payload = {
+        eventType: String(eventType || 'unknown').replace(/[^a-z0-9_-]/gi, '').slice(0, 48),
+        actorId,
+        actorRole: role,
+        createdAt: new Date().toISOString(),
+        details: safeDetails,
+        appId: state.appId || 'unknown'
+    };
+    if (!navigator.onLine) {
+        queueOfflineAction('audit', payload);
+        return;
+    }
+    if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     try {
         const collectionRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'auditLogs');
-        await state.fb.addDoc(collectionRef, {
-            eventType: String(eventType || 'unknown').replace(/[^a-z0-9_-]/gi, '').slice(0, 48),
-            actorId,
-            actorRole: role,
-            createdAt: new Date().toISOString(),
-            details: safeDetails,
-            appId: state.appId || 'unknown'
-        });
+        await state.fb.addDoc(collectionRef, payload);
     } catch (error) {
         console.warn('Audit event could not be recorded', error);
+        queueOfflineAction('audit', payload);
     }
 }

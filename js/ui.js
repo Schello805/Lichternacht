@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.194';
-import * as utils from './utils.js?v=1.4.194';
-import { saveData, deleteData } from './data.js?v=1.4.194';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.194';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.194';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.194';
-import { recordAuditEvent } from './audit.js?v=1.4.194';
-import { normalizeImageUrl } from './image-url.js?v=1.4.194';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.197';
+import * as utils from './utils.js?v=1.4.197';
+import { saveData, deleteData } from './data.js?v=1.4.197';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.197';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.197';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.197';
+import { recordAuditEvent } from './audit.js?v=1.4.197';
+import { normalizeImageUrl } from './image-url.js?v=1.4.197';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -72,7 +72,7 @@ export function openModal(target) {
         const imgContainer = document.getElementById('modal-image-container');
         const stationImage = normalizeStationImage(s.image);
         if (stationImage) {
-            imgContainer.innerHTML = `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(s.name)}" class="w-full h-48 object-cover rounded-t-2xl">`;
+            imgContainer.innerHTML = `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(s.name)}" class="w-full h-48 object-contain bg-gray-100 dark:bg-gray-900 rounded-t-2xl">`;
             imgContainer.classList.remove('hidden');
         } else {
             imgContainer.classList.add('hidden');
@@ -647,7 +647,7 @@ export function renderList(stations) {
         <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
-                ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
+                ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
                 <div class="min-w-0 flex-1">
                     <div class="flex justify-between items-start">
                         <h3 class="font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${escapeHtml(s.name)}</h3>
@@ -915,7 +915,7 @@ function updateImageUploadUI(imageSrc) {
         // Show Image Preview in Button
         btn.className = "w-full h-48 relative rounded-lg overflow-hidden border border-gray-300 group cursor-pointer";
         btn.innerHTML = `
-            <img src="${imageSrc}" class="w-full h-full object-cover">
+            <img src="${imageSrc}" class="w-full h-full object-contain bg-gray-100 dark:bg-gray-900">
             <div class="image-upload-overlay absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold gap-2">
                 <i class="ph ph-camera text-xl"></i>
                 <span>Ändern</span>
@@ -1100,15 +1100,14 @@ async function compressStationImage(file) {
         });
     }
     const maxEdge = 1200;
-    const sourceEdge = Math.min(source.width, source.height);
-    const sourceX = Math.max(0, (source.width - sourceEdge) / 2);
-    const sourceY = Math.max(0, (source.height - sourceEdge) / 2);
-    const targetEdge = Math.max(1, Math.min(maxEdge, sourceEdge));
+    const scale = Math.min(1, maxEdge / Math.max(source.width, source.height));
+    const targetWidth = Math.max(1, Math.round(source.width * scale));
+    const targetHeight = Math.max(1, Math.round(source.height * scale));
     const canvas = document.createElement('canvas');
-    canvas.width = targetEdge;
-    canvas.height = targetEdge;
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
     const context = canvas.getContext('2d');
-    context.drawImage(source, sourceX, sourceY, sourceEdge, sourceEdge, 0, 0, targetEdge, targetEdge);
+    context.drawImage(source, 0, 0, source.width, source.height, 0, 0, targetWidth, targetHeight);
     source.close?.();
     if (objectUrl) URL.revokeObjectURL(objectUrl);
 
@@ -1163,7 +1162,7 @@ export async function handleImageUpload(input) {
 
         station.image = imageUrl;
         const imageContainer = document.getElementById('modal-image-container');
-        imageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Bild von ${escapeHtml(station.name)}" class="w-full h-48 object-cover rounded-t-2xl">`;
+        imageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Bild von ${escapeHtml(station.name)}" class="w-full h-48 object-contain bg-gray-100 dark:bg-gray-900 rounded-t-2xl">`;
         imageContainer.classList.remove('hidden');
         updateImageUploadUI(imageUrl);
         showToast(`Bild optimiert (${Math.max(1, Math.round(blob.size / 1024))} KB) und hochgeladen`, 'success');

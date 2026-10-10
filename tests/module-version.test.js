@@ -43,3 +43,13 @@ test('runtime cache versions match package.json', async () => {
         }
     }
 });
+
+test('visitor data prefers Firestore server reads and refreshes periodically', async () => {
+    const dataSource = await readFile('js/data.js', 'utf8');
+    const mainSource = await readFile('main.js', 'utf8');
+
+    assert.match(dataSource, /getDocFromServer/);
+    assert.match(dataSource, /getDocsFromServer/);
+    assert.match(mainSource, /visibilitychange/);
+    assert.match(mainSource, /refreshVisitorDataIfStale/);
+});
