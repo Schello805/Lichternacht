@@ -8,7 +8,8 @@ const checkOnly = process.argv.includes('--check');
 const jsFiles = (await readdir(path.join(root, 'js')))
     .filter(file => file.endsWith('.js'))
     .map(file => path.join('js', file));
-const files = ['index.html', 'main.js', 'service-worker.js', ...jsFiles];
+const htmlFiles = ['index.html', 'help.html', 'datenschutz.html', 'gewinnspiel.html', 'impressum.html'];
+const files = [...htmlFiles, 'main.js', 'service-worker.js', ...jsFiles];
 const stale = [];
 
 for (const file of files) {
