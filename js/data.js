@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.201';
+import { showToast } from './utils.js?v=1.4.202';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.201';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.202';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -71,7 +71,8 @@ function renderLoadedData() {
     if (window.updateVisitorStartCard) window.updateVisitorStartCard();
     if (window.updateHeaderCountdown) window.updateHeaderCountdown();
     const detailModal = document.getElementById('detail-modal');
-    if (state.activeStationId != null && detailModal && !detailModal.classList.contains('hidden') && window.openStation) {
+    const editModeOpen = !document.getElementById('modal-edit-mode')?.classList.contains('hidden');
+    if (state.activeStationId != null && !editModeOpen && detailModal && !detailModal.classList.contains('hidden') && window.openStation) {
         window.openStation(state.activeStationId);
     }
 }
@@ -186,7 +187,7 @@ export async function loadData(options = {}) {
                 state.stations = [...seedStations];
             } else {
                 state.stations = [];
-                sSnap.forEach(doc => state.stations.push(doc.data()));
+                sSnap.forEach(doc => state.stations.push({ ...doc.data(), __docId: doc.id }));
             }
 
             if (eSnap.empty) {
@@ -194,7 +195,7 @@ export async function loadData(options = {}) {
                 state.events = [...seedEvents];
             } else {
                 state.events = [];
-                eSnap.forEach(doc => state.events.push(doc.data()));
+                eSnap.forEach(doc => state.events.push({ ...doc.data(), __docId: doc.id }));
             }
             persistVisitorDataCache();
             lastRemoteLoadAt = Date.now();
@@ -274,9 +275,12 @@ export async function saveData(type, item) {
     } else {
         const { collection, doc, setDoc } = state.fb;
         const colName = type === 'station' ? 'stations' : 'events';
+        const documentId = String(item.__docId ?? item.id ?? '').trim();
+        if (!documentId) throw new Error('Datensatz benötigt vor dem Speichern eine ID.');
         const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', colName);
         const data = JSON.parse(JSON.stringify(item));
-        await setDoc(doc(colRef, item.id.toString()), data);
+        delete data.__docId;
+        await setDoc(doc(colRef, documentId), data);
     }
 }
 

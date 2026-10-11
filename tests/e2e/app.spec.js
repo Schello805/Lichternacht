@@ -222,10 +222,32 @@ test('station edit dialog accepts manual coordinates with decimal commas', async
     await expect(page.locator('label[for="edit-lng"]')).toContainText('Längengrad');
     await page.locator('#edit-lat').fill('49,15714');
     await page.locator('#edit-lng').fill('10,5484');
+    await page.evaluate(async () => {
+        const { refreshVisitorDataIfStale } = await import('/js/data.js?v=1.4.202');
+        await refreshVisitorDataIfStale(0);
+    });
+    await expect(page.locator('#modal-edit-mode')).toBeVisible();
     await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
 
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lat)).toBe(49.15714);
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.5484);
+});
+
+test('station without an ID can be assigned a station number', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        const station = { __docId: 'synced-without-id', id: '', name: 'Neue Station', desc: '', offer: '', lat: 49.16, lng: 10.55, tags: [] };
+        window.state.stations.push(station);
+        window.editStation(station);
+    });
+    await page.locator('#edit-id').fill('99');
+    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect.poll(() => page.evaluate(() => window.state.stations.some(station => station.id === 99 && station.name === 'Neue Station'))).toBe(true);
 });
 
 test('admin can create a standalone program event without a station', async ({ page }) => {

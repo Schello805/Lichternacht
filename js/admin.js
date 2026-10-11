@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.201';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.201';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.201';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.202';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.202';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.202';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.201';
-import { recordAuditEvent } from './audit.js?v=1.4.201';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.201';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.202';
+import { recordAuditEvent } from './audit.js?v=1.4.202';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.202';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -253,10 +253,12 @@ function bindAdminTableActions(container) {
         button.addEventListener('click', () => {
             const type = button.getAttribute('data-admin-edit');
             const id = button.getAttribute('data-admin-id');
+            const stationIndex = Number(button.getAttribute('data-admin-station-index'));
             closeAdminPanel();
             if (type === 'station') {
-                if (window.openStation) window.openStation(id);
-                if (window.editStation) window.editStation(id);
+                const station = Number.isInteger(stationIndex) ? state.stations[stationIndex] : null;
+                if (station && window.editStation) window.editStation(station);
+                else if (window.editStation) window.editStation(id);
             } else if (type === 'event' && window.editEvent) {
                 window.editEvent(id);
             }
@@ -341,7 +343,7 @@ function renderAdminDataTables() {
             <td class="py-2 pr-2">${escapeHtml(formatTags(s.tags))}</td>
             <td class="py-2 pr-2 text-center">${formatImage(s.image)}</td>
             <td class="py-2 pr-2 text-right">${escapeHtml(s.likes ?? '')}</td>
-            <td class="py-2 text-right"><button type="button" data-admin-edit="station" data-admin-id="${escapeAttr(s.id)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
+            <td class="py-2 text-right"><button type="button" data-admin-edit="station" data-admin-id="${escapeAttr(s.id)}" data-admin-station-index="${state.stations.indexOf(s)}" class="underline font-bold text-blue-600">Bearbeiten</button></td>
         </tr>
     `).join('');
 
@@ -654,7 +656,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.201';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.202';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1244,9 +1246,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.201';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.201';
-import { renderList, renderTimeline } from './ui.js?v=1.4.201';
+import { showToast } from './utils.js?v=1.4.202';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.202';
+import { renderList, renderTimeline } from './ui.js?v=1.4.202';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

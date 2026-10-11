@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.201';
-import * as utils from './utils.js?v=1.4.201';
-import { saveData, deleteData } from './data.js?v=1.4.201';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.201';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.201';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.201';
-import { recordAuditEvent } from './audit.js?v=1.4.201';
-import { normalizeImageUrl } from './image-url.js?v=1.4.201';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.202';
+import * as utils from './utils.js?v=1.4.202';
+import { saveData, deleteData } from './data.js?v=1.4.202';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.202';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.202';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.202';
+import { recordAuditEvent } from './audit.js?v=1.4.202';
+import { normalizeImageUrl } from './image-url.js?v=1.4.202';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -19,6 +19,7 @@ const EVENT_LOCATION_MAX_LENGTH = 160;
 const URL_MAX_LENGTH = 2048;
 const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
+let editingStation = null;
 
 function normalizeExternalLink(value) {
     const raw = String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
@@ -860,9 +861,14 @@ window.toggleEditTag = (tag) => {
 // --- Editing / Admin ---
 
 export function editStation(id) {
-    const sId = id || state.activeStationId;
-    const s = state.stations.find(x => x.id == sId);
+    const s = id && typeof id === 'object'
+        ? id
+        : state.stations.find(x => x.id == (id || state.activeStationId));
     if (!s) return;
+    editingStation = s;
+
+    const detailModal = document.getElementById('detail-modal');
+    if (detailModal?.classList.contains('hidden')) openModal(s);
 
     state.activeStationId = s.id;
     window.activeStationId = s.id;
@@ -948,7 +954,7 @@ function updateImageUploadUI(imageSrc) {
 
 export async function saveStationChanges() {
     const oldId = state.activeStationId;
-    const s = state.stations.find(x => x.id == oldId);
+    const s = editingStation || state.stations.find(x => x.id == oldId);
     if (!s) return;
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
@@ -1027,8 +1033,9 @@ export async function saveStationChanges() {
     // Update Local Object
     // If ID changed, we need to handle that carefully
     const idChanged = (newId != oldId);
+    const originalDocumentId = String(s.__docId ?? oldId ?? '').trim();
     
-    if (idChanged) {
+    if (idChanged && /^\d+$/.test(String(oldId ?? ''))) {
         if (!confirm(`Möchtest du die Station wirklich von Nr. ${oldId} in Nr. ${newId} umbenennen?`)) return;
     }
 
@@ -1048,11 +1055,12 @@ export async function saveStationChanges() {
 
     try {
         // If ID changed, we must DELETE the old doc first (or after) to avoid duplicates
-        if (idChanged) {
-            await deleteData('station', oldId);
-            console.log(`Old station ${oldId} deleted`);
+        if (idChanged && originalDocumentId && originalDocumentId !== String(newId)) {
+            await deleteData('station', originalDocumentId);
+            console.log(`Old station ${originalDocumentId} deleted`);
         }
 
+        s.__docId = String(newId);
         await saveData('station', s);
         if (s.__draft) delete s.__draft;
         showToast("Station gespeichert", 'success');
