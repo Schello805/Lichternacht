@@ -269,6 +269,26 @@ test('station edit dialog accepts manual coordinates with decimal commas', async
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.5484);
 });
 
+test('station website link is retained after saving and reloading', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        window.openStation(1);
+        window.editStation(1);
+    });
+    await page.locator('#edit-link').fill('https://example.com/station-info');
+    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.link)).toBe('https://example.com/station-info');
+
+    await page.reload();
+    await page.waitForFunction(() => window.__appReady === true);
+    await page.evaluate(() => window.openStation(1));
+    await expect(page.locator('#modal-link-btn')).toBeVisible();
+});
+
 test('station without an ID can be assigned a station number', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');

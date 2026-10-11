@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.207';
+import { showToast } from './utils.js?v=1.4.208';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.207';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.208';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -52,6 +52,8 @@ const VISITOR_DATA_CACHE_KEY = 'visitor_data_cache_v1';
 const FIREBASE_READ_TIMEOUT_MS = 10000;
 let lastRemoteLoadAt = 0;
 let refreshPromise = null;
+let remoteDataVersion = 0;
+let remoteWriteCount = 0;
 
 function withTimeout(promise, label, timeoutMs = FIREBASE_READ_TIMEOUT_MS) {
     let timer;
@@ -162,6 +164,8 @@ export async function loadData(options = {}) {
             const { collection, getDocs, getDocsFromServer, doc, getDoc, getDocFromServer } = state.fb;
             const readDocument = navigator.onLine && getDocFromServer ? getDocFromServer : getDoc;
             const readCollection = navigator.onLine && getDocsFromServer ? getDocsFromServer : getDocs;
+            const loadVersion = remoteDataVersion;
+            const loadStartedDuringWrite = remoteWriteCount > 0;
 
             const configRef = doc(state.db, 'artifacts', state.appId, 'public', 'config');
             const sCol = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'stations');
@@ -171,35 +175,39 @@ export async function loadData(options = {}) {
                 'Aktuelle Veranstaltungsdaten'
             );
 
-            if (configSnap.exists()) {
-                const data = configSnap.data();
-                state.config = { ...state.config, ...data };
-                if (data.downloads) state.downloads = data.downloads;
-                if (state.config.title) {
-                    document.getElementById('app-title').innerText = state.config.title;
-                    document.title = state.config.title;
+            if (loadStartedDuringWrite || remoteWriteCount > 0 || loadVersion !== remoteDataVersion) {
+                console.info('Firestore-Aktualisierung übersprungen, weil lokale Änderungen gespeichert werden.');
+            } else {
+                if (configSnap.exists()) {
+                    const data = configSnap.data();
+                    state.config = { ...state.config, ...data };
+                    if (data.downloads) state.downloads = data.downloads;
+                    if (state.config.title) {
+                        document.getElementById('app-title').innerText = state.config.title;
+                        document.title = state.config.title;
+                    }
+                    if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
                 }
-                if (state.config.subtitle) document.getElementById('app-subtitle').innerText = state.config.subtitle;
-            }
 
-            if (sSnap.empty) {
-                console.log("Firestore stations empty, using seed data");
-                state.stations = [...seedStations];
-            } else {
-                state.stations = [];
-                sSnap.forEach(doc => state.stations.push({ ...doc.data(), __docId: doc.id }));
-            }
+                if (sSnap.empty) {
+                    console.log("Firestore stations empty, using seed data");
+                    state.stations = [...seedStations];
+                } else {
+                    state.stations = [];
+                    sSnap.forEach(doc => state.stations.push({ ...doc.data(), __docId: doc.id }));
+                }
 
-            if (eSnap.empty) {
-                console.log("Firestore events empty, using seed data");
-                state.events = [...seedEvents];
-            } else {
-                state.events = [];
-                eSnap.forEach(doc => state.events.push({ ...doc.data(), __docId: doc.id }));
+                if (eSnap.empty) {
+                    console.log("Firestore events empty, using seed data");
+                    state.events = [...seedEvents];
+                } else {
+                    state.events = [];
+                    eSnap.forEach(doc => state.events.push({ ...doc.data(), __docId: doc.id }));
+                }
+                persistVisitorDataCache();
+                lastRemoteLoadAt = Date.now();
+                preloadVisitorImages();
             }
-            persistVisitorDataCache();
-            lastRemoteLoadAt = Date.now();
-            preloadVisitorImages();
         } catch (e) {
             console.warn("Firestore load failed (CORS/Offline?), keeping cached data.", e);
             if (!silent) showToast('Verbindungsproblem: Zeige lokale Daten.', 'info');
@@ -280,7 +288,14 @@ export async function saveData(type, item) {
         const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', colName);
         const data = JSON.parse(JSON.stringify(item));
         delete data.__docId;
-        await setDoc(doc(colRef, documentId), data);
+        remoteDataVersion += 1;
+        remoteWriteCount += 1;
+        try {
+            await setDoc(doc(colRef, documentId), data);
+            persistVisitorDataCache();
+        } finally {
+            remoteWriteCount -= 1;
+        }
     }
 }
 
