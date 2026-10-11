@@ -1,11 +1,23 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.203';
-import { saveData } from './data.js?v=1.4.203';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.204';
+import { saveData } from './data.js?v=1.4.204';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
     dark: 'https://tiles.openfreemap.org/styles/dark'
+};
+const SATELLITE_STYLE = {
+    version: 8,
+    sources: {
+        'esri-world-imagery': {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            attribution: 'Tiles © Esri'
+        }
+    },
+    layers: [{ id: 'esri-world-imagery', type: 'raster', source: 'esri-world-imagery' }]
 };
 const FALLBACK_RASTER_STYLE = {
     version: 8,
@@ -32,6 +44,29 @@ let gpsFallbackTimer = null;
 let proximityCleanupToken = 0;
 let usingFallbackStyle = false;
 let mapFallbackTimer = null;
+const MAP_VIEW_STORAGE_KEY = 'map_view_mode_v1';
+
+function isSatelliteView() {
+    return localStorage.getItem(MAP_VIEW_STORAGE_KEY) === 'satellite';
+}
+
+function getMapStyle(isDark) {
+    return isSatelliteView() ? SATELLITE_STYLE : (isDark ? MAP_STYLES.dark : MAP_STYLES.light);
+}
+
+function updateMapLayerButton() {
+    const button = document.getElementById('map-layer-btn');
+    if (!button) return;
+    const satellite = isSatelliteView();
+    const label = satellite ? 'Kartenansicht einschalten' : 'Satellitenansicht einschalten';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.classList.toggle('bg-yellow-500', satellite);
+    button.classList.toggle('text-white', satellite);
+    button.classList.toggle('border-yellow-500', satellite);
+    button.classList.toggle('bg-white', !satellite);
+    button.classList.toggle('text-gray-700', !satellite);
+}
 
 function getValidCoordinates(lat, lng) {
     const latitude = Number(lat);
@@ -247,7 +282,7 @@ export function initMap() {
     setGpsUiStatus('idle');
     state.map = new maplibregl.Map({
         container: 'map',
-        style: document.documentElement.classList.contains('dark') ? MAP_STYLES.dark : MAP_STYLES.light,
+        style: getMapStyle(document.documentElement.classList.contains('dark')),
         center: [10.552, 49.158],
         zoom: 16,
         maxZoom: 20,
@@ -259,6 +294,7 @@ export function initMap() {
     state.map.on('style.load', restoreMapOverlays);
     state.map.on('moveend', updateMarkerClusters);
     state.map.on('error', () => applyFallbackMapStyle());
+    updateMapLayerButton();
     mapFallbackTimer = window.setTimeout(() => {
         if (!state.map?.areTilesLoaded?.()) applyFallbackMapStyle();
     }, 8000);
@@ -267,9 +303,11 @@ export function initMap() {
 function applyFallbackMapStyle() {
     if (!state.map || usingFallbackStyle) return;
     usingFallbackStyle = true;
+    localStorage.setItem(MAP_VIEW_STORAGE_KEY, 'map');
     if (mapFallbackTimer) window.clearTimeout(mapFallbackTimer);
     mapFallbackTimer = null;
     state.map.setStyle(FALLBACK_RASTER_STYLE);
+    updateMapLayerButton();
     showToast('Die Karte wurde im Basismodus geladen.', 'info');
 }
 
@@ -317,12 +355,22 @@ function updateMarkerClusters() {
 
 export function updateMapTiles(isDark) {
     if (!state.map) return;
-    console.log('Update Map Tiles:', isDark ? 'DARK' : 'LIGHT');
+    console.log('Update Map Tiles:', isSatelliteView() ? 'SATELLITE' : (isDark ? 'DARK' : 'LIGHT'));
     if (usingFallbackStyle) {
         state.map.setStyle(FALLBACK_RASTER_STYLE);
         return;
     }
-    state.map.setStyle(isDark ? MAP_STYLES.dark : MAP_STYLES.light);
+    state.map.setStyle(getMapStyle(isDark));
+    updateMapLayerButton();
+}
+
+export function toggleSatelliteView() {
+    const satellite = !isSatelliteView();
+    localStorage.setItem(MAP_VIEW_STORAGE_KEY, satellite ? 'satellite' : 'map');
+    usingFallbackStyle = false;
+    if (mapFallbackTimer) window.clearTimeout(mapFallbackTimer);
+    mapFallbackTimer = null;
+    updateMapTiles(document.documentElement.classList.contains('dark'));
 }
 
 function restoreMapOverlays() {

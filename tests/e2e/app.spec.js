@@ -113,6 +113,20 @@ test('vector map renders stations without an API-key warning', async ({ page }) 
     await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenStreetMap');
 });
 
+test('map layer control toggles satellite view without an API key', async ({ page }) => {
+    await page.goto('/index.html');
+    const layerButton = page.locator('#map-layer-btn');
+
+    await layerButton.click();
+    await expect.poll(() => page.evaluate(() => Boolean(window.state.map.getStyle()?.sources?.['esri-world-imagery']))).toBe(true);
+    await expect(layerButton).toHaveAttribute('aria-label', 'Kartenansicht einschalten');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('map_view_mode_v1'))).toBe('satellite');
+
+    await layerButton.click();
+    await expect(layerButton).toHaveAttribute('aria-label', 'Satellitenansicht einschalten');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('map_view_mode_v1'))).toBe('map');
+});
+
 test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {
     await page.route('https://tiles.openfreemap.org/**', route => route.abort());
     await page.goto('/index.html');
