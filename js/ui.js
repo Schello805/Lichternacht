@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.200';
-import * as utils from './utils.js?v=1.4.200';
-import { saveData, deleteData } from './data.js?v=1.4.200';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.200';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.200';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.200';
-import { recordAuditEvent } from './audit.js?v=1.4.200';
-import { normalizeImageUrl } from './image-url.js?v=1.4.200';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.201';
+import * as utils from './utils.js?v=1.4.201';
+import { saveData, deleteData } from './data.js?v=1.4.201';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.201';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.201';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.201';
+import { recordAuditEvent } from './audit.js?v=1.4.201';
+import { normalizeImageUrl } from './image-url.js?v=1.4.201';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -34,6 +34,11 @@ function normalizeExternalLink(value) {
 
 function normalizeStationImage(value) {
     return normalizeImageUrl(value);
+}
+
+function parseCoordinateInput(value) {
+    const normalized = String(value ?? '').trim().replace(',', '.');
+    return Number(normalized);
 }
 
 // --- Modal & Tab Handling ---
@@ -971,8 +976,8 @@ export async function saveStationChanges() {
     const newOffer = document.getElementById('edit-offer').value.trim();
     const newLink = normalizeExternalLink(document.getElementById('edit-link').value);
     // Lat/Lng might have been updated by dragging (we need to ensure drag updates the hidden fields)
-    const newLat = parseFloat(document.getElementById('edit-lat').value);
-    const newLng = parseFloat(document.getElementById('edit-lng').value);
+    const newLat = parseCoordinateInput(document.getElementById('edit-lat').value);
+    const newLng = parseCoordinateInput(document.getElementById('edit-lng').value);
     
     // Parse Tags
     const tagsInput = document.getElementById('edit-tags').value;
@@ -1012,6 +1017,10 @@ export async function saveStationChanges() {
 
     if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
         showToast("Fehler: Ungültige Koordinaten (lat/lng)", 'error');
+        return;
+    }
+    if (newLat < -90 || newLat > 90 || newLng < -180 || newLng > 180) {
+        showToast("Fehler: Koordinaten liegen außerhalb des gültigen Bereichs", 'error');
         return;
     }
 

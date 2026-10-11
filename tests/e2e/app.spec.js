@@ -207,6 +207,27 @@ test('station and program forms clearly label non-obvious fields', async ({ page
     await expect(page.getByText('Programmbild ⓘ')).toHaveCount(1);
 });
 
+test('station edit dialog accepts manual coordinates with decimal commas', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        window.openStation(1);
+        window.editStation(1);
+    });
+    await expect(page.locator('#modal-edit-mode')).toBeVisible();
+    await expect(page.locator('label[for="edit-lat"]')).toContainText('Breitengrad');
+    await expect(page.locator('label[for="edit-lng"]')).toContainText('Längengrad');
+    await page.locator('#edit-lat').fill('49,15714');
+    await page.locator('#edit-lng').fill('10,5484');
+    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lat)).toBe(49.15714);
+    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.5484);
+});
+
 test('admin can create a standalone program event without a station', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');

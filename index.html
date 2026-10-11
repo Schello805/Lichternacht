@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.200" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.201" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.200" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.201" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.200">
+    <link rel="stylesheet" href="style.css?v=1.4.201">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -995,8 +995,21 @@
                             maxlength="160"
                             placeholder="Adresse / Ort"
                             title="Adresse oder kurzer Orts-Hinweis, z.B. Marktplatz oder Ziegeleistr. 9."></textarea>
-                        <input id="edit-lat" type="hidden">
-                        <input id="edit-lng" type="hidden">
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label for="edit-lat" class="text-[10px] font-bold text-gray-500 uppercase">Breitengrad</label>
+                                <input id="edit-lat" type="text" inputmode="decimal" autocomplete="off"
+                                    class="w-full p-2 border rounded font-mono dark:bg-gray-700 dark:border-gray-600"
+                                    placeholder="z.B. 49,15714">
+                            </div>
+                            <div>
+                                <label for="edit-lng" class="text-[10px] font-bold text-gray-500 uppercase">Längengrad</label>
+                                <input id="edit-lng" type="text" inputmode="decimal" autocomplete="off"
+                                    class="w-full p-2 border rounded font-mono dark:bg-gray-700 dark:border-gray-600"
+                                    placeholder="z.B. 10,54840">
+                            </div>
+                        </div>
+                        <p class="-mt-1 mb-3 text-[11px] text-gray-400">Dezimalpunkt und Dezimalkomma werden akzeptiert.</p>
 
                         <p class="text-[11px] text-gray-400 italic mb-3">Als Admin kannst du auch die Marker direkt auf
                             der Karte ziehen, sobald du eingeloggt bist – die Anzeige hilft dir, die Station
@@ -1301,7 +1314,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.200', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.201', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1328,7 +1341,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.200"></script>
+    <script type="module" src="main.js?v=1.4.201"></script>
 </body>
 
 </html>
