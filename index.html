@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.204" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.205" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.204" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.205" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.204">
+    <link rel="stylesheet" href="style.css?v=1.4.205">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -772,7 +772,11 @@
                     <button id="map-layer-btn" onclick="toggleSatelliteView()" aria-label="Satellitenansicht einschalten"
                         class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center"
                         title="Satellitenansicht einschalten">
-                        <i class="ph ph-satellite text-xl"></i>
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m3 7 9-4 9 4-9 4-9-4Z"></path>
+                            <path d="m3 12 9 4 9-4"></path>
+                            <path d="m3 17 9 4 9-4"></path>
+                        </svg>
                     </button>
                     <button id="map-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen"
                         class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
@@ -1320,7 +1324,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.204', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.205', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1347,7 +1351,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.204"></script>
+    <script type="module" src="main.js?v=1.4.205"></script>
 </body>
 
 </html>
