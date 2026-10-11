@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.205';
-import { saveData } from './data.js?v=1.4.205';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.206';
+import { saveData } from './data.js?v=1.4.206';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -285,7 +285,7 @@ export function initMap() {
         style: getMapStyle(document.documentElement.classList.contains('dark')),
         center: [10.552, 49.158],
         zoom: 16,
-        maxZoom: 20,
+        maxZoom: 18,
         attributionControl: false
     });
     state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
