@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.206';
-import { loadData } from './data.js?v=1.4.206';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.206';
-import { renderTimeline } from './ui.js?v=1.4.206';
+import { showToast } from './utils.js?v=1.4.207';
+import { loadData } from './data.js?v=1.4.207';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.207';
+import { renderTimeline } from './ui.js?v=1.4.207';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -102,6 +102,8 @@ export async function createNewUser(email, pass) {
 
 export function setAdminState(admin) {
     state.isAdmin = admin;
+    if (admin) resetLogoutTimer();
+    else stopLogoutTimer();
     const adminOnlineDot = document.getElementById('admin-online-dot');
     if (state.isAdmin) {
         document.body.classList.add('admin-mode');
@@ -198,25 +200,45 @@ export function initAuthListener() {
     });
 }
 
-let logoutTimer;
-function resetLogoutTimer() {
-    if (!state.isAdmin) return;
-    
+const ADMIN_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+let logoutTimer = null;
+let lastAdminActivityAt = 0;
+
+function stopLogoutTimer() {
     if (logoutTimer) clearTimeout(logoutTimer);
-    
-    // Auto-logout after 60 minutes (3600000 ms)
-    logoutTimer = setTimeout(() => {
-        if (state.isAdmin) {
-            console.log("Auto-logout due to inactivity");
-            logoutAdmin();
-            alert("Du wurdest automatisch ausgeloggt (60 Min. Inaktivität).");
-        }
-    }, 60 * 60 * 1000);
+    logoutTimer = null;
+    lastAdminActivityAt = 0;
 }
 
-// Attach listeners for activity
-['click', 'mousemove', 'keydown', 'touchstart'].forEach(evt => {
-    document.addEventListener(evt, resetLogoutTimer);
+function scheduleLogoutCheck() {
+    if (!state.isAdmin || !lastAdminActivityAt) return;
+    if (logoutTimer) clearTimeout(logoutTimer);
+
+    const remaining = Math.max(0, ADMIN_IDLE_TIMEOUT_MS - (Date.now() - lastAdminActivityAt));
+    logoutTimer = setTimeout(() => {
+        if (!state.isAdmin) return;
+        if (Date.now() - lastAdminActivityAt < ADMIN_IDLE_TIMEOUT_MS) {
+            scheduleLogoutCheck();
+            return;
+        }
+        console.log("Auto-logout due to inactivity");
+        logoutAdmin();
+        alert("Du wurdest automatisch ausgeloggt (60 Min. Inaktivität).");
+    }, remaining);
+}
+
+function resetLogoutTimer() {
+    if (!state.isAdmin) return;
+    lastAdminActivityAt = Date.now();
+    scheduleLogoutCheck();
+}
+
+['click', 'pointerdown', 'mousemove', 'keydown', 'input', 'change', 'wheel', 'touchstart', 'focusin'].forEach(eventName => {
+    document.addEventListener(eventName, resetLogoutTimer, { passive: true });
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resetLogoutTimer();
 });
 
 function enableOfflineMode(btn) {

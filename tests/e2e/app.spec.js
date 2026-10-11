@@ -559,6 +559,27 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await expect(page.getByText('keine Namen, Kontaktdaten, GPS-Koordinaten oder Freitexte')).toBeVisible();
 });
 
+test('active admin input extends the inactivity session', async ({ page }) => {
+    await page.addInitScript(() => {
+        const originalSetTimeout = window.setTimeout.bind(window);
+        window.__adminIdleTimerCount = 0;
+        window.setTimeout = (callback, delay, ...args) => {
+            if (delay >= 3_599_000 && delay <= 3_600_000) window.__adminIdleTimerCount += 1;
+            return originalSetTimeout(callback, delay, ...args);
+        };
+    });
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    const initialTimerCount = await page.evaluate(() => window.__adminIdleTimerCount);
+    const configSection = page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' });
+    await configSection.locator('summary').click();
+    await page.locator('#admin-app-title').fill('Aktive Bearbeitung');
+    await expect.poll(() => page.evaluate(() => window.__adminIdleTimerCount)).toBeGreaterThan(initialTimerCount);
+});
+
 test('station image endpoint rejects unauthenticated uploads', async ({ request }) => {
     const response = await request.post('/api/station-image?station=1', {
         headers: { 'Content-Type': 'image/webp' },
