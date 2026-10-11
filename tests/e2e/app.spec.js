@@ -135,6 +135,28 @@ test('vector map ignores stations with invalid coordinates without crashing', as
     await expect(page.locator('.maplibregl-canvas')).toBeVisible();
 });
 
+test('moving an admin station marker saves its new coordinates', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        const stationMarker = window.state.markers.find(item => String(item.id) === '1').marker;
+        stationMarker.setLngLat([10.55111, 49.15999]);
+        stationMarker.fire('dragend');
+    });
+
+    await expect.poll(() => page.evaluate(() => {
+        const station = window.state.stations.find(item => String(item.id) === '1');
+        return [station.lat, station.lng];
+    })).toEqual([49.15999, 10.55111]);
+    await expect.poll(() => page.evaluate(() => {
+        const station = JSON.parse(localStorage.getItem('stations_data')).find(item => String(item.id) === '1');
+        return [station.lat, station.lng];
+    })).toEqual([49.15999, 10.55111]);
+});
+
 test('mobile map clusters close stations and zooms in on tap', async ({ page }) => {
     await page.goto('/index.html');
     const cluster = page.locator('.station-cluster').first();

@@ -1,5 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.202';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.203';
+import { saveData } from './data.js?v=1.4.203';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -368,23 +369,32 @@ export function refreshMapMarkers() {
 
         if (isDraggable) {
             marker.on('dragstart', () => { marker._isDragging = true; });
-            marker.on('dragend', () => {
+            marker.on('dragend', async () => {
                 setTimeout(() => { marker._isDragging = false; }, 100); // Debounce click
                 const newPos = marker.getLngLat();
-                
-                // Update Local State
+                const previousLat = s.lat;
+                const previousLng = s.lng;
                 s.lat = newPos.lat;
                 s.lng = newPos.lng;
-                
-                // Update Form if open
+
                 if (state.activeStationId === s.id) {
                     const latInput = document.getElementById('edit-lat');
                     const lngInput = document.getElementById('edit-lng');
                     if (latInput && lngInput) {
                         latInput.value = newPos.lat;
                         lngInput.value = newPos.lng;
-                        showToast(`Neue Position: ${newPos.lat.toFixed(4)}, ${newPos.lng.toFixed(4)}`, 'info');
                     }
+                }
+
+                try {
+                    await saveData('station', s);
+                    showToast(`Station gespeichert: ${newPos.lat.toFixed(5)}, ${newPos.lng.toFixed(5)}`, 'success');
+                } catch (error) {
+                    s.lat = previousLat;
+                    s.lng = previousLng;
+                    marker.setLngLat([previousLng, previousLat]);
+                    console.error('Station position could not be saved', error);
+                    showToast('Neue Position konnte nicht gespeichert werden.', 'error');
                 }
             });
         }
