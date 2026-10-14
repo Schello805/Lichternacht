@@ -462,6 +462,7 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
             return { top: box.top, bottom: box.bottom };
         });
         expect(attribution.top).toBeGreaterThanOrEqual(gpsStatus.bottom + 8);
+        await expect(page.locator('#map .maplibregl-ctrl-attrib')).not.toHaveAttribute('open', '');
     }
 });
 

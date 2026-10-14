@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.220';
-import { saveData } from './data.js?v=1.4.220';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.221';
+import { saveData } from './data.js?v=1.4.221';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -291,6 +291,7 @@ export function initMap() {
         attributionControl: false
     });
     state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
+    state.map.once('load', keepMapAttributionCompact);
     state.map.dragRotate.disable();
     state.map.touchZoomRotate.disableRotation();
     state.map.on('style.load', restoreMapOverlays);
@@ -301,6 +302,16 @@ export function initMap() {
     mapFallbackTimer = window.setTimeout(() => {
         if (!state.map?.areTilesLoaded?.()) applyFallbackMapStyle();
     }, 8000);
+}
+
+function keepMapAttributionCompact() {
+    const attribution = document.querySelector('#map .maplibregl-ctrl-attrib');
+    if (!(attribution instanceof HTMLDetailsElement)) return;
+    attribution.open = false;
+    attribution.addEventListener('toggle', () => {
+        if (!attribution.open) return;
+        window.setTimeout(() => { attribution.open = false; }, 2500);
+    });
 }
 
 function applyFallbackMapStyle() {
