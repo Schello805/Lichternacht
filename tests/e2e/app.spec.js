@@ -453,6 +453,15 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
         });
         expect(homeButton.left).toBeLessThan(32);
         expect(homeButton.bottom).toBeLessThanOrEqual(layout.navTop - 8);
+        const gpsStatus = await page.locator('#map-gps-status').evaluate(element => {
+            const box = element.getBoundingClientRect();
+            return { top: box.top, bottom: box.bottom };
+        });
+        const attribution = await page.locator('.maplibregl-ctrl-top-left').evaluate(element => {
+            const box = element.getBoundingClientRect();
+            return { top: box.top, bottom: box.bottom };
+        });
+        expect(attribution.top).toBeGreaterThanOrEqual(gpsStatus.bottom + 8);
     }
 });
 

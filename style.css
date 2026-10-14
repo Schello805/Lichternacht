@@ -108,6 +108,9 @@ h3,
     #view-map.route-info-visible #map-layer-btn {
         transform: translateY(15rem);
     }
+    .maplibregl-ctrl-top-left {
+        top: 11rem;
+    }
 }
 
 #modal-drag-handle {
