@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.211';
-import * as utils from './utils.js?v=1.4.211';
-import { saveData, deleteData } from './data.js?v=1.4.211';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.211';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.211';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.211';
-import { recordAuditEvent } from './audit.js?v=1.4.211';
-import { normalizeImageUrl } from './image-url.js?v=1.4.211';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.212';
+import * as utils from './utils.js?v=1.4.212';
+import { saveData, deleteData } from './data.js?v=1.4.212';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.212';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.212';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.212';
+import { recordAuditEvent } from './audit.js?v=1.4.212';
+import { normalizeImageUrl } from './image-url.js?v=1.4.212';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -79,6 +79,7 @@ export function openRoutePlan() {
         selectIds(favorites);
     };
     modal.querySelector('[data-route-plan-all]').onclick = () => selectIds(stations.map(station => station.id));
+    modal.querySelector('[data-route-plan-none]').onclick = () => selectIds([]);
     list.onchange = () => updateRoutePlanSelectionCount(modal);
     modal.querySelector('[data-route-plan-submit]').onclick = async () => {
         const ids = [...list.querySelectorAll('input[data-route-plan-station]:checked')].map(input => input.value);

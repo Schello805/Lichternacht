@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.211" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.212" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.211" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.212" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.211">
+    <link rel="stylesheet" href="style.css?v=1.4.212">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -941,7 +941,8 @@
                 <div class="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-gray-700">
                     <button type="button" data-route-plan-recommended class="shrink-0 rounded-full bg-yellow-100 px-3 py-2 text-xs font-bold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">Empfehlung</button>
                     <button type="button" data-route-plan-favorites class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200"><i class="ph-fill ph-star text-yellow-500"></i> Favoriten</button>
-                    <button type="button" data-route-plan-all class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Alle</button>
+                    <button type="button" data-route-plan-all class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Alle markieren</button>
+                    <button type="button" data-route-plan-none class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Auswahl aufheben</button>
                 </div>
                 <div id="route-plan-stations" class="max-h-[42vh] overflow-y-auto px-5 py-3 space-y-2"></div>
                 <div class="border-t border-gray-100 dark:border-gray-700 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white dark:bg-gray-800">
@@ -1379,7 +1380,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.211', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.212', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1406,7 +1407,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.211"></script>
+    <script type="module" src="main.js?v=1.4.212"></script>
 </body>
 
 </html>

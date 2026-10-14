@@ -170,6 +170,9 @@ test('route planner uses favorites and lets visitors adjust the selected station
     await expect(page.locator('[data-route-plan-submit]')).toBeDisabled();
     await page.locator('[data-route-plan-all]').click();
     await expect(page.locator('[data-route-plan-submit]')).toBeEnabled();
+    await page.locator('[data-route-plan-none]').click();
+    await expect(page.locator('input[data-route-plan-station]:checked')).toHaveCount(0);
+    await expect(page.locator('[data-route-plan-submit]')).toBeDisabled();
 });
 
 test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {
