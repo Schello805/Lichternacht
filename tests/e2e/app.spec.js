@@ -127,6 +127,34 @@ test('map layer control toggles satellite view without an API key', async ({ pag
     await expect.poll(() => page.evaluate(() => localStorage.getItem('map_view_mode_v1'))).toBe('map');
 });
 
+test('map overview draws a round route with duration and direction arrows', async ({ page }) => {
+    await page.route('https://routing.openstreetmap.de/**', route => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+            routes: [{
+                distance: 2400,
+                duration: 1800,
+                geometry: {
+                    type: 'LineString',
+                    coordinates: [[10.5484, 49.15714], [10.552, 49.158], [10.5484, 49.15714]]
+                }
+            }]
+        })
+    }));
+    await page.goto('/index.html');
+
+    const routeButton = page.locator('#map-overview-route-btn');
+    await routeButton.click();
+    await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(true);
+    await expect(page.locator('#route-info')).toBeVisible();
+    await expect(page.locator('#route-info-title')).toContainText('Rundweg');
+    await expect(page.locator('#route-info-detail')).toContainText('2.4 km');
+    await expect(page.locator('.overview-route-arrow')).not.toHaveCount(0);
+
+    await routeButton.click();
+    await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(false);
+});
+
 test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {
     await page.route('https://tiles.openfreemap.org/**', route => route.abort());
     await page.goto('/index.html');

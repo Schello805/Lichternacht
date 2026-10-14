@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.208';
-import * as utils from './js/utils.js?v=1.4.208';
+import { shareStation, showToast } from './js/utils.js?v=1.4.209';
+import * as utils from './js/utils.js?v=1.4.209';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView } from './js/maplibre-map.js?v=1.4.208';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.208';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.208';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.208';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute } from './js/maplibre-map.js?v=1.4.209';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.209';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.209';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.209';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner
-} from './js/ui.js?v=1.4.208';
+} from './js/ui.js?v=1.4.209';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability
-} from './js/admin.js?v=1.4.208';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.208';
-import { recordAuditEvent } from './js/audit.js?v=1.4.208';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.208';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.208';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.208';
+} from './js/admin.js?v=1.4.209';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.209';
+import { recordAuditEvent } from './js/audit.js?v=1.4.209';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.209';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.209';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.209';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.208";
+const APP_VERSION = "1.4.209";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1204,6 +1204,7 @@ window.toggleDarkMode = () => {
     updateMapTiles(document.documentElement.classList.contains('dark'));
 };
 window.toggleSatelliteView = toggleSatelliteView;
+window.toggleOverviewRoute = toggleOverviewRoute;
 window.openHelpModal = openHelpModal;
 window.closeHelpModal = closeHelpModal;
 window.saveStationChanges = saveStationChanges;

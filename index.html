@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.208" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.209" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.208" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.209" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,12 +123,13 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.208">
+    <link rel="stylesheet" href="style.css?v=1.4.209">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
         #map-home-btn,
-        #map-layer-btn {
+        #map-layer-btn,
+        #map-overview-route-btn {
             width: 48px !important;
             height: 48px !important;
             min-width: 48px !important;
@@ -137,6 +138,15 @@
             border-radius: 50% !important;
             aspect-ratio: 1 / 1;
             outline: none !important;
+        }
+
+        .overview-route-arrow {
+            color: #f59e0b;
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1;
+            text-shadow: 0 1px 3px rgba(15, 23, 42, 0.9);
+            pointer-events: none;
         }
 
         #map-locate-btn::after,
@@ -769,6 +779,11 @@
 
                 <!-- Map Controls -->
                 <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+                    <button id="map-overview-route-btn" onclick="toggleOverviewRoute()" aria-label="Rundweg mit allen Stationen anzeigen"
+                        class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center"
+                        title="Rundweg mit allen Stationen anzeigen">
+                        <i class="ph ph-route text-xl"></i>
+                    </button>
                     <button id="map-layer-btn" onclick="toggleSatelliteView()" aria-label="Satellitenansicht einschalten"
                         class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center"
                         title="Satellitenansicht einschalten">
@@ -793,8 +808,8 @@
                 <div id="route-info"
                     class="hidden absolute top-4 left-4 right-16 z-[400] bg-white/90 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 flex justify-between items-center">
                     <div>
-                        <span class="text-xs font-bold text-yellow-600 uppercase">Route aktiv</span>
-                        <div class="text-sm font-bold">Ziel wird angezeigt</div>
+                        <span id="route-info-title" class="text-xs font-bold text-yellow-600 uppercase">Route aktiv</span>
+                        <div id="route-info-detail" class="text-sm font-bold">Ziel wird angezeigt</div>
                     </div>
                     <button onclick="clearRoute()"
                         class="bg-gray-200 hover:bg-gray-300 rounded-full p-2 text-gray-600"><i
@@ -1324,7 +1339,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.208', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.209', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1351,7 +1366,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.208"></script>
+    <script type="module" src="main.js?v=1.4.209"></script>
 </body>
 
 </html>
