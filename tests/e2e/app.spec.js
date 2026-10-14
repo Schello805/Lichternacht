@@ -127,7 +127,11 @@ test('map layer control toggles satellite view without an API key', async ({ pag
     await expect.poll(() => page.evaluate(() => localStorage.getItem('map_view_mode_v1'))).toBe('map');
 });
 
-test('map overview draws a round route with duration and direction arrows', async ({ page }) => {
+test('map overview draws a guided round route without direction arrows', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__navigationUrls = [];
+        window.open = url => { window.__navigationUrls.push(url); return null; };
+    });
     await page.route('https://routing.openstreetmap.de/**', route => route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
@@ -151,9 +155,12 @@ test('map overview draws a round route with duration and direction arrows', asyn
     await expect(page.locator('#route-info')).toBeVisible();
     await expect(page.locator('#route-info-title')).toContainText('Rundweg');
     await expect(page.locator('#route-info-detail')).toContainText('2.4 km');
-    await expect(page.locator('.overview-route-arrow')).not.toHaveCount(0);
+    await expect(page.locator('.overview-route-arrow')).toHaveCount(0);
+    await page.locator('#overview-route-navigation-btn').click();
+    await expect.poll(() => page.evaluate(() => window.__navigationUrls.length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__navigationUrls[0])).toContain('travelmode=walking');
 
-    await page.locator('#route-info button').click();
+    await page.locator('#route-info button[onclick="clearRoute()"]').click();
     await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(false);
 });
 

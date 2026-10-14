@@ -15,6 +15,8 @@ export const state = {
     routeGeometry: null,
     overviewRouteGeometry: null,
     overviewRouteMarkers: [],
+    overviewRouteStations: [],
+    overviewRouteNavigationIndex: 0,
     overviewRouteRequestId: 0,
     proximityCircle: null,
     stations: [],

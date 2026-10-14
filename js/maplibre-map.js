@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.214';
-import { saveData } from './data.js?v=1.4.214';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.215';
+import { saveData } from './data.js?v=1.4.215';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -684,6 +684,7 @@ function setRouteInfo(title, detail) {
     const detailElement = document.getElementById('route-info-detail');
     if (titleElement) titleElement.textContent = title;
     if (detailElement) detailElement.textContent = detail;
+    document.getElementById('overview-route-navigation-btn')?.classList.add('hidden');
     routeInfo?.classList.remove('hidden');
 }
 
@@ -725,7 +726,7 @@ function buildOverviewRoundTrip(stationIds = null) {
         })
         .filter(Boolean)
         .sort((a, b) => Number(a.station.id) - Number(b.station.id));
-    if (stations.length < 2) return [];
+    if (stations.length < 2) return { coordinates: [], stations: [] };
 
     const remaining = [...stations];
     const ordered = [remaining.shift()];
@@ -742,7 +743,10 @@ function buildOverviewRoundTrip(stationIds = null) {
         });
         ordered.push(remaining.splice(nextIndex, 1)[0]);
     }
-    return [...ordered.map(item => item.coordinates), ordered[0].coordinates];
+    return {
+        coordinates: [...ordered.map(item => item.coordinates), ordered[0].coordinates],
+        stations: ordered.map(item => item.station)
+    };
 }
 
 function formatRouteDistance(distanceMeters) {
@@ -758,6 +762,8 @@ function formatRouteDuration(durationSeconds) {
 function clearOverviewRoute() {
     state.overviewRouteRequestId += 1;
     state.overviewRouteGeometry = null;
+    state.overviewRouteStations = [];
+    state.overviewRouteNavigationIndex = 0;
     (state.overviewRouteMarkers || []).forEach(marker => marker.remove());
     state.overviewRouteMarkers = [];
     if (state.map) {
@@ -772,38 +778,6 @@ function clearOverviewRoute() {
     hideRouteInfoIfUnused();
 }
 
-function getBearing(start, end) {
-    const radians = Math.PI / 180;
-    const longitudeDelta = (end[0] - start[0]) * radians;
-    const latitudeStart = start[1] * radians;
-    const latitudeEnd = end[1] * radians;
-    const value = Math.atan2(
-        Math.sin(longitudeDelta) * Math.cos(latitudeEnd),
-        Math.cos(latitudeStart) * Math.sin(latitudeEnd) - Math.sin(latitudeStart) * Math.cos(latitudeEnd) * Math.cos(longitudeDelta)
-    );
-    return value / radians;
-}
-
-function renderOverviewRouteArrows(coordinates) {
-    (state.overviewRouteMarkers || []).forEach(marker => marker.remove());
-    state.overviewRouteMarkers = [];
-    if (!state.map || coordinates.length < 3) return;
-    const arrowCount = Math.min(8, Math.max(3, Math.floor(coordinates.length / 5)));
-    for (let index = 1; index <= arrowCount; index++) {
-        const coordinateIndex = Math.min(coordinates.length - 1, Math.floor(index * (coordinates.length - 1) / (arrowCount + 1)));
-        const previous = coordinates[Math.max(0, coordinateIndex - 1)];
-        const current = coordinates[coordinateIndex];
-        const element = document.createElement('span');
-        element.className = 'overview-route-arrow';
-        element.textContent = '➤';
-        state.overviewRouteMarkers.push(new maplibregl.Marker({
-            element,
-            rotation: getBearing(previous, current),
-            rotationAlignment: 'map'
-        }).setLngLat(current).addTo(state.map));
-    }
-}
-
 function renderOverviewRoute(geometry) {
     setGeoJsonLayer(OVERVIEW_ROUTE_SOURCE_ID, [{
         id: OVERVIEW_ROUTE_LAYER_ID,
@@ -812,7 +786,32 @@ function renderOverviewRoute(geometry) {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#f59e0b', 'line-opacity': 0.9, 'line-width': 5, 'line-dasharray': [1.5, 1] }
     }], { type: 'Feature', properties: {}, geometry });
-    renderOverviewRouteArrows(geometry.coordinates);
+}
+
+function updateOverviewRouteNavigationButton() {
+    const button = document.getElementById('overview-route-navigation-btn');
+    const stations = state.overviewRouteStations || [];
+    if (!button || !state.overviewRouteGeometry || !stations.length) return;
+    const index = state.overviewRouteNavigationIndex % stations.length;
+    const station = stations[index];
+    const prefix = index === 0 ? 'Navigation starten' : 'Weiter zu';
+    button.innerHTML = `<i class="ph ph-navigation-arrow"></i> ${prefix}: #${station.id}`;
+    button.classList.remove('hidden');
+}
+
+export function startOverviewNavigation() {
+    const stations = state.overviewRouteStations || [];
+    if (!stations.length) {
+        showToast('Erstelle zuerst einen Rundweg.', 'info');
+        return;
+    }
+    const index = state.overviewRouteNavigationIndex % stations.length;
+    const station = stations[index];
+    const coordinates = getValidCoordinates(station.lat, station.lng);
+    if (!coordinates) return;
+    state.overviewRouteNavigationIndex = (index + 1) % stations.length;
+    updateOverviewRouteNavigationButton();
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}&travelmode=walking`, '_blank', 'noopener');
 }
 
 export async function toggleOverviewRoute(stationIds = null) {
@@ -822,7 +821,8 @@ export async function toggleOverviewRoute(stationIds = null) {
     }
 
     if (state.overviewRouteGeometry) clearOverviewRoute();
-    const coordinates = buildOverviewRoundTrip(stationIds);
+    const overview = buildOverviewRoundTrip(stationIds);
+    const coordinates = overview.coordinates;
     if (coordinates.length < 3) {
         showToast('Für einen Rundweg werden mindestens zwei Stationen mit Kartenposition benötigt.', 'info');
         return;
@@ -859,10 +859,13 @@ export async function toggleOverviewRoute(stationIds = null) {
 
     if (requestId !== state.overviewRouteRequestId) return;
     state.overviewRouteGeometry = geometry;
+    state.overviewRouteStations = overview.stations;
+    state.overviewRouteNavigationIndex = 0;
     renderOverviewRoute(geometry);
     updateOverviewRouteButton();
     const prefix = estimated ? 'Geschätzt: ' : '';
     setRouteInfo(`Rundweg · ${coordinates.length - 1} Stationen`, `${prefix}${formatRouteDistance(distance)} · ${formatRouteDuration(duration)}`);
+    updateOverviewRouteNavigationButton();
     fitCoordinates(geometry.coordinates, 70);
 }
 
