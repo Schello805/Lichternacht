@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.221';
-import * as utils from './js/utils.js?v=1.4.221';
+import { shareStation, showToast } from './js/utils.js?v=1.4.222';
+import * as utils from './js/utils.js?v=1.4.222';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.221';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.221';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.221';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.221';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.222';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.222';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.222';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.222';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.221';
+} from './js/ui.js?v=1.4.222';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability
-} from './js/admin.js?v=1.4.221';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.221';
-import { recordAuditEvent } from './js/audit.js?v=1.4.221';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.221';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.221';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.221';
+} from './js/admin.js?v=1.4.222';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.222';
+import { recordAuditEvent } from './js/audit.js?v=1.4.222';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.222';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.222';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.222';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.221";
+const APP_VERSION = "1.4.222";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -907,31 +907,31 @@ window.startMiniTour = (force = false) => {
 
     const steps = [
         {
-            elId: 'user-count',
-            title: 'Aktive Nutzer',
-            text: 'Zeigt, wie viele Leute die App gerade aktiv nutzen.'
+            elId: 'map-locate-btn',
+            title: 'Standort bestimmen',
+            text: 'Einmal antippen, damit du deine Position, Entfernungen und Gehzeiten zu den Stationen siehst.'
         },
         {
             elId: 'pass-progress',
             title: 'Lichter‑Pass',
-            text: 'Dein Fortschritt: besucht/gesamt. Einchecken klappt nur in der Nähe einer Station.'
+            text: 'Sammle Stationen direkt vor Ort. Einchecken klappt nur in der Nähe einer Station und braucht keine Anmeldung.'
         },
         {
-            elId: 'smart-action-container',
-            title: 'In der Nähe',
-            text: 'Wenn du nah genug an einer Station bist, erscheint hier ein Quick‑Button zum direkten Einchecken.'
+            elId: 'map-overview-route-btn',
+            title: 'Rundweg planen',
+            text: 'Wähle deine Favoriten oder Stationen aus und die App zeigt dir einen passenden Weg durch den Ort.'
         },
         {
             tab: 'list',
             elId: 'nav-list',
             title: 'Stationen',
-            text: 'Über das Menü unten kommst du zur Stationsliste. Dort kannst du suchen und filtern.'
+            text: 'Hier kannst du suchen, filtern, Favoriten merken und nach Entfernung sortieren.'
         },
         {
             tab: 'events',
             elId: 'nav-events',
             title: 'Programm',
-            text: 'Über das Menü unten kommst du zum Programm. Mit „Zeigen“ springst du zur passenden Station auf der Karte.'
+            text: 'Alle Auftritte und Zeiten auf einen Blick. Mit „Zeigen“ springst du direkt zur Station auf der Karte.'
         }
     ];
 
@@ -1260,11 +1260,28 @@ window.addNewTag = window.addNewTag; // Already on window from ui.js, but for co
 // Let's just ensuring it's not overridden or lost.
 
 
-window.closeTutorial = () => {
-    document.getElementById('tutorial-modal').classList.add('hidden');
+window.completeOnboarding = (action = 'dismiss') => {
+    document.getElementById('tutorial-modal')?.classList.add('hidden');
     setPersistentFlag('tutorial_seen', 'true');
     setPersistentFlag('onboarding_dismissed', 'true');
+
+    if (action !== 'tour') {
+        setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
+        setTourFlag('mini_tour_prompt_dismissed', 'true');
+    }
+
     retryVisitorStartCardSoon();
+
+    if (action === 'location') {
+        switchTab('map');
+        window.setTimeout(() => locateUser(null, { userInitiated: true }), 0);
+    } else if (action === 'tour') {
+        window.setTimeout(() => window.startMiniTour?.(true), 0);
+    }
+};
+
+window.closeTutorial = () => {
+    window.completeOnboarding('dismiss');
 };
 
 window.toggleAdminLogin = () => {

@@ -32,6 +32,23 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.removeItem('tutorial_seen');
+        localStorage.removeItem('onboarding_dismissed');
+        localStorage.removeItem('mini_tour_seen_v1');
+        localStorage.removeItem('mini_tour_prompt_dismissed_v1');
+    });
+    await page.goto('/index.html');
+
+    await expect(page.locator('#tutorial-modal')).toBeVisible();
+    await expect(page.locator('#tutorial-modal')).toContainText('Stationen sammeln');
+    await expect(page.getByRole('button', { name: /Standort & Karte öffnen/ })).toBeVisible();
+    await page.getByRole('button', { name: /Kurze Tour ansehen/ }).click();
+    await expect(page.locator('.tour-tooltip')).toBeVisible();
+    await expect(page.locator('.tour-tooltip')).toContainText('Standort bestimmen');
+});
+
 test('mobile station modal shows its image and subtle website link', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
