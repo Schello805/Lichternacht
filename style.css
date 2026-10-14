@@ -93,6 +93,21 @@ h3,
         bottom: calc(7.25rem + env(safe-area-inset-bottom));
         right: 0.75rem;
     }
+    .route-info-panel {
+        left: 7rem;
+        right: 0.75rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    #route-info-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    #view-map.route-info-visible #map-overview-route-btn,
+    #view-map.route-info-visible #map-layer-btn {
+        transform: translateY(15rem);
+    }
 }
 
 #modal-drag-handle {

@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.218';
-import { saveData } from './data.js?v=1.4.218';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.219';
+import { saveData } from './data.js?v=1.4.219';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -681,18 +681,21 @@ export function clearRoute() {
 
 function setRouteInfo(title, detail) {
     const routeInfo = document.getElementById('route-info');
+    const mapView = document.getElementById('view-map');
     const titleElement = document.getElementById('route-info-title');
     const detailElement = document.getElementById('route-info-detail');
     if (titleElement) titleElement.textContent = title;
     if (detailElement) detailElement.textContent = detail;
     document.getElementById('overview-route-navigation-btn')?.classList.add('hidden');
     document.getElementById('overview-route-skip-btn')?.classList.add('hidden');
+    mapView?.classList.add('route-info-visible');
     routeInfo?.classList.remove('hidden');
 }
 
 function hideRouteInfoIfUnused() {
     if (state.routeGeometry || state.overviewRouteGeometry) return;
     document.getElementById('route-info')?.classList.add('hidden');
+    document.getElementById('view-map')?.classList.remove('route-info-visible');
 }
 
 function updateOverviewRouteButton() {

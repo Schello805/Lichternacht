@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.218" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.219" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.218" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.219" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.218">
+    <link rel="stylesheet" href="style.css?v=1.4.219">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -815,12 +815,12 @@
 
                 <!-- Routing Info -->
                 <div id="route-info"
-                    class="hidden absolute top-4 left-20 right-16 z-[400] bg-white/90 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 flex justify-between items-center">
+                    class="hidden route-info-panel absolute top-4 left-20 right-16 z-[400] bg-white/90 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 flex justify-between items-center">
                     <div>
                         <span id="route-info-title" class="text-xs font-bold text-yellow-600 uppercase">Route aktiv</span>
                         <div id="route-info-detail" class="text-sm font-bold">Ziel wird angezeigt</div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div id="route-info-actions" class="flex items-center gap-2">
                         <button id="overview-route-navigation-btn" onclick="startOverviewNavigation()"
                             class="hidden rounded-lg bg-yellow-500 px-2.5 py-2 text-xs font-bold text-white shadow-sm"><i class="ph ph-navigation-arrow"></i> Navigation starten</button>
                         <button id="overview-route-skip-btn" onclick="skipOverviewNavigationStation()"
@@ -1379,7 +1379,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.218', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.219', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1406,7 +1406,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.218"></script>
+    <script type="module" src="main.js?v=1.4.219"></script>
 </body>
 
 </html>

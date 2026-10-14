@@ -151,6 +151,21 @@ test('map overview draws a guided round route without direction arrows', async (
     await expect(page.locator('#route-info')).toBeVisible();
     await expect(page.locator('#route-info-title')).toContainText('Rundweg');
     await expect(page.locator('#route-info-detail')).toContainText('2.4 km');
+    if (page.viewportSize().width < 640) {
+        const layout = await page.locator('#route-info, #map-overview-route-btn, #map-layer-btn').evaluateAll(elements => {
+            const [routeInfo, routeButton, layerButton] = elements.map(element => element.getBoundingClientRect());
+            const overlaps = (first, second) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top;
+            return {
+                routeInfo: { left: routeInfo.left, right: routeInfo.right },
+                routeButtonOverlaps: overlaps(routeInfo, routeButton),
+                layerButtonOverlaps: overlaps(routeInfo, layerButton)
+            };
+        });
+        expect(layout.routeInfo.left).toBeGreaterThanOrEqual(100);
+        expect(layout.routeInfo.right).toBeLessThanOrEqual(page.viewportSize().width - 8);
+        expect(layout.routeButtonOverlaps).toBe(false);
+        expect(layout.layerButtonOverlaps).toBe(false);
+    }
     await expect(page.locator('.overview-route-arrow')).toHaveCount(0);
     await page.evaluate(() => { window.state.userLocation = { lat: 49.15714, lng: 10.5484 }; });
     await page.locator('#overview-route-navigation-btn').click();
