@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.213';
-import { saveData } from './data.js?v=1.4.213';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.214';
+import { saveData } from './data.js?v=1.4.214';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -161,6 +161,28 @@ function showLocationPermissionHelp() {
             locateUser(null, { userInitiated: true });
         });
     }
+}
+
+async function enableCompassFromUserGesture() {
+    if (state.compassEnabled || state.compassPermissionTried) return;
+    if (!window.DeviceOrientationEvent) return;
+
+    try {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            state.compassPermissionTried = true;
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') return;
+        }
+    } catch (e) {
+        return;
+    }
+
+    state.compassPermissionTried = true;
+    state.compassListener = handleDeviceOrientation;
+    window.addEventListener('deviceorientationabsolute', state.compassListener, true);
+    window.addEventListener('deviceorientation', state.compassListener, true);
+    state.compassEnabled = true;
+    updateUserMarkerHeading();
 }
 
 function getLocationButtons() {
@@ -459,6 +481,11 @@ export async function locateUser(cb, options = {}) {
     const startedFromUserGesture = options.userInitiated === true || navigator.userActivation?.isActive === true;
     const requestToken = ++state.gpsRequestToken;
     const geolocationStrategy = getGeolocationStrategy();
+
+    if (startedFromUserGesture) {
+        await enableCompassFromUserGesture();
+        if (requestToken !== state.gpsRequestToken) return;
+    }
 
     const forceCenter = options.forceCenter === true || (!cb && options.forceCenter !== false);
     const context = { requestToken, forceCenter, centerApplied: false, cb, cbCalled: false, hasFix: false, watchStarted: false, denied: false };
