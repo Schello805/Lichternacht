@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.209';
-import * as utils from './utils.js?v=1.4.209';
-import { saveData, deleteData } from './data.js?v=1.4.209';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.209';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.209';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.209';
-import { recordAuditEvent } from './audit.js?v=1.4.209';
-import { normalizeImageUrl } from './image-url.js?v=1.4.209';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.210';
+import * as utils from './utils.js?v=1.4.210';
+import { saveData, deleteData } from './data.js?v=1.4.210';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.210';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.210';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.210';
+import { recordAuditEvent } from './audit.js?v=1.4.210';
+import { normalizeImageUrl } from './image-url.js?v=1.4.210';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -20,6 +20,74 @@ const URL_MAX_LENGTH = 2048;
 const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
 let editingStation = null;
+const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
+
+function getRoutePlanStationIds() {
+    const validIds = new Set(state.stations.map(station => String(station.id)));
+    try {
+        const storedIds = JSON.parse(localStorage.getItem(ROUTE_PLAN_STORAGE_KEY) || 'null');
+        if (Array.isArray(storedIds)) return storedIds.map(String).filter(id => validIds.has(id));
+    } catch (error) {
+        console.warn('Saved route plan could not be read', error);
+    }
+    const configuredIds = Array.isArray(state.config?.defaultRouteStationIds)
+        ? state.config.defaultRouteStationIds.map(String).filter(id => validIds.has(id))
+        : [];
+    return configuredIds.length ? configuredIds : state.stations.map(station => String(station.id));
+}
+
+function persistRoutePlanStationIds(stationIds) {
+    localStorage.setItem(ROUTE_PLAN_STORAGE_KEY, JSON.stringify(stationIds.map(String)));
+}
+
+function updateRoutePlanSelectionCount(modal) {
+    const selectedCount = modal.querySelectorAll('input[data-route-plan-station]:checked').length;
+    const count = modal.querySelector('[data-route-plan-count]');
+    const action = modal.querySelector('[data-route-plan-submit]');
+    if (count) count.textContent = `${selectedCount} Station${selectedCount === 1 ? '' : 'en'} ausgewählt`;
+    if (action) action.disabled = selectedCount < 2;
+}
+
+export function openRoutePlan() {
+    const modal = document.getElementById('route-plan-modal');
+    const list = document.getElementById('route-plan-stations');
+    if (!modal || !list) return;
+    const selectedIds = new Set(getRoutePlanStationIds());
+    const stations = [...state.stations]
+        .filter(station => String(station.id || '').trim())
+        .sort((first, second) => Number(first.id) - Number(second.id));
+
+    list.innerHTML = stations.map(station => `<label class="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-gray-700/60 cursor-pointer active:bg-yellow-50 dark:active:bg-yellow-900/20"><input type="checkbox" data-route-plan-station value="${escapeHtml(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="h-5 w-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"><span class="min-w-0 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">#${escapeHtml(station.id)} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('');
+    modal.classList.remove('hidden');
+    updateRoutePlanSelectionCount(modal);
+
+    const selectIds = (ids) => {
+        const wanted = new Set(ids.map(String));
+        list.querySelectorAll('input[data-route-plan-station]').forEach(input => { input.checked = wanted.has(input.value); });
+        updateRoutePlanSelectionCount(modal);
+    };
+    modal.querySelector('[data-route-plan-recommended]').onclick = () => {
+        const configured = Array.isArray(state.config?.defaultRouteStationIds) ? state.config.defaultRouteStationIds : [];
+        selectIds(configured.length ? configured : stations.map(station => station.id));
+    };
+    modal.querySelector('[data-route-plan-favorites]').onclick = () => {
+        const favorites = stations.filter(station => state.favorites.has(station.id) || state.favorites.has(String(station.id))).map(station => station.id);
+        if (!favorites.length) {
+            showToast('Noch keine Favoriten vorhanden. Wähle einfach Stationen aus der Liste.', 'info');
+            return;
+        }
+        selectIds(favorites);
+    };
+    modal.querySelector('[data-route-plan-all]').onclick = () => selectIds(stations.map(station => station.id));
+    list.onchange = () => updateRoutePlanSelectionCount(modal);
+    modal.querySelector('[data-route-plan-submit]').onclick = async () => {
+        const ids = [...list.querySelectorAll('input[data-route-plan-station]:checked')].map(input => input.value);
+        if (ids.length < 2) return;
+        persistRoutePlanStationIds(ids);
+        modal.classList.add('hidden');
+        await toggleOverviewRoute(ids);
+    };
+}
 
 function normalizeExternalLink(value) {
     const raw = String(value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();

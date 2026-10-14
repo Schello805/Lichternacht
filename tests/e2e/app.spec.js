@@ -145,14 +145,31 @@ test('map overview draws a round route with duration and direction arrows', asyn
 
     const routeButton = page.locator('#map-overview-route-btn');
     await routeButton.click();
+    await expect(page.locator('#route-plan-modal')).toBeVisible();
+    await page.locator('[data-route-plan-submit]').click();
     await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(true);
     await expect(page.locator('#route-info')).toBeVisible();
     await expect(page.locator('#route-info-title')).toContainText('Rundweg');
     await expect(page.locator('#route-info-detail')).toContainText('2.4 km');
     await expect(page.locator('.overview-route-arrow')).not.toHaveCount(0);
 
-    await routeButton.click();
+    await page.locator('#route-info button').click();
     await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(false);
+});
+
+test('route planner uses favorites and lets visitors adjust the selected stations', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => { window.state.favorites = new Set(['1', '2']); });
+
+    await page.locator('#map-overview-route-btn').click();
+    await page.locator('[data-route-plan-favorites]').click();
+    await expect(page.locator('[data-route-plan-count]')).toContainText('2 Stationen ausgewählt');
+    await expect(page.locator('input[data-route-plan-station]:checked')).toHaveCount(2);
+
+    await page.locator('input[data-route-plan-station]').first().uncheck();
+    await expect(page.locator('[data-route-plan-submit]')).toBeDisabled();
+    await page.locator('[data-route-plan-all]').click();
+    await expect(page.locator('[data-route-plan-submit]')).toBeEnabled();
 });
 
 test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {

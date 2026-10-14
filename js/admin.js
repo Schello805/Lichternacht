@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.209';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.209';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.209';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.210';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.210';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.210';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.209';
-import { recordAuditEvent } from './audit.js?v=1.4.209';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.209';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.210';
+import { recordAuditEvent } from './audit.js?v=1.4.210';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.210';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -392,6 +392,7 @@ function fillAdminPanel() {
     document.getElementById('admin-app-subtitle').value = state.config.subtitle || '';
     document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
     document.getElementById('admin-planning-text').value = state.config.planningText || '';
+    renderDefaultRouteStationSelection();
     const googleSheetInput = document.getElementById('admin-google-sheet-url');
     if (googleSheetInput) googleSheetInput.value = state.config.googleSheetUrl || '';
 
@@ -419,6 +420,26 @@ function fillAdminPanel() {
     if (search) search.oninput = renderAdminDataTables;
     try { runDataValidation(); } catch (e) { }
     if (window.updateAdminUiAvailability) window.updateAdminUiAvailability();
+}
+
+function renderDefaultRouteStationSelection() {
+    const container = document.getElementById('admin-default-route-stations');
+    const count = document.getElementById('admin-default-route-count');
+    if (!container) return;
+
+    const selectedIds = new Set((state.config.defaultRouteStationIds || []).map(String));
+    const stations = [...(state.stations || [])]
+        .filter(station => String(station.id || '').trim())
+        .sort((first, second) => Number(first.id) - Number(second.id));
+    container.innerHTML = stations.length
+        ? stations.map(station => `<label class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"><input type="checkbox" name="admin-default-route-station" value="${escapeAttr(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="rounded text-yellow-600 focus:ring-yellow-500"><span class="text-xs text-gray-700 dark:text-gray-200">#${escapeHtml(station.id)} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('')
+        : '<p class="text-xs text-gray-500">Noch keine Stationen vorhanden.</p>';
+
+    const updateCount = () => {
+        if (count) count.textContent = `${container.querySelectorAll('input:checked').length} ausgewählt`;
+    };
+    container.addEventListener('change', updateCount);
+    updateCount();
 }
 
 export function closeAdminPanel() {
@@ -656,7 +677,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.209';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.210';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1246,9 +1267,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.209';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.209';
-import { renderList, renderTimeline } from './ui.js?v=1.4.209';
+import { showToast } from './utils.js?v=1.4.210';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.210';
+import { renderList, renderTimeline } from './ui.js?v=1.4.210';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -1409,6 +1430,8 @@ export async function saveAppConfig() {
     const subtitleRaw = document.getElementById('admin-app-subtitle').value;
     const planningMode = document.getElementById('admin-planning-mode').checked;
     const planningText = document.getElementById('admin-planning-text').value;
+    const defaultRouteStationIds = [...document.querySelectorAll('input[name="admin-default-route-station"]:checked')]
+        .map(input => String(input.value));
     
     const title = (titleRaw || '').trim();
     const subtitle = (subtitleRaw || '').trim();
@@ -1422,7 +1445,7 @@ export async function saveAppConfig() {
     console.log("Saving App Config:", { title, subtitle, planningMode, planningText });
 
     // Safety: never overwrite title/subtitle with empty strings by accident.
-    const config = { planningMode, planningText };
+    const config = { planningMode, planningText, defaultRouteStationIds };
     if (title) config.title = title;
     if (subtitle) config.subtitle = subtitle;
     

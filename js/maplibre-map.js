@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.209';
-import { saveData } from './data.js?v=1.4.209';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.210';
+import { saveData } from './data.js?v=1.4.210';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -696,7 +696,7 @@ function updateOverviewRouteButton() {
     const button = document.getElementById('map-overview-route-btn');
     if (!button) return;
     const active = Boolean(state.overviewRouteGeometry);
-    const label = active ? 'Rundweg ausblenden' : 'Rundweg mit allen Stationen anzeigen';
+    const label = active ? 'Rundweg anpassen' : 'Rundweg planen';
     button.setAttribute('aria-label', label);
     button.title = label;
     button.classList.remove('bg-yellow-500', 'text-white', 'border-yellow-500', 'bg-white', 'text-yellow-600');
@@ -715,8 +715,10 @@ function getDistanceMeters(start, end) {
     return 6371000 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
-function buildOverviewRoundTrip() {
+function buildOverviewRoundTrip(stationIds = null) {
+    const selectedIds = Array.isArray(stationIds) ? new Set(stationIds.map(String)) : null;
     const stations = state.stations
+        .filter(station => !selectedIds || selectedIds.has(String(station.id)))
         .map(station => {
             const coordinates = getValidCoordinates(station.lat, station.lng);
             return coordinates ? { station, coordinates: [coordinates.longitude, coordinates.latitude] } : null;
@@ -813,13 +815,14 @@ function renderOverviewRoute(geometry) {
     renderOverviewRouteArrows(geometry.coordinates);
 }
 
-export async function toggleOverviewRoute() {
-    if (state.overviewRouteGeometry) {
+export async function toggleOverviewRoute(stationIds = null) {
+    if (state.overviewRouteGeometry && stationIds === null) {
         clearOverviewRoute();
         return;
     }
 
-    const coordinates = buildOverviewRoundTrip();
+    if (state.overviewRouteGeometry) clearOverviewRoute();
+    const coordinates = buildOverviewRoundTrip(stationIds);
     if (coordinates.length < 3) {
         showToast('Für einen Rundweg werden mindestens zwei Stationen mit Kartenposition benötigt.', 'info');
         return;
