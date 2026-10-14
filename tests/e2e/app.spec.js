@@ -567,7 +567,7 @@ test('internal route is drawn on the MapLibre map', async ({ context, page }) =>
     await expect.poll(() => page.evaluate(() => Boolean(window.state?.routeGeometry))).toBe(true);
     await expect.poll(() => page.evaluate(() => Boolean(window.state?.map?.getLayer('active-route-line')))).toBe(true);
     await expect(page.locator('#route-info')).toBeVisible();
-    await page.locator('#route-info button').click();
+    await page.locator('#route-info button[onclick="clearRoute()"]').click();
     await expect(page.locator('#route-info')).toBeHidden();
     await expect.poll(() => page.evaluate(() => Boolean(window.state?.map?.getLayer('active-route-line')))).toBe(false);
     await expect(page.locator('.maplibregl-canvas')).toBeVisible();
