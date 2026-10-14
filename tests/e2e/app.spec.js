@@ -432,6 +432,12 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
             return { bottom: box.bottom };
         });
         expect(floatingStatus.bottom).toBeLessThanOrEqual(layout.navTop - 8);
+        const homeButton = await page.locator('#map-home-btn').evaluate(element => {
+            const box = element.getBoundingClientRect();
+            return { left: box.left, bottom: box.bottom };
+        });
+        expect(homeButton.left).toBeLessThan(32);
+        expect(homeButton.bottom).toBeLessThanOrEqual(layout.navTop - 8);
     }
 });
 

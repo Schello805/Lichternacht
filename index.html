@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.217" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.218" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.217" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.218" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.217">
+    <link rel="stylesheet" href="style.css?v=1.4.218">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -786,10 +786,6 @@
                         </button>
                         <div id="map-gps-status" role="status" class="whitespace-nowrap rounded-full bg-gray-900/75 px-2.5 py-1 text-[10px] font-bold text-white shadow">GPS aus</div>
                     </div>
-                    <button id="map-home-btn" onclick="resetMap()" aria-label="Kartenübersicht anzeigen"
-                        class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
-                        <i class="ph ph-house text-xl"></i>
-                    </button>
                 </div>
                 <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
                     <button id="map-overview-route-btn" onclick="openRoutePlan()" aria-label="Rundweg planen"
@@ -812,6 +808,10 @@
                         </svg>
                     </button>
                 </div>
+                <button id="map-home-btn" onclick="resetMap()" aria-label="Kartenübersicht anzeigen"
+                    class="map-control-button absolute bottom-[calc(7.25rem+env(safe-area-inset-bottom))] left-4 z-[400] bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
+                    <i class="ph ph-house text-xl"></i>
+                </button>
 
                 <!-- Routing Info -->
                 <div id="route-info"
@@ -1379,7 +1379,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.217', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.218', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1406,7 +1406,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.217"></script>
+    <script type="module" src="main.js?v=1.4.218"></script>
 </body>
 
 </html>
