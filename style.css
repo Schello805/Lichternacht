@@ -89,6 +89,10 @@ h3,
 @media (max-width: 639px) {
     #modal-image-container img { height: 10rem !important; }
     #floating-status.is-non-map { display: none; }
+    #floating-status {
+        bottom: calc(7.25rem + env(safe-area-inset-bottom));
+        right: 0.75rem;
+    }
 }
 
 #modal-drag-handle {

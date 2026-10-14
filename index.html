@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.216" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.217" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.216" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.217" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.216">
+    <link rel="stylesheet" href="style.css?v=1.4.217">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -779,15 +779,17 @@
 
                 <!-- Map Controls -->
                 <div class="absolute top-4 left-4 z-[400] flex flex-col gap-2">
-                    <button id="map-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen"
-                        class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
-                        <i class="ph ph-crosshair text-xl"></i>
-                    </button>
+                    <div class="flex flex-col items-start gap-2">
+                        <button id="map-locate-btn" onclick="locateUser(null, { userInitiated: true })" aria-label="Eigenen Standort bestimmen"
+                            class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
+                            <i class="ph ph-crosshair text-xl"></i>
+                        </button>
+                        <div id="map-gps-status" role="status" class="whitespace-nowrap rounded-full bg-gray-900/75 px-2.5 py-1 text-[10px] font-bold text-white shadow">GPS aus</div>
+                    </div>
                     <button id="map-home-btn" onclick="resetMap()" aria-label="Kartenübersicht anzeigen"
                         class="map-control-button bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center">
                         <i class="ph ph-house text-xl"></i>
                     </button>
-                    <div id="map-gps-status" role="status" class="self-start whitespace-nowrap rounded-full bg-gray-900/75 px-2.5 py-1 text-[10px] font-bold text-white shadow">GPS aus</div>
                 </div>
                 <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
                     <button id="map-overview-route-btn" onclick="openRoutePlan()" aria-label="Rundweg planen"
@@ -1377,7 +1379,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.216', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.217', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1404,7 +1406,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.216"></script>
+    <script type="module" src="main.js?v=1.4.217"></script>
 </body>
 
 </html>

@@ -426,6 +426,13 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
         expect(label.top).toBeGreaterThanOrEqual(layout.navTop);
         expect(label.bottom).toBeLessThanOrEqual(layout.navBottom - 8);
     }
+    if (page.viewportSize().width < 640) {
+        const floatingStatus = await page.locator('#floating-status').evaluate(element => {
+            const box = element.getBoundingClientRect();
+            return { bottom: box.bottom };
+        });
+        expect(floatingStatus.bottom).toBeLessThanOrEqual(layout.navTop - 8);
+    }
 });
 
 test('program details can be dismissed by swiping the modal body down', async ({ page }) => {
@@ -536,6 +543,7 @@ test('location marker stays visible above stations and follows GPS updates', asy
         return [Math.round(box.width), Math.round(box.height)];
     }));
     expect(controlSizes).toEqual([[48, 48], [48, 48]]);
+    await expect(page.locator('#map-locate-btn + #map-gps-status')).toHaveCount(1);
     const gpsStatusDotContent = await page.locator('#map-locate-btn').evaluate(button => getComputedStyle(button, '::after').content);
     expect(gpsStatusDotContent).toBe('none');
 
