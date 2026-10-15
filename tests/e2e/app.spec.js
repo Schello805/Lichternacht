@@ -682,7 +682,7 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await page.getByRole('button', { name: 'Prüfen' }).click();
     await expect(page.locator('#admin-validation-results')).not.toContainText('Noch nicht geprüft.');
 
-    const auditSection = page.locator('details').filter({ hasText: '9. Auditlog (pseudonym)' });
+    const auditSection = page.locator('details').filter({ hasText: '10. Auditlog (pseudonym)' });
     await expect(auditSection).not.toHaveAttribute('open', '');
     await auditSection.locator('summary').click();
     await expect(page.locator('#admin-audit-role')).toHaveValue('visitor');
