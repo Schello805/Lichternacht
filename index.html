@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.222" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.223" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.222" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.223" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.222">
+    <link rel="stylesheet" href="style.css?v=1.4.223">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -596,7 +596,29 @@
             <!-- Usage Analytics -->
             <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>8. Nutzungsanalyse (anonym)</span>
+                    <span>8. E-Mail-Versand</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
+                    <p class="text-xs text-gray-500 mt-3">Hier legst du fest, wohin Gewinnspiel-, Preis- und Fehler-Mails gesendet werden. SMTP-Zugangsdaten bleiben geschützt auf dem Server.</p>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-200" for="admin-email-recipient">Empfängeradresse</label>
+                    <input id="admin-email-recipient" type="email" maxlength="254" autocomplete="email" placeholder="info@beispiel.de"
+                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-200" for="admin-email-sender-name">Absendername <span class="font-normal text-gray-500">(optional)</span></label>
+                    <input id="admin-email-sender-name" type="text" maxlength="80" placeholder="Lichternacht Bechhofen"
+                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="saveEmailSettings()" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm">Speichern</button>
+                        <button type="button" onclick="sendEmailSettingsTest()" class="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-2 px-3 rounded hover:bg-gray-200 dark:hover:bg-gray-700 font-bold text-sm border border-gray-200 dark:border-gray-600">Testmail</button>
+                    </div>
+                    <p id="admin-email-settings-status" class="mt-3 text-xs text-gray-500">E-Mail-Status wird geladen…</p>
+                </div>
+            </details>
+
+            <!-- Usage Analytics -->
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span>9. Nutzungsanalyse (anonym)</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -1390,7 +1412,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.222', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.223', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1417,7 +1439,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.222"></script>
+    <script type="module" src="main.js?v=1.4.223"></script>
 </body>
 
 </html>

@@ -13,6 +13,7 @@ import urllib.error
 import shutil
 import resource
 from email.message import EmailMessage
+from email.utils import formataddr
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -21,6 +22,8 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'downloads')
 STATION_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'stations')
 EVENT_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'events')
 LOG_DIR = 'logs'
+PRIVATE_DIR = os.path.join(BASE_DIR, '.private')
+EMAIL_SETTINGS_PATH = os.path.join(PRIVATE_DIR, 'email-settings.json')
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
@@ -30,6 +33,8 @@ if not os.path.exists(EVENT_IMAGE_DIR):
     os.makedirs(EVENT_IMAGE_DIR)
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
+if not os.path.exists(PRIVATE_DIR):
+    os.makedirs(PRIVATE_DIR, mode=0o700)
 
 def load_dotenv(path='.env'):
     """
@@ -103,8 +108,47 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             pass
         return True
 
+    def _email_settings(self):
+        settings = {
+            'recipient': os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz').strip(),
+            'senderName': ''
+        }
+        try:
+            with open(EMAIL_SETTINGS_PATH, 'r', encoding='utf-8') as settings_file:
+                stored = json.load(settings_file)
+            if isinstance(stored, dict):
+                recipient = str(stored.get('recipient') or '').strip()
+                sender_name = str(stored.get('senderName') or '').strip()
+                if recipient:
+                    settings['recipient'] = recipient
+                settings['senderName'] = sender_name
+        except (OSError, ValueError, TypeError):
+            pass
+        return settings
+
+    def _save_email_settings(self, recipient, sender_name):
+        payload = {'recipient': recipient, 'senderName': sender_name}
+        temp_path = f'{EMAIL_SETTINGS_PATH}.{secrets.token_hex(6)}.tmp'
+        with open(temp_path, 'w', encoding='utf-8') as settings_file:
+            json.dump(payload, settings_file, ensure_ascii=False)
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, EMAIL_SETTINGS_PATH)
+
+    def _smtp_configured(self):
+        return all(os.environ.get(key, '').strip() for key in ('SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'))
+
+    def _email_settings_payload(self):
+        settings = self._email_settings()
+        return {
+            'ok': True,
+            'recipient': settings['recipient'],
+            'senderName': settings['senderName'],
+            'smtpConfigured': self._smtp_configured()
+        }
+
     def _send_bug_report_email(self, subject, text, html_content=None):
-        to_addr = os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz')
+        settings = self._email_settings()
+        to_addr = settings['recipient']
         from_addr = os.environ.get('BUGREPORT_FROM', to_addr)
 
         host = os.environ.get('SMTP_HOST', '').strip()
@@ -118,7 +162,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
         msg = EmailMessage()
         msg['Subject'] = subject
-        msg['From'] = from_addr
+        msg['From'] = formataddr((settings['senderName'], from_addr)) if settings['senderName'] else from_addr
         msg['To'] = to_addr
         msg.set_content(text)
         if html_content:
@@ -302,6 +346,38 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(200, {"ok": True, "url": f"/downloads/{target_url_dir}/{filename}"})
             return
 
+        if image_endpoint == '/api/email-settings':
+            if not self._verify_admin_token():
+                return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
+            data = self._read_json()
+            if not isinstance(data, dict):
+                return self._send_json(400, {'ok': False, 'error': 'Ungültige E-Mail-Einstellungen'})
+            action = str(data.get('action') or 'save').strip()
+            if action == 'save':
+                recipient = str(data.get('recipient') or '').strip().lower()
+                sender_name = str(data.get('senderName') or '').strip()
+                if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', recipient):
+                    return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige Empfängeradresse eingeben'})
+                if len(sender_name) > 80 or '\n' in sender_name or '\r' in sender_name:
+                    return self._send_json(400, {'ok': False, 'error': 'Absendername ist ungültig'})
+                try:
+                    self._save_email_settings(recipient, sender_name)
+                    return self._send_json(200, self._email_settings_payload())
+                except OSError:
+                    return self._send_json(500, {'ok': False, 'error': 'E-Mail-Einstellungen konnten nicht gespeichert werden'})
+            if action == 'test':
+                if not self._smtp_configured():
+                    return self._send_json(400, {'ok': False, 'error': 'SMTP ist auf dem Server noch nicht eingerichtet'})
+                try:
+                    self._send_bug_report_email(
+                        'Lichternacht App – SMTP-Test',
+                        'Diese Testmail bestätigt, dass der E-Mail-Versand der Lichternacht App funktioniert.'
+                    )
+                    return self._send_json(200, {'ok': True})
+                except Exception:
+                    return self._send_json(500, {'ok': False, 'error': 'Testmail konnte nicht gesendet werden'})
+            return self._send_json(400, {'ok': False, 'error': 'Unbekannte Aktion'})
+
         if self.path == '/api/client-error':
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                 self._send_json(400, {"ok": False, "error": "invalid_content_type"})
@@ -356,6 +432,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/email-settings':
+            if not self._verify_admin_token():
+                return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
+            return self._send_json(200, self._email_settings_payload())
         if parsed_path.path == '/api/google-sheet':
             if not self._verify_admin_token():
                 return self._send_json(401, {'error': 'Admin-Anmeldung ungültig'})
@@ -393,6 +473,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
         if self.path == '/api/health':
             self._send_json(200, {"ok": True})
+            return
+        if parsed_path.path == '/.private' or parsed_path.path.startswith('/.private/'):
+            self.send_error(404)
             return
         return super().do_GET()
 

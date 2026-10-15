@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.222';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.222';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.222';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.223';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.223';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.223';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.222';
-import { recordAuditEvent } from './audit.js?v=1.4.222';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.222';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.223';
+import { recordAuditEvent } from './audit.js?v=1.4.223';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.223';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -16,6 +16,75 @@ const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
 let auditLogEntries = [];
+
+async function getAdminToken() {
+    const currentUser = state.auth?.currentUser;
+    if (!currentUser || typeof currentUser.getIdToken !== 'function') throw new Error('Admin-Anmeldung fehlt');
+    return currentUser.getIdToken();
+}
+
+export async function loadEmailSettings() {
+    const status = document.getElementById('admin-email-settings-status');
+    try {
+        const token = await getAdminToken();
+        const response = await fetch('./api/email-settings', {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) throw new Error(payload.error || 'Server nicht erreichbar');
+        const recipient = document.getElementById('admin-email-recipient');
+        const senderName = document.getElementById('admin-email-sender-name');
+        if (recipient) recipient.value = payload.recipient || '';
+        if (senderName) senderName.value = payload.senderName || '';
+        if (status) {
+            status.textContent = payload.smtpConfigured
+                ? 'SMTP auf dem Server ist eingerichtet.'
+                : 'SMTP ist auf dem Server noch nicht eingerichtet.';
+            status.className = `mt-3 text-xs font-semibold ${payload.smtpConfigured ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`;
+        }
+    } catch (error) {
+        if (status) {
+            status.textContent = `E-Mail-Einstellungen nicht verfügbar: ${error.message}`;
+            status.className = 'mt-3 text-xs font-semibold text-red-700 dark:text-red-300';
+        }
+    }
+}
+
+export async function saveEmailSettings() {
+    const recipient = document.getElementById('admin-email-recipient')?.value.trim() || '';
+    const senderName = document.getElementById('admin-email-sender-name')?.value.trim() || '';
+    try {
+        const token = await getAdminToken();
+        const response = await fetch('./api/email-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'save', recipient, senderName })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) throw new Error(payload.error || 'Speichern fehlgeschlagen');
+        showToast('E-Mail-Einstellungen gespeichert.', 'success');
+        await loadEmailSettings();
+    } catch (error) {
+        showToast(`E-Mail-Einstellungen konnten nicht gespeichert werden: ${error.message}`, 'error');
+    }
+}
+
+export async function sendEmailSettingsTest() {
+    try {
+        const token = await getAdminToken();
+        const response = await fetch('./api/email-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'test' })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) throw new Error(payload.error || 'Testmail fehlgeschlagen');
+        showToast('Testmail wurde versendet.', 'success');
+    } catch (error) {
+        showToast(`Testmail konnte nicht gesendet werden: ${error.message}`, 'error');
+    }
+}
 
 function formatBytes(bytes) {
     const value = Number(bytes) || 0;
@@ -415,6 +484,7 @@ function fillAdminPanel() {
 
     loadUsers();
     loadSystemMetrics();
+    loadEmailSettings();
     renderAdminDataTables();
     const search = document.getElementById('admin-table-search');
     if (search) search.oninput = renderAdminDataTables;
@@ -677,7 +747,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.222';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.223';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1267,9 +1337,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.222';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.222';
-import { renderList, renderTimeline } from './ui.js?v=1.4.222';
+import { showToast } from './utils.js?v=1.4.223';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.223';
+import { renderList, renderTimeline } from './ui.js?v=1.4.223';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

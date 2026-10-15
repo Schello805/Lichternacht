@@ -10,6 +10,8 @@ Im Webroot (`/var/www/html/Lichternacht`) eine `.env` anlegen (liegt in `.gitign
 - Pflicht: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`
 - Optional: `SMTP_PORT`, `SMTP_SSL`, `BUGREPORT_TO`, `BUGREPORT_FROM`, `ADMIN_EMAILS`
 
+Nach der einmaligen SMTP-Einrichtung können im Adminbereich unter **„E-Mail-Versand“** die Empfängeradresse, der Absendername und eine Testmail verwaltet werden. Die SMTP-Zugangsdaten selbst bleiben ausschließlich in `.env` auf dem Server und sind nie im Browser sichtbar.
+
 ## 2) Python-API als Dienst starten (systemd)
 
 Beispiel (Ubuntu):
