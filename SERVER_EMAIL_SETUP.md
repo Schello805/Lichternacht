@@ -7,10 +7,10 @@ Die Web-App läuft bei dir über Apache als **statisches Hosting**. Damit `POST 
 Im Webroot (`/var/www/html/Lichternacht`) eine `.env` anlegen (liegt in `.gitignore`):
 
 - Datei: `.env` (siehe `.env.example`)
-- Pflicht: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`
+- Für die erste Einrichtung: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`
 - Optional: `SMTP_PORT`, `SMTP_SSL`, `BUGREPORT_TO`, `BUGREPORT_FROM`, `ADMIN_EMAILS`
 
-Nach der einmaligen SMTP-Einrichtung können im Adminbereich unter **„E-Mail-Versand“** die Empfängeradresse, der Absendername und eine Testmail verwaltet werden. Die SMTP-Zugangsdaten selbst bleiben ausschließlich in `.env` auf dem Server und sind nie im Browser sichtbar.
+Alternativ können alle SMTP-Angaben nach dem Server-Update im Adminbereich unter **„E-Mail-Versand“** hinterlegt werden. Sie werden nur über die geschützte Admin-Verbindung übertragen, ausschließlich in einer nicht öffentlich erreichbaren Serverdatei gespeichert und nie wieder im Browser angezeigt. Eine bereits angelegte `.env` funktioniert weiterhin.
 
 ## 2) Python-API als Dienst starten (systemd)
 

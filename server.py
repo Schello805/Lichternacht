@@ -111,31 +111,48 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _email_settings(self):
         settings = {
             'recipient': os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz').strip(),
-            'senderName': ''
+            'senderName': '',
+            'fromEmail': os.environ.get('BUGREPORT_FROM', '').strip(),
+            'smtpHost': os.environ.get('SMTP_HOST', '').strip(),
+            'smtpUser': os.environ.get('SMTP_USER', '').strip(),
+            'smtpPassword': os.environ.get('SMTP_PASS', '').strip(),
+            'smtpPort': int(os.environ.get('SMTP_PORT', '587')),
+            'smtpSsl': os.environ.get('SMTP_SSL', '').strip().lower() in ('1', 'true', 'yes', 'on')
         }
         try:
             with open(EMAIL_SETTINGS_PATH, 'r', encoding='utf-8') as settings_file:
                 stored = json.load(settings_file)
             if isinstance(stored, dict):
-                recipient = str(stored.get('recipient') or '').strip()
-                sender_name = str(stored.get('senderName') or '').strip()
-                if recipient:
-                    settings['recipient'] = recipient
-                settings['senderName'] = sender_name
+                for key in ('recipient', 'senderName', 'fromEmail', 'smtpHost', 'smtpUser', 'smtpPassword'):
+                    value = str(stored.get(key) or '').strip()
+                    if value:
+                        settings[key] = value
+                if isinstance(stored.get('smtpPort'), int) and 1 <= stored['smtpPort'] <= 65535:
+                    settings['smtpPort'] = stored['smtpPort']
+                if isinstance(stored.get('smtpSsl'), bool):
+                    settings['smtpSsl'] = stored['smtpSsl']
         except (OSError, ValueError, TypeError):
             pass
         return settings
 
-    def _save_email_settings(self, recipient, sender_name):
-        payload = {'recipient': recipient, 'senderName': sender_name}
+    def _save_email_settings(self, payload):
+        try:
+            with open(EMAIL_SETTINGS_PATH, 'r', encoding='utf-8') as settings_file:
+                stored = json.load(settings_file)
+            if not isinstance(stored, dict):
+                stored = {}
+        except (OSError, ValueError, TypeError):
+            stored = {}
+        stored.update(payload)
         temp_path = f'{EMAIL_SETTINGS_PATH}.{secrets.token_hex(6)}.tmp'
         with open(temp_path, 'w', encoding='utf-8') as settings_file:
-            json.dump(payload, settings_file, ensure_ascii=False)
+            json.dump(stored, settings_file, ensure_ascii=False)
         os.chmod(temp_path, 0o600)
         os.replace(temp_path, EMAIL_SETTINGS_PATH)
 
     def _smtp_configured(self):
-        return all(os.environ.get(key, '').strip() for key in ('SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'))
+        settings = self._email_settings()
+        return bool(settings['smtpHost'] and settings['smtpUser'] and settings['smtpPassword'])
 
     def _email_settings_payload(self):
         settings = self._email_settings()
@@ -143,19 +160,25 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             'ok': True,
             'recipient': settings['recipient'],
             'senderName': settings['senderName'],
-            'smtpConfigured': self._smtp_configured()
+            'fromEmail': settings['fromEmail'],
+            'smtpHost': settings['smtpHost'],
+            'smtpPort': settings['smtpPort'],
+            'smtpUser': settings['smtpUser'],
+            'smtpSsl': settings['smtpSsl'],
+            'smtpConfigured': self._smtp_configured(),
+            'smtpPasswordConfigured': bool(settings['smtpPassword'])
         }
 
     def _send_bug_report_email(self, subject, text, html_content=None):
         settings = self._email_settings()
         to_addr = settings['recipient']
-        from_addr = os.environ.get('BUGREPORT_FROM', to_addr)
+        from_addr = settings['fromEmail'] or to_addr
 
-        host = os.environ.get('SMTP_HOST', '').strip()
-        user = os.environ.get('SMTP_USER', '').strip()
-        password = os.environ.get('SMTP_PASS', '').strip()
-        port = int(os.environ.get('SMTP_PORT', '587'))
-        use_ssl = os.environ.get('SMTP_SSL', '').strip().lower() in ('1', 'true', 'yes', 'on')
+        host = settings['smtpHost']
+        user = settings['smtpUser']
+        password = settings['smtpPassword']
+        port = settings['smtpPort']
+        use_ssl = settings['smtpSsl']
 
         if not host or not user or not password:
             raise RuntimeError("SMTP not configured (set SMTP_HOST/SMTP_USER/SMTP_PASS)")
@@ -356,12 +379,46 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             if action == 'save':
                 recipient = str(data.get('recipient') or '').strip().lower()
                 sender_name = str(data.get('senderName') or '').strip()
+                from_email = str(data.get('fromEmail') or '').strip().lower()
+                smtp_host = str(data.get('smtpHost') or '').strip()
+                smtp_user = str(data.get('smtpUser') or '').strip()
+                smtp_password = str(data.get('smtpPassword') or '')
+                try:
+                    smtp_port = int(data.get('smtpPort') or 587)
+                except (TypeError, ValueError):
+                    smtp_port = 0
+                smtp_ssl = bool(data.get('smtpSsl'))
                 if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', recipient):
                     return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige Empfängeradresse eingeben'})
+                if from_email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', from_email):
+                    return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige Absenderadresse eingeben'})
                 if len(sender_name) > 80 or '\n' in sender_name or '\r' in sender_name:
                     return self._send_json(400, {'ok': False, 'error': 'Absendername ist ungültig'})
+                if smtp_host and not re.fullmatch(r'[A-Za-z0-9.-]{1,255}', smtp_host):
+                    return self._send_json(400, {'ok': False, 'error': 'SMTP-Host ist ungültig'})
+                if smtp_port < 1 or smtp_port > 65535:
+                    return self._send_json(400, {'ok': False, 'error': 'SMTP-Port ist ungültig'})
+                if len(smtp_user) > 320 or len(smtp_password) > 1000:
+                    return self._send_json(400, {'ok': False, 'error': 'SMTP-Zugangsdaten sind ungültig'})
+                existing = self._email_settings()
+                has_smtp_update = bool(smtp_host or smtp_user or smtp_password)
+                if has_smtp_update and not (smtp_host and smtp_user and (smtp_password or existing['smtpPassword'])):
+                    return self._send_json(400, {'ok': False, 'error': 'Für SMTP bitte Host, Benutzername und Passwort eingeben'})
+                payload = {
+                    'recipient': recipient,
+                    'senderName': sender_name,
+                    'fromEmail': from_email,
+                    'smtpPort': smtp_port,
+                    'smtpSsl': smtp_ssl
+                }
+                if smtp_host:
+                    payload['smtpHost'] = smtp_host
+                if smtp_user:
+                    payload['smtpUser'] = smtp_user
+                if smtp_password:
+                    payload['smtpPassword'] = smtp_password
                 try:
-                    self._save_email_settings(recipient, sender_name)
+                    self._save_email_settings(payload)
                     return self._send_json(200, self._email_settings_payload())
                 except OSError:
                     return self._send_json(500, {'ok': False, 'error': 'E-Mail-Einstellungen konnten nicht gespeichert werden'})

@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.224';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.224';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.224';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.225';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.225';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.225';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.224';
-import { recordAuditEvent } from './audit.js?v=1.4.224';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.224';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.225';
+import { recordAuditEvent } from './audit.js?v=1.4.225';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.225';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -35,12 +35,22 @@ export async function loadEmailSettings() {
         if (!response.ok || !payload.ok) throw new Error(payload.error || 'Server nicht erreichbar');
         const recipient = document.getElementById('admin-email-recipient');
         const senderName = document.getElementById('admin-email-sender-name');
+        const fromEmail = document.getElementById('admin-email-from-email');
+        const smtpHost = document.getElementById('admin-smtp-host');
+        const smtpPort = document.getElementById('admin-smtp-port');
+        const smtpUser = document.getElementById('admin-smtp-user');
+        const smtpSsl = document.getElementById('admin-smtp-ssl');
         if (recipient) recipient.value = payload.recipient || '';
         if (senderName) senderName.value = payload.senderName || '';
+        if (fromEmail) fromEmail.value = payload.fromEmail || '';
+        if (smtpHost) smtpHost.value = payload.smtpHost || '';
+        if (smtpPort) smtpPort.value = payload.smtpPort || 587;
+        if (smtpUser) smtpUser.value = payload.smtpUser || '';
+        if (smtpSsl) smtpSsl.checked = Boolean(payload.smtpSsl);
         if (status) {
             status.textContent = payload.smtpConfigured
-                ? 'SMTP auf dem Server ist eingerichtet.'
-                : 'SMTP ist auf dem Server noch nicht eingerichtet.';
+                ? 'SMTP ist eingerichtet. Das Passwort wird aus Sicherheitsgründen nicht angezeigt.'
+                : 'SMTP ist noch nicht vollständig eingerichtet.';
             status.className = `mt-3 text-xs font-semibold ${payload.smtpConfigured ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`;
         }
     } catch (error) {
@@ -54,15 +64,23 @@ export async function loadEmailSettings() {
 export async function saveEmailSettings() {
     const recipient = document.getElementById('admin-email-recipient')?.value.trim() || '';
     const senderName = document.getElementById('admin-email-sender-name')?.value.trim() || '';
+    const fromEmail = document.getElementById('admin-email-from-email')?.value.trim() || '';
+    const smtpHost = document.getElementById('admin-smtp-host')?.value.trim() || '';
+    const smtpPort = document.getElementById('admin-smtp-port')?.value.trim() || '587';
+    const smtpUser = document.getElementById('admin-smtp-user')?.value.trim() || '';
+    const smtpPassword = document.getElementById('admin-smtp-password')?.value || '';
+    const smtpSsl = Boolean(document.getElementById('admin-smtp-ssl')?.checked);
     try {
         const token = await getAdminToken();
         const response = await fetch('./api/email-settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'save', recipient, senderName })
+            body: JSON.stringify({ action: 'save', recipient, senderName, fromEmail, smtpHost, smtpPort, smtpUser, smtpPassword, smtpSsl })
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.ok) throw new Error(payload.error || 'Speichern fehlgeschlagen');
+        const password = document.getElementById('admin-smtp-password');
+        if (password) password.value = '';
         showToast('E-Mail-Einstellungen gespeichert.', 'success');
         await loadEmailSettings();
     } catch (error) {
@@ -747,7 +765,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.224';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.225';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1337,9 +1355,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.224';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.224';
-import { renderList, renderTimeline } from './ui.js?v=1.4.224';
+import { showToast } from './utils.js?v=1.4.225';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.225';
+import { renderList, renderTimeline } from './ui.js?v=1.4.225';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
