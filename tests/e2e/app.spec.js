@@ -32,6 +32,14 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
+test('feedback is easy to find without a disruptive floating button', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'Feedback geben' }).click();
+
+    await expect(page.locator('#bug-report-modal')).toBeVisible();
+    await expect(page.locator('#bug-report-modal')).toContainText('Was gefällt dir');
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');

@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.227" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.228" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.227" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.228" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.227">
+    <link rel="stylesheet" href="style.css?v=1.4.228">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -241,6 +241,11 @@
                     aria-label="Hilfe öffnen">
                     <i class="ph ph-info text-lg sm:text-xl"></i>
                 </a>
+                <button type="button" onclick="openBugReportModal()"
+                    class="text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-500 transition-colors p-1.5 sm:p-2"
+                    aria-label="Feedback geben" title="Feedback geben">
+                    <i class="ph ph-chat-circle-text text-lg sm:text-xl"></i>
+                </button>
                 <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-yellow-500 transition-colors p-1.5 sm:p-2"
                     aria-label="Darstellung wechseln">
                     <i class="ph ph-moon text-lg sm:text-xl" id="dark-mode-icon"></i>
@@ -1256,21 +1261,20 @@
     <!-- Config -->
     <!-- Hilfe ist jetzt eine eigene Seite: help.html -->
 
-    <!-- Bug Report Modal -->
+    <!-- Feedback Modal -->
     <div id="bug-report-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onclick="document.getElementById('bug-report-modal').classList.add('hidden')"></div>
         <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative z-10">
             <h2 class="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
-                <i class="ph-fill ph-bug text-red-500"></i> Fehler melden
+                <i class="ph-fill ph-chat-circle-text text-yellow-500"></i> Feedback geben
             </h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Beschreibe das Problem kurz. Ich speichere automatisch dein Gerätemodell, um den Fehler besser zu
-                finden.
+                Was gefällt dir, was fehlt dir oder was funktioniert nicht? Deine Nachricht hilft uns, die App zu verbessern.
             </p>
             <textarea id="bug-desc" rows="4"
                 class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                placeholder="Was hat nicht funktioniert?"></textarea>
+                placeholder="Deine Rückmeldung …"></textarea>
 
             <div class="flex gap-3">
                 <button onclick="document.getElementById('bug-report-modal').classList.add('hidden')"
@@ -1430,7 +1434,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.227', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.228', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1457,7 +1461,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.227"></script>
+    <script type="module" src="main.js?v=1.4.228"></script>
 </body>
 
 </html>
