@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.225" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.226" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.225" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.226" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.225">
+    <link rel="stylesheet" href="style.css?v=1.4.226">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -211,7 +211,7 @@
 
         <!-- Header -->
         <header id="main-header"
-            class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3 py-2 sm:p-4 border-b border-yellow-600/30 dark:border-yellow-600/20 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
+            class="bg-white dark:bg-gray-900 px-3 py-2 sm:p-4 border-b border-yellow-600/30 dark:border-yellow-600/20 flex justify-between items-center z-50 shadow-sm flex-shrink-0">
             <button type="button" onclick="goHome()" aria-label="Zur Startseite"
                 class="flex items-center gap-2.5 min-w-0 text-left rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900">
                 <img src="icon.png" alt="Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-yellow-500 shadow-sm flex-shrink-0">
@@ -1430,7 +1430,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.225', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.226', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1457,7 +1457,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.225"></script>
+    <script type="module" src="main.js?v=1.4.226"></script>
 </body>
 
 </html>

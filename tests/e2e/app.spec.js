@@ -459,6 +459,8 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
         expect(label.bottom).toBeLessThanOrEqual(layout.navBottom - 8);
     }
     if (page.viewportSize().width < 640) {
+        expect(layout.navBottom).toBeGreaterThanOrEqual(page.viewportSize().height - 1);
+        expect(layout.navBottom - layout.navTop).toBeLessThanOrEqual(96);
         const floatingStatus = await page.locator('#floating-status').evaluate(element => {
             const box = element.getBoundingClientRect();
             return { bottom: box.bottom };
