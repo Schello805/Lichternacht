@@ -40,6 +40,16 @@ test('feedback is easy to find without a disruptive floating button', async ({ p
     await expect(page.locator('#bug-report-modal')).toContainText('Was gefällt dir');
 });
 
+test('stations offering a WC show a restroom icon on the map', async ({ page }) => {
+    await page.goto('/index.html');
+    const restroomBadges = page.locator('.station-wc-badge');
+    await expect.poll(() => restroomBadges.evaluateAll(elements => elements.filter(element => {
+        const style = window.getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+    }).length)).toBeGreaterThan(0);
+    await expect(restroomBadges.first()).toHaveAttribute('title', 'WC vorhanden');
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');

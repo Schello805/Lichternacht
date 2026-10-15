@@ -94,6 +94,7 @@ h3,
 }
 
 .station-cluster {
+    position: relative;
     width: 42px;
     height: 42px;
     border-radius: 9999px;
@@ -103,6 +104,35 @@ h3,
     font-weight: 800;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     cursor: pointer;
+}
+
+.station-pin-wrap {
+    position: relative;
+    width: 32px;
+    height: 32px;
+}
+
+.station-wc-badge {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #0f766e;
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-size: 11px;
+    line-height: 1;
+}
+
+.station-cluster-wc-badge {
+    right: -5px;
+    bottom: -5px;
 }
 
 .map-control-button {

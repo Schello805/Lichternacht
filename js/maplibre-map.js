@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.228';
-import { saveData } from './data.js?v=1.4.228';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.229';
+import { saveData } from './data.js?v=1.4.229';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -77,6 +77,11 @@ function getValidCoordinates(lat, lng) {
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
     if (Math.abs(latitude) < 0.0001 && Math.abs(longitude) < 0.0001) return null;
     return { latitude, longitude };
+}
+
+function stationOffersRestroom(station) {
+    return Array.isArray(station?.tags)
+        && station.tags.some(tag => String(tag).trim().toLowerCase() === 'wc');
 }
 
 function getUserMarkerIcon() {
@@ -357,11 +362,12 @@ function updateMarkerClusters() {
         const center = positions.reduce((sum, position) => ({ lng: sum.lng + position.lng, lat: sum.lat + position.lat }), { lng: 0, lat: 0 });
         center.lng /= positions.length;
         center.lat /= positions.length;
+        const hasRestroom = group.some(item => item.hasRestroom);
         const element = document.createElement('button');
         element.type = 'button';
-        element.className = 'station-cluster';
-        element.textContent = String(group.length);
-        element.setAttribute('aria-label', `${group.length} Stationen – hineinzoomen`);
+        element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
+        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden"><i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC vorhanden</span></span>' : ''}`;
+        element.setAttribute('aria-label', `${group.length} Stationen${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`);
         element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
         state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
     }
@@ -413,10 +419,11 @@ export function refreshMapMarkers() {
         const idStr = s.id.toString();
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
+        const hasRestroom = stationOffersRestroom(s);
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
-        icon.innerHTML = `<div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>`;
+        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden"><i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC vorhanden</span></span>' : ''}</div>`;
         
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin;
@@ -462,7 +469,7 @@ export function refreshMapMarkers() {
             });
         }
 
-        state.markers.push({ id: s.id, marker: marker });
+        state.markers.push({ id: s.id, marker: marker, hasRestroom });
     });
     updateMarkerClusters();
 }
