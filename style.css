@@ -27,10 +27,27 @@ h3,
     background: #fff;
     border-top: 1px solid #e5e7eb;
     z-index: 1000;
-    min-height: 5rem;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
+    min-height: 4rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav > button {
+    min-height: 2.75rem;
+    justify-content: flex-start;
+}
+
+.bottom-nav .nav-icon {
+    font-size: 1.35rem;
+    line-height: 1.25rem;
+    margin-bottom: 0 !important;
+}
+
+.bottom-nav .nav-text {
+    display: block;
+    line-height: 1rem;
+    padding-bottom: 0;
 }
 
 @media (display-mode: standalone), (display-mode: fullscreen) {
@@ -39,17 +56,21 @@ h3,
         padding-top: 0.75rem;
         padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
     }
-}
 
-.bottom-nav > button {
-    min-height: 3.5rem;
-    justify-content: flex-start;
-}
+    .bottom-nav > button {
+        min-height: 3.5rem;
+    }
 
-.bottom-nav .nav-text {
-    display: block;
-    line-height: 1.25rem;
-    padding-bottom: 0.125rem;
+    .bottom-nav .nav-icon {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .bottom-nav .nav-text {
+        line-height: 1.25rem;
+        padding-bottom: 0.125rem;
+    }
 }
 
 .tab-active {
@@ -293,6 +314,20 @@ h3,
 .dark header {
     background-color: #111827 !important;
     border-bottom-color: rgba(202, 138, 4, 0.2) !important;
+}
+
+#main-header {
+    isolation: isolate;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#main-header h1,
+#main-header p,
+#main-header i {
+    filter: none !important;
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
 }
 
 .dark .bg-white {
