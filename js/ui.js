@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.246';
-import * as utils from './utils.js?v=1.4.246';
-import { saveData, deleteData } from './data.js?v=1.4.246';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.246';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.246';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.246';
-import { recordAuditEvent } from './audit.js?v=1.4.246';
-import { normalizeImageUrl } from './image-url.js?v=1.4.246';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.247';
+import * as utils from './utils.js?v=1.4.247';
+import { saveData, deleteData } from './data.js?v=1.4.247';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.247';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.247';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.247';
+import { recordAuditEvent } from './audit.js?v=1.4.247';
+import { normalizeImageUrl } from './image-url.js?v=1.4.247';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2144,7 +2144,7 @@ function renderFlyerDownloads() {
         <div class="rounded-2xl border border-blue-100 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
             <div class="mb-2 text-sm font-bold text-blue-950 dark:text-blue-100">Flyer &amp; Informationen</div>
             <div class="grid gap-2 ${flyers.length > 1 ? 'sm:grid-cols-2' : ''}">
-                ${flyers.map(({ url, label }) => `<a href="${escapeHtml(url)}" download target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-100 active:scale-[0.98] dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-900"><i class="ph ph-download-simple text-lg"></i>${escapeHtml(label)} herunterladen</a>`).join('')}
+                ${flyers.map(({ url, label }) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-100 active:scale-[0.98] dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-900"><i class="ph ph-arrow-square-out text-lg"></i>${escapeHtml(label)} öffnen</a>`).join('')}
             </div>
         </div>
     `;
