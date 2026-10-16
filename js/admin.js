@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.238';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.238';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.238';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.239';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.239';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.239';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.238';
-import { recordAuditEvent } from './audit.js?v=1.4.238';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.238';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.238';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.239';
+import { recordAuditEvent } from './audit.js?v=1.4.239';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.239';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.239';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -149,20 +149,23 @@ function renderMetricCard({ label, value, detail = '', icon = 'ph-info', tone = 
 
 async function loadAudienceMetrics() {
     if (state.useLocalStorage || !state.db) return { activeVisitors: null, admins: null };
-    try {
-        const { collection, query, where, getCountFromServer } = state.fb;
-        const presenceRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'presence');
-        const activeQuery = query(presenceRef, where('lastSeen', '>', new Date(Date.now() - 2 * 60 * 1000)));
-        const usersRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'users');
-        const [presenceCount, adminCount] = await Promise.all([
-            getCountFromServer(activeQuery),
-            getCountFromServer(usersRef)
-        ]);
-        return { activeVisitors: presenceCount.data().count, admins: adminCount.data().count };
-    } catch (error) {
-        console.warn('Audience metrics load failed', error);
-        return { activeVisitors: null, admins: null };
-    }
+    const { collection, query, where, getCountFromServer } = state.fb;
+    const presenceRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'presence');
+    const activeQuery = query(presenceRef, where('lastSeen', '>', new Date(Date.now() - 2 * 60 * 1000)));
+    const usersRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'users');
+    const countDocuments = async (source, label) => {
+        try {
+            return (await getCountFromServer(source)).data().count;
+        } catch (error) {
+            console.warn(`${label} konnte nicht geladen werden`, error);
+            return null;
+        }
+    };
+    const [activeVisitors, admins] = await Promise.all([
+        countDocuments(activeQuery, 'Besucherzahl'),
+        countDocuments(usersRef, 'Adminzahl')
+    ]);
+    return { activeVisitors, admins };
 }
 
 export async function loadSystemMetrics() {
@@ -188,13 +191,20 @@ export async function loadSystemMetrics() {
         const memoryPercent = Number(metrics.memory?.usedPercent);
         const diskPercent = Number(metrics.disk?.usedPercent);
         const cpuPercent = Number(metrics.cpu?.loadPercent);
+        const wcAtStations = state.stations.filter((station) => Array.isArray(station?.tags) && station.tags.some((tag) => String(tag).trim().toLowerCase() === 'wc')).length;
+        const standaloneRestrooms = Array.isArray(state.config?.standaloneRestrooms) ? state.config.standaloneRestrooms.length : 0;
+        const standaloneParking = Array.isArray(state.config?.standaloneParking) ? state.config.standaloneParking.length : 0;
+        const adminCountAvailable = Number.isFinite(Number(audience.admins));
         const cards = [
             { label: 'CPU / Serverlast', value: `${cpuPercent.toFixed(1)} %`, detail: `${metrics.cpu?.count || 0} CPU · Load ${metrics.cpu?.load1 ?? '–'}`, icon: 'ph-cpu', tone: metricTone(cpuPercent) },
             { label: 'RAM belegt', value: Number.isFinite(memoryPercent) ? `${memoryPercent.toFixed(1)} %` : '–', detail: metrics.memory?.total ? `${formatBytes(metrics.memory.total - metrics.memory.available)} von ${formatBytes(metrics.memory.total)}` : 'Nicht verfügbar', icon: 'ph-memory', tone: metricTone(memoryPercent) },
             { label: 'Freier Speicher', value: formatBytes(metrics.disk?.free), detail: `${diskPercent.toFixed(1)} % belegt · ${formatBytes(metrics.disk?.total)} gesamt`, icon: 'ph-hard-drives', tone: metricTone(diskPercent) },
             { label: 'Aktive Besucher', value: audience.activeVisitors ?? '–', detail: 'Geräte der letzten 2 Minuten', icon: 'ph-users-three', tone: 'blue' },
-            { label: 'Admins', value: audience.admins ?? '–', detail: 'Berechtigte Konten', icon: 'ph-shield-check', tone: 'blue' },
-            { label: 'Stationen / Programm', value: `${state.stations.length} / ${state.events.length}`, detail: 'Aktuell geladene Datensätze', icon: 'ph-map-trifold', tone: 'blue' },
+            { label: 'App-Admins', value: adminCountAvailable ? audience.admins : 1, detail: adminCountAvailable ? 'Berechtigte Konten' : 'Mindestens aktuelles Konto', icon: 'ph-shield-check', tone: 'blue' },
+            { label: 'Stationen', value: state.stations.length, detail: 'Aktuell geladene Stationen', icon: 'ph-map-trifold', tone: 'blue' },
+            { label: 'Events', value: state.events.length, detail: 'Programmpunkte', icon: 'ph-calendar-dots', tone: 'blue' },
+            { label: 'WCs', value: wcAtStations + standaloneRestrooms, detail: `${wcAtStations} an Stationen · ${standaloneRestrooms} frei`, icon: 'ph-toilet', tone: 'blue' },
+            { label: 'Parkplätze', value: standaloneParking, detail: 'Freie Parkplatzmarker', icon: 'ph-parking', tone: 'blue' },
             { label: 'Bildspeicher', value: formatBytes(metrics.images?.bytes), detail: `${metrics.images?.count || 0} optimierte Bilder`, icon: 'ph-image', tone: 'blue' },
             { label: 'Server-Laufzeit', value: formatUptime(metrics.service?.uptimeSeconds), detail: `API-RAM ${formatBytes(metrics.service?.processRss)}`, icon: 'ph-clock', tone: 'green' }
         ];
@@ -918,7 +928,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.238';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.239';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1508,9 +1518,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.238';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.238';
-import { renderList, renderTimeline } from './ui.js?v=1.4.238';
+import { showToast } from './utils.js?v=1.4.239';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.239';
+import { renderList, renderTimeline } from './ui.js?v=1.4.239';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
