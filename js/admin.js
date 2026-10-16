@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.242';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.242';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.242';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.243';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.243';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.243';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.242';
-import { recordAuditEvent } from './audit.js?v=1.4.242';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.242';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.242';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.243';
+import { recordAuditEvent } from './audit.js?v=1.4.243';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.243';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.243';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -315,13 +315,13 @@ function getAdminConfigIssues() {
 
     ['flyer1', 'flyer2'].forEach(field => {
         const value = String(state.downloads?.[field] || '').trim();
-        if (value && !/^https?:\/\//i.test(value)) {
+        if (value && !/^https?:\/\//i.test(value) && !/^\/downloads\/flyers\/[a-zA-Z0-9_-]+\.pdf$/i.test(value)) {
             issues.push({
                 severity: 'warn',
                 where: 'config.downloads',
                 label: field === 'flyer1' ? 'Flyer 1' : 'Flyer 2',
                 field,
-                message: 'ist keine gültige HTTP(S)-Webadresse'
+                message: 'ist keine gültige Flyer-Datei oder HTTP(S)-Webadresse'
             });
         }
     });
@@ -928,7 +928,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.242';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.243';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1518,9 +1518,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.242';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.242';
-import { renderList, renderTimeline } from './ui.js?v=1.4.242';
+import { showToast } from './utils.js?v=1.4.243';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.243';
+import { renderList, renderTimeline } from './ui.js?v=1.4.243';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -1540,12 +1540,49 @@ export const seedEvents = ${JSON.stringify(data.events, null, 4)};
     showToast("data.js heruntergeladen", 'success');
 }
 
-export function uploadFlyer(inputId, outputId) {
+export async function uploadFlyer(inputId, outputId) {
     const input = document.getElementById(inputId);
     const output = document.getElementById(outputId);
-    
-    if (input.files && input.files[0]) {
-        showToast("Flyer bitte weiterhin als vorhandene PDF-URL eintragen.", 'info');
+    const file = input?.files?.[0];
+    if (!file || !output) return;
+
+    if (state.useLocalStorage) {
+        showToast('PDF-Upload ist nur im Online-Modus möglich.', 'error');
+        input.value = '';
+        return;
+    }
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+        showToast('Bitte eine PDF-Datei auswählen.', 'error');
+        input.value = '';
+        return;
+    }
+    if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
+        showToast('Die PDF muss zwischen 1 Byte und 10 MB groß sein.', 'error');
+        input.value = '';
+        return;
+    }
+
+    try {
+        const currentUser = state.auth?.currentUser;
+        if (!currentUser?.getIdToken) throw new Error('Bitte erneut als Admin anmelden.');
+        const slot = outputId === 'admin-flyer2' ? 'flyer2' : 'flyer1';
+        const response = await fetch(`./api/flyer-pdf?slot=${slot}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${await currentUser.getIdToken()}`,
+                'Content-Type': 'application/pdf'
+            },
+            body: file
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.url) throw new Error(result.error || 'Der Flyer konnte nicht hochgeladen werden.');
+        output.value = result.url;
+        showToast(`„${file.name}“ hochgeladen. Jetzt noch speichern.`, 'success');
+    } catch (error) {
+        console.error('Flyer upload failed', error);
+        showToast(error?.message || 'Flyer konnte nicht hochgeladen werden.', 'error');
+    } finally {
+        input.value = '';
     }
 }
 
@@ -1558,11 +1595,11 @@ export async function saveDownloads() {
     const isValidUrlOrEmpty = (v) => {
         const s = (v || '').trim();
         if (!s) return true;
-        return /^https?:\/\//i.test(s);
+        return /^https?:\/\//i.test(s) || /^\/downloads\/flyers\/[a-zA-Z0-9_-]+\.pdf$/i.test(s);
     };
 
     if (!isValidUrlOrEmpty(flyer1) || !isValidUrlOrEmpty(flyer2)) {
-        showToast('Bitte bei Flyer-URLs nur http(s):// Links verwenden (oder leer lassen).', 'error');
+        showToast('Bitte nur hochgeladene Flyer-Dateien, http(s):// Links oder leere Felder verwenden.', 'error');
         return;
     }
 

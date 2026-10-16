@@ -21,6 +21,7 @@ PORT = int(os.environ.get('PORT', '8000'))
 UPLOAD_DIR = os.path.join(BASE_DIR, 'downloads')
 STATION_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'stations')
 EVENT_IMAGE_DIR = os.path.join(UPLOAD_DIR, 'events')
+FLYER_DIR = os.path.join(UPLOAD_DIR, 'flyers')
 LOG_DIR = 'logs'
 PRIVATE_DIR = os.path.join(BASE_DIR, '.private')
 EMAIL_SETTINGS_PATH = os.path.join(PRIVATE_DIR, 'email-settings.json')
@@ -31,6 +32,8 @@ if not os.path.exists(STATION_IMAGE_DIR):
     os.makedirs(STATION_IMAGE_DIR)
 if not os.path.exists(EVENT_IMAGE_DIR):
     os.makedirs(EVENT_IMAGE_DIR)
+if not os.path.exists(FLYER_DIR):
+    os.makedirs(FLYER_DIR)
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 if not os.path.exists(PRIVATE_DIR):
@@ -337,6 +340,34 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         image_endpoint = self.path.split('?', 1)[0]
+        if image_endpoint == '/api/flyer-pdf':
+            if not self._verify_admin_token():
+                self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
+                return
+            if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/pdf':
+                self._send_json(400, {"ok": False, "error": "Nur PDF-Dateien sind erlaubt"})
+                return
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 10 * 1024 * 1024:
+                self._send_json(413, {"ok": False, "error": "PDF ist leer oder größer als 10 MB"})
+                return
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            slot = str((query.get('slot') or [''])[0]).strip()
+            if slot not in ('flyer1', 'flyer2'):
+                self._send_json(400, {"ok": False, "error": "Flyer-Platz ungültig"})
+                return
+            pdf_data = self.rfile.read(length)
+            if not pdf_data.startswith(b'%PDF-'):
+                self._send_json(400, {"ok": False, "error": "Ungültige PDF-Datei"})
+                return
+            filename = f"{slot}-{int(time.time())}-{secrets.token_hex(6)}.pdf"
+            with open(os.path.join(FLYER_DIR, filename), 'wb') as flyer_file:
+                flyer_file.write(pdf_data)
+            self._send_json(200, {"ok": True, "url": f"/downloads/flyers/{filename}"})
+            return
         if image_endpoint in ('/api/station-image', '/api/event-image'):
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})

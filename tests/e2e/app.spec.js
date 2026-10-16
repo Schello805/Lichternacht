@@ -898,6 +898,16 @@ test('event image endpoint rejects unauthenticated uploads', async ({ request })
     await expect(response.json()).resolves.toMatchObject({ ok: false });
 });
 
+test('flyer upload endpoint rejects unauthenticated PDF uploads', async ({ request }) => {
+    const response = await request.post('/api/flyer-pdf?slot=flyer1', {
+        headers: { 'Content-Type': 'application/pdf' },
+        data: Buffer.from('%PDF-1.7\n')
+    });
+
+    expect(response.status()).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ ok: false });
+});
+
 test('Google Sheets synchronization endpoint requires an admin token', async ({ request }) => {
     const response = await request.get('/api/google-sheet?id=12345678901234567890&sheet=Stationen');
     expect(response.status()).toBe(401);

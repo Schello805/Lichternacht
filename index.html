@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.242" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.243" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.242" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.243" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.242">
+    <link rel="stylesheet" href="style.css?v=1.4.243">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -478,24 +478,35 @@
                 </summary>
                 <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
                     <!-- Flyer 1 -->
-                    <div class="flex gap-2 mt-3">
-                        <input id="admin-flyer1" type="url" maxlength="2048" placeholder="URL zu Flyer 1 (PDF)"
-                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                        <button type="button" onclick="window.open(document.getElementById('admin-flyer1').value, '_blank')"
-                            class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center" title="Öffnen">
-                            <i class="ph ph-arrow-square-out"></i>
-                        </button>
+                    <div class="mt-3">
+                        <label for="admin-flyer1-file" class="mb-1 block text-xs font-bold text-gray-700 dark:text-gray-200">Flyer 1 (PDF)</label>
+                        <div class="flex gap-2">
+                            <input id="admin-flyer1-file" type="file" accept="application/pdf,.pdf" onchange="uploadFlyer(this.id, 'admin-flyer1')"
+                                class="min-w-0 flex-1 rounded border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                            <button type="button" onclick="const url = document.getElementById('admin-flyer1').value; if (url) window.open(url, '_blank', 'noopener')"
+                                class="bg-gray-200 px-3 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500" title="Flyer öffnen">
+                                <i class="ph ph-arrow-square-out"></i>
+                            </button>
+                        </div>
+                        <input id="admin-flyer1" type="text" readonly placeholder="Noch kein Flyer hochgeladen"
+                            class="mt-2 w-full rounded border border-gray-200 bg-gray-100 p-2 text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
                     </div>
 
                     <!-- Flyer 2 -->
-                    <div class="flex gap-2">
-                        <input id="admin-flyer2" type="url" maxlength="2048" placeholder="URL zu Flyer 2 (PDF)"
-                            class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
-                        <button type="button" onclick="window.open(document.getElementById('admin-flyer2').value, '_blank')"
-                            class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-white px-3 py-2 rounded flex items-center justify-center" title="Öffnen">
-                            <i class="ph ph-arrow-square-out"></i>
-                        </button>
+                    <div>
+                        <label for="admin-flyer2-file" class="mb-1 block text-xs font-bold text-gray-700 dark:text-gray-200">Flyer 2 (PDF, optional)</label>
+                        <div class="flex gap-2">
+                            <input id="admin-flyer2-file" type="file" accept="application/pdf,.pdf" onchange="uploadFlyer(this.id, 'admin-flyer2')"
+                                class="min-w-0 flex-1 rounded border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                            <button type="button" onclick="const url = document.getElementById('admin-flyer2').value; if (url) window.open(url, '_blank', 'noopener')"
+                                class="bg-gray-200 px-3 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500" title="Flyer öffnen">
+                                <i class="ph ph-arrow-square-out"></i>
+                            </button>
+                        </div>
+                        <input id="admin-flyer2" type="text" readonly placeholder="Noch kein Flyer hochgeladen"
+                            class="mt-2 w-full rounded border border-gray-200 bg-gray-100 p-2 text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
                     </div>
+                    <p class="-mt-1 text-[10px] text-gray-500">PDF auswählen, hochladen und anschließend speichern. Maximal 10 MB pro Flyer.</p>
 
                     <!-- Event Date (also used for ICS + "Aktuell/Demnächst" + Pass-Start/Ende) -->
                     <div class="flex gap-2 items-center">
@@ -1462,7 +1473,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.242', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.243', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1489,7 +1500,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.242"></script>
+    <script type="module" src="main.js?v=1.4.243"></script>
 </body>
 
 </html>
