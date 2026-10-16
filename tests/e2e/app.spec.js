@@ -48,6 +48,12 @@ test('stations offering a WC show a restroom icon on the map', async ({ page }) 
         return style.display !== 'none' && style.visibility !== 'hidden';
     }).length)).toBeGreaterThan(0);
     await expect(restroomBadges.first()).toHaveAttribute('title', 'WC vorhanden');
+    await expect(restroomBadges.first()).toContainText('WC');
+
+    await page.locator('#nav-list').click();
+    await page.locator('#stations-list > button').filter({ hasText: 'Metzgerei Weinmann' }).click();
+    await expect(page.locator('#modal-wc-badge')).toBeVisible();
+    await expect(page.locator('#modal-wc-badge')).toHaveText('WC');
 });
 
 test('admin can add a standalone restroom on the map', async ({ page }) => {
@@ -59,6 +65,7 @@ test('admin can add a standalone restroom on the map', async ({ page }) => {
     await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
     await page.getByRole('button', { name: /Auf Karte setzen/ }).click();
     await expect(page.locator('#view-map')).toBeVisible();
+    await expect(page.locator('#toast-container')).toContainText('Tippe auf die Karte');
     await page.locator('#map').click({ position: { x: 180, y: 240 } });
 
     await expect.poll(() => page.evaluate(() => window.state.config.standaloneRestrooms?.length || 0)).toBe(1);

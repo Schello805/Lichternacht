@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.230" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.231" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.230" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.231" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.230">
+    <link rel="stylesheet" href="style.css?v=1.4.231">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1041,6 +1041,7 @@
                                 <p id="modal-subtitle"
                                     class="text-yellow-600 text-xs font-bold tracking-wide uppercase mb-3">Untertitel
                                 </p>
+                                <span id="modal-wc-badge" class="modal-wc-badge hidden -mt-1 mb-2" title="WC vorhanden">WC</span>
                             </div>
                             <div id="modal-rating-actions" class="shrink-0 flex items-center gap-2 border-l border-gray-200 pl-2 dark:border-gray-600">
                                 <button id="modal-like-btn" onclick="toggleLike(window.activeStationId)"
@@ -1445,7 +1446,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.230', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.231', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1472,7 +1473,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.230"></script>
+    <script type="module" src="main.js?v=1.4.231"></script>
 </body>
 
 </html>

@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.230';
-import * as utils from './utils.js?v=1.4.230';
-import { saveData, deleteData } from './data.js?v=1.4.230';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.230';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.230';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.230';
-import { recordAuditEvent } from './audit.js?v=1.4.230';
-import { normalizeImageUrl } from './image-url.js?v=1.4.230';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.231';
+import * as utils from './utils.js?v=1.4.231';
+import { saveData, deleteData } from './data.js?v=1.4.231';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.231';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.231';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.231';
+import { recordAuditEvent } from './audit.js?v=1.4.231';
+import { normalizeImageUrl } from './image-url.js?v=1.4.231';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -138,6 +138,7 @@ export function openModal(target) {
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-subtitle').innerText = s.desc || '';
         document.getElementById('modal-desc').innerText = s.offer || s.desc || 'Keine Beschreibung verfügbar.';
+        document.getElementById('modal-wc-badge')?.classList.toggle('hidden', !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
         
         // Fix ID Display
         const numEl = document.getElementById('modal-number');

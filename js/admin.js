@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.230';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.230';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.230';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.231';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.231';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.231';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.230';
-import { recordAuditEvent } from './audit.js?v=1.4.230';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.230';
-import { beginStandaloneRestroomPlacement, refreshStandaloneRestroomMarkers } from './maplibre-map.js?v=1.4.230';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.231';
+import { recordAuditEvent } from './audit.js?v=1.4.231';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.231';
+import { beginStandaloneRestroomPlacement, refreshStandaloneRestroomMarkers } from './maplibre-map.js?v=1.4.231';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -567,21 +567,19 @@ async function saveStandaloneRestrooms(restrooms) {
 export function startStandaloneRestroomPlacement() {
     if (!state.isAdmin) return;
     window.switchTab?.('map');
-    window.setTimeout(() => {
-        if (!beginStandaloneRestroomPlacement(async ({ lat, lng }) => {
-            const restrooms = getStandaloneRestrooms();
-            restrooms.push({ id: `wc-${Date.now()}`, lat, lng });
-            try {
-                await saveStandaloneRestrooms(restrooms);
-                showToast('Freier WC-Punkt gespeichert.', 'success');
-            } catch (error) {
-                console.error('Standalone restroom could not be saved', error);
-                showToast('WC-Punkt konnte nicht gespeichert werden.', 'error');
-            }
-        })) {
-            showToast('Karte ist noch nicht bereit.', 'error');
+    if (!beginStandaloneRestroomPlacement(async ({ lat, lng }) => {
+        const restrooms = getStandaloneRestrooms();
+        restrooms.push({ id: `wc-${Date.now()}`, lat, lng });
+        try {
+            await saveStandaloneRestrooms(restrooms);
+            showToast('Freier WC-Punkt gespeichert.', 'success');
+        } catch (error) {
+            console.error('Standalone restroom could not be saved', error);
+            showToast('WC-Punkt konnte nicht gespeichert werden.', 'error');
         }
-    }, 150);
+    })) {
+        showToast('Karte ist noch nicht bereit.', 'error');
+    }
 }
 
 export async function deleteStandaloneRestroom(id) {
@@ -830,7 +828,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.230';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.231';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1420,9 +1418,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.230';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.230';
-import { renderList, renderTimeline } from './ui.js?v=1.4.230';
+import { showToast } from './utils.js?v=1.4.231';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.231';
+import { renderList, renderTimeline } from './ui.js?v=1.4.231';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.230';
-import { saveData } from './data.js?v=1.4.230';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.231';
+import { saveData } from './data.js?v=1.4.231';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -107,7 +107,7 @@ export function refreshStandaloneRestroomMarkers() {
         element.title = 'WC';
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'WC');
-        element.innerHTML = '<i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC</span>';
+        element.innerHTML = '<span aria-hidden="true">WC</span><span class="sr-only">WC</span>';
         state.restroomMarkers.push(new maplibregl.Marker({ element, anchor: 'center' })
             .setLngLat([coordinates.longitude, coordinates.latitude])
             .addTo(state.map));
@@ -416,7 +416,7 @@ function updateMarkerClusters() {
         const element = document.createElement('button');
         element.type = 'button';
         element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
-        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden"><i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC vorhanden</span></span>' : ''}`;
+        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
         element.setAttribute('aria-label', `${group.length} Stationen${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`);
         element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
         state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
@@ -473,7 +473,7 @@ export function refreshMapMarkers() {
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
-        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden"><i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC vorhanden</span></span>' : ''}</div>`;
+        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
         
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin;

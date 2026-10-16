@@ -117,16 +117,18 @@ h3,
     right: -8px;
     bottom: -8px;
     display: flex;
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     align-items: center;
     justify-content: center;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    background: #2563eb;
+    border: 1.5px solid #fff;
+    border-radius: 4px;
+    background: #0b55a5;
     color: #fff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    font-size: 11px;
+    font-family: Arial, sans-serif;
+    font-size: 7px;
+    font-weight: 900;
     line-height: 1;
 }
 
@@ -137,11 +139,30 @@ h3,
     align-items: center;
     justify-content: center;
     border: 3px solid #fff;
-    border-radius: 50%;
-    background: #2563eb;
+    border-radius: 9px;
+    background: #0b55a5;
     color: #fff;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
-    font-size: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.modal-wc-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 .35rem;
+    border: 2px solid #fff;
+    border-radius: .5rem;
+    background: #0b55a5;
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-family: Arial, sans-serif;
+    font-size: .75rem;
+    font-weight: 900;
 }
 
 .station-cluster-wc-badge {
