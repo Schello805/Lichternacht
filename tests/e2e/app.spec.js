@@ -474,6 +474,36 @@ test('startup and tab changes do not trigger a new GPS permission prompt', async
     await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(0);
 });
 
+test('previously activated GPS resumes on Safari-like browsers without Permissions API', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__gpsRequests = 0;
+        Object.defineProperty(navigator, 'webdriver', { configurable: true, value: false });
+        Object.defineProperty(navigator, 'permissions', { configurable: true, value: undefined });
+        Object.defineProperty(navigator, 'geolocation', {
+            configurable: true,
+            value: {
+                getCurrentPosition: (success) => {
+                    window.__gpsRequests += 1;
+                    success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() });
+                },
+                watchPosition: (success) => {
+                    success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() });
+                    return 1;
+                },
+                clearWatch: () => {}
+            }
+        });
+    });
+
+    await page.goto('/index.html');
+    await page.locator('#map-locate-btn').click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('gps_auto_resume_v1'))).toBe('true');
+
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBeGreaterThan(0);
+    await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();

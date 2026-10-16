@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.247';
-import { saveData } from './data.js?v=1.4.247';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.248';
+import { saveData } from './data.js?v=1.4.248';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -39,6 +39,7 @@ const PROXIMITY_SOURCE_ID = 'checkin-radius';
 const PROXIMITY_FILL_LAYER_ID = 'checkin-radius-fill';
 const PROXIMITY_LINE_LAYER_ID = 'checkin-radius-line';
 const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
+const GPS_AUTO_RESUME_STORAGE_KEY = 'gps_auto_resume_v1';
 let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
@@ -633,17 +634,18 @@ export function refreshMapMarkers() {
 
 export async function resumeGrantedLocation() {
     if (!navigator.geolocation || navigator.webdriver || state.userLocation) return false;
+    if (localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) !== 'true') return false;
 
+    let permission = null;
     try {
-        const permission = navigator.permissions?.query
+        permission = navigator.permissions?.query
             ? await navigator.permissions.query({ name: 'geolocation' })
             : null;
-        if (permission?.state !== 'granted') return false;
-        await locateUser(() => {}, { userInitiated: false, forceCenter: false });
-        return true;
-    } catch (error) {
-        return false;
-    }
+    } catch (error) { }
+    if (permission?.state && permission.state !== 'granted') return false;
+
+    await locateUser(() => {}, { userInitiated: false, forceCenter: false });
+    return true;
 }
 
 export async function locateUser(cb, options = {}) {
@@ -689,6 +691,7 @@ export async function locateUser(cb, options = {}) {
         state.userLocation = { lat: userLat, lng: userLng };
         state.gpsAccuracy = Number.isFinite(Number(pos.coords.accuracy)) ? Number(pos.coords.accuracy) : null;
         state.gpsLastFixAt = fixTimestamp;
+        localStorage.setItem(GPS_AUTO_RESUME_STORAGE_KEY, 'true');
         advanceOverviewNavigationIfReached(userLat, userLng);
 
         if (context.cb && !context.cbCalled && isFreshFix) {
@@ -728,6 +731,7 @@ export async function locateUser(cb, options = {}) {
     const handleFinalError = (err) => {
         if (context.requestToken !== state.gpsRequestToken) return;
         const denied = err?.code === 1;
+        if (denied) localStorage.removeItem(GPS_AUTO_RESUME_STORAGE_KEY);
         setGpsUiStatus(denied ? 'denied' : 'error');
         if (shouldShowGpsErrorToast(err)) {
             const message = denied
