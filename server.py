@@ -351,8 +351,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 length = int(self.headers.get('Content-Length', '0'))
             except ValueError:
                 length = 0
-            if length <= 0 or length > 10 * 1024 * 1024:
-                self._send_json(413, {"ok": False, "error": "PDF ist leer oder größer als 10 MB"})
+            if length <= 0 or length > 20 * 1024 * 1024:
+                self._send_json(413, {"ok": False, "error": "PDF ist leer oder größer als 20 MB"})
                 return
             query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
             slot = str((query.get('slot') or [''])[0]).strip()
