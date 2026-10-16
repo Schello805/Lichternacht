@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.229';
-import { saveData } from './data.js?v=1.4.229';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.230';
+import { saveData } from './data.js?v=1.4.230';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -82,6 +82,56 @@ function getValidCoordinates(lat, lng) {
 function stationOffersRestroom(station) {
     return Array.isArray(station?.tags)
         && station.tags.some(tag => String(tag).trim().toLowerCase() === 'wc');
+}
+
+function getStandaloneRestrooms() {
+    return Array.isArray(state.config?.standaloneRestrooms)
+        ? state.config.standaloneRestrooms.filter(restroom => getValidCoordinates(restroom?.lat, restroom?.lng))
+        : [];
+}
+
+function clearStandaloneRestroomMarkers() {
+    (state.restroomMarkers || []).forEach(marker => marker.remove());
+    state.restroomMarkers = [];
+}
+
+export function refreshStandaloneRestroomMarkers() {
+    clearStandaloneRestroomMarkers();
+    if (!state.map) return;
+
+    getStandaloneRestrooms().forEach(restroom => {
+        const coordinates = getValidCoordinates(restroom.lat, restroom.lng);
+        if (!coordinates) return;
+        const element = document.createElement('div');
+        element.className = 'standalone-restroom-marker';
+        element.title = 'WC';
+        element.setAttribute('role', 'img');
+        element.setAttribute('aria-label', 'WC');
+        element.innerHTML = '<i class="ph ph-toilet" aria-hidden="true"></i><span class="sr-only">WC</span>';
+        state.restroomMarkers.push(new maplibregl.Marker({ element, anchor: 'center' })
+            .setLngLat([coordinates.longitude, coordinates.latitude])
+            .addTo(state.map));
+    });
+}
+
+export function beginStandaloneRestroomPlacement(onPlace) {
+    if (!state.map || typeof onPlace !== 'function') return false;
+    state.restroomPlacementCancel?.();
+    const canvas = state.map.getCanvas();
+    canvas.style.cursor = 'crosshair';
+    const handlePlace = event => {
+        canvas.style.cursor = '';
+        state.restroomPlacementCancel = null;
+        onPlace({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+    };
+    state.restroomPlacementCancel = () => {
+        canvas.style.cursor = '';
+        state.map?.off('click', handlePlace);
+        state.restroomPlacementCancel = null;
+    };
+    state.map.once('click', handlePlace);
+    showToast('Tippe auf die Karte, um das freie WC einzuzeichnen.', 'info');
+    return true;
 }
 
 function getUserMarkerIcon() {
@@ -472,6 +522,7 @@ export function refreshMapMarkers() {
         state.markers.push({ id: s.id, marker: marker, hasRestroom });
     });
     updateMarkerClusters();
+    refreshStandaloneRestroomMarkers();
 }
 
 export async function resumeGrantedLocation() {

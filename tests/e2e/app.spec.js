@@ -50,6 +50,21 @@ test('stations offering a WC show a restroom icon on the map', async ({ page }) 
     await expect(restroomBadges.first()).toHaveAttribute('title', 'WC vorhanden');
 });
 
+test('admin can add a standalone restroom on the map', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
+    await page.getByRole('button', { name: /Auf Karte setzen/ }).click();
+    await expect(page.locator('#view-map')).toBeVisible();
+    await page.locator('#map').click({ position: { x: 180, y: 240 } });
+
+    await expect.poll(() => page.evaluate(() => window.state.config.standaloneRestrooms?.length || 0)).toBe(1);
+    await expect(page.locator('.standalone-restroom-marker')).toBeVisible();
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');

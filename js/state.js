@@ -26,6 +26,8 @@ export const state = {
     events: [],
     markers: [],
     clusterMarkers: [],
+    restroomMarkers: [],
+    restroomPlacementCancel: null,
     isAdmin: false,
     activeStationId: null,
     activeEventId: null,

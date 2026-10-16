@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.229" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.230" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.229" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.230" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.229">
+    <link rel="stylesheet" href="style.css?v=1.4.230">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -411,6 +411,17 @@
                         </div>
                         <p class="text-xs text-gray-500 mb-2">Diese Stationen werden Besuchern als Rundweg empfohlen. Die sinnvollste Reihenfolge wird automatisch berechnet.</p>
                         <div id="admin-default-route-stations" class="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700"></div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t dark:border-gray-600">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <label class="text-sm font-bold text-gray-700 dark:text-gray-200">Freie WC-Punkte</label>
+                                <p class="text-xs text-gray-500 mt-1">Für Toiletten ohne zugehörige Station.</p>
+                            </div>
+                            <button type="button" onclick="startStandaloneRestroomPlacement()" class="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"><i class="ph ph-toilet"></i> Auf Karte setzen</button>
+                        </div>
+                        <div id="admin-standalone-restrooms" class="mt-3 space-y-2"></div>
                     </div>
 
                     <button onclick="saveAppConfig()"
@@ -1434,7 +1445,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.229', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.230', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1461,7 +1472,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.229"></script>
+    <script type="module" src="main.js?v=1.4.230"></script>
 </body>
 
 </html>

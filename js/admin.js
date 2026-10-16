@@ -1,12 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.229';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.229';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.229';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.230';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.230';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.230';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.229';
-import { recordAuditEvent } from './audit.js?v=1.4.229';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.229';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.230';
+import { recordAuditEvent } from './audit.js?v=1.4.230';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.230';
+import { beginStandaloneRestroomPlacement, refreshStandaloneRestroomMarkers } from './maplibre-map.js?v=1.4.230';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -480,6 +481,7 @@ function fillAdminPanel() {
     document.getElementById('admin-planning-mode').checked = state.config.planningMode || false;
     document.getElementById('admin-planning-text').value = state.config.planningText || '';
     renderDefaultRouteStationSelection();
+    renderStandaloneRestroomList();
     const googleSheetInput = document.getElementById('admin-google-sheet-url');
     if (googleSheetInput) googleSheetInput.value = state.config.googleSheetUrl || '';
 
@@ -528,6 +530,69 @@ function renderDefaultRouteStationSelection() {
     };
     container.addEventListener('change', updateCount);
     updateCount();
+}
+
+function getStandaloneRestrooms() {
+    return Array.isArray(state.config?.standaloneRestrooms)
+        ? state.config.standaloneRestrooms.filter(restroom => Number.isFinite(Number(restroom?.lat)) && Number.isFinite(Number(restroom?.lng)))
+        : [];
+}
+
+function renderStandaloneRestroomList() {
+    const container = document.getElementById('admin-standalone-restrooms');
+    if (!container) return;
+    const restrooms = getStandaloneRestrooms();
+    container.innerHTML = restrooms.length
+        ? restrooms.map(restroom => `<div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800"><span class="font-mono text-gray-600 dark:text-gray-300">${Number(restroom.lat).toFixed(5)}, ${Number(restroom.lng).toFixed(5)}</span><button type="button" data-standalone-restroom-delete="${escapeAttr(restroom.id)}" class="font-bold text-red-600 hover:text-red-700">Entfernen</button></div>`).join('')
+        : '<p class="text-xs text-gray-500">Noch keine freien WC-Punkte eingezeichnet.</p>';
+    container.querySelectorAll('[data-standalone-restroom-delete]').forEach(button => {
+        button.addEventListener('click', () => deleteStandaloneRestroom(button.dataset.standaloneRestroomDelete));
+    });
+}
+
+async function saveStandaloneRestrooms(restrooms) {
+    const config = { standaloneRestrooms: restrooms };
+    if (state.useLocalStorage) {
+        const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+        localStorage.setItem('app_config', JSON.stringify({ ...old, ...config }));
+    } else {
+        const { doc, setDoc } = state.fb;
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+    }
+    state.config = { ...state.config, ...config };
+    refreshStandaloneRestroomMarkers();
+    renderStandaloneRestroomList();
+}
+
+export function startStandaloneRestroomPlacement() {
+    if (!state.isAdmin) return;
+    window.switchTab?.('map');
+    window.setTimeout(() => {
+        if (!beginStandaloneRestroomPlacement(async ({ lat, lng }) => {
+            const restrooms = getStandaloneRestrooms();
+            restrooms.push({ id: `wc-${Date.now()}`, lat, lng });
+            try {
+                await saveStandaloneRestrooms(restrooms);
+                showToast('Freier WC-Punkt gespeichert.', 'success');
+            } catch (error) {
+                console.error('Standalone restroom could not be saved', error);
+                showToast('WC-Punkt konnte nicht gespeichert werden.', 'error');
+            }
+        })) {
+            showToast('Karte ist noch nicht bereit.', 'error');
+        }
+    }, 150);
+}
+
+export async function deleteStandaloneRestroom(id) {
+    const restrooms = getStandaloneRestrooms().filter(restroom => String(restroom.id) !== String(id));
+    try {
+        await saveStandaloneRestrooms(restrooms);
+        showToast('Freier WC-Punkt entfernt.', 'success');
+    } catch (error) {
+        console.error('Standalone restroom could not be removed', error);
+        showToast('WC-Punkt konnte nicht entfernt werden.', 'error');
+    }
 }
 
 export function closeAdminPanel() {
@@ -765,7 +830,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.229';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.230';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1355,9 +1420,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.229';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.229';
-import { renderList, renderTimeline } from './ui.js?v=1.4.229';
+import { showToast } from './utils.js?v=1.4.230';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.230';
+import { renderList, renderTimeline } from './ui.js?v=1.4.230';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
