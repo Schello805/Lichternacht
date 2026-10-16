@@ -72,6 +72,29 @@ test('admin can add a standalone restroom on the map', async ({ page }) => {
     await expect(page.locator('.standalone-restroom-marker')).toBeVisible();
 });
 
+test('admin can edit stations and program entries from their visitor lists', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        window.closeAdminPage();
+        window.switchTab('list');
+    });
+    await page.locator('#stations-list > button').first().click();
+    await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
+
+    await page.evaluate(() => {
+        window.closeModal();
+        window.switchTab('events');
+    });
+    await page.locator('#timeline-container [onclick^="openProgramEvent"]').first().click();
+    await expect(page.locator('#program-edit')).toBeVisible();
+    await page.locator('#program-edit').click();
+    await expect(page.locator('#event-modal')).toBeVisible();
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');

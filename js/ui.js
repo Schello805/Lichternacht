@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.231';
-import * as utils from './utils.js?v=1.4.231';
-import { saveData, deleteData } from './data.js?v=1.4.231';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.231';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.231';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.231';
-import { recordAuditEvent } from './audit.js?v=1.4.231';
-import { normalizeImageUrl } from './image-url.js?v=1.4.231';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.232';
+import * as utils from './utils.js?v=1.4.232';
+import { saveData, deleteData } from './data.js?v=1.4.232';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.232';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.232';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.232';
+import { recordAuditEvent } from './audit.js?v=1.4.232';
+import { normalizeImageUrl } from './image-url.js?v=1.4.232';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2054,6 +2054,8 @@ export function openProgramEvent(id) {
 
             ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
 
+            ${state.isAdmin ? `<button type="button" id="program-edit" class="mt-3 w-full rounded-xl border border-blue-200 bg-blue-50 py-2.5 text-sm font-bold text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200"><i class="ph ph-pencil-simple"></i> Bearbeiten</button>` : ''}
+
             <div class="mt-5 grid grid-cols-1 gap-2">
                 ${locationInfo.hasCoords ? `
                     <button type="button" id="program-show-map" class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
@@ -2086,6 +2088,10 @@ export function openProgramEvent(id) {
             recordAuditEvent('program_link_opened', { eventId: event.id, eventTitle: event.title || '' });
             window.open(externalLink, '_blank', 'noopener');
         }
+    });
+    document.getElementById('program-edit')?.addEventListener('click', () => {
+        close();
+        editEvent(event.id);
     });
     document.getElementById('program-show-map')?.addEventListener('click', () => {
         recordAuditEvent('program_map_opened', { eventId: event.id, eventTitle: event.title || '' });
