@@ -71,7 +71,7 @@ test('admin can add a standalone restroom on the map', async ({ page }) => {
     await page.getByRole('button', { name: 'Login' }).click();
 
     await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
-    await page.getByRole('button', { name: /Auf Karte setzen/ }).click();
+    await page.locator('#admin-standalone-restrooms').locator('xpath=preceding-sibling::div[1]').getByRole('button', { name: /Auf Karte setzen/ }).click();
     await expect(page.locator('#view-map')).toBeVisible();
     await expect(page.locator('#toast-container')).toContainText('Tippe auf die Karte');
     await page.locator('#map').click({ position: { x: 180, y: 240 } });
@@ -87,7 +87,7 @@ test('admin can add a standalone parking marker on the map', async ({ page }) =>
     await page.getByRole('button', { name: 'Login' }).click();
 
     await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
-    await page.getByRole('button', { name: /Auf Karte setzen/ }).last().click();
+    await page.locator('#admin-standalone-parking').locator('xpath=preceding-sibling::div[1]').getByRole('button', { name: /Auf Karte setzen/ }).click();
     await expect(page.locator('#toast-container')).toContainText('Parkplatz');
     await page.locator('#map').click({ position: { x: 180, y: 240 } });
 
