@@ -28,6 +28,7 @@ export const state = {
     programMarkers: [],
     clusterMarkers: [],
     restroomMarkers: [],
+    parkingMarkers: [],
     restroomPlacementCancel: null,
     isAdmin: false,
     activeStationId: null,

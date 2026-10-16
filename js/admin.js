@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.236';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.236';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.236';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.237';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.237';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.237';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.236';
-import { recordAuditEvent } from './audit.js?v=1.4.236';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.236';
-import { beginStandaloneRestroomPlacement, refreshStandaloneRestroomMarkers } from './maplibre-map.js?v=1.4.236';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.237';
+import { recordAuditEvent } from './audit.js?v=1.4.237';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.237';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.237';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -482,6 +482,7 @@ function fillAdminPanel() {
     document.getElementById('admin-planning-text').value = state.config.planningText || '';
     renderDefaultRouteStationSelection();
     renderStandaloneRestroomList();
+    renderStandaloneParkingList();
     const googleSheetInput = document.getElementById('admin-google-sheet-url');
     if (googleSheetInput) googleSheetInput.value = state.config.googleSheetUrl || '';
 
@@ -538,6 +539,12 @@ function getStandaloneRestrooms() {
         : [];
 }
 
+function getStandaloneParking() {
+    return Array.isArray(state.config?.standaloneParking)
+        ? state.config.standaloneParking.filter(parking => Number.isFinite(Number(parking?.lat)) && Number.isFinite(Number(parking?.lng)))
+        : [];
+}
+
 function renderStandaloneRestroomList() {
     const container = document.getElementById('admin-standalone-restrooms');
     if (!container) return;
@@ -547,6 +554,18 @@ function renderStandaloneRestroomList() {
         : '<p class="text-xs text-gray-500">Noch keine freien WC-Punkte eingezeichnet.</p>';
     container.querySelectorAll('[data-standalone-restroom-delete]').forEach(button => {
         button.addEventListener('click', () => deleteStandaloneRestroom(button.dataset.standaloneRestroomDelete));
+    });
+}
+
+function renderStandaloneParkingList() {
+    const container = document.getElementById('admin-standalone-parking');
+    if (!container) return;
+    const parking = getStandaloneParking();
+    container.innerHTML = parking.length
+        ? parking.map(item => `<div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800"><span class="font-mono text-gray-600 dark:text-gray-300">${Number(item.lat).toFixed(5)}, ${Number(item.lng).toFixed(5)}</span><button type="button" data-standalone-parking-delete="${escapeAttr(item.id)}" class="font-bold text-red-600 hover:text-red-700">Entfernen</button></div>`).join('')
+        : '<p class="text-xs text-gray-500">Noch keine freien Parkplätze eingezeichnet.</p>';
+    container.querySelectorAll('[data-standalone-parking-delete]').forEach(button => {
+        button.addEventListener('click', () => deleteStandaloneParking(button.dataset.standaloneParkingDelete));
     });
 }
 
@@ -562,6 +581,20 @@ async function saveStandaloneRestrooms(restrooms) {
     state.config = { ...state.config, ...config };
     refreshStandaloneRestroomMarkers();
     renderStandaloneRestroomList();
+}
+
+async function saveStandaloneParking(parking) {
+    const config = { standaloneParking: parking };
+    if (state.useLocalStorage) {
+        const old = JSON.parse(localStorage.getItem('app_config') || '{}');
+        localStorage.setItem('app_config', JSON.stringify({ ...old, ...config }));
+    } else {
+        const { doc, setDoc } = state.fb;
+        await setDoc(doc(state.db, 'artifacts', state.appId, 'public', 'config'), config, { merge: true });
+    }
+    state.config = { ...state.config, ...config };
+    refreshStandaloneParkingMarkers();
+    renderStandaloneParkingList();
 }
 
 export function startStandaloneRestroomPlacement() {
@@ -590,6 +623,35 @@ export async function deleteStandaloneRestroom(id) {
     } catch (error) {
         console.error('Standalone restroom could not be removed', error);
         showToast('WC-Punkt konnte nicht entfernt werden.', 'error');
+    }
+}
+
+export function startStandaloneParkingPlacement() {
+    if (!state.isAdmin) return;
+    window.switchTab?.('map');
+    if (!beginStandaloneParkingPlacement(async ({ lat, lng }) => {
+        const parking = getStandaloneParking();
+        parking.push({ id: `parking-${Date.now()}`, lat, lng });
+        try {
+            await saveStandaloneParking(parking);
+            showToast('Freier Parkplatz gespeichert.', 'success');
+        } catch (error) {
+            console.error('Standalone parking could not be saved', error);
+            showToast('Parkplatz konnte nicht gespeichert werden.', 'error');
+        }
+    })) {
+        showToast('Karte ist noch nicht bereit.', 'error');
+    }
+}
+
+export async function deleteStandaloneParking(id) {
+    const parking = getStandaloneParking().filter(item => String(item.id) !== String(id));
+    try {
+        await saveStandaloneParking(parking);
+        showToast('Freier Parkplatz entfernt.', 'success');
+    } catch (error) {
+        console.error('Standalone parking could not be removed', error);
+        showToast('Parkplatz konnte nicht entfernt werden.', 'error');
     }
 }
 
@@ -828,7 +890,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.236';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.237';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1418,9 +1480,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.236';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.236';
-import { renderList, renderTimeline } from './ui.js?v=1.4.236';
+import { showToast } from './utils.js?v=1.4.237';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.237';
+import { renderList, renderTimeline } from './ui.js?v=1.4.237';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.236" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.237" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.236" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.237" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.236">
+    <link rel="stylesheet" href="style.css?v=1.4.237">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -422,6 +422,17 @@
                             <button type="button" onclick="startStandaloneRestroomPlacement()" class="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"><i class="ph ph-toilet"></i> Auf Karte setzen</button>
                         </div>
                         <div id="admin-standalone-restrooms" class="mt-3 space-y-2"></div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t dark:border-gray-600">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <label class="text-sm font-bold text-gray-700 dark:text-gray-200">Freie Parkplätze</label>
+                                <p class="text-xs text-gray-500 mt-1">Für Parkplätze ohne zugehörige Station.</p>
+                            </div>
+                            <button type="button" onclick="startStandaloneParkingPlacement()" class="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"><i class="ph ph-parking"></i> Auf Karte setzen</button>
+                        </div>
+                        <div id="admin-standalone-parking" class="mt-3 space-y-2"></div>
                     </div>
 
                     <button onclick="saveAppConfig()"
@@ -1451,7 +1462,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.236', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.237', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1478,7 +1489,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.236"></script>
+    <script type="module" src="main.js?v=1.4.237"></script>
 </body>
 
 </html>

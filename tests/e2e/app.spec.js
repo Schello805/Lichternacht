@@ -80,6 +80,21 @@ test('admin can add a standalone restroom on the map', async ({ page }) => {
     await expect(page.locator('.standalone-restroom-marker')).toBeVisible();
 });
 
+test('admin can add a standalone parking marker on the map', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
+    await page.getByRole('button', { name: /Auf Karte setzen/ }).last().click();
+    await expect(page.locator('#toast-container')).toContainText('Parkplatz');
+    await page.locator('#map').click({ position: { x: 180, y: 240 } });
+
+    await expect.poll(() => page.evaluate(() => window.state.config.standaloneParking?.length || 0)).toBe(1);
+    await expect(page.locator('.standalone-parking-marker')).toBeVisible();
+});
+
 test('admin can edit stations and program entries from their visitor lists', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
@@ -126,7 +141,7 @@ test('admin can turn a linked program entry into a standalone event', async ({ p
     await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
 });
 
-test('standalone program entries use a distinct P marker on the map', async ({ page }) => {
+test('standalone program entries use a distinct E marker on the map', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
         window.state.events.push({
@@ -143,9 +158,9 @@ test('standalone program entries use a distinct P marker on the map', async ({ p
         window.refreshMapMarkers();
     });
 
-    const programMarker = page.getByRole('button', { name: 'Eigenständiger Programmpunkt: Eigenständiges Programm' });
+    const programMarker = page.getByRole('button', { name: 'Eigenständiges Event: Eigenständiges Programm' });
     await expect(programMarker).toBeVisible();
-    await expect(programMarker).toContainText('P');
+    await expect(programMarker).toContainText('E');
     await programMarker.click();
     await expect(page.locator('#program-event-modal')).toBeVisible();
 });

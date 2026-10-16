@@ -150,10 +150,6 @@ h3,
     line-height: 1;
 }
 
-.program-pin i {
-    font-size: 14px;
-}
-
 .standalone-restroom-marker {
     display: flex;
     width: 34px;
@@ -168,6 +164,23 @@ h3,
     font-family: Arial, sans-serif;
     font-size: 13px;
     font-weight: 900;
+}
+
+.standalone-parking-marker {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff;
+    border-radius: 5px;
+    background: #0b55a5;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    font-family: Arial, sans-serif;
+    font-size: 25px;
+    font-weight: 900;
+    line-height: 1;
 }
 
 .modal-wc-badge {

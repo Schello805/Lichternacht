@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.236';
-import { saveData } from './data.js?v=1.4.236';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.237';
+import { saveData } from './data.js?v=1.4.237';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -90,9 +90,20 @@ function getStandaloneRestrooms() {
         : [];
 }
 
+function getStandaloneParking() {
+    return Array.isArray(state.config?.standaloneParking)
+        ? state.config.standaloneParking.filter(parking => getValidCoordinates(parking?.lat, parking?.lng))
+        : [];
+}
+
 function clearStandaloneRestroomMarkers() {
     (state.restroomMarkers || []).forEach(marker => marker.remove());
     state.restroomMarkers = [];
+}
+
+function clearStandaloneParkingMarkers() {
+    (state.parkingMarkers || []).forEach(marker => marker.remove());
+    state.parkingMarkers = [];
 }
 
 export function refreshStandaloneRestroomMarkers() {
@@ -114,7 +125,26 @@ export function refreshStandaloneRestroomMarkers() {
     });
 }
 
-export function beginStandaloneRestroomPlacement(onPlace) {
+export function refreshStandaloneParkingMarkers() {
+    clearStandaloneParkingMarkers();
+    if (!state.map) return;
+
+    getStandaloneParking().forEach(parking => {
+        const coordinates = getValidCoordinates(parking.lat, parking.lng);
+        if (!coordinates) return;
+        const element = document.createElement('div');
+        element.className = 'standalone-parking-marker';
+        element.title = 'Parkplatz';
+        element.setAttribute('role', 'img');
+        element.setAttribute('aria-label', 'Parkplatz');
+        element.innerHTML = '<span aria-hidden="true">P</span><span class="sr-only">Parkplatz</span>';
+        state.parkingMarkers.push(new maplibregl.Marker({ element, anchor: 'center' })
+            .setLngLat([coordinates.longitude, coordinates.latitude])
+            .addTo(state.map));
+    });
+}
+
+function beginStandalonePlacement(onPlace, message) {
     if (!state.map || typeof onPlace !== 'function') return false;
     state.restroomPlacementCancel?.();
     const canvas = state.map.getCanvas();
@@ -130,8 +160,16 @@ export function beginStandaloneRestroomPlacement(onPlace) {
         state.restroomPlacementCancel = null;
     };
     state.map.once('click', handlePlace);
-    showToast('Tippe auf die Karte, um das freie WC einzuzeichnen.', 'info');
+    showToast(message, 'info');
     return true;
+}
+
+export function beginStandaloneRestroomPlacement(onPlace) {
+    return beginStandalonePlacement(onPlace, 'Tippe auf die Karte, um das freie WC einzuzeichnen.');
+}
+
+export function beginStandaloneParkingPlacement(onPlace) {
+    return beginStandalonePlacement(onPlace, 'Tippe auf die Karte, um den Parkplatz einzuzeichnen.');
 }
 
 function getUserMarkerIcon() {
@@ -533,8 +571,8 @@ export function refreshMapMarkers() {
             const icon = document.createElement('button');
             icon.type = 'button';
             icon.className = 'program-pin';
-            icon.innerHTML = '<i class="ph ph-calendar-dots"></i><span>P</span>';
-            icon.title = `Eigenständiger Programmpunkt: ${event.title || 'Details öffnen'}`;
+        icon.innerHTML = '<span>E</span>';
+        icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);
             icon.addEventListener('click', () => {
                 if (!marker._isDragging) window.openProgramEvent?.(event.id);
@@ -568,6 +606,7 @@ export function refreshMapMarkers() {
         });
     updateMarkerClusters();
     refreshStandaloneRestroomMarkers();
+    refreshStandaloneParkingMarkers();
 }
 
 export async function resumeGrantedLocation() {
