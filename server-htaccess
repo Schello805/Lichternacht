@@ -31,6 +31,11 @@
 <IfModule mod_headers.c>
   # Standort und Kompass ausschließlich für diese App erlauben.
   Header always set Permissions-Policy "geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Content-Security-Policy "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
 
   # Cache everything else aggressively
   <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|webp|js|css|swf)$">

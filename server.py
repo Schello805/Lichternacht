@@ -12,6 +12,7 @@ import urllib.request
 import urllib.error
 import shutil
 import resource
+import html
 from email.message import EmailMessage
 from email.utils import formataddr
 
@@ -74,6 +75,10 @@ load_dotenv()
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Permissions-Policy', 'geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'SAMEORIGIN')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
         super().end_headers()
 
     def _send_json(self, status, payload):
@@ -95,21 +100,35 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception:
             return None
 
-    def _rate_limit(self):
-        # Very small in-memory throttle to reduce accidental spam.
-        # Not a security feature; for real deployments, add proper protections.
+    def _rate_limit(self, bucket, limit, window_seconds):
+        """Bound unauthenticated endpoints; a reverse proxy may opt in to trusted client IPs."""
         now = time.time()
         ip = self.client_address[0] if self.client_address else 'unknown'
+        if os.environ.get('TRUST_PROXY_HEADERS', '').strip().lower() in ('1', 'true', 'yes', 'on'):
+            forwarded = self.headers.get('X-Forwarded-For', '').split(',', 1)[0].strip()
+            if forwarded:
+                ip = forwarded[:64]
         try:
             store = getattr(self.server, "_rate_store", {})
-            last = store.get(ip, 0)
-            if now - last < 10:
+            key = f'{bucket}:{ip}'
+            recent = [stamp for stamp in store.get(key, []) if now - stamp < window_seconds]
+            if len(recent) >= limit:
                 return False
-            store[ip] = now
+            recent.append(now)
+            store[key] = recent
             setattr(self.server, "_rate_store", store)
         except Exception:
             pass
         return True
+
+    @staticmethod
+    def _feedback_html(message):
+        escaped = html.escape(message).replace('\n', '<br>')
+        return f'''<!doctype html>
+<html lang="de"><body style="font-family:Arial,Helvetica,sans-serif;color:#111827;">
+<h1 style="font-size:20px;">Neues Feedback zur Lichternacht-App</h1>
+<div style="padding:14px 16px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;line-height:1.6;">{escaped}</div>
+</body></html>'''
 
     def _email_settings(self):
         settings = {
@@ -467,6 +486,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return self._send_json(400, {'ok': False, 'error': 'Unbekannte Aktion'})
 
         if self.path == '/api/client-error':
+            if not self._rate_limit('client-error', 10, 600):
+                self._send_json(429, {"ok": False, "error": "rate_limited"})
+                return
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                 self._send_json(400, {"ok": False, "error": "invalid_content_type"})
                 return
@@ -484,7 +506,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == '/api/bug-report':
-            if not self._rate_limit():
+            if not self._rate_limit('bug-report', 3, 600):
                 self._send_json(429, {"ok": False, "error": "rate_limited"})
                 return
 
@@ -497,22 +519,18 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json(400, {"ok": False, "error": "invalid_json"})
                 return
 
-            subject = str(data.get('subject') or 'Feedback Lichternacht App').strip()[:200]
             text = str(data.get('text') or '').strip()
             if not text:
                 self._send_json(400, {"ok": False, "error": "empty_text"})
                 return
-            if len(text) > 50_000:
-                text = text[:50_000] + "\n\n[gekürzt]"
-            html_content = str(data.get('html') or '').strip()
-            if len(html_content) > 200_000:
-                html_content = html_content[:200_000]
+            if len(text) > 10_000:
+                text = text[:10_000] + "\n\n[gekürzt]"
 
             try:
-                self._send_bug_report_email(subject, text, html_content or None)
+                self._send_bug_report_email('Feedback Lichternacht App', text, self._feedback_html(text))
                 self._send_json(200, {"ok": True})
-            except Exception as e:
-                self._send_json(500, {"ok": False, "error": str(e)})
+            except Exception:
+                self._send_json(500, {"ok": False, "error": "Feedback konnte nicht versendet werden"})
             return
 
         self.send_response(404)

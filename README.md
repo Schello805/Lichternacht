@@ -184,7 +184,7 @@ Stelle sicher, dass in der Firebase Console:
 *   **Authentication:** "Email/Password" und "Anonymous" aktiviert sind.
 *   **Firestore:** Die Datenbank erstellt ist.
 *   **Rules:** Die Regeln aus `firestore.rules` veröffentlicht sind.
-*   **Server-API:** `ADMIN_EMAILS` enthält die erlaubten Admin-E-Mail-Adressen; ohne die Variable bleiben geschützte Server-Endpunkte gesperrt.
+*   **Server-API:** `ADMIN_EMAILS` enthält die erlaubten Admin-E-Mail-Adressen; ohne die Variable bleiben geschützte Server-Endpunkte gesperrt. Setze `TRUST_PROXY_HEADERS=true` nur, wenn Apache den Header `X-Forwarded-For` selbst setzt und fremde Werte verwirft.
 
 ## 📦 Tech Stack
 

@@ -1,13 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.248';
-import * as utils from './utils.js?v=1.4.248';
-import { saveData, deleteData } from './data.js?v=1.4.248';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.248';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.248';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.248';
-import { recordAuditEvent } from './audit.js?v=1.4.248';
-import { normalizeImageUrl } from './image-url.js?v=1.4.248';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.249';
+import * as utils from './utils.js?v=1.4.249';
+import { saveData, deleteData } from './data.js?v=1.4.249';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.249';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.249';
+import { recordAuditEvent } from './audit.js?v=1.4.249';
+import { normalizeImageUrl } from './image-url.js?v=1.4.249';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1786,10 +1785,7 @@ export async function submitBugReport() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                subject: `Feedback Lichternacht App (${report.appId})`,
-                text: reportText,
-                html: buildFeedbackEmailHtml(report),
-                meta: report
+                text: reportText
             })
         });
 
