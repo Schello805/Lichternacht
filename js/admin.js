@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.237';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.237';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.237';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.238';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.238';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.238';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.237';
-import { recordAuditEvent } from './audit.js?v=1.4.237';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.237';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.237';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.238';
+import { recordAuditEvent } from './audit.js?v=1.4.238';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.238';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.238';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -626,6 +626,20 @@ export async function deleteStandaloneRestroom(id) {
     }
 }
 
+export async function moveStandaloneRestroom(id, lat, lng) {
+    const restrooms = getStandaloneRestrooms().map(restroom => String(restroom.id) === String(id)
+        ? { ...restroom, lat, lng }
+        : restroom);
+    try {
+        await saveStandaloneRestrooms(restrooms);
+        showToast('WC-Punkt verschoben.', 'success');
+    } catch (error) {
+        console.error('Standalone restroom could not be moved', error);
+        showToast('WC-Punkt konnte nicht verschoben werden.', 'error');
+        throw error;
+    }
+}
+
 export function startStandaloneParkingPlacement() {
     if (!state.isAdmin) return;
     window.switchTab?.('map');
@@ -652,6 +666,20 @@ export async function deleteStandaloneParking(id) {
     } catch (error) {
         console.error('Standalone parking could not be removed', error);
         showToast('Parkplatz konnte nicht entfernt werden.', 'error');
+    }
+}
+
+export async function moveStandaloneParking(id, lat, lng) {
+    const parking = getStandaloneParking().map(item => String(item.id) === String(id)
+        ? { ...item, lat, lng }
+        : item);
+    try {
+        await saveStandaloneParking(parking);
+        showToast('Parkplatz verschoben.', 'success');
+    } catch (error) {
+        console.error('Standalone parking could not be moved', error);
+        showToast('Parkplatz konnte nicht verschoben werden.', 'error');
+        throw error;
     }
 }
 
@@ -890,7 +918,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.237';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.238';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1480,9 +1508,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.237';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.237';
-import { renderList, renderTimeline } from './ui.js?v=1.4.237';
+import { showToast } from './utils.js?v=1.4.238';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.238';
+import { renderList, renderTimeline } from './ui.js?v=1.4.238';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

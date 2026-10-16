@@ -95,6 +95,23 @@ test('admin can add a standalone parking marker on the map', async ({ page }) =>
     await expect(page.locator('.standalone-parking-marker')).toBeVisible();
 });
 
+test('admin can drag standalone restroom and parking markers', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.evaluate(() => {
+        window.state.config.standaloneRestrooms = [{ id: 'wc-drag', lat: 49.159, lng: 10.552 }];
+        window.state.config.standaloneParking = [{ id: 'parking-drag', lat: 49.1591, lng: 10.5521 }];
+        window.refreshMapMarkers();
+    });
+
+    await expect.poll(() => page.evaluate(() => ({
+        restroom: window.state.restroomMarkers[0]?.isDraggable(),
+        parking: window.state.parkingMarkers[0]?.isDraggable()
+    }))).toEqual({ restroom: true, parking: true });
+});
+
 test('admin can edit stations and program entries from their visitor lists', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');

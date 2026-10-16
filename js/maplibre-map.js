@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.237';
-import { saveData } from './data.js?v=1.4.237';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.238';
+import { saveData } from './data.js?v=1.4.238';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -119,9 +119,20 @@ export function refreshStandaloneRestroomMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'WC');
         element.innerHTML = '<span aria-hidden="true">WC</span><span class="sr-only">WC</span>';
-        state.restroomMarkers.push(new maplibregl.Marker({ element, anchor: 'center' })
+        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: state.isAdmin })
             .setLngLat([coordinates.longitude, coordinates.latitude])
-            .addTo(state.map));
+            .addTo(state.map);
+        if (state.isAdmin) {
+            marker.on('dragend', async () => {
+                const position = marker.getLngLat();
+                try {
+                    await window.moveStandaloneRestroom?.(restroom.id, position.lat, position.lng);
+                } catch (error) {
+                    marker.setLngLat([coordinates.longitude, coordinates.latitude]);
+                }
+            });
+        }
+        state.restroomMarkers.push(marker);
     });
 }
 
@@ -138,9 +149,20 @@ export function refreshStandaloneParkingMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'Parkplatz');
         element.innerHTML = '<span aria-hidden="true">P</span><span class="sr-only">Parkplatz</span>';
-        state.parkingMarkers.push(new maplibregl.Marker({ element, anchor: 'center' })
+        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: state.isAdmin })
             .setLngLat([coordinates.longitude, coordinates.latitude])
-            .addTo(state.map));
+            .addTo(state.map);
+        if (state.isAdmin) {
+            marker.on('dragend', async () => {
+                const position = marker.getLngLat();
+                try {
+                    await window.moveStandaloneParking?.(parking.id, position.lat, position.lng);
+                } catch (error) {
+                    marker.setLngLat([coordinates.longitude, coordinates.latitude]);
+                }
+            });
+        }
+        state.parkingMarkers.push(marker);
     });
 }
 
