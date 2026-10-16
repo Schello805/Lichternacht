@@ -25,6 +25,7 @@ export const state = {
     stations: [],
     events: [],
     markers: [],
+    programMarkers: [],
     clusterMarkers: [],
     restroomMarkers: [],
     restroomPlacementCancel: null,

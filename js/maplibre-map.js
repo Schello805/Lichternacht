@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.233';
-import { saveData } from './data.js?v=1.4.233';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.234';
+import { saveData } from './data.js?v=1.4.234';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -454,6 +454,8 @@ export function refreshMapMarkers() {
     clearClusterMarkers();
     state.markers.forEach(m => m.marker.remove());
     state.markers = [];
+    (state.programMarkers || []).forEach(marker => marker.remove());
+    state.programMarkers = [];
 
     const visitedStations = getVisitedStationIdSet();
 
@@ -521,6 +523,26 @@ export function refreshMapMarkers() {
 
         state.markers.push({ id: s.id, marker: marker, hasRestroom });
     });
+
+    state.events
+        .filter(event => !String(event.stationId || '').trim())
+        .forEach(event => {
+            const coordinates = getValidCoordinates(event.lat, event.lng);
+            if (!coordinates) return;
+
+            const icon = document.createElement('button');
+            icon.type = 'button';
+            icon.className = 'program-pin';
+            icon.innerHTML = '<i class="ph ph-calendar-dots"></i><span>P</span>';
+            icon.title = `Eigenständiger Programmpunkt: ${event.title || 'Details öffnen'}`;
+            icon.setAttribute('aria-label', icon.title);
+            icon.addEventListener('click', () => window.openProgramEvent?.(event.id));
+
+            const marker = new maplibregl.Marker({ element: icon, anchor: 'center' })
+                .setLngLat([coordinates.longitude, coordinates.latitude])
+                .addTo(state.map);
+            state.programMarkers.push(marker);
+        });
     updateMarkerClusters();
     refreshStandaloneRestroomMarkers();
 }

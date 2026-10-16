@@ -118,6 +118,30 @@ test('admin can turn a linked program entry into a standalone event', async ({ p
     await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
 });
 
+test('standalone program entries use a distinct P marker on the map', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.events.push({
+            id: 'standalone-map-event',
+            time: '19:30',
+            title: 'Eigenständiges Programm',
+            desc: '',
+            loc: 'Marktplatz',
+            stationId: '',
+            lat: 49.159,
+            lng: 10.552,
+            color: 'purple'
+        });
+        window.refreshMapMarkers();
+    });
+
+    const programMarker = page.getByRole('button', { name: 'Eigenständiger Programmpunkt: Eigenständiges Programm' });
+    await expect(programMarker).toBeVisible();
+    await expect(programMarker).toContainText('P');
+    await programMarker.click();
+    await expect(page.locator('#program-event-modal')).toBeVisible();
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');

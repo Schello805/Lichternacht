@@ -132,6 +132,28 @@ h3,
     line-height: 1;
 }
 
+.program-pin {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #7c3aed;
+    color: #fff;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
+    font-family: sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.program-pin i {
+    font-size: 14px;
+}
+
 .standalone-restroom-marker {
     display: flex;
     width: 34px;
