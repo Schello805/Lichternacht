@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.239';
-import * as utils from './js/utils.js?v=1.4.239';
+import { shareStation, showToast } from './js/utils.js?v=1.4.240';
+import * as utils from './js/utils.js?v=1.4.240';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.239';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.239';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.239';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.239';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.240';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.240';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.240';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.240';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.239';
+} from './js/ui.js?v=1.4.240';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
-} from './js/admin.js?v=1.4.239';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.239';
-import { recordAuditEvent } from './js/audit.js?v=1.4.239';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.239';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.239';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.239';
+} from './js/admin.js?v=1.4.240';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.240';
+import { recordAuditEvent } from './js/audit.js?v=1.4.240';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.240';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.240';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.240';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.239";
+const APP_VERSION = "1.4.240";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -303,6 +303,12 @@ function getBestReachedPrize(visited, total) {
         .sort((a, b) => b.count - a.count)[0] || null;
 }
 
+function isPassParticipationAvailable(rewards = state.config?.rewards || {}) {
+    if (rewards.enabled !== true) return false;
+    const prizes = rewards.prizes || {};
+    return ['bronze', 'silver', 'gold'].some((level) => String(prizes[level] || '').trim());
+}
+
 function getVisitedLines(visitedRecords) {
     return visitedRecords.length > 0
         ? visitedRecords.map(item => `- #${item.stationNumber} ${item.stationName} | ${item.checkedAtLabel}`).join('\n')
@@ -326,8 +332,8 @@ async function sendPassEmail(subject, text, meta, html) {
 
 window.openPassParticipationModal = () => {
     const { visited } = getPassProgressSnapshot();
-    if (visited < 3) {
-        showToast('Die Gewinnspiel-Teilnahme ist nach dem 3. Check-in möglich.', 'info');
+    if (visited < 3 || !isPassParticipationAvailable()) {
+        if (visited < 3) showToast('Die Gewinnspiel-Teilnahme ist nach dem 3. Check-in möglich.', 'info');
         return;
     }
     const existing = document.getElementById('pass-participation-modal');
@@ -446,7 +452,7 @@ window.openPassParticipationModal = () => {
 
 window.maybeAskPassParticipation = () => {
     const { visited } = getPassProgressSnapshot();
-    if (visited < 3) return;
+    if (visited < 3 || !isPassParticipationAvailable()) return;
     if (localStorage.getItem(PASS_PARTICIPATION_DECISION_KEY)) return;
     if (document.getElementById('pass-participation-modal')) return;
     setTimeout(() => {
@@ -503,6 +509,7 @@ window.showPassInfo = () => {
     const goldPrize = enabled ? String(prizes.gold || '').trim() : '';
 
     const hasAnyPrize = Boolean(bronzePrize || silverPrize || goldPrize);
+    const raffleAvailable = isPassParticipationAvailable(rewards);
     const isParticipant = hasAcceptedPassParticipation();
     const showAdminPassTools = state.isAdmin === true;
     const existing = document.getElementById('pass-modal');
@@ -612,12 +619,12 @@ window.showPassInfo = () => {
 
             <div class="mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
                 <div class="font-bold text-gray-900 dark:text-white">So funktioniert es</div>
-                <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“. Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.</div>
+                <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“.${raffleAvailable ? ' Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.' : ''}</div>
                 <div class="mt-2 font-bold text-gray-900 dark:text-white">${escapeHtml(nextGoalText)}</div>
                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein persönlicher Fortschritt bleibt lokal auf diesem Gerät, solange du Website-Daten nicht löschst. Normale Check-ins werden zusätzlich anonymisiert/pseudonymisiert zentral für die Nachbereitung gezählt.</div>
             </div>
 
-            ${visited >= 3 ? `
+            ${raffleAvailable && visited >= 3 ? `
                 <div class="mt-4 p-3 rounded-xl border ${isParticipant ? 'border-green-200 bg-green-50 text-green-900' : 'border-blue-200 bg-blue-50 text-blue-900'} text-sm">
                     <div class="font-bold">${isParticipant ? 'Gewinnspiel-Teilnahme ist aktiv' : 'Gewinnspiel-Teilnahme ist freiwillig'}</div>
                     <div class="mt-1">${isParticipant
@@ -625,9 +632,9 @@ window.showPassInfo = () => {
                         : 'Deine Check-ins zählen weiter. Einen Preis kannst du nur mit Name, E-Mail und akzeptierten Gewinnspielhinweisen erhalten.'}</div>
                     ${!isParticipant ? `<button type="button" id="pass-join-raffle" class="mt-3 w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">Am Gewinnspiel teilnehmen</button>` : ''}
                 </div>
-            ` : `
+            ` : raffleAvailable ? `
                 <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">Nach dem 3. Check-in kannst du freiwillig am Gewinnspiel teilnehmen. Check-ins sind auch ohne Teilnahme möglich.</div>
-            `}
+            ` : ''}
 
             ${bestReached ? `
                 <div class="mt-4 p-3 rounded-xl border border-green-200 bg-green-50 text-green-900 text-sm">
