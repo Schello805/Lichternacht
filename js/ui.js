@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.232';
-import * as utils from './utils.js?v=1.4.232';
-import { saveData, deleteData } from './data.js?v=1.4.232';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.232';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.232';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.232';
-import { recordAuditEvent } from './audit.js?v=1.4.232';
-import { normalizeImageUrl } from './image-url.js?v=1.4.232';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.233';
+import * as utils from './utils.js?v=1.4.233';
+import { saveData, deleteData } from './data.js?v=1.4.233';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.233';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.233';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.233';
+import { recordAuditEvent } from './audit.js?v=1.4.233';
+import { normalizeImageUrl } from './image-url.js?v=1.4.233';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1384,6 +1384,7 @@ export function editEvent(id) {
     
     state.activeEventId = e.id;
     populateEventStationSelect(e.stationId || '');
+    updateEventStationLinkControls();
     
     document.getElementById('evt-time').value = e.time;
     document.getElementById('evt-title').value = e.title;
@@ -1425,6 +1426,7 @@ function resetEventModal() {
     
     // Populate Station Select
     populateEventStationSelect('');
+    updateEventStationLinkControls();
 }
 
 function populateEventStationSelect(selectedId = '') {
@@ -1436,6 +1438,7 @@ function populateEventStationSelect(selectedId = '') {
 }
 
 export function applyStationToEvent(val) {
+    updateEventStationLinkControls();
     if (!val) return;
     const s = state.stations.find(x => x.id == val);
     if (s) {
@@ -1444,6 +1447,21 @@ export function applyStationToEvent(val) {
         document.getElementById('evt-lat').value = s.lat;
         document.getElementById('evt-lng').value = s.lng;
     }
+}
+
+function updateEventStationLinkControls() {
+    const select = document.getElementById('evt-linked-station');
+    const unlinkButton = document.getElementById('evt-unlink-station');
+    if (!select || !unlinkButton) return;
+    unlinkButton.classList.toggle('hidden', !select.value);
+}
+
+export function unlinkEventFromStation() {
+    const select = document.getElementById('evt-linked-station');
+    if (!select || !select.value) return;
+    select.value = '';
+    updateEventStationLinkControls();
+    showToast('Programmpunkt getrennt – mit Speichern übernehmen.', 'info');
 }
 
 export function fillEventCoords() {
@@ -1935,17 +1953,6 @@ function getEventLocationInfo(event) {
     const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001);
     if (!hasCoords) return { hasCoords: false, lat: null, lng: null, stationId: null, distanceText: '' };
 
-    const coordMatch = Array.isArray(state.stations) && state.stations.find(station => {
-        const stationLat = parseFloat(station.lat);
-        const stationLng = parseFloat(station.lng);
-        if (!Number.isFinite(stationLat) || !Number.isFinite(stationLng)) return false;
-        return getDistance(stationLat, stationLng, lat, lng) <= 40;
-    });
-    const nameMatch = (!coordMatch && Array.isArray(state.stations)) ? state.stations.find(station =>
-        typeof station.name === 'string' && typeof event.loc === 'string' &&
-        station.name.trim().toLowerCase() === event.loc.trim().toLowerCase()
-    ) : null;
-
     let distanceText = '';
     if (state.userLocation) {
         const distance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng) * 1.3;
@@ -1958,7 +1965,7 @@ function getEventLocationInfo(event) {
         hasCoords,
         lat,
         lng,
-        stationId: linkedStation?.id ?? ((coordMatch || nameMatch) ? (coordMatch || nameMatch).id : null),
+        stationId: linkedStation?.id ?? null,
         distanceText
     };
 }

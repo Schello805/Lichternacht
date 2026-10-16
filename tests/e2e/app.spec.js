@@ -95,6 +95,29 @@ test('admin can edit stations and program entries from their visitor lists', asy
     await expect(page.locator('#event-modal')).toBeVisible();
 });
 
+test('admin can turn a linked program entry into a standalone event', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => {
+        const event = window.state.events[0];
+        const station = window.state.stations[0];
+        event.stationId = String(station.id);
+        event.lat = station.lat;
+        event.lng = station.lng;
+        event.loc = station.name;
+        window.editEvent(event.id);
+    });
+
+    await expect(page.locator('#evt-unlink-station')).toBeVisible();
+    await page.locator('#evt-unlink-station').click();
+    await expect(page.locator('#evt-linked-station')).toHaveValue('');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');
