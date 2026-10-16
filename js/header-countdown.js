@@ -1,4 +1,4 @@
-import * as utils from './utils.js?v=1.4.241';
+import * as utils from './utils.js?v=1.4.242';
 
 function eventWindowDate(dateKey, minutes, addDay = false) {
     const [year, month, day] = String(dateKey || '').split('-').map(Number);

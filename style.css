@@ -430,8 +430,9 @@ h3,
 #main-header p,
 #main-header i {
     filter: none !important;
-    transform: translateZ(0);
-    -webkit-font-smoothing: antialiased;
+    transform: none !important;
+    -webkit-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
 }
 
 .dark .bg-white {
