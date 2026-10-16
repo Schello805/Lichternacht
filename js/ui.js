@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.244';
-import * as utils from './utils.js?v=1.4.244';
-import { saveData, deleteData } from './data.js?v=1.4.244';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.244';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.244';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.244';
-import { recordAuditEvent } from './audit.js?v=1.4.244';
-import { normalizeImageUrl } from './image-url.js?v=1.4.244';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.245';
+import * as utils from './utils.js?v=1.4.245';
+import { saveData, deleteData } from './data.js?v=1.4.245';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.245';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.245';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.245';
+import { recordAuditEvent } from './audit.js?v=1.4.245';
+import { normalizeImageUrl } from './image-url.js?v=1.4.245';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2123,9 +2123,34 @@ export function openProgramEvent(id) {
     });
 }
 
+function renderFlyerDownloads() {
+    const container = document.getElementById('program-flyer-downloads');
+    if (!container) return;
+    const flyers = ['flyer1', 'flyer2']
+        .map((key, index) => ({ url: String(state.downloads?.[key] || '').trim(), label: `Flyer ${index + 1}` }))
+        .filter(({ url }) => /^https?:\/\//i.test(url) || /^\/downloads\/flyers\/[a-zA-Z0-9_-]+\.pdf$/i.test(url));
+
+    if (flyers.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = `
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+            <div class="mb-2 text-sm font-bold text-blue-950 dark:text-blue-100">Flyer &amp; Informationen</div>
+            <div class="grid gap-2 ${flyers.length > 1 ? 'sm:grid-cols-2' : ''}">
+                ${flyers.map(({ url, label }) => `<a href="${escapeHtml(url)}" download target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-100 active:scale-[0.98] dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-900"><i class="ph ph-download-simple text-lg"></i>${escapeHtml(label)} herunterladen</a>`).join('')}
+            </div>
+        </div>
+    `;
+}
+
 export function renderTimeline() {
     const container = document.getElementById('timeline-container');
     if (!container) return;
+    renderFlyerDownloads();
 
     if (!state.events || state.events.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm italic">Noch keine Programmpunkte vorhanden.</p>';

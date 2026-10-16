@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.244" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.245" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.244" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.245" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.244">
+    <link rel="stylesheet" href="style.css?v=1.4.245">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -957,6 +957,7 @@
                             <i class="ph ph-bell-ringing mr-1"></i> 15-Minuten-Erinnerungen aktivieren
                         </button>
                     </div>
+                    <section id="program-flyer-downloads" class="hidden mb-5" aria-label="Flyer herunterladen"></section>
                     <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
                     <div id="timeline-container" class="space-y-6 relative ml-3 pl-6 pb-24">
                     </div>
@@ -1473,7 +1474,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.244', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.245', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1500,7 +1501,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.244"></script>
+    <script type="module" src="main.js?v=1.4.245"></script>
 </body>
 
 </html>
