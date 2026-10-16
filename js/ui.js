@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.235';
-import * as utils from './utils.js?v=1.4.235';
-import { saveData, deleteData } from './data.js?v=1.4.235';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.235';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.235';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.235';
-import { recordAuditEvent } from './audit.js?v=1.4.235';
-import { normalizeImageUrl } from './image-url.js?v=1.4.235';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.236';
+import * as utils from './utils.js?v=1.4.236';
+import { saveData, deleteData } from './data.js?v=1.4.236';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.236';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.236';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.236';
+import { recordAuditEvent } from './audit.js?v=1.4.236';
+import { normalizeImageUrl } from './image-url.js?v=1.4.236';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -1573,17 +1573,24 @@ export async function saveEventChanges() {
 export async function deleteEvent(id) {
     const eId = id || state.activeEventId;
     if (!eId) return;
+    const eventIndex = state.events.findIndex(event => String(event.id) === String(eId));
+    const event = state.events[eventIndex];
+    if (!event) return;
     
     if (!confirm("Programmpunkt wirklich löschen?")) return;
+
+    state.events.splice(eventIndex, 1);
+    renderTimeline();
+    if (window.refreshMapMarkers) window.refreshMapMarkers();
     
     try {
-        await deleteData('event', eId);
+        await deleteData('event', event.__docId || event.id);
         showToast("Gelöscht", 'success');
-        
-        state.events = state.events.filter(x => x.id != eId);
-        renderTimeline();
         closeModal('event-modal');
     } catch (e) {
+        state.events.splice(eventIndex, 0, event);
+        renderTimeline();
+        if (window.refreshMapMarkers) window.refreshMapMarkers();
         console.error(e);
         showToast("Fehler beim Löschen", 'error');
     }

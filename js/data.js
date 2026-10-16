@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.235';
+import { showToast } from './utils.js?v=1.4.236';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.235';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.236';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -313,7 +313,14 @@ export async function deleteData(type, id) {
         const { collection, doc, deleteDoc } = state.fb;
         const colName = type === 'station' ? 'stations' : 'events';
         const colRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', colName);
-        await deleteDoc(doc(colRef, id.toString()));
+        remoteDataVersion += 1;
+        remoteWriteCount += 1;
+        try {
+            await deleteDoc(doc(colRef, id.toString()));
+            persistVisitorDataCache();
+        } finally {
+            remoteWriteCount -= 1;
+        }
     }
 }
 

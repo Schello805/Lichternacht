@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.235';
-import { saveData } from './data.js?v=1.4.235';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.236';
+import { saveData } from './data.js?v=1.4.236';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -536,11 +536,34 @@ export function refreshMapMarkers() {
             icon.innerHTML = '<i class="ph ph-calendar-dots"></i><span>P</span>';
             icon.title = `Eigenständiger Programmpunkt: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);
-            icon.addEventListener('click', () => window.openProgramEvent?.(event.id));
+            icon.addEventListener('click', () => {
+                if (!marker._isDragging) window.openProgramEvent?.(event.id);
+            });
 
-            const marker = new maplibregl.Marker({ element: icon, anchor: 'center' })
+            const marker = new maplibregl.Marker({ element: icon, anchor: 'center', draggable: state.isAdmin })
                 .setLngLat([coordinates.longitude, coordinates.latitude])
                 .addTo(state.map);
+            if (state.isAdmin) {
+                marker.on('dragstart', () => { marker._isDragging = true; });
+                marker.on('dragend', async () => {
+                    window.setTimeout(() => { marker._isDragging = false; }, 100);
+                    const position = marker.getLngLat();
+                    const previousLat = event.lat;
+                    const previousLng = event.lng;
+                    event.lat = position.lat;
+                    event.lng = position.lng;
+                    try {
+                        await saveData('event', event);
+                        showToast(`Programmpunkt verschoben: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`, 'success');
+                    } catch (error) {
+                        event.lat = previousLat;
+                        event.lng = previousLng;
+                        marker.setLngLat([previousLng, previousLat]);
+                        console.error('Program position could not be saved', error);
+                        showToast('Neue Position konnte nicht gespeichert werden.', 'error');
+                    }
+                });
+            }
             state.programMarkers.push(marker);
         });
     updateMarkerClusters();

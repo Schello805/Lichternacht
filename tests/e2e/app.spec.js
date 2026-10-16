@@ -150,6 +150,22 @@ test('standalone program entries use a distinct P marker on the map', async ({ p
     await expect(page.locator('#program-event-modal')).toBeVisible();
 });
 
+test('deleting a program entry removes it immediately', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.evaluate(() => {
+        window.state.events.push({ id: 'delete-program-event', time: '18:45', title: 'Zu löschendes Programm', loc: 'Marktplatz', lat: 49.159, lng: 10.552 });
+        window.renderTimeline();
+    });
+
+    page.once('dialog', dialog => dialog.accept());
+    await page.evaluate(() => window.deleteEvent('delete-program-event'));
+    await expect.poll(() => page.evaluate(() => window.state.events.some(event => event.id === 'delete-program-event'))).toBe(false);
+    await expect(page.locator('#timeline-container')).not.toContainText('Zu löschendes Programm');
+});
+
 test('new visitors get a concise onboarding with useful first actions', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.removeItem('tutorial_seen');
