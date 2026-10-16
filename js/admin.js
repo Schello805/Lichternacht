@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.245';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.245';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.245';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.246';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.246';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.246';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.245';
-import { recordAuditEvent } from './audit.js?v=1.4.245';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.245';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.245';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.246';
+import { recordAuditEvent } from './audit.js?v=1.4.246';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.246';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.246';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -510,7 +510,9 @@ function fillAdminPanel() {
     document.getElementById('admin-reward-gold-prize').value = prizes.gold || '';
 
     document.getElementById('admin-flyer1').value = state.downloads?.flyer1 || '';
+    document.getElementById('admin-flyer1-label').value = state.downloads?.flyer1Label || '';
     document.getElementById('admin-flyer2').value = state.downloads?.flyer2 || '';
+    document.getElementById('admin-flyer2-label').value = state.downloads?.flyer2Label || '';
     document.getElementById('admin-ics-date').value = state.downloads?.icsDate || '';
 
     loadUsers();
@@ -928,7 +930,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.245';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.246';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1518,9 +1520,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.245';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.245';
-import { renderList, renderTimeline } from './ui.js?v=1.4.245';
+import { showToast } from './utils.js?v=1.4.246';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.246';
+import { renderList, renderTimeline } from './ui.js?v=1.4.246';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -1588,7 +1590,9 @@ export async function uploadFlyer(inputId, outputId) {
 
 export async function saveDownloads() {
     const flyer1 = document.getElementById('admin-flyer1').value;
+    const flyer1Label = document.getElementById('admin-flyer1-label').value;
     const flyer2 = document.getElementById('admin-flyer2').value;
+    const flyer2Label = document.getElementById('admin-flyer2-label').value;
     const icsDate = document.getElementById('admin-ics-date').value;
     const eventWindowRaw = (icsDate || '').trim();
 
@@ -1602,6 +1606,10 @@ export async function saveDownloads() {
         showToast('Bitte nur hochgeladene Flyer-Dateien, http(s):// Links oder leere Felder verwenden.', 'error');
         return;
     }
+    if (flyer1Label.trim().length > 80 || flyer2Label.trim().length > 80) {
+        showToast('Flyer-Namen dürfen maximal 80 Zeichen lang sein.', 'error');
+        return;
+    }
 
     const parsedEventWindow = eventWindowRaw ? parseEventWindowConfig(eventWindowRaw) : null;
     if (eventWindowRaw && !parsedEventWindow) {
@@ -1612,7 +1620,9 @@ export async function saveDownloads() {
     const config = {
         downloads: {
             flyer1: (flyer1 || '').trim(),
+            flyer1Label: (flyer1Label || '').trim(),
             flyer2: (flyer2 || '').trim(),
+            flyer2Label: (flyer2Label || '').trim(),
             icsDate: eventWindowRaw
         }
     };

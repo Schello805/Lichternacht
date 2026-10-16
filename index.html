@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.245" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.246" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.245" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.246" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.245">
+    <link rel="stylesheet" href="style.css?v=1.4.246">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -490,6 +490,8 @@
                         </div>
                         <input id="admin-flyer1" type="text" readonly placeholder="Noch kein Flyer hochgeladen"
                             class="mt-2 w-full rounded border border-gray-200 bg-gray-100 p-2 text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        <input id="admin-flyer1-label" type="text" maxlength="80" placeholder="Name für Besucher, z. B. Programmflyer"
+                            class="mt-2 w-full rounded border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white">
                     </div>
 
                     <!-- Flyer 2 -->
@@ -505,6 +507,8 @@
                         </div>
                         <input id="admin-flyer2" type="text" readonly placeholder="Noch kein Flyer hochgeladen"
                             class="mt-2 w-full rounded border border-gray-200 bg-gray-100 p-2 text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        <input id="admin-flyer2-label" type="text" maxlength="80" placeholder="Name für Besucher, z. B. Lageplan"
+                            class="mt-2 w-full rounded border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white">
                     </div>
                     <p class="-mt-1 text-[10px] text-gray-500">PDF auswählen, hochladen und anschließend speichern. Maximal 20 MB pro Flyer.</p>
 
@@ -1474,7 +1478,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.245', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.246', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1501,7 +1505,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.245"></script>
+    <script type="module" src="main.js?v=1.4.246"></script>
 </body>
 
 </html>

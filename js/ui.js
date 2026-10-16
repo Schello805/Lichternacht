@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.245';
-import * as utils from './utils.js?v=1.4.245';
-import { saveData, deleteData } from './data.js?v=1.4.245';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.245';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.245';
-import { buildFeedbackEmailHtml } from './email.js?v=1.4.245';
-import { recordAuditEvent } from './audit.js?v=1.4.245';
-import { normalizeImageUrl } from './image-url.js?v=1.4.245';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.246';
+import * as utils from './utils.js?v=1.4.246';
+import { saveData, deleteData } from './data.js?v=1.4.246';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.246';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.246';
+import { buildFeedbackEmailHtml } from './email.js?v=1.4.246';
+import { recordAuditEvent } from './audit.js?v=1.4.246';
+import { normalizeImageUrl } from './image-url.js?v=1.4.246';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2127,7 +2127,10 @@ function renderFlyerDownloads() {
     const container = document.getElementById('program-flyer-downloads');
     if (!container) return;
     const flyers = ['flyer1', 'flyer2']
-        .map((key, index) => ({ url: String(state.downloads?.[key] || '').trim(), label: `Flyer ${index + 1}` }))
+        .map((key, index) => ({
+            url: String(state.downloads?.[key] || '').trim(),
+            label: String(state.downloads?.[`${key}Label`] || `Flyer ${index + 1}`).trim() || `Flyer ${index + 1}`
+        }))
         .filter(({ url }) => /^https?:\/\//i.test(url) || /^\/downloads\/flyers\/[a-zA-Z0-9_-]+\.pdf$/i.test(url));
 
     if (flyers.length === 0) {

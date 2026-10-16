@@ -38,7 +38,7 @@ export const state = {
     activeTab: "map",
     favorites: new Set(),
     visitorDataSavedAt: 0,
-    downloads: { flyer1: '', flyer2: '', icsDate: '' },
+    downloads: { flyer1: '', flyer1Label: '', flyer2: '', flyer2Label: '', icsDate: '' },
     config: {
         title: 'LICHTERNACHT',
         subtitle: 'Bechhofen | 22. Nov'
