@@ -54,6 +54,14 @@ test('stations offering a WC show a restroom icon on the map', async ({ page }) 
     await page.locator('#stations-list > button').filter({ hasText: 'Metzgerei Weinmann' }).click();
     await expect(page.locator('#modal-wc-badge')).toBeVisible();
     await expect(page.locator('#modal-wc-badge')).toHaveText('WC');
+
+    await page.evaluate(() => {
+        const stationWithoutRestroom = window.state.stations.find(station =>
+            !(station.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc')
+        );
+        window.openStation(stationWithoutRestroom.id);
+    });
+    await expect(page.locator('#modal-wc-badge')).toBeHidden();
 });
 
 test('admin can add a standalone restroom on the map', async ({ page }) => {
