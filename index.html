@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.256" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.257" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.256" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.257" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.256">
+    <link rel="stylesheet" href="style.css?v=1.4.257">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -917,10 +917,10 @@
 
                 <!-- Routing Info -->
                 <div id="route-info"
-                    class="hidden route-info-panel absolute top-4 left-20 right-16 z-[400] bg-white/90 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 flex justify-between items-center">
+                    class="hidden route-info-panel absolute top-4 left-20 right-16 z-[400] bg-white/90 dark:bg-gray-900/95 backdrop-blur p-3 rounded-lg shadow-lg border border-yellow-500/30 dark:border-yellow-500/40 flex justify-between items-center">
                     <div>
-                        <span id="route-info-title" class="text-xs font-bold text-yellow-600 uppercase">Route aktiv</span>
-                        <div id="route-info-detail" class="text-sm font-bold">Ziel wird angezeigt</div>
+                        <span id="route-info-title" class="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase">Route aktiv</span>
+                        <div id="route-info-detail" class="text-sm font-bold text-gray-900 dark:text-gray-100">Ziel wird angezeigt</div>
                     </div>
                     <div id="route-info-actions" class="flex items-center gap-2">
                         <button id="overview-route-navigation-btn" onclick="startOverviewNavigation()"
@@ -1508,7 +1508,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.256', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.257', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1535,7 +1535,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.256"></script>
+    <script type="module" src="main.js?v=1.4.257"></script>
 </body>
 
 </html>
