@@ -209,6 +209,7 @@ test('new visitors get a concise onboarding with useful first actions', async ({
 
     await expect(page.locator('#tutorial-modal')).toBeVisible();
     await expect(page.locator('#tutorial-modal')).toContainText('Stationen sammeln');
+    await expect(page.locator('#tutorial-modal')).toContainText('Dark Mode');
     await expect(page.getByRole('button', { name: /GPS aktivieren/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ohne Standort fortfahren' })).toBeVisible();
     await page.getByRole('button', { name: /Kurze Tour ansehen/ }).click();

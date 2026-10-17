@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.254" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.255" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.254" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.255" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.254">
+    <link rel="stylesheet" href="style.css?v=1.4.255">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1394,6 +1394,10 @@
                     <span class="w-8 h-8 shrink-0 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 flex items-center justify-center font-extrabold">3</span>
                     <div><h3 class="font-bold text-sm dark:text-white">Abend planen</h3><p class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">Favoriten merken, Programm ansehen oder einen Rundweg erstellen.</p></div>
                 </div>
+                <div class="flex gap-3 rounded-2xl bg-gray-50 dark:bg-gray-700/60 p-3 text-left">
+                    <span class="w-8 h-8 shrink-0 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 flex items-center justify-center font-extrabold">4</span>
+                    <div><h3 class="font-bold text-sm dark:text-white">Darstellung anpassen</h3><p class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">Tippe oben rechts auf den Mond, um den Dark Mode ein- oder auszuschalten.</p></div>
+                </div>
             </div>
 
             <button type="button" onclick="completeOnboarding('tour')"
@@ -1504,7 +1508,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.254', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.255', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1531,7 +1535,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.254"></script>
+    <script type="module" src="main.js?v=1.4.255"></script>
 </body>
 
 </html>
