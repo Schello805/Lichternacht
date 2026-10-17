@@ -5,6 +5,7 @@ import {
     formatEventWindowDe,
     formatPlanningCountdown,
     isWithinEventWindowNow,
+    isWithinPassCheckinWindowNow,
     parseEventDateKey,
     parseEventWindowConfig,
     toCsvValue
@@ -37,6 +38,15 @@ test('isWithinEventWindowNow respects configured date and time', () => {
 
 test('isWithinEventWindowNow keeps the pass inactive without an event window', () => {
     assert.equal(isWithinEventWindowNow(null, new Date('2026-11-22T18:00:00+01:00')), false);
+});
+
+test('isWithinPassCheckinWindowNow extends the check-in period before and after the event', () => {
+    const windowConfig = parseEventWindowConfig('22.11.2026 16:30-21:00');
+
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-22T15:29:00+01:00')), false);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-22T15:30:00+01:00')), true);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-23T00:00:00+01:00')), true);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-23T00:01:00+01:00')), false);
 });
 
 test('formatPlanningCountdown shows days and hours until event start', () => {

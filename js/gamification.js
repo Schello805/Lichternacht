@@ -7,15 +7,16 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.251';
-import * as utils from './utils.js?v=1.4.251';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.251';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.251';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.251';
+} from './utils.js?v=1.4.252';
+import * as utils from './utils.js?v=1.4.252';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.252';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.252';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.252';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
     if (!w) return false;
+    if (typeof utils.isWithinPassCheckinWindowNow === 'function') return utils.isWithinPassCheckinWindowNow(w, new Date());
     if (typeof utils.isWithinEventWindowNow === 'function') return utils.isWithinEventWindowNow(w, new Date());
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -30,7 +31,7 @@ function getPassInactiveMessage() {
         : (typeof utils.formatEventDateDe === 'function')
             ? utils.formatEventDateDe(w.dateKey)
             : (w.dateKey || '');
-    return `Der Lichter‑Pass ist nur während der Lichternacht aktiv (${formatted}).`;
+    return `Einchecken ist von einer Stunde vor Beginn bis drei Stunden nach Ende möglich (${formatted}).`;
 }
 
 function getAnonymousAnalyticsId() {

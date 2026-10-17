@@ -228,6 +228,18 @@ export function isWithinEventWindowNow(windowConfig, now = new Date()) {
     return currentMin >= startMin || currentMin <= endMin;
 }
 
+export function isWithinPassCheckinWindowNow(windowConfig, now = new Date()) {
+    if (!windowConfig?.dateKey) return false;
+    const [year, month, day] = String(windowConfig.dateKey).split('-').map(Number);
+    const { startMin, endMin } = windowConfig;
+    if (![year, month, day, startMin, endMin].every(Number.isFinite)) return false;
+
+    const startsAt = new Date(year, month - 1, day, 0, startMin - 60, 0, 0);
+    const endsNextDay = endMin < startMin;
+    const endsAt = new Date(year, month - 1, day + (endsNextDay ? 1 : 0), 0, endMin + 180, 0, 0);
+    return now >= startsAt && now <= endsAt;
+}
+
 export function getConfiguredEventDateKey() {
     const w = parseEventWindowConfig(state.downloads?.icsDate);
     return w ? w.dateKey : null;
