@@ -43,10 +43,10 @@ test('isWithinEventWindowNow keeps the pass inactive without an event window', (
 test('isWithinPassCheckinWindowNow extends the check-in period before and after the event', () => {
     const windowConfig = parseEventWindowConfig('22.11.2026 16:30-21:00');
 
-    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-22T15:29:00+01:00')), false);
-    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-22T15:30:00+01:00')), true);
-    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-23T00:00:00+01:00')), true);
-    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date('2026-11-23T00:01:00+01:00')), false);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date(2026, 10, 22, 15, 29)), false);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date(2026, 10, 22, 15, 30)), true);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date(2026, 10, 23, 0, 0)), true);
+    assert.equal(isWithinPassCheckinWindowNow(windowConfig, new Date(2026, 10, 23, 0, 1)), false);
 });
 
 test('formatPlanningCountdown shows days and hours until event start', () => {

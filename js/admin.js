@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.252';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.252';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.252';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.253';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.253';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.253';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.252';
-import { recordAuditEvent } from './audit.js?v=1.4.252';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.252';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.252';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.253';
+import { recordAuditEvent } from './audit.js?v=1.4.253';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.253';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.253';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1026,7 +1026,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.252';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.253';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1616,9 +1616,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.252';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.252';
-import { renderList, renderTimeline } from './ui.js?v=1.4.252';
+import { showToast } from './utils.js?v=1.4.253';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.253';
+import { renderList, renderTimeline } from './ui.js?v=1.4.253';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
