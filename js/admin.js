@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.257';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.257';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.257';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.258';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.258';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.258';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.257';
-import { recordAuditEvent } from './audit.js?v=1.4.257';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.257';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.257';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.258';
+import { recordAuditEvent } from './audit.js?v=1.4.258';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.258';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.258';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -35,6 +35,7 @@ export async function loadEmailSettings() {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.ok) throw new Error(payload.error || 'Server nicht erreichbar');
         const recipient = document.getElementById('admin-email-recipient');
+        const adminCc = document.getElementById('admin-email-admin-cc');
         const senderName = document.getElementById('admin-email-sender-name');
         const fromEmail = document.getElementById('admin-email-from-email');
         const smtpHost = document.getElementById('admin-smtp-host');
@@ -42,6 +43,7 @@ export async function loadEmailSettings() {
         const smtpUser = document.getElementById('admin-smtp-user');
         const smtpSsl = document.getElementById('admin-smtp-ssl');
         if (recipient) recipient.value = payload.recipient || '';
+        if (adminCc) adminCc.value = payload.adminCc || '';
         if (senderName) senderName.value = payload.senderName || '';
         if (fromEmail) fromEmail.value = payload.fromEmail || '';
         if (smtpHost) smtpHost.value = payload.smtpHost || '';
@@ -64,6 +66,7 @@ export async function loadEmailSettings() {
 
 export async function saveEmailSettings() {
     const recipient = document.getElementById('admin-email-recipient')?.value.trim() || '';
+    const adminCc = document.getElementById('admin-email-admin-cc')?.value.trim() || '';
     const senderName = document.getElementById('admin-email-sender-name')?.value.trim() || '';
     const fromEmail = document.getElementById('admin-email-from-email')?.value.trim() || '';
     const smtpHost = document.getElementById('admin-smtp-host')?.value.trim() || '';
@@ -76,7 +79,7 @@ export async function saveEmailSettings() {
         const response = await fetch('./api/email-settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'save', recipient, senderName, fromEmail, smtpHost, smtpPort, smtpUser, smtpPassword, smtpSsl })
+            body: JSON.stringify({ action: 'save', recipient, adminCc, senderName, fromEmail, smtpHost, smtpPort, smtpUser, smtpPassword, smtpSsl })
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.ok) throw new Error(payload.error || 'Speichern fehlgeschlagen');
@@ -1026,7 +1029,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.257';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.258';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1616,9 +1619,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.257';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.257';
-import { renderList, renderTimeline } from './ui.js?v=1.4.257';
+import { showToast } from './utils.js?v=1.4.258';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.258';
+import { renderList, renderTimeline } from './ui.js?v=1.4.258';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

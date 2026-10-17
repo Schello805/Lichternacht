@@ -133,6 +133,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _email_settings(self):
         settings = {
             'recipient': os.environ.get('BUGREPORT_TO', 'admin@schellenberger.biz').strip(),
+            'adminCc': os.environ.get('EMAIL_ADMIN_CC', '').strip(),
             'senderName': '',
             'fromEmail': os.environ.get('BUGREPORT_FROM', '').strip(),
             'smtpHost': os.environ.get('SMTP_HOST', '').strip(),
@@ -145,7 +146,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             with open(EMAIL_SETTINGS_PATH, 'r', encoding='utf-8') as settings_file:
                 stored = json.load(settings_file)
             if isinstance(stored, dict):
-                for key in ('recipient', 'senderName', 'fromEmail', 'smtpHost', 'smtpUser', 'smtpPassword'):
+                for key in ('recipient', 'adminCc', 'senderName', 'fromEmail', 'smtpHost', 'smtpUser', 'smtpPassword'):
                     value = str(stored.get(key) or '').strip()
                     if value:
                         settings[key] = value
@@ -181,6 +182,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         return {
             'ok': True,
             'recipient': settings['recipient'],
+            'adminCc': settings['adminCc'],
             'senderName': settings['senderName'],
             'fromEmail': settings['fromEmail'],
             'smtpHost': settings['smtpHost'],
@@ -209,6 +211,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         msg['Subject'] = subject
         msg['From'] = formataddr((settings['senderName'], from_addr)) if settings['senderName'] else from_addr
         msg['To'] = to_addr
+        admin_cc = settings['adminCc']
+        if admin_cc and admin_cc.lower() != to_addr.lower():
+            msg['Cc'] = admin_cc
         msg.set_content(text)
         if html_content:
             msg.add_alternative(html_content, subtype='html')
@@ -428,6 +433,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             action = str(data.get('action') or 'save').strip()
             if action == 'save':
                 recipient = str(data.get('recipient') or '').strip().lower()
+                admin_cc = str(data.get('adminCc') or '').strip().lower()
                 sender_name = str(data.get('senderName') or '').strip()
                 from_email = str(data.get('fromEmail') or '').strip().lower()
                 smtp_host = str(data.get('smtpHost') or '').strip()
@@ -440,6 +446,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp_ssl = bool(data.get('smtpSsl'))
                 if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', recipient):
                     return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige Empfängeradresse eingeben'})
+                if admin_cc and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', admin_cc):
+                    return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige CC-Adresse eingeben'})
                 if from_email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', from_email):
                     return self._send_json(400, {'ok': False, 'error': 'Bitte eine gültige Absenderadresse eingeben'})
                 if len(sender_name) > 80 or '\n' in sender_name or '\r' in sender_name:
@@ -456,6 +464,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     return self._send_json(400, {'ok': False, 'error': 'Für SMTP bitte Host, Benutzername und Passwort eingeben'})
                 payload = {
                     'recipient': recipient,
+                    'adminCc': admin_cc,
                     'senderName': sender_name,
                     'fromEmail': from_email,
                     'smtpPort': smtp_port,

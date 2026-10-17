@@ -7,11 +7,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.257';
-import * as utils from './utils.js?v=1.4.257';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.257';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.257';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.257';
+} from './utils.js?v=1.4.258';
+import * as utils from './utils.js?v=1.4.258';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.258';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.258';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.258';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
