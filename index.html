@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.250" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.251" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.250" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.251" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.250">
+    <link rel="stylesheet" href="style.css?v=1.4.251">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -291,9 +291,16 @@
                 <p id="admin-system-updated" class="mt-2 text-[10px] text-gray-400"></p>
             </section>
 
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <nav class="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:grid-cols-4" aria-label="Admin-Bereiche">
+                <button type="button" onclick="const target=document.getElementById('admin-data-section'); target.open=true; target.scrollIntoView({behavior:'smooth', block:'start'})" class="rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-100 dark:hover:bg-gray-700"><i class="ph ph-table"></i> Daten</button>
+                <button type="button" onclick="const target=document.getElementById('admin-experience-section'); target.open=true; target.scrollIntoView({behavior:'smooth', block:'start'})" class="rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-100 dark:hover:bg-gray-700"><i class="ph ph-map-trifold"></i> Besucher-App</button>
+                <button type="button" onclick="const target=document.getElementById('admin-live-section'); target.open=true; target.scrollIntoView({behavior:'smooth', block:'start'})" class="rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-100 dark:hover:bg-gray-700"><i class="ph ph-megaphone"></i> Live</button>
+                <button type="button" onclick="const target=document.getElementById('admin-analytics-section'); target.open=true; target.scrollIntoView({behavior:'smooth', block:'start'})" class="rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-100 dark:hover:bg-gray-700"><i class="ph ph-chart-bar"></i> Auswertung</button>
+            </nav>
+
+            <details id="admin-data-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>1. Daten (Excel/Tabelle)</span>
+                    <span><i class="ph ph-table"></i> Inhalte & Datensicherung</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 border-t dark:border-gray-600">
@@ -390,9 +397,9 @@
             </details>
 
             <!-- App Config -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-experience-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>2. App Konfiguration & Daten</span>
+                    <span><i class="ph ph-map-trifold"></i> Besucher-App & Karte</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
@@ -449,42 +456,13 @@
                     <button onclick="saveAppConfig()"
                         class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold text-sm mt-2">Speichern</button>
                     
-                    <button onclick="resetLikes()"
-                        data-online-only="true"
-                        class="w-full mb-3 bg-orange-100 text-orange-700 font-bold py-2 rounded-lg hover:bg-orange-200 mt-4">
-                        <i class="ph ph-thumbs-up"></i> Likes zurücksetzen (0)
-                    </button>
-                    <button onclick="startNewYear()"
-                        data-online-only="true"
-                        class="w-full mb-6 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 shadow-md">
-                        <i class="ph ph-rocket-launch"></i> Neues Jahr starten
-                    </button>
-
-                    <!-- Add User -->
-                    <div class="pt-4 border-t dark:border-gray-600">
-                        <h5 class="font-bold text-xs mb-2 uppercase text-gray-500">Neuen Admin anlegen</h5>
-                        <input type="email" id="new-user-email" placeholder="Email für neuen Admin" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-1">
-                        <input type="password" id="new-user-pass" placeholder="Passwort" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm mt-2 mb-2">
-                        <button data-online-only="true" onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold text-sm">
-                            Nutzer anlegen
-                        </button>
-                        <p class="text-xs text-red-500 mt-1">⚠️ Achtung: Du wirst sofort als dieser neue Nutzer eingeloggt!</p>
-                    </div>
-                </div>
-                
-                <!-- List of Users -->
-                <div class="p-4 pt-0 border-t dark:border-gray-600">
-                    <h5 class="font-bold text-xs mb-2 uppercase text-gray-500 mt-2">Aktive Admins</h5>
-                    <div id="user-list" class="space-y-1 max-h-40 overflow-y-auto">
-                        <!-- User list rendered by JS -->
-                    </div>
                 </div>
             </details>
 
             <!-- Downloads -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-downloads-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>4. Downloads & ICS</span>
+                    <span><i class="ph ph-download-simple"></i> Downloads & Veranstaltungszeit</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
@@ -540,9 +518,9 @@
             </details>
 
             <!-- Broadcast -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-live-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>5. Nachricht an alle (Live)</span>
+                    <span><i class="ph ph-megaphone"></i> Live-Nachricht an Besucher</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -561,9 +539,9 @@
             </details>
 
             <!-- Tracking -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-tracking-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>6. Tracking / Matomo</span>
+                    <span><i class="ph ph-chart-line-up"></i> Datenschutz & Tracking</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -578,9 +556,9 @@
             </details>
 
             <!-- Rewards / Prizes -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-rewards-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>7. Preise (Bronze/Silber/Gold)</span>
+                    <span><i class="ph ph-trophy"></i> Gewinnspiel & Preise</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -647,9 +625,9 @@
             </details>
 
             <!-- Usage Analytics -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-email-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>8. E-Mail-Versand</span>
+                    <span><i class="ph ph-envelope-simple"></i> E-Mail & Benachrichtigungen</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 space-y-3 border-t dark:border-gray-600">
@@ -687,9 +665,9 @@
             </details>
 
             <!-- Usage Analytics -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <details id="admin-analytics-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>9. Nutzungsanalyse (anonym)</span>
+                    <span><i class="ph ph-chart-bar"></i> Nutzungsanalyse (anonym)</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -717,9 +695,9 @@
             </details>
 
             <!-- Audit Log -->
-            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden" ontoggle="if(this.open) loadAuditLog()">
+            <details id="admin-audit-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden" ontoggle="if(this.open) loadAuditLog()">
                 <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
-                    <span>10. Auditlog (pseudonym)</span>
+                    <span><i class="ph ph-list-checks"></i> Auditlog (pseudonym)</span>
                     <i class="ph ph-caret-down"></i>
                 </summary>
                 <div class="p-4 pt-0 border-t dark:border-gray-600">
@@ -753,6 +731,37 @@
                     </div>
                     <div id="admin-audit-log" class="space-y-2 text-xs text-gray-700 dark:text-gray-200">Noch nicht geladen.</div>
                     <p class="mt-3 text-[10px] text-gray-400">Es werden maximal die 300 neuesten Einträge angezeigt.</p>
+                </div>
+            </details>
+
+            <details id="admin-access-section" class="bg-gray-50 dark:bg-gray-700 rounded-lg mb-4 border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <summary class="font-bold text-sm p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white select-none list-none flex justify-between items-center">
+                    <span><i class="ph ph-shield-check"></i> Verwaltung & Sicherheit</span>
+                    <i class="ph ph-caret-down"></i>
+                </summary>
+                <div class="p-4 pt-0 space-y-5 border-t dark:border-gray-600">
+                    <div class="pt-3">
+                        <h5 class="font-bold text-sm text-gray-800 dark:text-gray-100">Admin-Zugänge</h5>
+                        <p class="mt-1 text-xs text-gray-500">Nur berechtigte Personen dürfen Veranstaltungsdaten und Einstellungen ändern.</p>
+                        <div class="mt-3 rounded-xl border border-gray-200 bg-white/70 p-3 dark:border-gray-600 dark:bg-gray-800/60">
+                            <h6 class="font-bold text-xs uppercase text-gray-500">Neuen Admin anlegen</h6>
+                            <input type="email" id="new-user-email" placeholder="E-Mail für neuen Admin" class="mt-2 w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <input type="password" id="new-user-pass" placeholder="Passwort" class="mt-2 w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm">
+                            <button data-online-only="true" onclick="createNewUser(document.getElementById('new-user-email').value, document.getElementById('new-user-pass').value)" class="mt-2 w-full rounded bg-blue-600 py-2 text-sm font-bold text-white shadow hover:bg-blue-700">Admin anlegen</button>
+                            <p class="mt-2 text-[11px] text-orange-700 dark:text-orange-300"><i class="ph ph-warning"></i> Du wirst danach als dieser neue Nutzer angemeldet.</p>
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="font-bold text-xs uppercase text-gray-500">Aktive Admins</h6>
+                            <div id="user-list" class="mt-2 space-y-1 max-h-40 overflow-y-auto"></div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4 dark:border-gray-600">
+                        <h5 class="font-bold text-sm text-gray-800 dark:text-gray-100">Saisonwechsel & Korrekturen</h5>
+                        <p class="mt-1 text-xs text-gray-500">Diese Aktionen betreffen Besucher-Daten oder bereiten das nächste Veranstaltungsjahr vor.</p>
+                        <button onclick="resetLikes()" data-online-only="true" class="mt-3 w-full rounded-lg bg-orange-100 py-2 text-sm font-bold text-orange-700 hover:bg-orange-200 dark:bg-orange-950/30 dark:text-orange-300"><i class="ph ph-thumbs-up"></i> Likes zurücksetzen (0)</button>
+                        <button onclick="startNewYear()" data-online-only="true" class="mt-2 w-full rounded-lg bg-red-600 py-3 text-sm font-bold text-white shadow-md hover:bg-red-700"><i class="ph ph-rocket-launch"></i> Neues Jahr starten</button>
+                    </div>
                 </div>
             </details>
 
@@ -1489,7 +1498,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.250', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.251', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1516,7 +1525,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.250"></script>
+    <script type="module" src="main.js?v=1.4.251"></script>
 </body>
 
 </html>
