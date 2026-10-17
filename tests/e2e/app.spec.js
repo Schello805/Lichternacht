@@ -70,7 +70,7 @@ test('admin can add a standalone restroom on the map', async ({ page }) => {
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
 
-    await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
+    await page.locator('#admin-experience-section > summary').click();
     await page.locator('#admin-standalone-restrooms').locator('xpath=preceding-sibling::div[1]').getByRole('button', { name: /Auf Karte setzen/ }).click();
     await expect(page.locator('#view-map')).toBeVisible();
     await expect(page.locator('#toast-container')).toContainText('Tippe auf die Karte');
@@ -86,7 +86,7 @@ test('admin can add a standalone parking marker on the map', async ({ page }) =>
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
 
-    await page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' }).locator('summary').click();
+    await page.locator('#admin-experience-section > summary').click();
     await page.locator('#admin-standalone-parking').locator('xpath=preceding-sibling::div[1]').getByRole('button', { name: /Auf Karte setzen/ }).click();
     await expect(page.locator('#toast-container')).toContainText('Parkplatz');
     await page.locator('#map').click({ position: { x: 180, y: 240 } });
@@ -876,13 +876,13 @@ test('admin shortcut opens login and local admin can run data check', async ({ p
     await page.getByRole('button', { name: 'Login' }).click();
 
     await expect(page.locator('#admin-panel')).toBeVisible();
-    const dataSection = page.locator('details').filter({ hasText: '1. Daten (Excel/Tabelle)' });
+    const dataSection = page.locator('#admin-data-section');
     await expect(dataSection).not.toHaveAttribute('open', '');
     await dataSection.locator('summary').click();
     await page.getByRole('button', { name: 'Prüfen' }).click();
     await expect(page.locator('#admin-validation-results')).not.toContainText('Noch nicht geprüft.');
 
-    const auditSection = page.locator('details').filter({ hasText: '10. Auditlog (pseudonym)' });
+    const auditSection = page.locator('#admin-audit-section');
     await expect(auditSection).not.toHaveAttribute('open', '');
     await auditSection.locator('summary').click();
     await expect(page.locator('#admin-audit-role')).toHaveValue('visitor');
@@ -904,7 +904,7 @@ test('active admin input extends the inactivity session', async ({ page }) => {
     await page.getByRole('button', { name: 'Login' }).click();
 
     const initialTimerCount = await page.evaluate(() => window.__adminIdleTimerCount);
-    const configSection = page.locator('details').filter({ hasText: '2. App Konfiguration & Daten' });
+    const configSection = page.locator('#admin-experience-section');
     await configSection.locator('summary').click();
     await page.locator('#admin-app-title').fill('Aktive Bearbeitung');
     await expect.poll(() => page.evaluate(() => window.__adminIdleTimerCount)).toBeGreaterThan(initialTimerCount);
