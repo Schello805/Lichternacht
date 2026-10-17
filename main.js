@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.253';
-import * as utils from './js/utils.js?v=1.4.253';
+import { shareStation, showToast } from './js/utils.js?v=1.4.254';
+import * as utils from './js/utils.js?v=1.4.254';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.253';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.253';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.253';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.253';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.254';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.254';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.254';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.254';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.253';
+} from './js/ui.js?v=1.4.254';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, downloadFullBackup, restoreFullBackup, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
-} from './js/admin.js?v=1.4.253';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.253';
-import { recordAuditEvent } from './js/audit.js?v=1.4.253';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.253';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.253';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.253';
+} from './js/admin.js?v=1.4.254';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.254';
+import { recordAuditEvent } from './js/audit.js?v=1.4.254';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.254';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.254';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.254';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.253";
+const APP_VERSION = "1.4.254";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -1295,7 +1295,7 @@ window.completeOnboarding = (action = 'dismiss') => {
 
     if (action === 'location') {
         switchTab('map');
-        window.setTimeout(() => locateUser(null, { userInitiated: true }), 0);
+        locateUser(null, { userInitiated: true });
     } else if (action === 'tour') {
         window.setTimeout(() => window.startMiniTour?.(true), 0);
     }

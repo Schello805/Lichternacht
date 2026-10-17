@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.253" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.254" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.253" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.254" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.253">
+    <link rel="stylesheet" href="style.css?v=1.4.254">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1369,13 +1369,22 @@
                 </div>
                 <p class="text-xs uppercase tracking-widest font-extrabold text-yellow-600 dark:text-yellow-400">Lichternacht Bechhofen</p>
                 <h2 class="mt-1 text-2xl font-bold font-serif dark:text-white">Schön, dass du da bist.</h2>
-                <p class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">In einer Minute weißt du, wie du Stationen findest, sammelst und deinen Abend planst.</p>
+                <p class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">Aktiviere am besten zuerst deinen Standort. Nur so zeigt dir die App Entfernungen, Gehzeit und Check-ins zuverlässig.</p>
             </div>
 
-            <div class="space-y-2.5 mb-5">
+            <button type="button" onclick="completeOnboarding('location')" id="onboarding-gps-enable"
+                class="mb-4 w-full rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4 text-left shadow-sm transition hover:bg-yellow-100 active:scale-[0.98] dark:border-yellow-500 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/35">
+                <span class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-500 text-lg text-white shadow"><i class="ph-fill ph-crosshair"></i></span>
+                    <span class="min-w-0"><span class="block text-sm font-extrabold text-gray-900 dark:text-white">Schritt 1: GPS aktivieren <span class="text-yellow-700 dark:text-yellow-300">(empfohlen)</span></span><span class="mt-0.5 block text-xs leading-relaxed text-gray-600 dark:text-gray-300">Erlaubt die Standortabfrage deines Browsers.</span></span>
+                    <i class="ph-bold ph-caret-right ml-auto text-yellow-700 dark:text-yellow-300"></i>
+                </span>
+            </button>
+
+            <div class="space-y-2.5 mb-4">
                 <div class="flex gap-3 rounded-2xl bg-gray-50 dark:bg-gray-700/60 p-3 text-left">
                     <span class="w-8 h-8 shrink-0 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 flex items-center justify-center font-extrabold">1</span>
-                    <div><h3 class="font-bold text-sm dark:text-white">Karte öffnen</h3><p class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">Standort erlauben und Stationen in deiner Nähe sehen.</p></div>
+                    <div><h3 class="font-bold text-sm dark:text-white">Stationen in deiner Nähe sehen</h3><p class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">Mit GPS siehst du Entfernung und ungefähre Gehzeit.</p></div>
                 </div>
                 <div class="flex gap-3 rounded-2xl bg-gray-50 dark:bg-gray-700/60 p-3 text-left">
                     <span class="w-8 h-8 shrink-0 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 flex items-center justify-center font-extrabold">2</span>
@@ -1387,15 +1396,12 @@
                 </div>
             </div>
 
-            <button type="button" onclick="completeOnboarding('location')"
-                class="w-full py-3 rounded-xl font-extrabold text-white bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
-                <i class="ph-fill ph-crosshair text-lg"></i> Standort &amp; Karte öffnen
-            </button>
             <button type="button" onclick="completeOnboarding('tour')"
-                class="mt-2 w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 active:scale-[0.98] flex items-center justify-center gap-2">
+                class="w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 active:scale-[0.98] flex items-center justify-center gap-2">
                 <i class="ph-bold ph-map-trifold text-lg"></i> Kurze Tour ansehen <span class="text-xs font-medium text-gray-500 dark:text-gray-300">(ca. 40 Sek.)</span>
             </button>
-            <p class="mt-3 px-2 text-center text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">Der Standort wird nur auf deinem Gerät für Karte, Entfernungen und Check-ins verwendet.</p>
+            <button type="button" onclick="completeOnboarding('dismiss')" class="mt-2 w-full py-2 text-xs font-bold text-gray-500 underline underline-offset-2 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">Ohne Standort fortfahren</button>
+            <p class="mt-2 px-2 text-center text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">Der Standort wird nur auf deinem Gerät für Karte, Entfernungen und Check-ins verwendet.</p>
         </div>
     </div>
 
@@ -1498,7 +1504,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.253', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.254', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1525,7 +1531,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.253"></script>
+    <script type="module" src="main.js?v=1.4.254"></script>
 </body>
 
 </html>
