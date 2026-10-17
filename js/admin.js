@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.249';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.249';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.249';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.250';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.250';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.250';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.249';
-import { recordAuditEvent } from './audit.js?v=1.4.249';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.249';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.249';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.250';
+import { recordAuditEvent } from './audit.js?v=1.4.250';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.250';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.250';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -903,17 +903,113 @@ function downloadTextFile(filename, content, mime = 'text/plain') {
 function downloadAutomaticBackup(reason) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backup = {
-        version: 1,
+        format: 'lichternacht-public-data-backup',
+        version: 2,
         createdAt: new Date().toISOString(),
         reason,
         appId: state.appId,
-        stations: state.stations || [],
-        events: state.events || [],
-        config: state.config || {},
+        stations: JSON.parse(JSON.stringify(state.stations || [])),
+        events: JSON.parse(JSON.stringify(state.events || [])),
+        config: JSON.parse(JSON.stringify({ ...(state.config || {}), downloads: state.downloads || {} })),
         downloads: state.downloads || {}
     };
     downloadTextFile(`lichternacht-backup-${timestamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
     showToast('Sicherheitskopie wurde vor der Änderung heruntergeladen', 'info');
+}
+
+export function downloadFullBackup() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backup = {
+        format: 'lichternacht-public-data-backup',
+        version: 2,
+        createdAt: new Date().toISOString(),
+        reason: 'Manuelle Komplettsicherung',
+        appId: state.appId,
+        stations: JSON.parse(JSON.stringify(state.stations || [])),
+        events: JSON.parse(JSON.stringify(state.events || [])),
+        config: JSON.parse(JSON.stringify({ ...(state.config || {}), downloads: state.downloads || {} })),
+        downloads: JSON.parse(JSON.stringify(state.downloads || {}))
+    };
+    downloadTextFile(`lichternacht-komplettsicherung-${timestamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
+    showToast('Komplettsicherung heruntergeladen', 'success');
+}
+
+function isValidBackup(backup) {
+    return backup &&
+        backup.format === 'lichternacht-public-data-backup' &&
+        backup.version === 2 &&
+        Array.isArray(backup.stations) &&
+        Array.isArray(backup.events) &&
+        backup.config && typeof backup.config === 'object' && !Array.isArray(backup.config);
+}
+
+async function replaceFirestoreCollection(writeBatch, collectionRef, items) {
+    const { getDocs, doc } = state.fb;
+    const existing = await getDocs(collectionRef);
+    const operations = [];
+    existing.forEach(item => operations.push({ type: 'delete', ref: item.ref }));
+    items.forEach(item => {
+        const documentId = String(item?.__docId ?? item?.id ?? '').trim();
+        if (!documentId) throw new Error('Sicherung enthält einen Datensatz ohne ID.');
+        const data = JSON.parse(JSON.stringify(item));
+        delete data.__docId;
+        operations.push({ type: 'set', ref: doc(collectionRef, documentId), data });
+    });
+
+    for (let index = 0; index < operations.length; index += 400) {
+        const batch = writeBatch(state.db);
+        for (const operation of operations.slice(index, index + 400)) {
+            if (operation.type === 'delete') batch.delete(operation.ref);
+            else batch.set(operation.ref, operation.data);
+        }
+        await batch.commit();
+    }
+}
+
+export async function restoreFullBackup(input) {
+    const file = input?.files?.[0];
+    if (!file) {
+        showToast('Bitte zuerst eine Sicherungsdatei auswählen.', 'error');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Die JSON-Sicherung ist größer als 10 MB.', 'error');
+        return;
+    }
+
+    try {
+        const backup = JSON.parse(await file.text());
+        if (!isValidBackup(backup)) throw new Error('Ungültige oder veraltete Lichternacht-Sicherung.');
+        if (backup.appId !== state.appId) throw new Error(`Diese Sicherung gehört zu ${backup.appId || 'einem anderen Jahr'}.`);
+        if (!confirm(`Komplettsicherung vom ${new Date(backup.createdAt).toLocaleString('de-DE')} wiederherstellen?\n\nDie aktuellen Stationen, Programmpunkte und App-Konfiguration werden vollständig ersetzt.`)) return;
+
+        downloadAutomaticBackup('Vor Wiederherstellung einer Komplettsicherung');
+        const restoredConfig = { ...backup.config, downloads: backup.downloads || backup.config.downloads || {} };
+
+        if (state.useLocalStorage) {
+            localStorage.setItem('stations_data', JSON.stringify(backup.stations));
+            localStorage.setItem('events_data', JSON.stringify(backup.events));
+            localStorage.setItem('app_config', JSON.stringify(restoredConfig));
+        } else {
+            if (!state.fb?.writeBatch) {
+                const fbStore = await import('https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js');
+                Object.assign(state.fb, fbStore);
+            }
+            const { collection, doc, setDoc, writeBatch } = state.fb;
+            const base = ['artifacts', state.appId, 'public'];
+            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'stations'), backup.stations);
+            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'events'), backup.events);
+            await setDoc(doc(state.db, ...base, 'config'), restoredConfig);
+        }
+
+        showToast('Komplettsicherung wiederhergestellt. Die App wird neu geladen.', 'success');
+        setTimeout(() => location.reload(), 900);
+    } catch (error) {
+        console.error('Backup restore failed', error);
+        showToast(`Wiederherstellung fehlgeschlagen: ${error.message}`, 'error');
+    } finally {
+        if (input) input.value = '';
+    }
 }
 
 function normalizeTags(tagsValue) {
@@ -930,7 +1026,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.249';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.250';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1520,9 +1616,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.249';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.249';
-import { renderList, renderTimeline } from './ui.js?v=1.4.249';
+import { showToast } from './utils.js?v=1.4.250';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.250';
+import { renderList, renderTimeline } from './ui.js?v=1.4.250';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

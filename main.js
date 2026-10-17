@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.249';
-import * as utils from './js/utils.js?v=1.4.249';
+import { shareStation, showToast } from './js/utils.js?v=1.4.250';
+import * as utils from './js/utils.js?v=1.4.250';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.249';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.249';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.249';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.249';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.250';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.250';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.250';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.250';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.249';
+} from './js/ui.js?v=1.4.250';
 import {
-    uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
-} from './js/admin.js?v=1.4.249';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.249';
-import { recordAuditEvent } from './js/audit.js?v=1.4.249';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.249';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.249';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.249';
+    uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, downloadFullBackup, restoreFullBackup, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
+} from './js/admin.js?v=1.4.250';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.250';
+import { recordAuditEvent } from './js/audit.js?v=1.4.250';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.250';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.250';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.250';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.249";
+const APP_VERSION = "1.4.250";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -64,6 +64,8 @@ window.importData = importData;
 window.handleAdminAdd = handleAdminAdd;
 window.dumpData = dumpData;
 window.downloadDataJs = downloadDataJs;
+window.downloadFullBackup = downloadFullBackup;
+window.restoreFullBackup = restoreFullBackup;
 window.exportStationsTable = exportStationsTable;
 window.exportEventsTable = exportEventsTable;
 window.exportGoogleSheetsWorkbook = exportGoogleSheetsWorkbook;
