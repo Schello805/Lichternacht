@@ -97,10 +97,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.258" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.259" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.258" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.259" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +123,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.258">
+    <link rel="stylesheet" href="style.css?v=1.4.259">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1421,35 +1421,31 @@
         </button>
     </div>
 
-    <!-- Tracking Consent (Bottom Sheet, mobile-friendly) -->
-    <div id="tracking-consent" class="hidden fixed inset-0 z-[6000]">
-        <div class="absolute inset-0 bg-black/50" id="tracking-consent-backdrop"></div>
-        <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-t-2xl shadow-2xl p-5 pb-6 border-t border-gray-200 dark:border-gray-700">
+    <!-- Tracking Consent (compact, non-blocking banner) -->
+    <div id="tracking-consent" class="hidden pointer-events-none fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[6000] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[26rem]">
+        <div class="pointer-events-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-2xl shadow-xl p-3.5 border border-gray-200 dark:border-gray-700">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <div class="text-sm font-extrabold tracking-wide">Datenschutz: Tracking</div>
-                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Ich würde gern Matomo nutzen, um die App zu verbessern (anonymisierte Statistik). Du kannst zustimmen oder ablehnen.
+                    <div class="text-sm font-extrabold tracking-wide">Anonyme Nutzungsanalyse</div>
+                    <div class="text-[11px] leading-snug text-gray-600 dark:text-gray-400 mt-0.5">
+                        Darf Matomo anonym helfen, die App zu verbessern?
                     </div>
                 </div>
-                <button type="button" id="tracking-consent-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2">
-                    <i class="ph ph-x text-2xl"></i>
+                <button type="button" id="tracking-consent-close" aria-label="Datenschutz-Hinweis schließen" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 -mr-1 -mt-1">
+                    <i class="ph ph-x text-lg"></i>
                 </button>
             </div>
 
-            <div class="flex gap-2 mt-4">
-                <button type="button" id="tracking-consent-decline" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-3 rounded-xl font-bold text-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex gap-2 mt-3">
+                <button type="button" id="tracking-consent-decline" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-2 rounded-lg font-bold text-xs border border-gray-200 dark:border-gray-700">
                     Ablehnen
                 </button>
-                <button type="button" id="tracking-consent-accept" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm">
+                <button type="button" id="tracking-consent-accept" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs">
                     Zustimmen
                 </button>
             </div>
 
-            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-3 leading-snug">
-                Du kannst deine Entscheidung jederzeit in der Hilfe ändern: <span class="font-bold">„Datenschutz & Tracking“</span>.
-            </div>
-            <div class="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+            <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400">
                 <a href="./datenschutz.html" class="underline font-bold">Datenschutz</a>
                 <span class="opacity-60 mx-1">·</span>
                 <a href="./impressum.html" class="underline font-bold">Impressum</a>
@@ -1512,7 +1508,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.258', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.259', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1539,7 +1535,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.258"></script>
+    <script type="module" src="main.js?v=1.4.259"></script>
 </body>
 
 </html>

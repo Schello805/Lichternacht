@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.258';
-import * as utils from './utils.js?v=1.4.258';
-import { saveData, deleteData } from './data.js?v=1.4.258';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.258';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.258';
-import { recordAuditEvent } from './audit.js?v=1.4.258';
-import { normalizeImageUrl } from './image-url.js?v=1.4.258';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.259';
+import * as utils from './utils.js?v=1.4.259';
+import { saveData, deleteData } from './data.js?v=1.4.259';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.259';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.259';
+import { recordAuditEvent } from './audit.js?v=1.4.259';
+import { normalizeImageUrl } from './image-url.js?v=1.4.259';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -777,9 +777,16 @@ export function refreshStationList() {
     filterList(currentFilter);
 }
 
+function scrollStationListToTop() {
+    const container = document.getElementById('stations-list');
+    if (!container) return;
+    container.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 export function filterStations(query) {
     // Basic filter implementation
     currentSearchQuery = String(query || '').trim();
+    scrollStationListToTop();
     const lower = currentSearchQuery.toLowerCase();
     const filtered = state.stations.filter(s => 
         s.name.toLowerCase().includes(lower) || 
@@ -791,6 +798,7 @@ export function filterStations(query) {
 export function filterList(tag) {
     currentFilter = tag;
     currentSearchQuery = '';
+    scrollStationListToTop();
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.value = '';
     renderFilterBar();
@@ -839,6 +847,7 @@ export function filterList(tag) {
 export function resetStationFilters() {
     currentFilter = 'all';
     currentSearchQuery = '';
+    scrollStationListToTop();
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.value = '';
     renderFilterBar();

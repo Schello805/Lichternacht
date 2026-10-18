@@ -217,6 +217,20 @@ test('new visitors get a concise onboarding with useful first actions', async ({
     await expect(page.locator('.tour-tooltip')).toContainText('Standort bestimmen');
 });
 
+test('completed onboarding stays dismissed after reloading the app', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.removeItem('onboarding_completed_v2');
+        localStorage.removeItem('tutorial_seen');
+        localStorage.removeItem('onboarding_dismissed');
+    });
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'Ohne Standort fortfahren' }).click();
+    await expect(page.locator('#tutorial-modal')).toBeHidden();
+
+    await page.reload();
+    await expect(page.locator('#tutorial-modal')).toBeHidden();
+});
+
 test('mobile station modal shows its image and subtle website link', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
@@ -506,6 +520,40 @@ test('previously activated GPS resumes on Safari-like browsers without Permissio
     await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
 });
 
+test('starting a route does not request compass permission again after GPS was activated', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.setItem('gps_auto_resume_v1', 'true');
+        window.__compassPermissionRequests = 0;
+        Object.defineProperty(window, 'DeviceOrientationEvent', {
+            configurable: true,
+            value: { requestPermission: async () => {
+                window.__compassPermissionRequests += 1;
+                return 'granted';
+            } }
+        });
+        Object.defineProperty(navigator, 'geolocation', {
+            configurable: true,
+            value: {
+                getCurrentPosition: success => success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() }),
+                watchPosition: success => {
+                    success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() });
+                    return 1;
+                },
+                clearWatch: () => {}
+            }
+        });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.userLocation = null;
+        window.state.overviewRouteGeometry = { type: 'LineString', coordinates: [] };
+        window.state.overviewRouteStations = window.state.stations.slice(0, 2);
+        window.startOverviewNavigation();
+    });
+
+    await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
@@ -517,6 +565,19 @@ test('empty station search explains active filters and can reset them', async ({
 
     await expect(page.locator('#search-input')).toHaveValue('');
     await expect(page.locator('#stations-list > button')).not.toHaveCount(0);
+});
+
+test('changing a station filter scrolls the station list back to the top', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#nav-list').click();
+    await page.evaluate(() => {
+        const stationList = document.getElementById('stations-list');
+        window.__stationListScrollTarget = null;
+        stationList.scrollTo = options => { window.__stationListScrollTarget = options; };
+    });
+
+    await page.evaluate(() => window.filterList('favorites'));
+    await expect.poll(() => page.evaluate(() => window.__stationListScrollTarget?.top)).toBe(0);
 });
 
 test('station and program forms clearly label non-obvious fields', async ({ page }) => {

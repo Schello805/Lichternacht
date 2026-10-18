@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.258';
-import * as utils from './js/utils.js?v=1.4.258';
+import { shareStation, showToast } from './js/utils.js?v=1.4.259';
+import * as utils from './js/utils.js?v=1.4.259';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.258';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.258';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.258';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.258';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.259';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.259';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.259';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.259';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,18 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.258';
+} from './js/ui.js?v=1.4.259';
 import {
     uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, downloadFullBackup, restoreFullBackup, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
-} from './js/admin.js?v=1.4.258';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.258';
-import { recordAuditEvent } from './js/audit.js?v=1.4.258';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.258';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.258';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.258';
+} from './js/admin.js?v=1.4.259';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.259';
+import { recordAuditEvent } from './js/audit.js?v=1.4.259';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.259';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.259';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.259';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.258";
+const APP_VERSION = "1.4.259";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -208,7 +208,7 @@ window.updateVisitorStartCard = () => {
     const metaEl = document.getElementById('visitor-start-meta');
     const nextEl = document.getElementById('visitor-start-next');
     if (!card || !titleEl || !metaEl || !nextEl) return;
-    if (!hasAnyPersistentFlag(['tutorial_seen', 'onboarding_dismissed'])) {
+    if (!hasCompletedOnboarding()) {
         hideVisitorStartCard();
         return;
     }
@@ -882,18 +882,18 @@ function setPersistentFlag(key, value) {
 }
 
 function getPersistentFlag(key) {
+    let localValue = null;
     try {
-        const value = localStorage.getItem(key);
-        if (value !== null) return value;
+        localValue = localStorage.getItem(key);
+        if (localValue === 'true') return localValue;
     } catch (e) { }
     try {
         const needle = `${encodeURIComponent(key)}=`;
         const parts = (document.cookie || '').split(';').map(s => s.trim());
         const hit = parts.find(p => p.startsWith(needle));
-        if (!hit) return null;
-        return decodeURIComponent(hit.substring(needle.length));
+        if (hit) return decodeURIComponent(hit.substring(needle.length));
     } catch (e) { }
-    return null;
+    return localValue;
 }
 
 function clearPersistentFlag(key) {
@@ -908,6 +908,15 @@ function clearPersistentFlag(key) {
 
 function hasAnyPersistentFlag(keys) {
     return keys.some(key => getPersistentFlag(key) === 'true');
+}
+
+function hasCompletedOnboarding() {
+    if (hasAnyPersistentFlag(['onboarding_completed_v2', 'tutorial_seen', 'onboarding_dismissed'])) return true;
+    try {
+        return localStorage.getItem('gps_auto_resume_v1') === 'true';
+    } catch (e) {
+        return false;
+    }
 }
 
 function hideMiniTourPromptEl() {
@@ -1283,6 +1292,7 @@ window.addNewTag = window.addNewTag; // Already on window from ui.js, but for co
 
 window.completeOnboarding = (action = 'dismiss') => {
     document.getElementById('tutorial-modal')?.classList.add('hidden');
+    setPersistentFlag('onboarding_completed_v2', 'true');
     setPersistentFlag('tutorial_seen', 'true');
     setPersistentFlag('onboarding_dismissed', 'true');
 
@@ -1343,7 +1353,6 @@ function initTrackingConsentUi() {
     const acceptBtn = document.getElementById('tracking-consent-accept');
     const declineBtn = document.getElementById('tracking-consent-decline');
     const closeBtn = document.getElementById('tracking-consent-close');
-    const backdrop = document.getElementById('tracking-consent-backdrop');
 
     const hide = () => {
         modal.classList.add('hidden');
@@ -1369,7 +1378,6 @@ function initTrackingConsentUi() {
         };
     }
     if (closeBtn) closeBtn.onclick = () => hide();
-    if (backdrop) backdrop.onclick = () => hide();
 
     // Help modal buttons (allow changing later)
     const allowSettingsBtn = document.getElementById('tracking-settings-allow');
@@ -1537,7 +1545,7 @@ const initializeApp = async () => {
     updatePassProgress(); // FIX: Show correct pass progress on load
 
     // Tutorial Check
-    if (!hasAnyPersistentFlag(['tutorial_seen', 'onboarding_dismissed'])) {
+    if (!hasCompletedOnboarding()) {
         document.getElementById('tutorial-modal').classList.remove('hidden');
     }
 

@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.258';
-import { saveData } from './data.js?v=1.4.258';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.259';
+import { saveData } from './data.js?v=1.4.259';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -655,7 +655,8 @@ export async function locateUser(cb, options = {}) {
         return;
     }
 
-    const startedFromUserGesture = options.userInitiated === true || navigator.userActivation?.isActive === true;
+    const startedFromUserGesture = options.userInitiated === true ||
+        (options.userInitiated !== false && navigator.userActivation?.isActive === true);
     const requestToken = ++state.gpsRequestToken;
     const geolocationStrategy = getGeolocationStrategy();
 
@@ -1015,7 +1016,10 @@ export function startOverviewNavigation() {
         showToast('Rundweg gestartet. Folge der Linie auf der Karte – die nächste Station schaltet automatisch weiter.', 'success');
     };
     if (state.userLocation) beginNavigation();
-    else locateUser(beginNavigation, { userInitiated: true, forceCenter: false });
+    else {
+        const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true';
+        locateUser(beginNavigation, { userInitiated: !gpsWasAlreadyActivated, forceCenter: false });
+    }
 }
 
 function advanceOverviewNavigation() {
