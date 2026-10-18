@@ -74,15 +74,29 @@ Die App ist für einen **Apache Webserver** optimiert.
 3.  Einmalig ausführen: `./deploy.sh`
 
 ### Updates einspielen
-Um Änderungen von GitHub auf den Server zu laden, führe einfach das Skript aus:
+Nur einen zuvor freigegebenen GitHub-Release auf dem Server aktivieren:
 
 ```bash
-./deploy.sh
+./deploy.sh v1.4.270
 ```
 
 Das Skript erledigt folgendes:
-1.  `git pull` (Neuesten Code holen)
-2.  Kopiert `server-htaccess` zu `.htaccess` (Damit Caching-Regeln stimmen und Nextcloud nicht stört).
+1.  Holt ausschließlich den angegebenen Release-Tag und prüft, dass er vorhanden ist.
+2.  Wechselt den Server auf genau diesen Stand (kein automatisches `main`-Update).
+3.  Kopiert `server-htaccess` zu `.htaccess` (Damit Caching-Regeln stimmen und Nextcloud nicht stört).
+
+### Sicher veröffentlichen
+
+1. Änderungen kommen über einen Pull Request nach `main`.
+2. GitHub Actions muss vollständig grün sein.
+3. Erst dann wird ein Release-Tag wie `v1.4.270` erstellt.
+4. Auf dem Server wird genau dieser Tag mit `./deploy.sh v1.4.270` aktiviert.
+
+Bei Problemen lässt sich sofort auf einen vorherigen Release zurückgehen, zum Beispiel:
+
+```bash
+./deploy.sh v1.4.269
+```
 
 **Wichtig:** Die Datei `.htaccess` sollte lokal nicht existieren (oder ignoriert werden), da sie oft Probleme mit Sync-Clients (Nextcloud) verursacht. Wir nutzen daher `server-htaccess` als Vorlage.
 
