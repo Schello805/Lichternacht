@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.264';
-import { saveData } from './data.js?v=1.4.264';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.265';
+import { saveData } from './data.js?v=1.4.265';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -40,6 +40,7 @@ const PROXIMITY_FILL_LAYER_ID = 'checkin-radius-fill';
 const PROXIMITY_LINE_LAYER_ID = 'checkin-radius-line';
 const GPS_ERROR_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
 const GPS_AUTO_RESUME_STORAGE_KEY = 'gps_auto_resume_v1';
+const GPS_AUTO_RESUME_INTENT_STORAGE_KEY = 'gps_auto_resume_intent_v1';
 let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
@@ -634,7 +635,9 @@ export function refreshMapMarkers() {
 
 export async function resumeGrantedLocation() {
     if (!navigator.geolocation || navigator.webdriver || state.userLocation) return false;
-    if (localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) !== 'true') return false;
+    const wasActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
+        localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
+    if (!wasActivated) return false;
 
     let permission = null;
     try {
@@ -661,6 +664,7 @@ export async function locateUser(cb, options = {}) {
     const geolocationStrategy = getGeolocationStrategy();
 
     if (startedFromUserGesture) {
+        localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
         await enableCompassFromUserGesture();
         if (requestToken !== state.gpsRequestToken) return;
     }
@@ -692,6 +696,7 @@ export async function locateUser(cb, options = {}) {
         state.gpsAccuracy = Number.isFinite(Number(pos.coords.accuracy)) ? Number(pos.coords.accuracy) : null;
         state.gpsLastFixAt = fixTimestamp;
         localStorage.setItem(GPS_AUTO_RESUME_STORAGE_KEY, 'true');
+        localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
         advanceOverviewNavigationIfReached(userLat, userLng);
 
         if (context.cb && !context.cbCalled && isFreshFix) {
@@ -725,7 +730,10 @@ export async function locateUser(cb, options = {}) {
     const handleFinalError = (err) => {
         if (context.requestToken !== state.gpsRequestToken) return;
         const denied = err?.code === 1;
-        if (denied) localStorage.removeItem(GPS_AUTO_RESUME_STORAGE_KEY);
+        if (denied) {
+            localStorage.removeItem(GPS_AUTO_RESUME_STORAGE_KEY);
+            localStorage.removeItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY);
+        }
         setGpsUiStatus(denied ? 'denied' : 'error');
         if (shouldShowGpsErrorToast(err)) {
             const message = denied
@@ -1013,7 +1021,8 @@ export function startOverviewNavigation() {
     };
     if (state.userLocation) beginNavigation();
     else {
-        const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true';
+        const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
+            localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
         locateUser(beginNavigation, { userInitiated: !gpsWasAlreadyActivated, forceCenter: false });
     }
 }
