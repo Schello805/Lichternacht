@@ -111,10 +111,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.262" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.263" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.262" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.263" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -137,7 +137,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.262">
+    <link rel="stylesheet" href="style.css?v=1.4.263">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -978,9 +978,9 @@
 
             <!-- VIEW: PROGRAMM -->
             <div id="view-events" class="view-section h-full w-full hidden bg-gray-50">
-                <div class="scroll-container p-4 h-full overflow-y-auto">
+                <div class="scroll-container p-3 h-full overflow-y-auto">
                     <div
-                        class="mb-6 p-5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-lg relative overflow-hidden">
+                        class="mb-3 p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 text-white shadow-lg relative overflow-hidden">
                         <div class="absolute -top-6 -right-6 p-4 opacity-5 rotate-12"><i
                                 class="ph ph-star-four text-9xl"></i>
                         </div>
@@ -999,9 +999,9 @@
                             <i class="ph ph-bell-ringing mr-1"></i> 15-Minuten-Erinnerungen aktivieren
                         </button>
                     </div>
-                    <section id="program-flyer-downloads" class="hidden mb-5" aria-label="Flyer herunterladen"></section>
-                    <h3 class="text-gray-800 font-bold mb-4 px-1 border-b border-gray-200 pb-2">Programmablauf</h3>
-                    <div id="timeline-container" class="space-y-6 relative ml-3 pl-6 pb-24">
+                    <section id="program-flyer-downloads" class="hidden mb-3" aria-label="Flyer herunterladen"></section>
+                    <h3 class="text-gray-800 font-bold mb-2 px-1 border-b border-gray-200 pb-1">Programmablauf</h3>
+                    <div id="timeline-container" class="space-y-3 relative ml-2 pl-5 pb-16">
                     </div>
                 </div>
             </div>
@@ -1522,7 +1522,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.262', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.263', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1549,7 +1549,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.262"></script>
+    <script type="module" src="main.js?v=1.4.263"></script>
 </body>
 
 </html>

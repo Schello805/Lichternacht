@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.262';
-import * as utils from './utils.js?v=1.4.262';
-import { saveData, deleteData } from './data.js?v=1.4.262';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.262';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.262';
-import { recordAuditEvent } from './audit.js?v=1.4.262';
-import { normalizeImageUrl } from './image-url.js?v=1.4.262';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.263';
+import * as utils from './utils.js?v=1.4.263';
+import { saveData, deleteData } from './data.js?v=1.4.263';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.263';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.263';
+import { recordAuditEvent } from './audit.js?v=1.4.263';
+import { normalizeImageUrl } from './image-url.js?v=1.4.263';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2146,10 +2146,12 @@ function renderFlyerDownloads() {
 
     container.classList.remove('hidden');
     container.innerHTML = `
-        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
-            <div class="mb-2 text-sm font-bold text-blue-950 dark:text-blue-100">Flyer &amp; Informationen</div>
-            <div class="grid gap-2 ${flyers.length > 1 ? 'sm:grid-cols-2' : ''}">
-                ${flyers.map(({ url, label }) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-100 active:scale-[0.98] dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-900"><i class="ph ph-arrow-square-out text-lg"></i>${escapeHtml(label)} öffnen</a>`).join('')}
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-2.5 dark:border-blue-900 dark:bg-blue-950/30">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div class="text-xs font-bold text-blue-950 dark:text-blue-100 sm:shrink-0">Flyer &amp; Informationen</div>
+                <div class="grid flex-1 gap-2 ${flyers.length > 1 ? 'sm:grid-cols-2' : ''}">
+                    ${flyers.map(({ url, label }) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-blue-700 shadow-sm ring-1 ring-blue-100 active:scale-[0.98] dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-900"><i class="ph ph-arrow-square-out text-base"></i>${escapeHtml(label)} öffnen</a>`).join('')}
+                </div>
             </div>
         </div>
     `;
@@ -2203,21 +2205,21 @@ export function renderTimeline() {
 
     const infoBanner = !configuredWindow
         ? `
-            <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+            <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
                 Für das Programm ist noch kein Event-Datum gesetzt. Deshalb werden „Live“, „Demnächst“ und Countdowns nicht berechnet.
                 Bitte im Adminbereich unter Downloads/Kalender das Datum setzen.
             </div>
         `
         : (!isEventDay)
             ? `
-            <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+            <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
                 Das Programm gilt am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
                 Heute (${now.toLocaleDateString('de-DE')}) ist kein Veranstaltungstag – daher kein „Live/Demnächst“.
             </div>
         `
         : (isEventDay && !isEventWindowNow)
             ? `
-                <div class="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
+                <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
                     Die Lichternacht ist aktiv am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
                     Aktuell ist sie nicht gestartet oder bereits vorbei – daher kein „Live/Demnächst“.
                 </div>
@@ -2273,13 +2275,13 @@ export function renderTimeline() {
 
         return `
         <div ${scrollId} class="relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500">
-            <div class="absolute -left-[23px] w-[2px] timeline-line ${index === 0 ? 'top-4' : 'top-0'} bottom-0"></div>
-            <div class="absolute -left-[31px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
+            <div class="absolute -left-[19px] w-[2px] timeline-line ${index === 0 ? 'top-4' : 'top-0'} bottom-0"></div>
+            <div class="absolute -left-[27px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
                 <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             </div>
-            <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-4 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
-                <div class="flex items-start gap-3">
-                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="aspect-square w-16 shrink-0 rounded-lg object-cover sm:w-20">` : ''}
+            <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-3 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
+                <div class="flex items-start gap-2">
+                ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="aspect-square w-14 shrink-0 rounded-lg object-cover sm:w-16">` : ''}
                 <div class="min-w-0 flex-1">
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
@@ -2294,7 +2296,7 @@ export function renderTimeline() {
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
                 ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(linkedStation.id)} · ${escapeHtml(linkedStation.name)}</span>` : ''}
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${escapeHtml(e.desc)}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>
                     <span>${escapeHtml(e.loc)}</span>
