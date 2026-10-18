@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.263';
-import { saveData } from './data.js?v=1.4.263';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.264';
+import { saveData } from './data.js?v=1.4.264';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -830,7 +830,7 @@ export function calculateRoute(destLat, destLng) {
             if (!geometry) throw new Error('Keine Route gefunden');
             state.routeGeometry = geometry;
             renderRoute(geometry);
-            setRouteInfo('Route aktiv', 'Ziel wird angezeigt');
+            hideRouteInfo();
             fitCoordinates(geometry.coordinates, 70);
         })
         .catch(error => {
@@ -867,6 +867,10 @@ function setRouteInfo(title, detail) {
 
 function hideRouteInfoIfUnused() {
     if (state.routeGeometry || state.overviewRouteGeometry) return;
+    hideRouteInfo();
+}
+
+function hideRouteInfo() {
     document.getElementById('route-info')?.classList.add('hidden');
     document.getElementById('view-map')?.classList.remove('route-info-visible');
 }
