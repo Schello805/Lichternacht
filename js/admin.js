@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.270';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.270';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.270';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.271';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.271';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.271';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.270';
-import { recordAuditEvent } from './audit.js?v=1.4.270';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.270';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.270';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.271';
+import { recordAuditEvent } from './audit.js?v=1.4.271';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.271';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.271';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -198,7 +198,9 @@ export async function loadSystemMetrics() {
         const standaloneRestrooms = Array.isArray(state.config?.standaloneRestrooms) ? state.config.standaloneRestrooms.length : 0;
         const standaloneParking = Array.isArray(state.config?.standaloneParking) ? state.config.standaloneParking.length : 0;
         const adminCountAvailable = Number.isFinite(Number(audience.admins));
+        const releaseVersion = String(window.APP_VERSION || '–');
         const cards = [
+            { label: 'Release', value: releaseVersion === '–' ? '–' : `v${releaseVersion.replace(/^v/, '')}`, detail: 'Aktuell geladene App-Version', icon: 'ph-tag', tone: 'green' },
             { label: 'CPU / Serverlast', value: `${cpuPercent.toFixed(1)} %`, detail: `${metrics.cpu?.count || 0} CPU · Load ${metrics.cpu?.load1 ?? '–'}`, icon: 'ph-cpu', tone: metricTone(cpuPercent) },
             { label: 'RAM belegt', value: Number.isFinite(memoryPercent) ? `${memoryPercent.toFixed(1)} %` : '–', detail: metrics.memory?.total ? `${formatBytes(metrics.memory.total - metrics.memory.available)} von ${formatBytes(metrics.memory.total)}` : 'Nicht verfügbar', icon: 'ph-memory', tone: metricTone(memoryPercent) },
             { label: 'Freier Speicher', value: formatBytes(metrics.disk?.free), detail: `${diskPercent.toFixed(1)} % belegt · ${formatBytes(metrics.disk?.total)} gesamt`, icon: 'ph-hard-drives', tone: metricTone(diskPercent) },
@@ -1029,7 +1031,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.270';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.271';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1619,9 +1621,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.270';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.270';
-import { renderList, renderTimeline } from './ui.js?v=1.4.270';
+import { showToast } from './utils.js?v=1.4.271';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.271';
+import { renderList, renderTimeline } from './ui.js?v=1.4.271';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

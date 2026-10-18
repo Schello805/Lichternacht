@@ -1118,4 +1118,5 @@ test('system metrics are protected and visible only in admin UI', async ({ reque
     await page.getByRole('button', { name: 'Login' }).click();
     await expect(page.getByRole('heading', { name: 'Systemstatus' })).toBeVisible();
     await expect(page.locator('#admin-system-metrics')).toBeVisible();
+    await expect(page.locator('#admin-release-version')).toHaveText(/v\d+\.\d+\.\d+/);
 });
