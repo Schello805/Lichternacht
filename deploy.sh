@@ -2,14 +2,15 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "Verwendung: ./deploy.sh vX.Y.Z"
+if [[ $# -gt 1 ]]; then
+  echo "Verwendung: ./deploy.sh [vX.Y.Z]"
+  echo "Ohne Angabe wird der neueste Release aktiviert."
   echo "Beispiel:   ./deploy.sh v1.4.270"
   exit 64
 fi
 
-RELEASE_TAG="$1"
-if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+RELEASE_TAG="${1:-}"
+if [[ -n "$RELEASE_TAG" && ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "❌ Bitte einen Release-Tag im Format vX.Y.Z angeben."
   exit 64
 fi
@@ -19,9 +20,18 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-# 1. Exakt den freigegebenen Release holen
-echo "📥 Hole Release ${RELEASE_TAG} von GitHub..."
+# 1. Freigegebenen Release holen
+echo "📥 Hole Release-Informationen von GitHub..."
 git fetch origin --tags --prune
+
+if [[ -z "$RELEASE_TAG" ]]; then
+  RELEASE_TAG="$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)"
+  if [[ -z "$RELEASE_TAG" ]]; then
+    echo "❌ Es wurde kein Release-Tag gefunden."
+    exit 1
+  fi
+  echo "ℹ️  Kein Tag angegeben – verwende den neuesten Release ${RELEASE_TAG}."
+fi
 
 if ! git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}" >/dev/null; then
   echo "❌ Release-Tag ${RELEASE_TAG} wurde nicht gefunden."
