@@ -61,6 +61,20 @@
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#fbbf24">
+    <script>
+        try {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.backgroundColor = '#111827';
+                document.documentElement.style.colorScheme = 'dark';
+                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#111827');
+            }
+        } catch (error) { }
+    </script>
+    <style>
+        html { background-color: #f3f4f6; color-scheme: light; }
+        html.dark { background-color: #111827; color-scheme: dark; }
+    </style>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -97,10 +111,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.259" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.260" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.259" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.260" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -123,7 +137,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.259">
+    <link rel="stylesheet" href="style.css?v=1.4.260">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1508,7 +1522,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.259', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.260', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1535,7 +1549,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.259"></script>
+    <script type="module" src="main.js?v=1.4.260"></script>
 </body>
 
 </html>

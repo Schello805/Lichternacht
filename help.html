@@ -11,9 +11,23 @@
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="theme-color" content="#fbbf24">
+    <script>
+        try {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.backgroundColor = '#111827';
+                document.documentElement.style.colorScheme = 'dark';
+                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#111827');
+            }
+        } catch (error) { }
+    </script>
+    <style>
+        html { background-color: #f3f4f6; color-scheme: light; }
+        html.dark { background-color: #111827; color-scheme: dark; }
+    </style>
 
-    <link href="./dist/output.css?v=1.4.259" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.4.259">
+    <link href="./dist/output.css?v=1.4.260" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1.4.260">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
     <script src="vendor/phosphor/phosphor.js"></script>
@@ -187,14 +201,6 @@
             </main>
         </div>
 
-    <script>
-        // Dark mode in sync with app
-        try {
-            if (localStorage.getItem('darkMode') === 'true') {
-                document.documentElement.classList.add('dark');
-            }
-        } catch (e) { }
-    </script>
 </body>
 
 </html>

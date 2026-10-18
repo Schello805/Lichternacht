@@ -22,6 +22,20 @@ test.beforeEach(async ({ page }) => {
     });
 });
 
+test('saved dark mode is applied before the first render', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.setItem('darkMode', 'true');
+        document.addEventListener('DOMContentLoaded', () => {
+            window.__darkModeAtDomReady = document.documentElement.classList.contains('dark');
+        });
+    });
+
+    await page.goto('/index.html');
+
+    await expect.poll(() => page.evaluate(() => window.__darkModeAtDomReady)).toBe(true);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+});
+
 test('visitor can open a station detail modal from the station list', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
