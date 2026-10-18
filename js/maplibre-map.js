@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.272';
-import { saveData } from './data.js?v=1.4.272';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.273';
+import { saveData } from './data.js?v=1.4.273';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -199,10 +199,12 @@ export function beginStandaloneParkingPlacement(onPlace) {
 function getUserMarkerIcon() {
     const heading = Number.isFinite(Number(state.compassHeading)) ? Number(state.compassHeading) : 0;
     const headingClass = state.compassEnabled ? 'is-heading-active' : '';
-    const headingStyle = state.compassEnabled ? `style="transform: rotate(${heading}deg);"` : '';
+    const headingIndicator = state.compassEnabled
+        ? `<div class="user-location-heading" style="transform: rotate(${heading}deg);"></div>`
+        : '';
     const element = document.createElement('div');
     element.className = 'user-loc';
-    element.innerHTML = `<div class="user-location-marker ${headingClass}"><div class="user-location-heading" ${headingStyle}></div><div class="user-location-dot"></div></div>`;
+    element.innerHTML = `<div class="user-location-marker ${headingClass}">${headingIndicator}<div class="user-location-dot"></div></div>`;
     return element;
 }
 
@@ -665,7 +667,9 @@ export async function locateUser(cb, options = {}) {
 
     if (startedFromUserGesture) {
         localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
-        await enableCompassFromUserGesture();
+        if (options.requestCompass === true) {
+            await enableCompassFromUserGesture();
+        }
         if (requestToken !== state.gpsRequestToken) return;
     }
 
