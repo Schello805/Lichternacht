@@ -760,6 +760,17 @@ test('visitor navigation is accessible and opens all main areas', async ({ page 
     await programButton.click();
     await expect(programButton).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('#view-events')).toBeVisible();
+
+    await page.locator('#view-events .scroll-container').evaluate(element => {
+        element.scrollTop = element.scrollHeight;
+    });
+    await expect(page.locator('#bottom-nav')).toBeVisible();
+    const navBounds = await page.locator('#bottom-nav').evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return { top: bounds.top, bottom: bounds.bottom };
+    });
+    expect(navBounds.top).toBeGreaterThan(0);
+    expect(navBounds.bottom).toBeGreaterThanOrEqual(page.viewportSize().height - 1);
 });
 
 test('mobile bottom navigation keeps every label fully visible', async ({ page }) => {
