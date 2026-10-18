@@ -36,6 +36,18 @@ test('saved dark mode is applied before the first render', async ({ page }) => {
     await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
+test('visitor startup defers the admin module', async ({ page }) => {
+    const adminRequests = [];
+    page.on('request', request => {
+        if (request.url().includes('/js/admin.js')) adminRequests.push(request.url());
+    });
+
+    await page.goto('/index.html');
+    await page.waitForTimeout(300);
+
+    expect(adminRequests).toHaveLength(0);
+});
+
 test('visitor can open a station detail modal from the station list', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();

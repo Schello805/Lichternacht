@@ -1,11 +1,11 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.261';
-import * as utils from './js/utils.js?v=1.4.261';
+import { shareStation, showToast } from './js/utils.js?v=1.4.262';
+import * as utils from './js/utils.js?v=1.4.262';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.261';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.261';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.261';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.261';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.262';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.262';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.262';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.262';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
     openHelpModal, closeHelpModal, saveStationChanges, deleteStation,
@@ -14,18 +14,15 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.261';
-import {
-    uploadSeedData, toggleAdminPanel, closeAdminPanel, importData, handleAdminAdd, dumpData, downloadDataJs, downloadFullBackup, restoreFullBackup, uploadFlyer, saveDownloads, sendBroadcast, saveAppConfig, resetLikes, deleteUser, saveTrackingConfig, clearTrackingConfig, saveRewardsConfig, exportStationsTable, exportEventsTable, exportGoogleSheetsWorkbook, downloadStationsTableTemplate, downloadEventsTableTemplate, importStationsTable, importEventsTable, saveGoogleSheetsConfig, syncGoogleSheets, runDataValidation, deleteBroadcast, startNewYear, testPlanningBanner, loadUsageAnalytics, exportUsageAnalyticsCsv, sendUsageSummaryEmail, loadSystemMetrics, loadAuditLog, filterAuditLog, exportAuditLogCsv, clearAuditLog, updateAdminUiAvailability, loadEmailSettings, saveEmailSettings, sendEmailSettingsTest, startStandaloneRestroomPlacement, startStandaloneParkingPlacement, moveStandaloneRestroom, moveStandaloneParking
-} from './js/admin.js?v=1.4.261';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.261';
-import { recordAuditEvent } from './js/audit.js?v=1.4.261';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.261';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.261';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.261';
+} from './js/ui.js?v=1.4.262';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.262';
+import { recordAuditEvent } from './js/audit.js?v=1.4.262';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.262';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.262';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.262';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.261";
+const APP_VERSION = "1.4.262";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.state = state; // Explicitly bind state to window
 window.showToast = showToast;
@@ -34,9 +31,48 @@ window.closePlanningBanner = closePlanningBanner;
 window.pendingAdminOpen = false;
 
 window.updateHeaderCountdown = updateHeaderCountdown;
-window.loadEmailSettings = loadEmailSettings;
-window.saveEmailSettings = saveEmailSettings;
-window.sendEmailSettingsTest = sendEmailSettingsTest;
+
+let adminModulePromise = null;
+
+function loadAdminModule() {
+    if (!adminModulePromise) {
+        adminModulePromise = import(`./js/admin.js?v=${APP_VERSION}`).catch(error => {
+            adminModulePromise = null;
+            console.error('Admin-Modul konnte nicht geladen werden.', error);
+            showToast('Adminbereich konnte nicht geladen werden. Bitte erneut versuchen.', 'error');
+            throw error;
+        });
+    }
+    return adminModulePromise;
+}
+
+function callAdminAction(action, ...args) {
+    return loadAdminModule().then(admin => admin[action](...args));
+}
+
+const adminActions = [
+    'uploadSeedData', 'toggleAdminPanel', 'importData', 'handleAdminAdd', 'dumpData', 'downloadDataJs',
+    'downloadFullBackup', 'restoreFullBackup', 'exportStationsTable', 'exportEventsTable',
+    'exportGoogleSheetsWorkbook', 'downloadStationsTableTemplate', 'downloadEventsTableTemplate',
+    'importStationsTable', 'importEventsTable', 'saveGoogleSheetsConfig', 'syncGoogleSheets',
+    'runDataValidation', 'uploadFlyer', 'saveDownloads', 'saveAppConfig', 'saveTrackingConfig',
+    'clearTrackingConfig', 'saveRewardsConfig', 'sendBroadcast', 'deleteBroadcast', 'startNewYear',
+    'testPlanningBanner', 'loadUsageAnalytics', 'exportUsageAnalyticsCsv', 'sendUsageSummaryEmail',
+    'loadSystemMetrics', 'loadAuditLog', 'filterAuditLog', 'exportAuditLogCsv', 'clearAuditLog',
+    'resetLikes', 'deleteUser', 'loadEmailSettings', 'saveEmailSettings', 'sendEmailSettingsTest',
+    'startStandaloneRestroomPlacement', 'startStandaloneParkingPlacement', 'moveStandaloneRestroom',
+    'moveStandaloneParking'
+];
+
+adminActions.forEach(action => {
+    window[action] = (...args) => callAdminAction(action, ...args);
+});
+
+window.closeAdminPage = () => adminModulePromise?.then(admin => admin.closeAdminPanel());
+window.updateAdminUiAvailability = () => {
+    if (state.isAdmin) return callAdminAction('updateAdminUiAvailability');
+    return undefined;
+};
 
 function initStationModalSwipe() {
     const content = document.getElementById('modal-content');
@@ -57,48 +93,6 @@ if (lastVersion !== APP_VERSION) {
 window.performLogin = performLogin;
 window.logoutAdmin = logoutAdmin;
 window.createNewUser = createNewUser;
-window.uploadSeedData = uploadSeedData;
-window.toggleAdminPanel = toggleAdminPanel;
-window.closeAdminPage = closeAdminPanel;
-window.importData = importData;
-window.handleAdminAdd = handleAdminAdd;
-window.dumpData = dumpData;
-window.downloadDataJs = downloadDataJs;
-window.downloadFullBackup = downloadFullBackup;
-window.restoreFullBackup = restoreFullBackup;
-window.exportStationsTable = exportStationsTable;
-window.exportEventsTable = exportEventsTable;
-window.exportGoogleSheetsWorkbook = exportGoogleSheetsWorkbook;
-window.downloadStationsTableTemplate = downloadStationsTableTemplate;
-window.downloadEventsTableTemplate = downloadEventsTableTemplate;
-window.importStationsTable = importStationsTable;
-window.importEventsTable = importEventsTable;
-window.saveGoogleSheetsConfig = saveGoogleSheetsConfig;
-window.syncGoogleSheets = syncGoogleSheets;
-window.runDataValidation = runDataValidation;
-window.uploadFlyer = uploadFlyer;
-window.saveDownloads = saveDownloads;
-window.saveAppConfig = saveAppConfig;
-window.saveTrackingConfig = saveTrackingConfig;
-window.clearTrackingConfig = clearTrackingConfig;
-window.saveRewardsConfig = saveRewardsConfig;
-window.sendBroadcast = sendBroadcast;
-window.deleteBroadcast = deleteBroadcast;
-window.startNewYear = startNewYear;
-window.testPlanningBanner = testPlanningBanner;
-window.loadUsageAnalytics = loadUsageAnalytics;
-window.exportUsageAnalyticsCsv = exportUsageAnalyticsCsv;
-window.sendUsageSummaryEmail = sendUsageSummaryEmail;
-window.loadSystemMetrics = loadSystemMetrics;
-window.loadAuditLog = loadAuditLog;
-window.filterAuditLog = filterAuditLog;
-window.exportAuditLogCsv = exportAuditLogCsv;
-window.clearAuditLog = clearAuditLog;
-window.resetLikes = resetLikes;
-window.deleteUser = deleteUser;
-
-// Admin UI availability helper
-window.updateAdminUiAvailability = updateAdminUiAvailability;
 window.toggleLike = toggleLike;
 window.toggleFavorite = toggleFavorite;
 window.checkIn = checkIn;
@@ -118,11 +112,11 @@ window.goHome = () => {
     }
 };
 
-window.requestAdminPage = () => {
+window.requestAdminPage = async () => {
     window.pendingAdminOpen = true;
     if (state.isAdmin && window.toggleAdminPanel) {
         window.pendingAdminOpen = false;
-        window.toggleAdminPanel();
+        await window.toggleAdminPanel();
     } else if (!state.isAdmin && window.toggleAdminLogin) {
         window.toggleAdminLogin();
     }
@@ -1271,10 +1265,6 @@ window.generateICS = generateICS;
 window.searchAddress = searchAddress;
 window.openBugReportModal = openBugReportModal;
 window.submitBugReport = submitBugReport;
-window.startStandaloneRestroomPlacement = startStandaloneRestroomPlacement;
-window.startStandaloneParkingPlacement = startStandaloneParkingPlacement;
-window.moveStandaloneRestroom = moveStandaloneRestroom;
-window.moveStandaloneParking = moveStandaloneParking;
 window.renderList = renderList;
 window.renderTimeline = renderTimeline;
 window.openProgramEvent = openProgramEvent;
@@ -1317,7 +1307,7 @@ window.closeTutorial = () => {
 
 window.toggleAdminLogin = () => {
     if (state.isAdmin) {
-        toggleAdminPanel();
+        window.toggleAdminPanel();
         return;
     }
     const modal = document.getElementById('login-modal');
