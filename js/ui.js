@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.266';
-import * as utils from './utils.js?v=1.4.266';
-import { saveData, deleteData } from './data.js?v=1.4.266';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.266';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.266';
-import { recordAuditEvent } from './audit.js?v=1.4.266';
-import { normalizeImageUrl } from './image-url.js?v=1.4.266';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.267';
+import * as utils from './utils.js?v=1.4.267';
+import { saveData, deleteData } from './data.js?v=1.4.267';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.267';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.267';
+import { recordAuditEvent } from './audit.js?v=1.4.267';
+import { normalizeImageUrl } from './image-url.js?v=1.4.267';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -280,6 +280,11 @@ export function closeModal(id) {
 export function switchTab(tab) {
     console.log("switchTab called for:", tab);
     document.getElementById('floating-status')?.classList.toggle('is-non-map', tab !== 'map');
+
+    const detailModal = document.getElementById('detail-modal');
+    if (detailModal && !detailModal.classList.contains('hidden')) {
+        closeModal();
+    }
 
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel && !adminPanel.classList.contains('hidden') && window.closeAdminPage) {

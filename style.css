@@ -96,6 +96,18 @@ h3,
     padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
+@media (max-width: 639px) {
+    #detail-modal {
+        bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    }
+}
+
+@media (max-width: 639px) and (display-mode: standalone), (max-width: 639px) and (display-mode: fullscreen) {
+    #detail-modal {
+        bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+}
+
 /* MapLibre controls */
 .maplibregl-ctrl-bottom-left,
 .maplibregl-ctrl-bottom-right {

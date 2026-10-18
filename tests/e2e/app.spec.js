@@ -56,6 +56,20 @@ test('visitor can open a station detail modal from the station list', async ({ p
 
     await expect(page.locator('#detail-modal')).toBeVisible();
     await expect(page.locator('#modal-title')).not.toBeEmpty();
+    await expect(page.locator('#bottom-nav')).toBeVisible();
+
+    if (page.viewportSize().width < 640) {
+        const layout = await page.evaluate(() => {
+            const modal = document.getElementById('detail-modal').getBoundingClientRect();
+            const navigation = document.getElementById('bottom-nav').getBoundingClientRect();
+            return { modalBottom: modal.bottom, navigationTop: navigation.top };
+        });
+        expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
+    }
+
+    await page.getByRole('button', { name: 'Programm' }).click();
+    await expect(page.locator('#detail-modal')).toBeHidden();
+    await expect(page.locator('#view-events')).toBeVisible();
 });
 
 test('feedback is easy to find without a disruptive floating button', async ({ page }) => {
