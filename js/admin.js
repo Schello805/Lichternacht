@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.273';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.273';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.273';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.274';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.274';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.274';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.273';
-import { recordAuditEvent } from './audit.js?v=1.4.273';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.273';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.273';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.274';
+import { recordAuditEvent } from './audit.js?v=1.4.274';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.274';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.274';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -923,29 +923,139 @@ function downloadAutomaticBackup(reason) {
 }
 
 export function downloadFullBackup() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backup = {
-        format: 'lichternacht-public-data-backup',
-        version: 2,
+    createAndDownloadFullBackup().catch(error => {
+        console.error('Full backup download failed', error);
+        showToast(`Komplettsicherung fehlgeschlagen: ${error.message}`, 'error');
+    });
+}
+
+function createFullBackupBase() {
+    return {
+        format: 'lichternacht-full-backup',
+        version: 3,
         createdAt: new Date().toISOString(),
         reason: 'Manuelle Komplettsicherung',
         appId: state.appId,
         stations: JSON.parse(JSON.stringify(state.stations || [])),
         events: JSON.parse(JSON.stringify(state.events || [])),
         config: JSON.parse(JSON.stringify({ ...(state.config || {}), downloads: state.downloads || {} })),
-        downloads: JSON.parse(JSON.stringify(state.downloads || {}))
+        downloads: JSON.parse(JSON.stringify(state.downloads || {})),
+        assets: []
     };
+}
+
+function getStoredAssetType(url) {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.origin !== window.location.origin) return null;
+        if (/^\/downloads\/stations\/[a-zA-Z0-9_-]+\.webp$/i.test(parsed.pathname)) return 'station-image';
+        if (/^\/downloads\/events\/[a-zA-Z0-9_-]+\.webp$/i.test(parsed.pathname)) return 'event-image';
+        if (/^\/downloads\/flyers\/[a-zA-Z0-9_-]+\.pdf$/i.test(parsed.pathname)) return 'flyer';
+    } catch (error) { }
+    return null;
+}
+
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden.'));
+        reader.onload = () => resolve(String(reader.result || '').split(',', 2)[1] || '');
+        reader.readAsDataURL(blob);
+    });
+}
+
+async function collectStoredBackupAssets(backup) {
+    const assets = [];
+    const seen = new Set();
+    const addAsset = async (url, slot = '') => {
+        if (!url || !getStoredAssetType(url)) return;
+        const key = `${url}::${slot}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Gespeicherte Datei konnte nicht gesichert werden (${url}).`);
+        const blob = await response.blob();
+        if (!blob.size) throw new Error(`Gespeicherte Datei ist leer (${url}).`);
+        assets.push({
+            sourceUrl: url,
+            type: getStoredAssetType(url),
+            slot,
+            contentType: blob.type || (url.endsWith('.pdf') ? 'application/pdf' : 'image/webp'),
+            base64: await blobToBase64(blob)
+        });
+    };
+
+    for (const station of backup.stations) await addAsset(station?.image);
+    for (const event of backup.events) await addAsset(event?.image);
+    await addAsset(backup.downloads?.flyer1, 'flyer1');
+    await addAsset(backup.downloads?.flyer2, 'flyer2');
+    return assets;
+}
+
+async function createAndDownloadFullBackup() {
+    const backup = createFullBackupBase();
+    showToast('Komplettsicherung wird mit Bildern und PDFs vorbereitet …', 'info');
+    backup.assets = await collectStoredBackupAssets(backup);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     downloadTextFile(`lichternacht-komplettsicherung-${timestamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
-    showToast('Komplettsicherung heruntergeladen', 'success');
+    showToast(`Komplettsicherung mit ${backup.assets.length} Dateien heruntergeladen`, 'success');
 }
 
 function isValidBackup(backup) {
-    return backup &&
-        backup.format === 'lichternacht-public-data-backup' &&
-        backup.version === 2 &&
+    const isLegacyDataBackup = backup?.format === 'lichternacht-public-data-backup' && backup.version === 2;
+    const isFullBackup = backup?.format === 'lichternacht-full-backup' && backup.version === 3 && Array.isArray(backup.assets);
+    return backup && (isLegacyDataBackup || isFullBackup) &&
         Array.isArray(backup.stations) &&
         Array.isArray(backup.events) &&
         backup.config && typeof backup.config === 'object' && !Array.isArray(backup.config);
+}
+
+function assetBase64ToBlob(asset) {
+    const binary = atob(asset.base64 || '');
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    return new Blob([bytes], { type: asset.contentType || 'application/octet-stream' });
+}
+
+async function restoreStoredBackupAssets(assets) {
+    if (!assets?.length) return new Map();
+    if (state.useLocalStorage) throw new Error('Dateien können nur im Online-Modus wiederhergestellt werden.');
+    const token = await getAdminToken();
+    const restoredUrls = new Map();
+    for (const asset of assets) {
+        if (!asset?.sourceUrl || !asset?.base64 || !['station-image', 'event-image', 'flyer'].includes(asset.type)) {
+            throw new Error('Die Sicherung enthält eine ungültige Datei.');
+        }
+        const isFlyer = asset.type === 'flyer';
+        const slot = asset.slot === 'flyer2' ? 'flyer2' : 'flyer1';
+        const endpoint = isFlyer
+            ? `./api/flyer-pdf?slot=${slot}`
+            : `./api/${asset.type === 'event-image' ? 'event' : 'station'}-image?${asset.type === 'event-image' ? 'event' : 'station'}=restore`;
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': isFlyer ? 'application/pdf' : 'image/webp' },
+            body: assetBase64ToBlob(asset)
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.url) throw new Error(payload.error || 'Datei konnte nicht wiederhergestellt werden.');
+        restoredUrls.set(`${asset.sourceUrl}::${asset.slot || ''}`, payload.url);
+    }
+    return restoredUrls;
+}
+
+function applyRestoredAssetUrls(backup, restoredUrls) {
+    const stations = JSON.parse(JSON.stringify(backup.stations));
+    const events = JSON.parse(JSON.stringify(backup.events));
+    const downloads = JSON.parse(JSON.stringify(backup.downloads || backup.config?.downloads || {}));
+    for (const station of stations) {
+        station.image = restoredUrls.get(`${station.image}::`) || station.image;
+    }
+    for (const event of events) {
+        event.image = restoredUrls.get(`${event.image}::`) || event.image;
+    }
+    for (const slot of ['flyer1', 'flyer2']) {
+        downloads[slot] = restoredUrls.get(`${downloads[slot]}::${slot}`) || downloads[slot];
+    }
+    return { stations, events, downloads };
 }
 
 async function replaceFirestoreCollection(writeBatch, collectionRef, items) {
@@ -977,8 +1087,8 @@ export async function restoreFullBackup(input) {
         showToast('Bitte zuerst eine Sicherungsdatei auswählen.', 'error');
         return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-        showToast('Die JSON-Sicherung ist größer als 10 MB.', 'error');
+    if (file.size > 150 * 1024 * 1024) {
+        showToast('Die JSON-Sicherung ist größer als 150 MB.', 'error');
         return;
     }
 
@@ -989,11 +1099,13 @@ export async function restoreFullBackup(input) {
         if (!confirm(`Komplettsicherung vom ${new Date(backup.createdAt).toLocaleString('de-DE')} wiederherstellen?\n\nDie aktuellen Stationen, Programmpunkte und App-Konfiguration werden vollständig ersetzt.`)) return;
 
         downloadAutomaticBackup('Vor Wiederherstellung einer Komplettsicherung');
-        const restoredConfig = { ...backup.config, downloads: backup.downloads || backup.config.downloads || {} };
+        const restoredUrls = await restoreStoredBackupAssets(backup.assets || []);
+        const restoredData = applyRestoredAssetUrls(backup, restoredUrls);
+        const restoredConfig = { ...backup.config, downloads: restoredData.downloads };
 
         if (state.useLocalStorage) {
-            localStorage.setItem('stations_data', JSON.stringify(backup.stations));
-            localStorage.setItem('events_data', JSON.stringify(backup.events));
+            localStorage.setItem('stations_data', JSON.stringify(restoredData.stations));
+            localStorage.setItem('events_data', JSON.stringify(restoredData.events));
             localStorage.setItem('app_config', JSON.stringify(restoredConfig));
         } else {
             if (!state.fb?.writeBatch) {
@@ -1002,8 +1114,8 @@ export async function restoreFullBackup(input) {
             }
             const { collection, doc, setDoc, writeBatch } = state.fb;
             const base = ['artifacts', state.appId, 'public'];
-            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'stations'), backup.stations);
-            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'events'), backup.events);
+            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'stations'), restoredData.stations);
+            await replaceFirestoreCollection(writeBatch, collection(state.db, ...base, 'data', 'events'), restoredData.events);
             await setDoc(doc(state.db, ...base, 'config'), restoredConfig);
         }
 
@@ -1031,7 +1143,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.273';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.274';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1621,9 +1733,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.273';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.273';
-import { renderList, renderTimeline } from './ui.js?v=1.4.273';
+import { showToast } from './utils.js?v=1.4.274';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.274';
+import { renderList, renderTimeline } from './ui.js?v=1.4.274';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
