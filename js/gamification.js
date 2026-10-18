@@ -7,11 +7,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.260';
-import * as utils from './utils.js?v=1.4.260';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.260';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.260';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.260';
+} from './utils.js?v=1.4.261';
+import * as utils from './utils.js?v=1.4.261';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.261';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.261';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.261';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -323,11 +323,9 @@ export function toggleFavorite(id, fromModal = false) {
     const station = state.stations.find(item => item.id == id);
     if (state.favorites.has(id)) {
         state.favorites.delete(id);
-        showToast('Aus Favoriten entfernt', 'info');
         recordAuditEvent('favorite_removed', { stationId: id, stationName: station?.name || '' });
     } else {
         state.favorites.add(id);
-        showToast('Zu Favoriten hinzugefügt', 'success');
         recordAuditEvent('favorite_added', { stationId: id, stationName: station?.name || '' });
     }
     localStorage.setItem('favorites', JSON.stringify([...state.favorites]));

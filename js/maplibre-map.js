@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.260';
-import { saveData } from './data.js?v=1.4.260';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.261';
+import { saveData } from './data.js?v=1.4.261';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -676,7 +676,6 @@ export async function locateUser(cb, options = {}) {
 
     const applyPosition = (pos) => {
         if (context.requestToken !== state.gpsRequestToken || !isValidPosition(pos)) return;
-        const wasLocated = state.hasLocatedUser === true;
         context.hasFix = true;
         context.denied = false;
         setGpsUiStatus('connected');
@@ -715,12 +714,6 @@ export async function locateUser(cb, options = {}) {
             context.centerApplied = true;
             state.map.flyTo({ center: [userLng, userLat], zoom: Math.max(state.map.getZoom(), 18) });
             state.hasLocatedUser = true;
-        }
-
-        if (!wasLocated && startedFromUserGesture) {
-            showToast(state.compassEnabled
-                ? 'Standort erkannt – Kompass ist aktiv.'
-                : 'Standort erkannt.', 'success');
         }
 
         if (window.checkProximity) window.checkProximity(userLat, userLng);
@@ -1013,7 +1006,6 @@ export function startOverviewNavigation() {
         state.overviewRouteNavigationActive = true;
         state.overviewRouteNavigationProgress = 0;
         updateOverviewRouteNavigationButton();
-        showToast('Rundweg gestartet. Folge der Linie auf der Karte – die nächste Station schaltet automatisch weiter.', 'success');
     };
     if (state.userLocation) beginNavigation();
     else {
