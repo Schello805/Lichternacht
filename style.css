@@ -98,14 +98,16 @@ h3,
 
 @media (max-width: 639px) {
     #detail-modal,
-    #program-event-modal {
+    #program-event-modal,
+    #route-plan-modal {
         bottom: calc(4.5rem + env(safe-area-inset-bottom));
     }
 }
 
 @media (max-width: 639px) and (display-mode: standalone), (max-width: 639px) and (display-mode: fullscreen) {
     #detail-modal,
-    #program-event-modal {
+    #program-event-modal,
+    #route-plan-modal {
         bottom: calc(5rem + env(safe-area-inset-bottom));
     }
 }
