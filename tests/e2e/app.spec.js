@@ -832,6 +832,23 @@ test('program details can be dismissed by swiping the modal body down', async ({
     await page.goto('/index.html');
     await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));
     await expect(page.locator('#program-event-modal')).toBeVisible();
+    await expect(page.locator('#bottom-nav')).toBeVisible();
+
+    if (page.viewportSize().width < 640) {
+        const layout = await page.evaluate(() => {
+            const modal = document.getElementById('program-event-modal').getBoundingClientRect();
+            const navigation = document.getElementById('bottom-nav').getBoundingClientRect();
+            return { modalBottom: modal.bottom, navigationTop: navigation.top };
+        });
+        expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
+    }
+
+    await page.getByRole('button', { name: 'Stationen', exact: true }).click();
+    await expect(page.locator('#program-event-modal')).toHaveCount(0);
+    await expect(page.locator('#view-list')).toBeVisible();
+
+    await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));
+    await expect(page.locator('#program-event-modal')).toBeVisible();
 
     await page.evaluate(() => {
         const title = document.querySelector('#program-event-modal h2');

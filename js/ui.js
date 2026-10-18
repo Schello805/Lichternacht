@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.267';
-import * as utils from './utils.js?v=1.4.267';
-import { saveData, deleteData } from './data.js?v=1.4.267';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.267';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.267';
-import { recordAuditEvent } from './audit.js?v=1.4.267';
-import { normalizeImageUrl } from './image-url.js?v=1.4.267';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.268';
+import * as utils from './utils.js?v=1.4.268';
+import { saveData, deleteData } from './data.js?v=1.4.268';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.268';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.268';
+import { recordAuditEvent } from './audit.js?v=1.4.268';
+import { normalizeImageUrl } from './image-url.js?v=1.4.268';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -285,6 +285,7 @@ export function switchTab(tab) {
     if (detailModal && !detailModal.classList.contains('hidden')) {
         closeModal();
     }
+    document.getElementById('program-event-modal')?.remove();
 
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel && !adminPanel.classList.contains('hidden') && window.closeAdminPage) {
@@ -2041,7 +2042,7 @@ export function openProgramEvent(id) {
 
     const overlay = document.createElement('div');
     overlay.id = 'program-event-modal';
-    overlay.className = 'fixed inset-0 z-[6500] flex items-end sm:items-center justify-center p-0 sm:p-4';
+    overlay.className = 'fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4';
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
         <div id="program-event-modal-content" class="swipe-dismiss-sheet relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
