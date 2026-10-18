@@ -111,10 +111,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.273" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.274" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.273" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.274" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -137,7 +137,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.273">
+    <link rel="stylesheet" href="style.css?v=1.4.274">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -373,7 +373,7 @@
 
                     <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900 dark:bg-amber-950/20">
                         <div class="font-bold text-sm text-amber-950 dark:text-amber-100"><i class="ph ph-shield-check"></i> JSON-Komplettsicherung</div>
-                        <p class="mt-1 text-[11px] text-gray-700 dark:text-gray-300">Sichert Stationen, Programm und sämtliche App-Einstellungen inklusive Rundweg, WC-, Parkplatz- und Flyer-Daten. Persönliche Besucher- und Analyse-Daten werden bewusst nicht exportiert.</p>
+                        <p class="mt-1 text-[11px] text-gray-700 dark:text-gray-300">Sichert Stationen, Programm, App-Einstellungen sowie alle auf diesem Server hochgeladenen Bilder und Flyer-PDFs. Externe Weblinks bleiben erhalten. Persönliche Besucher-, Analyse- und Zugangsdaten werden bewusst nicht exportiert.</p>
                         <button type="button" onclick="downloadFullBackup()" class="mt-3 w-full rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"><i class="ph ph-download-simple"></i> Komplettsicherung als JSON herunterladen</button>
                         <div class="mt-3 border-t border-amber-200 pt-3 dark:border-amber-900">
                             <label class="text-xs font-bold text-gray-800 dark:text-gray-200" for="admin-full-backup-file">Sicherung wiederherstellen</label>
@@ -1523,7 +1523,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.273', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.274', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1550,7 +1550,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.273"></script>
+    <script type="module" src="main.js?v=1.4.274"></script>
 </body>
 
 </html>
