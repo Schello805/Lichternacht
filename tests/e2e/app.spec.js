@@ -627,6 +627,36 @@ test('starting a route does not request compass permission again after GPS was a
     await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
 });
 
+test('compass permission is requested only after tapping the GPS control', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__compassPermissionRequests = 0;
+        Object.defineProperty(window, 'DeviceOrientationEvent', {
+            configurable: true,
+            value: { requestPermission: async () => {
+                window.__compassPermissionRequests += 1;
+                return 'granted';
+            } }
+        });
+        Object.defineProperty(navigator, 'geolocation', {
+            configurable: true,
+            value: {
+                getCurrentPosition: success => success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() }),
+                watchPosition: success => {
+                    success({ coords: { latitude: 49.157, longitude: 10.548, accuracy: 10 }, timestamp: Date.now() });
+                    return 1;
+                },
+                clearWatch: () => {}
+            }
+        });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => window.locateUser(null, { userInitiated: true }));
+
+    await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
+    await page.locator('#map-locate-btn').click();
+    await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(1);
+});
+
 test('empty station search explains active filters and can reset them', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('#nav-list').click();
