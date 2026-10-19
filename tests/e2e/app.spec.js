@@ -92,9 +92,43 @@ test('visitor can open a station detail modal from the station list', async ({ p
         expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
     }
 
-    await page.getByRole('button', { name: 'Programm' }).click();
+    await page.getByRole('button', { name: 'Station schließen' }).click();
     await expect(page.locator('#detail-modal')).toBeHidden();
+    await page.getByRole('button', { name: 'Programm' }).click();
     await expect(page.locator('#view-events')).toBeVisible();
+});
+
+test('station edit modal stays above navigation and can scroll on a short landscape viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1180, height: 520 });
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.evaluate(() => {
+        window.closeAdminPage();
+        window.switchTab('list');
+    });
+    await page.locator('#stations-list > button').first().click();
+    await page.getByRole('button', { name: 'Bearbeiten' }).click();
+
+    const layout = await page.evaluate(() => {
+        const modal = document.getElementById('detail-modal');
+        const content = document.getElementById('modal-content');
+        const navigation = document.getElementById('bottom-nav');
+        content.style.paddingBottom = '1000px';
+        content.scrollTop = content.scrollHeight;
+        return {
+            modalZIndex: Number(getComputedStyle(modal).zIndex),
+            navigationZIndex: Number(getComputedStyle(navigation).zIndex),
+            scrollTop: content.scrollTop,
+            scrollHeight: content.scrollHeight,
+            clientHeight: content.clientHeight
+        };
+    });
+
+    expect(layout.modalZIndex).toBeGreaterThan(layout.navigationZIndex);
+    expect(layout.scrollHeight).toBeGreaterThan(layout.clientHeight);
+    expect(layout.scrollTop).toBeGreaterThan(0);
 });
 
 test('feedback is easy to find without a disruptive floating button', async ({ page }) => {
@@ -906,8 +940,9 @@ test('program details can be dismissed by swiping the modal body down', async ({
         expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
     }
 
-    await page.getByRole('button', { name: 'Stationen', exact: true }).click();
+    await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
     await expect(page.locator('#program-event-modal')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Stationen', exact: true }).click();
     await expect(page.locator('#view-list')).toBeVisible();
 
     await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));
