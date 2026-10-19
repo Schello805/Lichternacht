@@ -2249,7 +2249,7 @@ export function openProgramEvent(id) {
                         <span>${escapeHtml(event.loc || 'Ort nicht angegeben')}</span>
                     </div>
                 </div>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1">
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 -mr-2 -mt-2" data-close="1" aria-label="Programmpunkt schließen">
                     <i class="ph ph-x text-2xl"></i>
                 </button>
             </div>

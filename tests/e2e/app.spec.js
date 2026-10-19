@@ -92,8 +92,9 @@ test('visitor can open a station detail modal from the station list', async ({ p
         expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
     }
 
-    await page.getByRole('button', { name: 'Programm' }).click();
+    await page.getByRole('button', { name: 'Station schließen' }).click();
     await expect(page.locator('#detail-modal')).toBeHidden();
+    await page.getByRole('button', { name: 'Programm' }).click();
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
@@ -939,8 +940,9 @@ test('program details can be dismissed by swiping the modal body down', async ({
         expect(layout.modalBottom).toBeLessThanOrEqual(layout.navigationTop + 1);
     }
 
-    await page.getByRole('button', { name: 'Stationen', exact: true }).click();
+    await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
     await expect(page.locator('#program-event-modal')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Stationen', exact: true }).click();
     await expect(page.locator('#view-list')).toBeVisible();
 
     await page.evaluate(() => window.openProgramEvent(window.state.events[0].id));
