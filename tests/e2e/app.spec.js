@@ -194,6 +194,9 @@ test('admin can edit stations and program entries from their visitor lists', asy
     await expect(page.locator('#modal-edit-mode')).toBeHidden();
     await expect(page.locator('#modal-title')).toHaveAttribute('contenteditable', 'true');
     await expect(page.getByRole('button', { name: 'Speichern' })).toBeVisible();
+    await expect(page.locator('#inline-edit-tags input')).toHaveCount(0);
+    await expect(page.locator('#inline-available-tags button')).not.toHaveCount(0);
+    await expect(page.locator('#modal-image-change-btn, #modal-image-container [aria-label="Bild auswählen"]')).toBeVisible();
 
     await page.evaluate(() => {
         window.closeModal();
