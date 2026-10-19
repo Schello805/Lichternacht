@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.276';
-import * as utils from './utils.js?v=1.4.276';
-import { saveData, deleteData } from './data.js?v=1.4.276';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.276';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.276';
-import { recordAuditEvent } from './audit.js?v=1.4.276';
-import { normalizeImageUrl } from './image-url.js?v=1.4.276';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.277';
+import * as utils from './utils.js?v=1.4.277';
+import { saveData, deleteData } from './data.js?v=1.4.277';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.277';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.277';
+import { recordAuditEvent } from './audit.js?v=1.4.277';
+import { normalizeImageUrl } from './image-url.js?v=1.4.277';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -111,6 +111,30 @@ function parseCoordinateInput(value) {
     return Number(normalized);
 }
 
+function renderModalStationImage(station, isEditing = false) {
+    const imageContainer = document.getElementById('modal-image-container');
+    if (!imageContainer || !station) return;
+
+    const stationImage = normalizeStationImage(station.image);
+    if (!stationImage && !isEditing) {
+        imageContainer.innerHTML = '';
+        imageContainer.classList.add('hidden');
+        return;
+    }
+
+    const imageChangeButton = `
+        <button id="modal-image-change-btn" type="button" onclick="document.getElementById('image-upload').click()"
+            class="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-black/70 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur hover:bg-black/85"
+            aria-label="Bild ändern" title="Bild ändern">
+            <i class="ph ph-camera text-base"></i><span>${stationImage ? 'Bild ändern' : 'Bild auswählen'}</span>
+        </button>`;
+
+    imageContainer.innerHTML = stationImage
+        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
+        : `<button type="button" onclick="document.getElementById('image-upload').click()" class="flex h-36 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-gray-900 dark:text-blue-200" aria-label="Bild auswählen"><i class="ph ph-camera text-2xl"></i><span>Bild auswählen</span></button>`;
+    imageContainer.classList.remove('hidden');
+}
+
 // --- Modal & Tab Handling ---
 
 export function openModal(target) {
@@ -145,14 +169,7 @@ export function openModal(target) {
         if (numEl) numEl.innerText = s.id;
         
         // Image
-        const imgContainer = document.getElementById('modal-image-container');
-        const stationImage = normalizeStationImage(s.image);
-        if (stationImage) {
-            imgContainer.innerHTML = `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(s.name)}" class="w-full h-48 object-contain bg-gray-100 dark:bg-gray-900 rounded-t-2xl">`;
-            imgContainer.classList.remove('hidden');
-        } else {
-            imgContainer.classList.add('hidden');
-        }
+        renderModalStationImage(s);
 
         // Route & Maps Buttons
         const btnRoute = document.getElementById('btn-internal-route');
@@ -958,9 +975,10 @@ window.resetStationFilters = resetStationFilters;
 
 // --- Helper for Tag Picking ---
 function renderTagPicker() {
-    const container = document.getElementById('available-tags');
+    const containers = [document.getElementById('inline-available-tags'), document.getElementById('available-tags')]
+        .filter(Boolean);
     const input = document.getElementById('edit-tags');
-    if (!container || !input) return;
+    if (!containers.length || !input) return;
 
     // Default + Existing Tags
     const allTags = new Set(Object.keys(TAG_TRANSLATIONS));
@@ -973,15 +991,23 @@ function renderTagPicker() {
     // Ensure currently selected tags are visible even if not in global list yet
     currentTags.forEach(t => allTags.add(t));
 
-    container.innerHTML = [...allTags].sort().map(tag => {
+    const tagButtons = [...allTags].sort().map(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const isActive = currentTags.has(tag);
         const isDisabled = !isActive && selectedCount >= STATION_TAG_MAX_COUNT;
-        const bg = isActive ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
-        const disabledClass = isDisabled ? 'opacity-45 cursor-not-allowed hover:bg-gray-200' : 'cursor-pointer';
-        return `<span onclick="toggleEditTag('${tag}')" class="${disabledClass} px-2 py-1 rounded text-xs select-none transition-colors ${bg}">${label}</span>`;
-    }).join('') + 
-    `<span onclick="addNewTag()" class="${selectedCount >= STATION_TAG_MAX_COUNT ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} px-2 py-1 rounded text-xs select-none transition-colors bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300 font-bold flex items-center gap-1"><i class="ph ph-plus"></i> Neu</span>`;
+        const bg = isActive ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700';
+        const disabledClass = isDisabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer';
+        return `<button type="button" data-edit-tag="${escapeHtml(tag)}" aria-pressed="${isActive}" ${isDisabled ? 'disabled' : ''} class="${disabledClass} rounded-full border px-2.5 py-1 text-xs font-bold transition-colors ${bg}">${escapeHtml(label)}</button>`;
+    }).join('');
+    const newTagButton = `<button type="button" data-new-edit-tag ${selectedCount >= STATION_TAG_MAX_COUNT ? 'disabled' : ''} class="${selectedCount >= STATION_TAG_MAX_COUNT ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} rounded-full border border-gray-300 bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"><i class="ph ph-plus"></i> Neu</button>`;
+
+    containers.forEach(container => {
+        container.innerHTML = tagButtons + newTagButton;
+        container.querySelectorAll('[data-edit-tag]').forEach(button => {
+            button.addEventListener('click', () => window.toggleEditTag(button.dataset.editTag));
+        });
+        container.querySelector('[data-new-edit-tag]')?.addEventListener('click', window.addNewTag);
+    });
 }
 
 window.addNewTag = () => {
@@ -1064,8 +1090,6 @@ export function editStation(id) {
     document.getElementById('inline-edit-lat').value = s.lat ?? '';
     document.getElementById('inline-edit-lng').value = s.lng ?? '';
     document.getElementById('inline-edit-link').value = s.link || '';
-    document.getElementById('inline-edit-tags').value = (s.tags || []).join(', ');
-
     // Init Tag Picker
     renderTagPicker();
     document.getElementById('edit-tags').oninput = () => renderTagPicker();
@@ -1113,6 +1137,8 @@ function setInlineStationEditMode(isEditing) {
         if (isEditing) element.setAttribute('aria-label', element.dataset.placeholder || 'Stationsdaten bearbeiten');
         else element.removeAttribute('aria-label');
     });
+    const station = state.stations.find(item => item.id == state.activeStationId);
+    if (station) renderModalStationImage(station, isEditing);
 }
 
 function syncInlineStationEditFields() {
@@ -1124,7 +1150,6 @@ function syncInlineStationEditFields() {
     document.getElementById('edit-lat').value = document.getElementById('inline-edit-lat')?.value || '';
     document.getElementById('edit-lng').value = document.getElementById('inline-edit-lng')?.value || '';
     document.getElementById('edit-link').value = document.getElementById('inline-edit-link')?.value || '';
-    document.getElementById('edit-tags').value = document.getElementById('inline-edit-tags')?.value || '';
 }
 
 export function cancelStationEdit() {
@@ -1165,6 +1190,7 @@ function updateEventDescCounter() {
 function updateImageUploadUI(imageSrc) {
     const btn = document.getElementById('image-upload-btn');
     const removeBtn = document.getElementById('btn-remove-image');
+    if (!btn) return;
     
     if (imageSrc) {
         // Show Image Preview in Button
@@ -1385,7 +1411,7 @@ export async function handleImageUpload(input) {
     if (!file) return;
     const station = state.stations.find(item => item.id == state.activeStationId);
     if (!station) return;
-    const uploadButton = document.getElementById('image-upload-btn');
+    const uploadButton = document.getElementById('modal-image-change-btn');
     const originalLabel = uploadButton?.innerHTML;
 
     try {
@@ -1425,9 +1451,7 @@ export async function handleImageUpload(input) {
         }
 
         station.image = imageUrl;
-        const imageContainer = document.getElementById('modal-image-container');
-        imageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Bild von ${escapeHtml(station.name)}" class="w-full h-48 object-contain bg-gray-100 dark:bg-gray-900 rounded-t-2xl">`;
-        imageContainer.classList.remove('hidden');
+        renderModalStationImage(station, true);
         updateImageUploadUI(imageUrl);
         showToast(`Bild optimiert (${Math.max(1, Math.round(blob.size / 1024))} KB) und hochgeladen`, 'success');
     } catch (error) {
@@ -1507,7 +1531,7 @@ export function clearStationImage() {
     const s = state.stations.find(x => x.id == state.activeStationId);
     if (s) {
         s.image = null;
-        document.getElementById('modal-image-container').classList.add('hidden');
+        renderModalStationImage(s, true);
         updateImageUploadUI(null);
     }
 }
