@@ -779,17 +779,20 @@ test('station detail editing accepts manual coordinates with decimal commas', as
     await expect(page.locator('#modal-view-mode')).toBeVisible();
     await expect(page.locator('#inline-edit-lat')).toBeVisible();
     await expect(page.locator('#inline-edit-lng')).toBeVisible();
-    await page.locator('#inline-edit-lat').fill('49,15714');
-    await page.locator('#inline-edit-lng').fill('10,5484');
+    await page.locator('#inline-edit-lat').fill('49,15719');
+    await page.locator('#inline-edit-lng').fill('10,54844');
     await page.evaluate(async () => {
         const { refreshVisitorDataIfStale } = await import('/js/data.js?v=1.4.202');
         await refreshVisitorDataIfStale(0);
     });
     await expect(page.locator('#modal-view-mode')).toBeVisible();
+    await expect(page.locator('#modal-content')).toHaveClass(/is-inline-station-editing/);
+    await expect(page.locator('#inline-edit-lat')).toHaveValue('49,15719');
+    await expect(page.locator('#inline-edit-lng')).toHaveValue('10,54844');
     await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
 
-    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lat)).toBe(49.15714);
-    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.5484);
+    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lat)).toBe(49.15719);
+    await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.54844);
 });
 
 test('station website link is retained after saving and reloading', async ({ page }) => {
