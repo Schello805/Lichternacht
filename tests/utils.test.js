@@ -36,6 +36,14 @@ test('isWithinEventWindowNow respects configured date and time', () => {
     assert.equal(isWithinEventWindowNow(windowConfig, new Date('2026-11-23T18:00:00+01:00')), false);
 });
 
+test('isWithinEventWindowNow handles events that continue after midnight', () => {
+    const windowConfig = parseEventWindowConfig('22.11.2026 20:00-01:00');
+
+    assert.equal(isWithinEventWindowNow(windowConfig, new Date(2026, 10, 22, 23, 30)), true);
+    assert.equal(isWithinEventWindowNow(windowConfig, new Date(2026, 10, 23, 0, 30)), true);
+    assert.equal(isWithinEventWindowNow(windowConfig, new Date(2026, 10, 23, 1, 1)), false);
+});
+
 test('isWithinEventWindowNow keeps the pass inactive without an event window', () => {
     assert.equal(isWithinEventWindowNow(null, new Date('2026-11-22T18:00:00+01:00')), false);
 });
