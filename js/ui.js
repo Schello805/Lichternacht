@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.280';
-import * as utils from './utils.js?v=1.4.280';
-import { saveData, deleteData } from './data.js?v=1.4.280';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.280';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.280';
-import { recordAuditEvent } from './audit.js?v=1.4.280';
-import { normalizeImageUrl } from './image-url.js?v=1.4.280';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.281';
+import * as utils from './utils.js?v=1.4.281';
+import { saveData, deleteData } from './data.js?v=1.4.281';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.281';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.281';
+import { recordAuditEvent } from './audit.js?v=1.4.281';
+import { normalizeImageUrl } from './image-url.js?v=1.4.281';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2367,13 +2367,6 @@ export function renderTimeline() {
             : todayKey === configuredWindow.dateKey
         : false;
 
-    const formatWindow = (w) => {
-        if (!w) return '';
-        if (typeof utils.formatEventWindowDe === 'function') return utils.formatEventWindowDe(w);
-        if (typeof utils.formatEventDateDe === 'function') return utils.formatEventDateDe(w.dateKey);
-        return w.dateKey || '';
-    };
-
     // Sort by time
     const sorted = [...state.events].sort((a, b) => {
         return a.time.localeCompare(b.time);
@@ -2388,30 +2381,7 @@ export function renderTimeline() {
     let currentActiveEvent = null; // Store currently running event for header
     let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
-    const infoBanner = !configuredWindow
-        ? `
-            <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
-                Für das Programm ist noch kein Event-Datum gesetzt. Deshalb werden „Live“, „Demnächst“ und Countdowns nicht berechnet.
-                Bitte im Adminbereich unter Downloads/Kalender das Datum setzen.
-            </div>
-        `
-        : (!isEventDay)
-            ? `
-            <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
-                Das Programm gilt am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
-                Heute (${now.toLocaleDateString('de-DE')}) ist kein Veranstaltungstag – daher kein „Live/Demnächst“.
-            </div>
-        `
-        : (isEventDay && !isEventWindowNow)
-            ? `
-                <div class="mb-3 p-2.5 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-xs">
-                    Die Lichternacht ist aktiv am <span class="font-bold">${formatWindow(configuredWindow)}</span>.
-                    Aktuell ist sie nicht gestartet oder bereits vorbei – daher kein „Live/Demnächst“.
-                </div>
-            `
-            : '';
-
-    container.innerHTML = infoBanner + sorted.map((e, index) => {
+    container.innerHTML = sorted.map((e, index) => {
         const eventStatus = getProgramStatus(e, statusContext);
         const eventTimeVal = eventStatus.eventTimeVal;
         const isCurrent = eventStatus.key === 'live';
