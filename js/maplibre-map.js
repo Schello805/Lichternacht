@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.279';
-import { saveData } from './data.js?v=1.4.279';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.280';
+import { saveData } from './data.js?v=1.4.280';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -72,6 +72,34 @@ function updateMapLayerButton() {
     button.classList.toggle('text-gray-700', !satellite);
 }
 
+function updateMapEditModeUi() {
+    const button = document.getElementById('map-edit-mode-btn');
+    const hint = document.getElementById('admin-map-edit-hint');
+    const active = state.isAdmin && state.mapEditMode === true;
+
+    if (button) {
+        button.setAttribute('aria-pressed', String(active));
+        button.setAttribute('title', active ? 'Verschiebemodus beenden' : 'Verschiebemodus aktivieren');
+        button.innerHTML = `<i class="ph ph-${active ? 'lock-key-open' : 'arrows-out-cardinal'}"></i> ${active ? 'Fertig' : 'Verschieben'}`;
+        button.classList.toggle('bg-black', !active);
+        button.classList.toggle('hover:bg-gray-800', !active);
+        button.classList.toggle('bg-red-700', active);
+        button.classList.toggle('hover:bg-red-800', active);
+    }
+
+    if (hint) hint.textContent = active
+        ? 'Verschiebemodus aktiv · Marker können bewegt werden'
+        : 'Marker geschützt · Verschieben erst aktivieren';
+}
+
+export function toggleMapEditMode() {
+    if (!state.isAdmin) return false;
+    state.mapEditMode = !state.mapEditMode;
+    updateMapEditModeUi();
+    refreshMapMarkers();
+    return state.mapEditMode;
+}
+
 function getValidCoordinates(lat, lng) {
     const latitude = Number(lat);
     const longitude = Number(lng);
@@ -121,10 +149,11 @@ export function refreshStandaloneRestroomMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'WC');
         element.innerHTML = '<span aria-hidden="true">WC</span><span class="sr-only">WC</span>';
-        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: state.isAdmin })
+        const isDraggable = state.isAdmin && state.mapEditMode;
+        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: isDraggable })
             .setLngLat([coordinates.longitude, coordinates.latitude])
             .addTo(state.map);
-        if (state.isAdmin) {
+        if (isDraggable) {
             marker.on('dragend', async () => {
                 const position = marker.getLngLat();
                 try {
@@ -151,10 +180,11 @@ export function refreshStandaloneParkingMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'Parkplatz');
         element.innerHTML = '<span aria-hidden="true">P</span><span class="sr-only">Parkplatz</span>';
-        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: state.isAdmin })
+        const isDraggable = state.isAdmin && state.mapEditMode;
+        const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: isDraggable })
             .setLngLat([coordinates.longitude, coordinates.latitude])
             .addTo(state.map);
-        if (state.isAdmin) {
+        if (isDraggable) {
             marker.on('dragend', async () => {
                 const position = marker.getLngLat();
                 try {
@@ -515,6 +545,7 @@ function restoreMapOverlays() {
 
 export function refreshMapMarkers() {
     if (!state.map) return;
+    updateMapEditModeUi();
     clearClusterMarkers();
     state.markers.forEach(m => m.marker.remove());
     state.markers = [];
@@ -542,7 +573,7 @@ export function refreshMapMarkers() {
         icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
         
         // Admin: Draggable Markers
-        const isDraggable = state.isAdmin;
+        const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
             .setLngLat([coordinates.longitude, coordinates.latitude])
             .addTo(state.map);
@@ -604,10 +635,11 @@ export function refreshMapMarkers() {
                 if (!marker._isDragging) window.openProgramEvent?.(event.id);
             });
 
-            const marker = new maplibregl.Marker({ element: icon, anchor: 'center', draggable: state.isAdmin })
+            const isDraggable = state.isAdmin && state.mapEditMode;
+            const marker = new maplibregl.Marker({ element: icon, anchor: 'center', draggable: isDraggable })
                 .setLngLat([coordinates.longitude, coordinates.latitude])
                 .addTo(state.map);
-            if (state.isAdmin) {
+            if (isDraggable) {
                 marker.on('dragstart', () => { marker._isDragging = true; });
                 marker.on('dragend', async () => {
                     window.setTimeout(() => { marker._isDragging = false; }, 100);

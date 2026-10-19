@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.279';
-import { loadData } from './data.js?v=1.4.279';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.279';
-import { renderTimeline } from './ui.js?v=1.4.279';
+import { showToast } from './utils.js?v=1.4.280';
+import { loadData } from './data.js?v=1.4.280';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.280';
+import { renderTimeline } from './ui.js?v=1.4.280';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -102,6 +102,7 @@ export async function createNewUser(email, pass) {
 
 export function setAdminState(admin) {
     state.isAdmin = admin;
+    if (!admin) state.mapEditMode = false;
     if (admin) resetLogoutTimer();
     else stopLogoutTimer();
     const adminOnlineDot = document.getElementById('admin-online-dot');

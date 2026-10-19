@@ -31,6 +31,7 @@ export const state = {
     parkingMarkers: [],
     restroomPlacementCancel: null,
     isAdmin: false,
+    mapEditMode: false,
     activeStationId: null,
     activeEventId: null,
     modalReturnCamera: null,

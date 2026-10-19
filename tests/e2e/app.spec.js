@@ -194,7 +194,7 @@ test('admin can add a standalone parking marker on the map', async ({ page }) =>
     await expect(page.locator('.standalone-parking-marker')).toBeVisible();
 });
 
-test('admin can drag standalone restroom and parking markers', async ({ page }) => {
+test('admin must explicitly enable marker movement', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
@@ -205,6 +205,13 @@ test('admin can drag standalone restroom and parking markers', async ({ page }) 
         window.refreshMapMarkers();
     });
 
+    await expect.poll(() => page.evaluate(() => ({
+        restroom: window.state.restroomMarkers[0]?.isDraggable(),
+        parking: window.state.parkingMarkers[0]?.isDraggable()
+    }))).toEqual({ restroom: false, parking: false });
+
+    await page.locator('#map-edit-mode-btn').click();
+    await expect(page.locator('#map-edit-mode-btn')).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => page.evaluate(() => ({
         restroom: window.state.restroomMarkers[0]?.isDraggable(),
         parking: window.state.parkingMarkers[0]?.isDraggable()
@@ -529,6 +536,7 @@ test('moving an admin station marker saves its new coordinates', async ({ page }
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
+    await page.locator('#map-edit-mode-btn').click();
 
     await page.evaluate(() => {
         const stationMarker = window.state.markers.find(item => String(item.id) === '1').marker;
