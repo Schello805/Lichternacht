@@ -216,28 +216,27 @@ export function formatEventWindowDe(windowConfig) {
 }
 
 export function isWithinEventWindowNow(windowConfig, now = new Date()) {
-    if (!windowConfig || !windowConfig.dateKey) return false;
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (todayKey !== windowConfig.dateKey) return false;
-    const currentMin = now.getHours() * 60 + now.getMinutes();
-    const { startMin, endMin } = windowConfig;
-    if (startMin <= endMin) {
-        return currentMin >= startMin && currentMin <= endMin;
-    }
-    // Window crosses midnight (e.g. 18:00-01:00)
-    return currentMin >= startMin || currentMin <= endMin;
+    const bounds = getEventWindowBounds(windowConfig);
+    return !!bounds && now >= bounds.start && now <= bounds.end;
 }
 
 export function isWithinPassCheckinWindowNow(windowConfig, now = new Date()) {
-    if (!windowConfig?.dateKey) return false;
+    const bounds = getEventWindowBounds(windowConfig);
+    if (!bounds) return false;
+    const startsAt = new Date(bounds.start.getTime() - 60 * 60 * 1000);
+    const endsAt = new Date(bounds.end.getTime() + 3 * 60 * 60 * 1000);
+    return now >= startsAt && now <= endsAt;
+}
+
+function getEventWindowBounds(windowConfig) {
+    if (!windowConfig?.dateKey) return null;
     const [year, month, day] = String(windowConfig.dateKey).split('-').map(Number);
     const { startMin, endMin } = windowConfig;
-    if (![year, month, day, startMin, endMin].every(Number.isFinite)) return false;
-
-    const startsAt = new Date(year, month - 1, day, 0, startMin - 60, 0, 0);
+    if (![year, month, day, startMin, endMin].every(Number.isFinite)) return null;
+    const start = new Date(year, month - 1, day, 0, startMin, 0, 0);
     const endsNextDay = endMin < startMin;
-    const endsAt = new Date(year, month - 1, day + (endsNextDay ? 1 : 0), 0, endMin + 180, 0, 0);
-    return now >= startsAt && now <= endsAt;
+    const end = new Date(year, month - 1, day + (endsNextDay ? 1 : 0), 0, endMin, 0, 0);
+    return { start, end };
 }
 
 export function getConfiguredEventDateKey() {
