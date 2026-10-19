@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.274';
-import * as utils from './utils.js?v=1.4.274';
-import { saveData, deleteData } from './data.js?v=1.4.274';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.274';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.274';
-import { recordAuditEvent } from './audit.js?v=1.4.274';
-import { normalizeImageUrl } from './image-url.js?v=1.4.274';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.275';
+import * as utils from './utils.js?v=1.4.275';
+import { saveData, deleteData } from './data.js?v=1.4.275';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.275';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.275';
+import { recordAuditEvent } from './audit.js?v=1.4.275';
+import { normalizeImageUrl } from './image-url.js?v=1.4.275';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -19,6 +19,7 @@ const URL_MAX_LENGTH = 2048;
 const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
 let editingStation = null;
+let editingStationSnapshot = null;
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
 
 function getRoutePlanStationIds() {
@@ -208,6 +209,7 @@ export function openModal(target) {
             });
             
             // Reset view mode
+            setInlineStationEditMode(false);
             document.getElementById('modal-view-mode').classList.remove('hidden');
             document.getElementById('modal-edit-mode').classList.add('hidden');
 
@@ -950,6 +952,7 @@ export function editStation(id) {
         : state.stations.find(x => x.id == (id || state.activeStationId));
     if (!s) return;
     editingStation = s;
+    editingStationSnapshot = JSON.parse(JSON.stringify(s));
 
     const detailModal = document.getElementById('detail-modal');
     if (detailModal?.classList.contains('hidden')) openModal(s);
@@ -966,6 +969,10 @@ export function editStation(id) {
     document.getElementById('edit-lat').value = s.lat;
     document.getElementById('edit-lng').value = s.lng;
     document.getElementById('edit-tags').value = (s.tags || []).join(', ');
+    document.getElementById('inline-edit-lat').value = s.lat ?? '';
+    document.getElementById('inline-edit-lng').value = s.lng ?? '';
+    document.getElementById('inline-edit-link').value = s.link || '';
+    document.getElementById('inline-edit-tags').value = (s.tags || []).join(', ');
 
     // Init Tag Picker
     renderTagPicker();
@@ -978,9 +985,62 @@ export function editStation(id) {
     // Image UI
     updateImageUploadUI(s.image);
 
-    // Toggle Views
-    document.getElementById('modal-view-mode').classList.add('hidden');
-    document.getElementById('modal-edit-mode').classList.remove('hidden');
+    setInlineEditableText('modal-number', s.id, 'Stationsnummer');
+    setInlineEditableText('modal-title', s.name, 'Stationsname');
+    setInlineEditableText('modal-subtitle', s.desc || '', 'Adresse / Ort hinzufügen');
+    setInlineEditableText('modal-desc', s.offer || '', 'Angebot / Werbetext hinzufügen');
+    setInlineStationEditMode(true);
+}
+
+function setInlineEditableText(id, value, placeholder) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const text = String(value ?? '');
+    element.textContent = text;
+    element.dataset.empty = text ? 'false' : 'true';
+    element.dataset.placeholder = placeholder;
+}
+
+function setInlineStationEditMode(isEditing) {
+    const content = document.getElementById('modal-content');
+    const viewActions = document.getElementById('modal-admin-actions');
+    const editActions = document.getElementById('modal-inline-edit-actions');
+    const details = document.getElementById('modal-inline-edit-details');
+    const linkButton = document.getElementById('modal-link-btn');
+    content?.classList.toggle('is-inline-station-editing', isEditing);
+    viewActions?.classList.toggle('hidden', isEditing);
+    editActions?.classList.toggle('hidden', !isEditing);
+    editActions?.classList.toggle('flex', isEditing);
+    details?.classList.toggle('hidden', !isEditing);
+    linkButton?.classList.toggle('hidden', isEditing || !linkButton.onclick);
+    ['modal-number', 'modal-title', 'modal-subtitle', 'modal-desc'].forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) return;
+        element.contentEditable = isEditing ? 'true' : 'false';
+        element.setAttribute('role', isEditing ? 'textbox' : 'presentation');
+        if (isEditing) element.setAttribute('aria-label', element.dataset.placeholder || 'Stationsdaten bearbeiten');
+        else element.removeAttribute('aria-label');
+    });
+}
+
+function syncInlineStationEditFields() {
+    const getText = id => document.getElementById(id)?.innerText.trim() || '';
+    document.getElementById('edit-id').value = getText('modal-number');
+    document.getElementById('edit-name').value = getText('modal-title');
+    document.getElementById('edit-desc').value = getText('modal-subtitle');
+    document.getElementById('edit-offer').value = getText('modal-desc');
+    document.getElementById('edit-lat').value = document.getElementById('inline-edit-lat')?.value || '';
+    document.getElementById('edit-lng').value = document.getElementById('inline-edit-lng')?.value || '';
+    document.getElementById('edit-link').value = document.getElementById('inline-edit-link')?.value || '';
+    document.getElementById('edit-tags').value = document.getElementById('inline-edit-tags')?.value || '';
+}
+
+export function cancelStationEdit() {
+    const station = editingStation;
+    if (station && editingStationSnapshot) Object.assign(station, JSON.parse(JSON.stringify(editingStationSnapshot)));
+    editingStation = null;
+    editingStationSnapshot = null;
+    if (station) openModal(station);
 }
 
 function updateOfferCounter() {
@@ -1040,6 +1100,7 @@ export async function saveStationChanges() {
     const oldId = state.activeStationId;
     const s = editingStation || state.stations.find(x => x.id == oldId);
     if (!s) return;
+    syncInlineStationEditFields();
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
     const idInput = document.getElementById('edit-id').value.trim();
@@ -1162,6 +1223,8 @@ export async function saveStationChanges() {
         if (window.refreshMapMarkers) window.refreshMapMarkers(); 
         
         // Go back to view mode (with new ID)
+        editingStation = null;
+        editingStationSnapshot = null;
         openModal(s); 
     } catch (e) {
         console.error(e);

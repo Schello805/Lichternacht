@@ -164,6 +164,11 @@ test('admin can edit stations and program entries from their visitor lists', asy
     });
     await page.locator('#stations-list > button').first().click();
     await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
+    await page.getByRole('button', { name: 'Bearbeiten' }).click();
+    await expect(page.locator('#modal-view-mode')).toBeVisible();
+    await expect(page.locator('#modal-edit-mode')).toBeHidden();
+    await expect(page.locator('#modal-title')).toHaveAttribute('contenteditable', 'true');
+    await expect(page.getByRole('button', { name: 'Speichern' })).toBeVisible();
 
     await page.evaluate(() => {
         window.closeModal();
@@ -691,7 +696,7 @@ test('station and program forms clearly label non-obvious fields', async ({ page
     await expect(page.getByText('Programmbild ⓘ')).toHaveCount(1);
 });
 
-test('station edit dialog accepts manual coordinates with decimal commas', async ({ page }) => {
+test('station detail editing accepts manual coordinates with decimal commas', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
@@ -701,17 +706,17 @@ test('station edit dialog accepts manual coordinates with decimal commas', async
         window.openStation(1);
         window.editStation(1);
     });
-    await expect(page.locator('#modal-edit-mode')).toBeVisible();
-    await expect(page.locator('label[for="edit-lat"]')).toContainText('Breitengrad');
-    await expect(page.locator('label[for="edit-lng"]')).toContainText('Längengrad');
-    await page.locator('#edit-lat').fill('49,15714');
-    await page.locator('#edit-lng').fill('10,5484');
+    await expect(page.locator('#modal-view-mode')).toBeVisible();
+    await expect(page.locator('#inline-edit-lat')).toBeVisible();
+    await expect(page.locator('#inline-edit-lng')).toBeVisible();
+    await page.locator('#inline-edit-lat').fill('49,15714');
+    await page.locator('#inline-edit-lng').fill('10,5484');
     await page.evaluate(async () => {
         const { refreshVisitorDataIfStale } = await import('/js/data.js?v=1.4.202');
         await refreshVisitorDataIfStale(0);
     });
-    await expect(page.locator('#modal-edit-mode')).toBeVisible();
-    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect(page.locator('#modal-view-mode')).toBeVisible();
+    await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
 
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lat)).toBe(49.15714);
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.lng)).toBe(10.5484);
@@ -727,8 +732,8 @@ test('station website link is retained after saving and reloading', async ({ pag
         window.openStation(1);
         window.editStation(1);
     });
-    await page.locator('#edit-link').fill('https://example.com/station-info');
-    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await page.locator('#inline-edit-link').fill('https://example.com/station-info');
+    await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.state.stations.find(station => station.id === 1)?.link)).toBe('https://example.com/station-info');
 
     await page.reload();
@@ -748,8 +753,8 @@ test('station without an ID can be assigned a station number', async ({ page }) 
         window.state.stations.push(station);
         window.editStation(station);
     });
-    await page.locator('#edit-id').fill('99');
-    await page.locator('#modal-edit-mode').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await page.locator('#modal-number').fill('99');
+    await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
 
     await expect.poll(() => page.evaluate(() => window.state.stations.some(station => station.id === 99 && station.name === 'Neue Station'))).toBe(true);
 });
