@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.278" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.279" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.278" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.279" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -144,7 +144,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.278">
+    <link rel="stylesheet" href="style.css?v=1.4.279">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1077,7 +1077,7 @@
         </div>
 
         <!-- Station Detail/Edit Modal -->
-        <div id="route-plan-modal" class="fixed inset-0 z-[2000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="route-plan-title">
+        <div id="route-plan-modal" class="fixed inset-0 z-[4000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="route-plan-title">
             <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('route-plan-modal')"></div>
             <section class="relative z-10 w-full max-w-md max-h-[88vh] overflow-hidden rounded-t-3xl sm:rounded-3xl bg-white dark:bg-gray-800 shadow-2xl">
                 <div class="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden"></div>
@@ -1103,7 +1103,7 @@
         </div>
 
         <div id="detail-modal"
-            class="fixed inset-0 z-[2000] hidden flex items-end sm:items-center justify-center pointer-events-none">
+            class="fixed inset-0 z-[4000] hidden flex items-end sm:items-center justify-center p-2 pointer-events-none">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto" onclick="closeModal()"></div>
             <div class="bg-white w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-0 relative z-10 transform transition-transform duration-300 translate-y-full pointer-events-auto shadow-2xl max-h-[90vh] overflow-y-auto pb-6 sm:pb-0"
                 id="modal-content">
@@ -1388,7 +1388,7 @@
     <!-- Hilfe ist jetzt eine eigene Seite: help.html -->
 
     <!-- Feedback Modal -->
-    <div id="bug-report-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+    <div id="bug-report-modal" class="fixed inset-0 z-[4000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onclick="document.getElementById('bug-report-modal').classList.add('hidden')"></div>
         <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative z-10">
@@ -1416,7 +1416,7 @@
     </div>
 
     <!-- Tutorial Modal -->
-    <div id="tutorial-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4">
+    <div id="tutorial-modal" class="fixed inset-0 z-[4000] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeTutorial()"></div>
         <div
             class="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl p-5 sm:p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
@@ -1566,7 +1566,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.278', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.279', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1593,7 +1593,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.278"></script>
+    <script type="module" src="main.js?v=1.4.279"></script>
 </body>
 
 </html>
