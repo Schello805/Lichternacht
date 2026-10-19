@@ -36,6 +36,31 @@ test('saved dark mode is applied before the first render', async ({ page }) => {
     await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
+test('system display preference follows the device setting', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.addInitScript(() => {
+        localStorage.removeItem('darkMode');
+        localStorage.setItem('themePreference', 'system');
+        document.addEventListener('DOMContentLoaded', () => {
+            window.__systemThemeAtDomReady = document.documentElement.classList.contains('dark');
+        });
+    });
+
+    await page.goto('/index.html');
+
+    await expect.poll(() => page.evaluate(() => window.__systemThemeAtDomReady)).toBe(true);
+    await expect(page.locator('#theme-preference-btn')).toHaveAttribute('title', 'Darstellung: System');
+});
+
+test('visitor can choose system display mode', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#theme-preference-btn').click();
+    await page.getByRole('menuitem', { name: 'System' }).click();
+
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('themePreference'))).toBe('system');
+    await expect(page.locator('#theme-preference-menu')).toBeHidden();
+});
+
 test('visitor startup defers the admin module', async ({ page }) => {
     const adminRequests = [];
     page.on('request', request => {

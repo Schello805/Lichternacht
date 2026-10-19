@@ -1,28 +1,28 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.275';
-import * as utils from './js/utils.js?v=1.4.275';
+import { shareStation, showToast } from './js/utils.js?v=1.4.276';
+import * as utils from './js/utils.js?v=1.4.276';
 import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.275';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.275';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.275';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.275';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation } from './js/maplibre-map.js?v=1.4.276';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.276';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.276';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.276';
 import {
-    openModal, closeModal, switchTab, toggleDarkMode, updateDarkModeIcon,
+    openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
     handleImageUpload, handleEventImageUpload, clearEventImage, editStation, openEventModal, closeEventModal,
     fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.275';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.275';
-import { recordAuditEvent } from './js/audit.js?v=1.4.275';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.275';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.275';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.275';
+} from './js/ui.js?v=1.4.276';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.276';
+import { recordAuditEvent } from './js/audit.js?v=1.4.276';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.276';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.276';
+import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.276';
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.275";
+const APP_VERSION = "1.4.276";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -1226,6 +1226,12 @@ window.toggleDarkMode = () => {
     toggleDarkMode();
     updateMapTiles(document.documentElement.classList.contains('dark'));
 };
+window.toggleThemeMenu = toggleThemeMenu;
+window.setThemePreference = (preference) => {
+    setThemePreference(preference);
+    updateMapTiles(document.documentElement.classList.contains('dark'));
+};
+window.addEventListener('app-theme-change', event => updateMapTiles(Boolean(event.detail?.isDark)));
 window.toggleSatelliteView = toggleSatelliteView;
 window.toggleOverviewRoute = toggleOverviewRoute;
 window.startOverviewNavigation = startOverviewNavigation;
@@ -1501,11 +1507,7 @@ const initializeApp = async () => {
     const savedFavs = localStorage.getItem('favorites');
     if (savedFavs) state.favorites = new Set(JSON.parse(savedFavs));
 
-    // Load Dark Mode
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.documentElement.classList.add('dark');
-        updateDarkModeIcon(true);
-    }
+    initializeThemePreference();
     // Search
     const searchInput = document.getElementById('search-input');
     if (searchInput) {

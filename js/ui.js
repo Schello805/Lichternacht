@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.275';
-import * as utils from './utils.js?v=1.4.275';
-import { saveData, deleteData } from './data.js?v=1.4.275';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.275';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.275';
-import { recordAuditEvent } from './audit.js?v=1.4.275';
-import { normalizeImageUrl } from './image-url.js?v=1.4.275';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.276';
+import * as utils from './utils.js?v=1.4.276';
+import { saveData, deleteData } from './data.js?v=1.4.276';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.276';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.276';
+import { recordAuditEvent } from './audit.js?v=1.4.276';
+import { normalizeImageUrl } from './image-url.js?v=1.4.276';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -347,12 +347,31 @@ export function switchTab(tab) {
 // Alias for backward compatibility
 export const appSwitchTab = switchTab;
 
-export function toggleDarkMode() {
-    document.documentElement.classList.toggle('dark');
-    const isDark = document.documentElement.classList.contains('dark');
-    localStorage.setItem('darkMode', isDark);
-    updateDarkModeIcon(isDark);
-    
+const THEME_PREFERENCE_KEY = 'themePreference';
+const THEME_PREFERENCES = new Set(['light', 'dark', 'system']);
+let systemThemeListenerInstalled = false;
+let themeMenuDismissListenerInstalled = false;
+
+export function getThemePreference() {
+    const savedPreference = localStorage.getItem(THEME_PREFERENCE_KEY);
+    if (THEME_PREFERENCES.has(savedPreference)) return savedPreference;
+
+    const legacyDarkMode = localStorage.getItem('darkMode');
+    if (legacyDarkMode === 'true') return 'dark';
+    if (legacyDarkMode === 'false') return 'light';
+    return 'system';
+}
+
+function isDarkTheme(preference) {
+    return preference === 'dark'
+        || (preference === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+}
+
+function applyTheme(isDark) {
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.style.backgroundColor = isDark ? '#111827' : '#f3f4f6';
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+
     // JS Fallback for styling (if CSS fails/lags)
     const header = document.getElementById('main-header');
     if (header) {
@@ -371,11 +390,84 @@ export function toggleDarkMode() {
     }
 }
 
-export function updateDarkModeIcon(isDark) {
+function updateThemePreferenceControls(preference) {
+    const button = document.getElementById('theme-preference-btn');
+    if (button) button.title = `Darstellung: ${preference === 'system' ? 'System' : preference === 'dark' ? 'Dunkel' : 'Hell'}`;
+
+    document.querySelectorAll('[data-theme-preference]').forEach(control => {
+        const selected = control.dataset.themePreference === preference;
+        control.classList.toggle('bg-yellow-100', selected);
+        control.classList.toggle('text-yellow-800', selected);
+        control.classList.toggle('dark:bg-yellow-500/20', selected);
+        control.classList.toggle('dark:text-yellow-300', selected);
+        control.setAttribute('aria-checked', String(selected));
+    });
+}
+
+export function updateDarkModeIcon(isDark, preference = getThemePreference()) {
     const icon = document.getElementById('dark-mode-icon');
     if (icon) {
-        icon.className = isDark ? 'ph ph-sun text-xl' : 'ph ph-moon text-xl';
+        const iconName = preference === 'system' ? 'ph-desktop' : isDark ? 'ph-moon' : 'ph-sun';
+        icon.className = `ph ${iconName} text-lg sm:text-xl`;
     }
+}
+
+function closeThemeMenu() {
+    const menu = document.getElementById('theme-preference-menu');
+    const button = document.getElementById('theme-preference-btn');
+    menu?.classList.add('hidden');
+    button?.setAttribute('aria-expanded', 'false');
+}
+
+export function toggleThemeMenu() {
+    const menu = document.getElementById('theme-preference-menu');
+    const button = document.getElementById('theme-preference-btn');
+    if (!menu || !button) return;
+    const willOpen = menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', !willOpen);
+    button.setAttribute('aria-expanded', String(willOpen));
+}
+
+export function applyThemePreference(preference = getThemePreference(), { announce = false } = {}) {
+    const safePreference = THEME_PREFERENCES.has(preference) ? preference : 'system';
+    const isDark = isDarkTheme(safePreference);
+    applyTheme(isDark);
+    updateDarkModeIcon(isDark, safePreference);
+    updateThemePreferenceControls(safePreference);
+    if (announce) window.dispatchEvent(new CustomEvent('app-theme-change', { detail: { isDark, preference: safePreference } }));
+    return isDark;
+}
+
+export function setThemePreference(preference) {
+    const safePreference = THEME_PREFERENCES.has(preference) ? preference : 'system';
+    localStorage.setItem(THEME_PREFERENCE_KEY, safePreference);
+    localStorage.removeItem('darkMode');
+    const isDark = applyThemePreference(safePreference, { announce: true });
+    closeThemeMenu();
+    return isDark;
+}
+
+export function initializeThemePreference() {
+    applyThemePreference();
+
+    if (!systemThemeListenerInstalled && window.matchMedia) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', () => {
+            if (getThemePreference() === 'system') applyThemePreference('system', { announce: true });
+        });
+        systemThemeListenerInstalled = true;
+    }
+
+    if (!themeMenuDismissListenerInstalled) {
+        document.addEventListener('click', event => {
+            if (!event.target.closest('#theme-preference-menu, #theme-preference-btn')) closeThemeMenu();
+        });
+        themeMenuDismissListenerInstalled = true;
+    }
+}
+
+export function toggleDarkMode() {
+    return setThemePreference(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
 }
 
 export function openHelpModal() {
