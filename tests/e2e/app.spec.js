@@ -847,6 +847,17 @@ test('links in station descriptions are clickable and open safely', async ({ pag
     await expect(descriptionLink).toHaveAttribute('rel', 'noopener noreferrer');
 });
 
+test('station list shows the station description', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const station = window.state.stations[0];
+        station.offer = 'Livemusik, Getränke und kleine Snacks.';
+        window.renderList(window.state.stations);
+    });
+
+    await expect(page.locator('#stations-list > button').first()).toContainText('Livemusik, Getränke und kleine Snacks.');
+});
+
 test('admin can create a standalone program event without a station', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');

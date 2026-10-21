@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.285';
-import * as utils from './utils.js?v=1.4.285';
-import { saveData, deleteData } from './data.js?v=1.4.285';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.285';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.285';
-import { recordAuditEvent } from './audit.js?v=1.4.285';
-import { normalizeImageUrl } from './image-url.js?v=1.4.285';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.286';
+import * as utils from './utils.js?v=1.4.286';
+import { saveData, deleteData } from './data.js?v=1.4.286';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.286';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.286';
+import { recordAuditEvent } from './audit.js?v=1.4.286';
+import { normalizeImageUrl } from './image-url.js?v=1.4.286';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -881,6 +881,7 @@ export function renderList(stations) {
                         </div>
                     </div>
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(s.desc || '')}</p>
+                    ${s.offer ? `<p class="mt-2 line-clamp-2 text-sm leading-relaxed text-gray-700 dark:text-gray-200">${escapeHtml(s.offer)}</p>` : ''}
                     <div class="mt-2 flex gap-1.5 flex-wrap">
                         <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ph ph-map-pin"></i> Station</span>
                         ${hasProgram ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-calendar-star"></i> Mit Programm</span>' : ''}
