@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.281';
+import { showToast } from './utils.js?v=1.4.282';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.281';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.282';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -73,8 +73,9 @@ function renderLoadedData() {
     if (window.updateVisitorStartCard) window.updateVisitorStartCard();
     if (window.updateHeaderCountdown) window.updateHeaderCountdown();
     const detailModal = document.getElementById('detail-modal');
-    const editModeOpen = !document.getElementById('modal-edit-mode')?.classList.contains('hidden');
-    if (state.activeStationId != null && !editModeOpen && detailModal && !detailModal.classList.contains('hidden') && window.openStation) {
+    const inlineStationEditOpen = document.getElementById('modal-content')?.classList.contains('is-inline-station-editing');
+    const legacyEditModeOpen = !document.getElementById('modal-edit-mode')?.classList.contains('hidden');
+    if (state.activeStationId != null && !inlineStationEditOpen && !legacyEditModeOpen && detailModal && !detailModal.classList.contains('hidden') && window.openStation) {
         window.openStation(state.activeStationId);
     }
 }
