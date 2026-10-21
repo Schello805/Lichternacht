@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.282';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.283';
 
 const VISITOR_ID_KEY = 'anonymous_audit_id_v1';
 const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']);

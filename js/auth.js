@@ -1,14 +1,26 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.282';
-import { loadData } from './data.js?v=1.4.282';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.282';
-import { renderTimeline } from './ui.js?v=1.4.282';
+import { showToast } from './utils.js?v=1.4.283';
+import { loadData } from './data.js?v=1.4.283';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.283';
+import { renderTimeline } from './ui.js?v=1.4.283';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
     if (!errorElement) return;
     errorElement.textContent = message;
     errorElement.classList.toggle('hidden', !message);
+}
+
+async function waitForFirebaseAuth(timeoutMs = 8000) {
+    const isReady = () => state.fb && typeof state.fb.signInWithEmailAndPassword === 'function';
+    if (isReady()) return true;
+
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && !window.__appReady) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (isReady()) return true;
+    }
+    return isReady();
 }
 
 export async function performLogin() {
@@ -22,7 +34,7 @@ export async function performLogin() {
         return;
     }
 
-    if (!state.fb || typeof state.fb.signInWithEmailAndPassword !== 'function') {
+    if (!await waitForFirebaseAuth()) {
         // Local-dev fallback: allow enabling admin mode without Firebase so you can test station creation.
         // This is intentionally limited to localhost environments.
         const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
