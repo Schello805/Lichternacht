@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.284';
-import * as utils from './utils.js?v=1.4.284';
-import { saveData, deleteData } from './data.js?v=1.4.284';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.284';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.284';
-import { recordAuditEvent } from './audit.js?v=1.4.284';
-import { normalizeImageUrl } from './image-url.js?v=1.4.284';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.285';
+import * as utils from './utils.js?v=1.4.285';
+import { saveData, deleteData } from './data.js?v=1.4.285';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.285';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.285';
+import { recordAuditEvent } from './audit.js?v=1.4.285';
+import { normalizeImageUrl } from './image-url.js?v=1.4.285';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -102,6 +102,30 @@ function normalizeExternalLink(value) {
     }
 }
 
+function linkifyDescription(value) {
+    const text = String(value ?? '');
+    const urlPattern = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+    let html = '';
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(urlPattern)) {
+        const rawUrl = match[0];
+        const startIndex = match.index ?? 0;
+        const trailingPunctuation = rawUrl.match(/[.,!?;:]+$/)?.[0] || '';
+        const url = trailingPunctuation ? rawUrl.slice(0, -trailingPunctuation.length) : rawUrl;
+        const href = normalizeExternalLink(url);
+
+        html += escapeHtml(text.slice(lastIndex, startIndex));
+        html += href
+            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="break-all font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-800 dark:text-blue-300 dark:decoration-blue-500">${escapeHtml(url)}</a>`
+            : escapeHtml(url);
+        html += escapeHtml(trailingPunctuation);
+        lastIndex = startIndex + rawUrl.length;
+    }
+
+    return html + escapeHtml(text.slice(lastIndex));
+}
+
 function normalizeStationImage(value) {
     return normalizeImageUrl(value);
 }
@@ -161,7 +185,7 @@ export function openModal(target) {
         // Populate Modal
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-subtitle').innerText = s.desc || '';
-        document.getElementById('modal-desc').innerText = s.offer || s.desc || 'Keine Beschreibung verfügbar.';
+        document.getElementById('modal-desc').innerHTML = linkifyDescription(s.offer || s.desc || 'Keine Beschreibung verfügbar.');
         document.getElementById('modal-wc-badge')?.classList.toggle('hidden', !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
         
         // Fix ID Display
@@ -2269,7 +2293,7 @@ export function openProgramEvent(id) {
                 </button>
             </div>
 
-            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">${escapeHtml(event.desc || 'Keine weitere Beschreibung hinterlegt.')}</div>
+            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">${linkifyDescription(event.desc || 'Keine weitere Beschreibung hinterlegt.')}</div>
 
             ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
 

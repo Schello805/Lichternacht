@@ -832,6 +832,21 @@ test('station without an ID can be assigned a station number', async ({ page }) 
     await expect.poll(() => page.evaluate(() => window.state.stations.some(station => station.id === 99 && station.name === 'Neue Station'))).toBe(true);
 });
 
+test('links in station descriptions are clickable and open safely', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const station = window.state.stations[0];
+        station.offer = 'Mehr Infos unter https://example.com/programm.';
+        window.openStation(station.id);
+    });
+
+    const descriptionLink = page.locator('#modal-desc a');
+    await expect(descriptionLink).toHaveText('https://example.com/programm');
+    await expect(descriptionLink).toHaveAttribute('href', 'https://example.com/programm');
+    await expect(descriptionLink).toHaveAttribute('target', '_blank');
+    await expect(descriptionLink).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
 test('admin can create a standalone program event without a station', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
