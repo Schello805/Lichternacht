@@ -850,6 +850,26 @@ test('admin can create a standalone program event without a station', async ({ p
     await expect(page.locator('#timeline-container')).toContainText('Eigenständige Show');
 });
 
+test('admin can copy a program event and adjust it before saving', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => window.editEvent(window.state.events[0].id));
+    const originalTitle = await page.locator('#evt-title').inputValue();
+    await page.locator('#btn-duplicate-event').click();
+
+    await expect(page.locator('#btn-delete-event')).toBeHidden();
+    await expect(page.locator('#btn-duplicate-event')).toBeHidden();
+    await expect(page.locator('#evt-title')).toHaveValue(`${originalTitle} (Kopie)`);
+    await page.locator('#evt-time').fill('22:15');
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect(page.locator('#event-modal')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.state.events.filter(event => event.title === `${window.state.events[0].title} (Kopie)`).length)).toBe(1);
+});
+
 test('linked program event identifies its station in the timeline', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');

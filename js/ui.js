@@ -1597,7 +1597,21 @@ export function editEvent(id) {
     // but we could match by coords or name.
     
     document.getElementById('btn-delete-event').classList.remove('hidden');
+    document.getElementById('btn-duplicate-event').classList.remove('hidden');
     openModal('event-modal');
+}
+
+export function duplicateEvent() {
+    if (!state.activeEventId) return;
+
+    const titleInput = document.getElementById('evt-title');
+    const copySuffix = ' (Kopie)';
+    const copyTitle = titleInput.value.trim();
+    titleInput.value = `${copyTitle.slice(0, Math.max(0, EVENT_TITLE_MAX_LENGTH - copySuffix.length))}${copySuffix}`;
+    state.activeEventId = null;
+    document.getElementById('btn-delete-event').classList.add('hidden');
+    document.getElementById('btn-duplicate-event').classList.add('hidden');
+    showToast('Kopie erstellt – Zeit prüfen und speichern.', 'info');
 }
 
 function resetEventModal() {
@@ -1614,6 +1628,7 @@ function resetEventModal() {
     eventImageDraft = '';
     updateEventImageUI('');
     document.getElementById('btn-delete-event').classList.add('hidden');
+    document.getElementById('btn-duplicate-event').classList.add('hidden');
     updateEventDescCounter();
     document.getElementById('evt-desc').oninput = updateEventDescCounter;
     

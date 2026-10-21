@@ -10,7 +10,7 @@ import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
     handleImageUpload, handleEventImageUpload, clearEventImage, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
+    fillEventCoords, saveEventChanges, deleteEvent, duplicateEvent, filterStations, filterList, generateICS, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
@@ -1263,6 +1263,7 @@ window.searchStationAddress = searchStationAddress;
 window.startStationPicker = startStationPicker;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
+window.duplicateEvent = duplicateEvent;
 window.shareStation = (id) => {
     const station = state.stations.find(item => item.id == id);
     recordAuditEvent('station_shared', { stationId: id, stationName: station?.name || '' });
