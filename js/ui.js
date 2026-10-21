@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.282';
-import * as utils from './utils.js?v=1.4.282';
-import { saveData, deleteData } from './data.js?v=1.4.282';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.282';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.282';
-import { recordAuditEvent } from './audit.js?v=1.4.282';
-import { normalizeImageUrl } from './image-url.js?v=1.4.282';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.283';
+import * as utils from './utils.js?v=1.4.283';
+import { saveData, deleteData } from './data.js?v=1.4.283';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.283';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.283';
+import { recordAuditEvent } from './audit.js?v=1.4.283';
+import { normalizeImageUrl } from './image-url.js?v=1.4.283';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2475,7 +2475,7 @@ export function renderTimeline() {
             return;
         }
         if (configuredWindow && (!isEventDay || isAfterEventWindow)) {
-            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatWindow(configuredWindow)}.</p>`;
+            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${utils.formatEventWindowDe(configuredWindow)}.</p>`;
             return;
         }
         const spotlightCard = (event, type) => {
