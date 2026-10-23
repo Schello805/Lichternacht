@@ -547,6 +547,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        requested_path = urllib.parse.unquote(parsed_path.path)
+        path_segments = [segment for segment in requested_path.split('/') if segment]
+        protected_paths = {'logs', 'node_modules', 'scripts', 'server', 'tests'}
+        protected_files = {
+            '/server.py', '/deploy.sh', '/firebase.json', '/firestore.rules',
+            '/package.json', '/package-lock.json', '/playwright.config.js',
+            '/tailwind.config.js', '/server-htaccess'
+        }
+
+        if (
+            any(segment.startswith('.') for segment in path_segments)
+            or (path_segments and path_segments[0] in protected_paths)
+            or requested_path in protected_files
+        ):
+            self.send_error(404)
+            return
+
         if parsed_path.path == '/api/email-settings':
             if not self._verify_admin_token():
                 return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
@@ -588,9 +605,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
         if self.path == '/api/health':
             self._send_json(200, {"ok": True})
-            return
-        if parsed_path.path == '/.private' or parsed_path.path.startswith('/.private/'):
-            self.send_error(404)
             return
         return super().do_GET()
 

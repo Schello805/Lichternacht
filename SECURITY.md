@@ -17,6 +17,8 @@ gegen automatisierte Zugriffe: Vor dem Event Firebase App Check aktivieren.
   Firestore und Authentication einschalten.
 - Admin-Nutzer nur gezielt in `artifacts/{appId}/public/data/users` anlegen.
 - `.env` niemals committen; SMTP-Zugangsdaten nur auf dem Server speichern.
+- Prüfen, dass `.env`, `.private/`, `.git/`, `logs/` sowie Server- und
+  Deployment-Dateien öffentlich mindestens mit `403` oder `404` antworten.
 - Admin- und SMTP-Passwörter nur im Passwortmanager ablegen und bei einer möglichen
   Klartextweitergabe sofort ändern.
 - `logs/client-errors.log` regelmäßig prüfen und nicht veröffentlichen.
