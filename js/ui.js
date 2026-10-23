@@ -1,12 +1,12 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.287';
-import * as utils from './utils.js?v=1.4.287';
-import { saveData, deleteData } from './data.js?v=1.4.287';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.287';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.287';
-import { recordAuditEvent } from './audit.js?v=1.4.287';
-import { normalizeImageUrl } from './image-url.js?v=1.4.287';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.288';
+import * as utils from './utils.js?v=1.4.288';
+import { saveData, deleteData } from './data.js?v=1.4.288';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.288';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.288';
+import { recordAuditEvent } from './audit.js?v=1.4.288';
+import { normalizeImageUrl } from './image-url.js?v=1.4.288';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -785,7 +785,13 @@ export function renderList(stations) {
     if (!container) return;
     
     // Create a copy to avoid mutating the original if we sort, and add dist property safely
-    let listToRender = stations.map(s => ({...s}));
+    let listToRender = stations.filter(station => {
+        if (currentFilter === 'favorites' && !state.favorites.has(station.id) && !state.favorites.has(String(station.id))) return false;
+        if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
+        if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !(station.tags || []).includes(currentFilter)) return false;
+        const search = currentSearchQuery.toLowerCase();
+        return !search || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
+    }).map(s => ({...s}));
 
     // If we have a user location, calculate distances!
     if (state.userLocation) {
@@ -916,7 +922,7 @@ export function updateStationDistances() {
 }
 
 export function refreshStationList() {
-    filterList(currentFilter);
+    renderList(state.stations);
 }
 
 function scrollStationListToTop() {
@@ -929,12 +935,7 @@ export function filterStations(query) {
     // Basic filter implementation
     currentSearchQuery = String(query || '').trim();
     scrollStationListToTop();
-    const lower = currentSearchQuery.toLowerCase();
-    const filtered = state.stations.filter(s => 
-        s.name.toLowerCase().includes(lower) || 
-        (s.desc && s.desc.toLowerCase().includes(lower))
-    );
-    renderList(filtered);
+    renderList(state.stations);
 }
 
 export function filterList(tag) {

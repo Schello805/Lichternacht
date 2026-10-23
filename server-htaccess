@@ -5,10 +5,9 @@
 # files, logs and repository metadata from ever being served by Apache.
 Options -Indexes
 
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule ^(?:\.|logs(?:/|$)|node_modules(?:/|$)|scripts(?:/|$)|server(?:/|$)|tests(?:/|$)) - [F,L,NC]
-</IfModule>
+<If "%{REQUEST_URI} =~ m#(?i)(?:/\.[^/]*|/(?:logs|node_modules|scripts|server|tests)(?:/|$))#">
+  Require all denied
+</If>
 
 <FilesMatch "^(?:server\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
   Require all denied

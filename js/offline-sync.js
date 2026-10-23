@@ -38,8 +38,16 @@ async function executeAction(action) {
         return;
     }
     if (action.type === 'checkin') {
-        const reference = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await addDoc(reference, action.payload);
+        const user = state.auth?.currentUser;
+        if (!user) throw new Error('Firebase-Anmeldung fehlt');
+        const reference = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins', `${user.uid}_${action.payload.stationId}`);
+        try {
+            await state.fb.setDoc(reference, { ...action.payload, ownerUid: user.uid, receivedAt: state.fb.serverTimestamp() });
+        } catch (error) {
+            if (error.code !== 'permission-denied') throw error;
+            const existing = await state.fb.getDoc(reference);
+            if (!existing.exists()) throw error;
+        }
         return;
     }
     if (action.type === 'like') {

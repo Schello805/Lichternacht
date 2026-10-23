@@ -7,11 +7,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.287';
-import * as utils from './utils.js?v=1.4.287';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.287';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.287';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.287';
+} from './utils.js?v=1.4.288';
+import * as utils from './utils.js?v=1.4.288';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.288';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.288';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.288';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -60,8 +60,16 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
     }
     if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     try {
-        const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await state.fb.addDoc(colRef, payload);
+        const user = state.auth?.currentUser;
+        if (!user) throw new Error('Firebase-Anmeldung fehlt');
+        const reference = state.fb.doc(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins', `${user.uid}_${payload.stationId}`);
+        try {
+            await state.fb.setDoc(reference, { ...payload, ownerUid: user.uid, receivedAt: state.fb.serverTimestamp() });
+        } catch (error) {
+            if (error.code !== 'permission-denied') throw error;
+            const existing = await state.fb.getDoc(reference);
+            if (!existing.exists()) throw error;
+        }
     } catch (e) {
         console.warn('Anonymous check-in analytics failed', e);
         queueOfflineAction('checkin', payload);

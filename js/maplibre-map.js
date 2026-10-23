@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.287';
-import { saveData } from './data.js?v=1.4.287';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.288';
+import { saveData } from './data.js?v=1.4.288';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {

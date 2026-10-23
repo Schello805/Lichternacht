@@ -37,3 +37,22 @@ test('offline actions are retained and synchronized when online', async () => {
     assert.equal(writes.length, 2);
     assert.equal(JSON.parse(localStorage.getItem('offline_action_queue_v1')).length, 0);
 });
+
+test('check-in retries use the authenticated owner and do not drop rejected new check-ins', async () => {
+    globalThis.localStorage = createStorage();
+    state.auth = { currentUser: { uid: 'visitor-1' } };
+    const references = [];
+    state.fb.setDoc = async reference => {
+        references.push(reference);
+        throw Object.assign(new Error('denied'), { code: 'permission-denied' });
+    };
+    state.fb.serverTimestamp = () => 'server-time';
+    state.fb.getDoc = async () => ({ exists: () => false });
+    queueOfflineAction('checkin', { stationId: '4' });
+    await flushOfflineActions();
+    assert.match(references[0], /checkins\/visitor-1_4$/);
+    assert.equal(JSON.parse(localStorage.getItem('offline_action_queue_v1')).length, 1);
+    state.fb.getDoc = async () => ({ exists: () => true });
+    await flushOfflineActions();
+    assert.equal(JSON.parse(localStorage.getItem('offline_action_queue_v1')).length, 0);
+});
