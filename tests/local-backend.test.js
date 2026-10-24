@@ -1,7 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { state } from '../js/state.js';
 import { initializeLocalBackend } from '../js/local-backend.js';
+
+test('Firebase initialization is cache-busted with the application version', async () => {
+    const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+    const version = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
+    assert.ok(main.includes(`'./js/firebase-init.js?v=${version}'`));
+});
+
+test('backend discovery never falls back to Firestore on network failures', async () => {
+    globalThis.fetch = async () => { throw new Error('Network timeout'); };
+    await assert.rejects(initializeLocalBackend(), /Network timeout/);
+});
+
+test('backend discovery never falls back to Firestore on server failures', async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 503 });
+    await assert.rejects(initializeLocalBackend(), /Lokale Datenbank nicht verfügbar/);
+});
 
 test('local adapter reads core data and routes atomic batches without Firestore writes', async () => {
     const snapshot = { ok: true, appId: 'test', stations: [{ id: 1, name: 'Station' }], events: [], config: {} };

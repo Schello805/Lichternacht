@@ -110,6 +110,8 @@ class LocalDatabaseTest(unittest.TestCase):
         backup['localLikes'] = [list(item) for item in backup['localLikes']]
         backup['assets'] = [{'sourceUrl': '/downloads/stations/test.webp', 'base64': base64.b64encode(b'file-content').decode()}]
         backup['localDocuments']['broadcast'] = [{'id': 'broadcast', 'data': {'text': 'Test'}}]
+        backup['localDocuments']['checkins'] = []
+        backup['localDocuments']['reports'] = []
         source = Path(self.directory.name) / 'roundtrip.json'
         source.write_text(json.dumps(backup))
         destination = Path(self.directory.name) / 'roundtrip.sqlite3'

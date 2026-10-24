@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.298';
 import {
     showToast,
     getDistance,
@@ -8,11 +8,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.297';
-import * as utils from './utils.js?v=1.4.297';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.297';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.297';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.297';
+} from './utils.js?v=1.4.298';
+import * as utils from './utils.js?v=1.4.298';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.298';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.298';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.298';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -637,13 +637,17 @@ export function initPresence() {
         if (span && !span.innerText) span.innerText = '0';
     }
 
+    let heartbeatPending = false;
     const sendHeartbeat = async () => {
         if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
+        if (!state.auth?.currentUser || heartbeatPending) return;
+        heartbeatPending = true;
         try {
             const { doc, setDoc, serverTimestamp } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'presence', sessionId);
             await setDoc(ref, { lastSeen: serverTimestamp() });
         } catch (e) { noteFirestoreError(e); console.warn("Heartbeat failed", e); }
+        finally { heartbeatPending = false; }
     };
 
     const updateUserCount = async () => {
@@ -687,6 +691,11 @@ export function initPresence() {
     };
 
     sendHeartbeat();
+    if (state.auth && typeof state.fb.onAuthStateChanged === 'function') {
+        state.fb.onAuthStateChanged(state.auth, user => {
+            if (user) sendHeartbeat();
+        });
+    }
     updateUserCount();
     setInterval(sendHeartbeat, 60 * 1000);
     setInterval(updateUserCount, 60 * 1000);

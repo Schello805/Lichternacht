@@ -1,12 +1,12 @@
 import { state } from './state.js';
-import { installLocalRecords } from './local-records.js?v=1.4.297';
+import { installLocalRecords } from './local-records.js?v=1.4.298';
 
 export async function initializeLocalBackend() {
     let snapshot;
     let requiresLocalBackend = false;
     try { requiresLocalBackend = localStorage.getItem('local_backend_enabled') === 'true'; } catch {}
     try {
-        const response = await fetch('./api/local-data', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+        const response = await fetch('./api/local-data', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
         if (response.status === 404) {
             if (requiresLocalBackend) throw new Error('Die lokale Datenquelle ist nicht erreichbar. Automatischer Datenbankwechsel wurde verhindert.');
             try { localStorage.removeItem('local_backend_enabled'); } catch {}
@@ -17,9 +17,7 @@ export async function initializeLocalBackend() {
         snapshot = await response.json();
         if (!snapshot.ok || !Array.isArray(snapshot.stations) || !Array.isArray(snapshot.events)) throw new Error('Ungültige Datenbankantwort');
     } catch (error) {
-        if (requiresLocalBackend) throw error;
-        console.warn('Lokale Datenbank wurde nicht aktiviert.', error);
-        return false;
+        throw error;
     }
     const original = { ...state.fb };
     let readPromise = null;

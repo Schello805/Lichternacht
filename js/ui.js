@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.297';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.297';
-import * as utils from './utils.js?v=1.4.297';
-import { saveData, deleteData } from './data.js?v=1.4.297';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.297';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.297';
-import { recordAuditEvent } from './audit.js?v=1.4.297';
-import { normalizeImageUrl } from './image-url.js?v=1.4.297';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.298';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.298';
+import * as utils from './utils.js?v=1.4.298';
+import { saveData, deleteData } from './data.js?v=1.4.298';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.298';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.298';
+import { recordAuditEvent } from './audit.js?v=1.4.298';
+import { normalizeImageUrl } from './image-url.js?v=1.4.298';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -178,7 +178,7 @@ function renderModalStationImage(station, isEditing = false) {
         </button>`;
 
     imageContainer.innerHTML = stationImage
-        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
+        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" loading="eager" fetchpriority="high" decoding="async" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
         : `<button type="button" onclick="document.getElementById('image-upload').click()" class="flex h-36 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-gray-900 dark:text-blue-200" aria-label="Bild auswählen"><i class="ph ph-camera text-2xl"></i><span>Bild auswählen</span></button>`;
     imageContainer.classList.remove('hidden');
 }
@@ -2018,7 +2018,10 @@ export function openBugReportModal() {
     openModal('bug-report-modal');
 }
 
+let bugReportSending = false;
+
 export async function submitBugReport() {
+    if (bugReportSending) return;
     const desc = document.getElementById('bug-desc').value;
     if (!desc) { 
         showToast("Bitte Beschreibung eingeben", 'error'); 
@@ -2048,15 +2051,25 @@ export async function submitBugReport() {
 
     // Send to backend endpoint which sends an email (anonymous users supported).
     // A browser cannot send emails by itself; this needs a server-side mail relay.
+    const submitButton = document.getElementById('bug-report-submit');
+    bugReportSending = true;
+    if (submitButton) submitButton.disabled = true;
     try {
+        const headers = { 'Content-Type': 'application/json' };
+        const user = state.auth?.currentUser;
+        if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
         const res = await fetch('./api/bug-report', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
                 text: reportText
             })
         });
 
+        if (res.status === 429) {
+            showToast('Zu viele Sendeversuche. Bitte in 10 Minuten erneut versuchen. Dein Text bleibt erhalten.', 'error');
+            return;
+        }
         if (!res.ok) {
             const msg = await res.text().catch(() => '');
             throw new Error(msg || `HTTP ${res.status}`);
@@ -2068,7 +2081,10 @@ export async function submitBugReport() {
         return;
     } catch (e) {
         console.error("Bug report send failed", e);
-        showToast('Senden nicht möglich (Server/Email nicht konfiguriert).', 'error');
+        showToast('Feedback konnte nicht gesendet werden. Bitte später erneut versuchen. Dein Text bleibt erhalten.', 'error');
+    } finally {
+        bugReportSending = false;
+        if (submitButton) submitButton.disabled = false;
     }
 }
 
@@ -2299,7 +2315,7 @@ export function openProgramEvent(id) {
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
         <div id="program-event-modal-content" class="swipe-dismiss-sheet relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
-            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
+            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" loading="eager" fetchpriority="high" decoding="async" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
             <div class="p-5">
             <div class="w-16 h-6 -mt-3 mb-1 mx-auto relative sm:hidden" aria-label="Fenster nach unten wischen">
                 <span class="absolute left-1/2 top-1/2 w-12 h-1 -translate-x-1/2 -translate-y-1/2 bg-gray-300 dark:bg-gray-600 rounded-full"></span>

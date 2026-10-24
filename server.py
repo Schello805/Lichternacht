@@ -580,10 +580,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == '/api/bug-report':
-            if not self._rate_limit('bug-report', 3, 600):
-                self._send_json(429, {"ok": False, "error": "rate_limited"})
-                return
-
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                 self._send_json(400, {"ok": False, "error": "invalid_content_type"})
                 return
@@ -599,6 +595,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 return
             if len(text) > 10_000:
                 text = text[:10_000] + "\n\n[gekürzt]"
+
+            bucket = 'bug-report'
+            if self.headers.get('Authorization'):
+                self._verify_admin_token()
+                user = self._verified_firebase_user
+                if not user:
+                    return self._send_json(403, {"ok": False, "error": "invalid_auth"})
+                bucket += '-user-' + str(user['localId'])
+            if not self._rate_limit(bucket, 3, 600) or not self._rate_limit('bug-report-total', 60, 600):
+                return self._send_json(429, {"ok": False, "error": "rate_limited"})
 
             try:
                 self._send_bug_report_email('Feedback Lichternacht App', text, self._feedback_html(text))

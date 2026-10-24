@@ -1,5 +1,40 @@
 # Vorbereitung einer Server-Datenbank
 
+## Produktivbetrieb seit 24.10.2026
+
+Der LXC nutzt mit Release `v1.4.297` die Datenbank
+`/root/lichternacht-migration/local.sqlite3`. Die Aktivierung liegt im
+systemd-Drop-in
+`/etc/systemd/system/lichternacht-api.service.d/local-database.conf`, nicht in
+der `.env`. Firebase Authentication bleibt aktiv.
+
+Firestore ist für Client-Schreibzugriffe gesperrt. Die zuvor veröffentlichten
+Regeln und die Schreibsperre sind unter `/root/lichternacht-migration/` gesichert
+(`firestore-before-migration.json`, `firestore-migration-lock.json`).
+**Die ursprüngliche `firestore.rules` aus dem Repository nicht erneut
+veröffentlichen:** Sie würde alte Schreibzugriffe wieder erlauben.
+
+`lichternacht-backup.timer` sichert täglich SQLite über dessen Online-Backup-API
+und das gesamte Downloads-Verzeichnis. Die letzten 14 Archive liegen geschützt
+unter `/root/lichternacht-backups/`. Ein manueller Lauf erfolgt über
+`systemctl start lichternacht-backup.service`. Die Wiederherstellung einer
+Sicherung und der Abgleich aller 39 importierten Dateien wurden geprüft.
+Diese Sicherungen liegen auf demselben LXC und ersetzen keine externe
+Sicherung des Containers.
+
+Ein Rückwechsel auf Firestore oder einen älteren Release darf nicht durch
+einfaches Abschalten des Drop-ins erfolgen. Neue SQLite-Schreibzugriffe müssen
+zuvor vollständig gesichert und rückübertragen werden. Alte Clients müssen
+die Seite neu laden, damit sie die lokale API auswählen.
+
+Feedback wird ab `v1.4.298` pro verifizierter Firebase-Identität begrenzt
+(auch anonyme Nutzer), zusätzlich mit einer gemeinsamen Obergrenze für den
+Mailversand. Dadurch teilen normale Besucher nicht länger das niedrige Limit
+des Apache-Proxyanschlusses. Unangemeldete Altclients bleiben konservativ nach
+Verbindungsadresse begrenzt. `TRUST_PROXY_HEADERS` bleibt deaktiviert: Der
+vorgeschaltete Proxy bereitete gefälschte Client-IP-Header im Test nicht sicher
+auf. Diese Header dürfen deshalb nicht ungeprüft für Limits verwendet werden.
+
 Der erste Schritt ist eine isolierte SQLite-Datenbank aus einer vorhandenen
 Komplettsicherung. Stationen, Events, Einstellungen und eingebettete Dateien
 werden erhalten und durch einen vollständigen Rückvergleich geprüft.

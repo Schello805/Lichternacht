@@ -72,7 +72,7 @@ def export_backup(source):
             asset['base64'] = base64.b64encode(content).decode('ascii')
             backup['assets'].append(asset)
         if 'localDocuments' in backup:
-            backup['localDocuments'] = {}
+            backup['localDocuments'] = {collection: [] for collection in backup['localDocuments']}
             for collection, identifier, data in database.execute('SELECT collection, id, data FROM documents'):
                 backup['localDocuments'].setdefault(collection, []).append({'id': identifier, 'data': json.loads(data)})
         if 'localLikes' in backup:

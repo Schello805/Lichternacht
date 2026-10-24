@@ -256,6 +256,79 @@ test('feedback is easy to find without a disruptive floating button', async ({ p
     await expect(page.locator('#bug-report-modal')).toContainText('Was gefällt dir');
 });
 
+test('presence waits for authentication and resumes without duplicate in-flight writes', async ({ page }) => {
+    await page.goto('/index.html');
+    const result = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const { initPresence } = await import('/js/gamification.js');
+        let listener;
+        let completeHeartbeat;
+        let writes = 0;
+        const intervals = [];
+        state.useLocalStorage = false;
+        state.localBackend = true;
+        state.auth = { currentUser: null };
+        state.fb = {
+            doc: () => ({}), collection: () => ({}), query: () => ({}), where: () => ({}),
+            serverTimestamp: () => ({}),
+            setDoc: () => { writes++; return new Promise(resolve => { completeHeartbeat = resolve; }); },
+            getCountFromServer: async () => ({ data: () => ({ count: 0 }) }),
+            getDoc: async () => ({ exists: () => false }),
+            onAuthStateChanged: (_auth, callback) => { listener = callback; return () => {}; }
+        };
+        const originalInterval = window.setInterval;
+        window.setInterval = callback => { intervals.push(callback); return 0; };
+        try { initPresence(); } finally { window.setInterval = originalInterval; }
+        const beforeAuthentication = writes;
+        state.auth.currentUser = { uid: 'visitor' };
+        listener(state.auth.currentUser);
+        listener(state.auth.currentUser);
+        const whilePending = writes;
+        completeHeartbeat();
+        await Promise.resolve();
+        state.auth.currentUser = null;
+        listener(null);
+        await intervals[0]();
+        return { beforeAuthentication, whilePending, afterSignOut: writes };
+    });
+    expect(result).toEqual({ beforeAuthentication: 0, whilePending: 1, afterSignOut: 1 });
+});
+
+test('feedback prevents duplicate sends and preserves text when rate limited', async ({ page }) => {
+    let pendingRoute;
+    let requests = 0;
+    await page.route('**/api/bug-report', route => {
+        expect(route.request().headers().authorization).toBe('Bearer test-feedback-token');
+        pendingRoute = route;
+        requests++;
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        state.auth = { currentUser: { uid: 'feedback-test', getIdToken: async () => 'test-feedback-token' } };
+    });
+    await page.getByRole('button', { name: 'Feedback geben' }).click();
+    await page.locator('#bug-desc').fill('Meine Rückmeldung bleibt erhalten.');
+    await page.locator('#bug-report-submit').click();
+    await expect.poll(() => requests).toBe(1);
+    await expect(page.locator('#bug-report-submit')).toBeDisabled();
+    await page.evaluate(() => window.submitBugReport());
+    expect(requests).toBe(1);
+    await pendingRoute.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"rate_limited"}' });
+    await expect(page.getByText(/Zu viele Sendeversuche/)).toBeVisible();
+    await expect(page.locator('#bug-desc')).toHaveValue('Meine Rückmeldung bleibt erhalten.');
+    await expect(page.locator('#bug-report-submit')).toBeEnabled();
+});
+
+test('station modal prioritizes its image immediately', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openModal({ id: 1, name: 'Bildtest', tags: [], image: '/downloads/stations/test.webp' }));
+    const image = page.locator('#modal-image-container img');
+    await expect(image).toHaveAttribute('loading', 'eager');
+    await expect(image).toHaveAttribute('fetchpriority', 'high');
+    await expect(image).toHaveAttribute('decoding', 'async');
+});
+
 test('stations offering a WC show a restroom icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     const restroomBadges = page.locator('.station-wc-badge');

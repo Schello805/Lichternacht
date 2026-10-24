@@ -65,3 +65,20 @@ class LocalApiTest(unittest.TestCase):
         handler = self.handler('/api/local-backup', user='visitor')
         handler.do_GET()
         self.assertEqual(handler.responses[0][0], 403)
+
+    def test_feedback_limits_verified_visitors_separately_behind_shared_proxy(self):
+        buckets = []
+        for user in ('visitor-one', 'visitor-two'):
+            handler = self.handler('/api/bug-report', {'text': 'Test'}, user=user)
+            handler.headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer test'}
+            handler._send_bug_report_email = lambda *args: None
+            handler._rate_limit = lambda bucket, *args: buckets.append(bucket) or True
+            handler.do_POST()
+            self.assertEqual(handler.responses[0][0], 200)
+        self.assertEqual(buckets, ['bug-report-user-visitor-one', 'bug-report-total', 'bug-report-user-visitor-two', 'bug-report-total'])
+
+    def test_feedback_rejects_unverified_identity(self):
+        handler = self.handler('/api/bug-report', {'text': 'Test'})
+        handler.headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer invalid'}
+        handler.do_POST()
+        self.assertEqual(handler.responses[0][0], 403)

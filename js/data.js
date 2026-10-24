@@ -1,8 +1,9 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
-import { showToast } from './utils.js?v=1.4.297';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.298';
+import { showToast } from './utils.js?v=1.4.298';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.297';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.298';
+import { preloadImage } from './image-preload.js?v=1.4.298';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -132,7 +133,7 @@ function preloadVisitorImages() {
         });
     const preload = async () => {
         for (let index = 0; index < imageUrls.length; index += 3) {
-            await Promise.allSettled(imageUrls.slice(index, index + 3).map(url => fetch(url, { cache: 'force-cache' })));
+            await Promise.allSettled(imageUrls.slice(index, index + 3).map(preloadImage));
         }
     };
     if ('requestIdleCallback' in window) window.requestIdleCallback(preload, { timeout: 5000 });
