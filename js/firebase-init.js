@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { initializeLocalBackend } from './local-backend.js?v=1.4.295';
+import { initializeLocalBackend } from './local-backend.js?v=1.4.296';
 
 export async function initFirebase() {
     if (typeof __firebase_config === 'undefined') {

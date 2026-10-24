@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.295';
-import { saveData } from './data.js?v=1.4.295';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.296';
+import { saveData } from './data.js?v=1.4.296';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -554,7 +554,8 @@ export function refreshMapMarkers() {
         if (hasProgram) {
             const badge = document.createElement('span');
             badge.className = 'station-event-badge';
-            badge.textContent = 'E';
+            badge.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
+            badge.setAttribute('aria-label', 'Station mit Programm');
             badge.title = 'Station mit Programm';
             icon.appendChild(badge);
         }
@@ -616,7 +617,7 @@ export function refreshMapMarkers() {
             icon.type = 'button';
             icon.className = 'program-pin';
             icon.style.zIndex = '30';
-        icon.innerHTML = '<span>E</span>';
+        icon.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
         icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);
             icon.addEventListener('click', () => {

@@ -337,7 +337,7 @@ test('admin can turn a linked program entry into a standalone event', async ({ p
     await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
 });
 
-test('standalone program entries use a distinct E marker on the map', async ({ page }) => {
+test('standalone program entries use a calendar icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
         window.state.events.push({
@@ -356,7 +356,8 @@ test('standalone program entries use a distinct E marker on the map', async ({ p
 
     const programMarker = page.getByRole('button', { name: 'Eigenständiges Event: Eigenständiges Programm' });
     await expect(programMarker).toBeVisible();
-    await expect(programMarker).toContainText('E');
+    await expect(programMarker.locator('.ph-calendar-star')).toBeVisible();
+    await expect(programMarker).not.toContainText('E');
     await programMarker.click();
     await expect(page.locator('#program-event-modal')).toBeVisible();
 });
