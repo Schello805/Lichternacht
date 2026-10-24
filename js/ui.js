@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.293';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.293';
-import * as utils from './utils.js?v=1.4.293';
-import { saveData, deleteData } from './data.js?v=1.4.293';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.293';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.293';
-import { recordAuditEvent } from './audit.js?v=1.4.293';
-import { normalizeImageUrl } from './image-url.js?v=1.4.293';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.294';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.294';
+import * as utils from './utils.js?v=1.4.294';
+import { saveData, deleteData } from './data.js?v=1.4.294';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.294';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.294';
+import { recordAuditEvent } from './audit.js?v=1.4.294';
+import { normalizeImageUrl } from './image-url.js?v=1.4.294';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -22,6 +22,7 @@ let eventImageDraft = '';
 let editingStation = null;
 let editingStationSnapshot = null;
 let stationModalAnimation = null;
+let stationModalCloseTimer = null;
 
 function animateStationModal(stationId, reverse = false) {
     const content = document.getElementById('modal-content');
@@ -33,11 +34,14 @@ function animateStationModal(stationId, reverse = false) {
     content.style.transition = 'none';
     const destination = content.getBoundingClientRect();
     if (!origin.width || !destination.width || !destination.height) return;
+    const scale = Math.max(0.12, Math.min(0.25, origin.width / destination.width));
+    content.style.willChange = 'transform, opacity';
     const frames = [
-        { transformOrigin: 'center', transform: `translate(${origin.x + origin.width / 2 - destination.x - destination.width / 2}px, ${origin.y + origin.height / 2 - destination.y - destination.height / 2}px) scale(${Math.max(0.04, origin.width / destination.width)}, ${Math.max(0.04, origin.height / destination.height)})`, opacity: 0.25 },
-        { transformOrigin: 'center', transform: 'translate(0, 0) scale(1)', opacity: 1 }
+        { transformOrigin: 'center', transform: `translate3d(${origin.x + origin.width / 2 - destination.x - destination.width / 2}px, ${origin.y + origin.height / 2 - destination.y - destination.height / 2}px, 0) scale(${scale})`, opacity: 0 },
+        { transformOrigin: 'center', transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 }
     ];
-    stationModalAnimation = content.animate(reverse ? frames.reverse() : frames, { duration: reverse ? 260 : 360, easing: 'cubic-bezier(.2,.8,.2,1)', fill: reverse ? 'forwards' : 'none' });
+    stationModalAnimation = content.animate(reverse ? frames.reverse() : frames, { duration: reverse ? 180 : 240, easing: 'cubic-bezier(.16,1,.3,1)', fill: reverse ? 'forwards' : 'none' });
+    stationModalAnimation.finished.catch(() => {}).finally(() => { content.style.willChange = ''; });
     return stationModalAnimation;
 }
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
@@ -191,6 +195,11 @@ export function openModal(target) {
         const s = target;
         const detailModal = document.getElementById('detail-modal');
         const isOpening = detailModal?.classList.contains('hidden');
+        if (stationModalCloseTimer !== null) {
+            clearTimeout(stationModalCloseTimer);
+            stationModalCloseTimer = null;
+            stationModalAnimation?.cancel();
+        }
         if (state.map && detailModal?.classList.contains('hidden') && !state.modalReturnCamera) {
             const center = state.map.getCenter();
             state.modalReturnCamera = {
@@ -261,16 +270,10 @@ export function openModal(target) {
             if (isOpening) stationModalAnimation?.cancel();
             if (content) {
                 content.style.transform = '';
-                content.style.transition = '';
+                content.style.transition = 'none';
+                content.classList.remove('translate-y-full');
             }
             modal.classList.remove('hidden');
-            // Animate in - Double RAF for safety
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (content) content.classList.remove('translate-y-full');
-                    if (isOpening) animateStationModal(s.id);
-                });
-            });
             
             // Reset view mode
             setInlineStationEditMode(false);
@@ -282,6 +285,7 @@ export function openModal(target) {
 
             // Ensure like button reflects liked state + count immediately
             try { updateLikeBtn(s.id, s.likes || 0); } catch (e) { }
+            if (isOpening) animateStationModal(s.id);
         }
     }
 }
@@ -297,6 +301,7 @@ export function openStation(id) {
 
 export function closeModal(id) {
     if (!id) {
+        if (stationModalCloseTimer !== null) return;
         // Default to detail modal if no ID passed (e.g. from X button)
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
@@ -325,20 +330,22 @@ export function closeModal(id) {
         if (state.activeStationId) {
             state.activeStationId = null;
             window.activeStationId = null;
-            refreshMapMarkers();
         }
 
         if (content && !closingAnimation) content.classList.add('translate-y-full');
         
         // Wait for animation
-        setTimeout(() => {
+        stationModalCloseTimer = setTimeout(() => {
+            stationModalCloseTimer = null;
             if (modal) modal.classList.add('hidden');
+            stationModalAnimation?.cancel();
+            refreshMapMarkers();
             if (state.modalReturnCamera && !state.skipModalMapRestore && state.map) {
                 try { state.map.easeTo({ ...state.modalReturnCamera, duration: 350 }); } catch (e) { }
             }
             state.modalReturnCamera = null;
             state.skipModalMapRestore = false;
-        }, 300);
+        }, closingAnimation ? 180 : 0);
         return;
     }
 
