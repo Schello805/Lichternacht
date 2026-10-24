@@ -79,7 +79,7 @@ class LocalDatabase:
     def apply_document(database, operation):
         collection = operation.get('collection')
         identifier = str(operation.get('id', ''))
-        if collection not in ('checkins', 'auditLogs', 'presence', 'users', 'reports', 'broadcast', 'globalConfig', 'stats'):
+        if collection not in ('checkins', 'auditLogs', 'presence', 'users', 'globalAdmins', 'reports', 'broadcast', 'globalConfig', 'stats'):
             raise ValueError('Unbekannte Datensammlung.')
         if not identifier or len(identifier) > 200 or '/' in identifier:
             raise ValueError('Ungültige Datensatz-ID.')
@@ -110,7 +110,7 @@ class LocalDatabase:
         return [{'id': key, 'data': value} for key, value in rows if identifier is None or key == identifier]
 
     def is_admin(self, user_id):
-        return bool(self.records('users', user_id))
+        return bool(self.records('users', user_id) or self.records('globalAdmins', user_id))
 
     def active_presence_count(self, since):
         with self.connect() as database:

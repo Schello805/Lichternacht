@@ -74,6 +74,11 @@ Ein ausgeschöpftes Firestore-Kontingent kann auch den Export blockieren. Dann
 keinen Teil-Export aktivieren. Erst einen aktuellen vollständigen Export oder
 eine nachweislich vollständige Sicherung verwenden.
 
+Vor dem endgültigen Export Schreibzugriffe alter Clients sperren und laufende
+Admin-Änderungen beenden. Nach der Umschaltung dürfen alte App-Versionen nicht
+weiter in Firestore schreiben; diese Sperre erst nach einem geprüften
+Rückabgleich aufheben. Der Export übernimmt auch globale Admin-Berechtigungen.
+
 Lokale Komplettsicherungen im Adminbereich enthalten zusätzlich `localDocuments`
 und `localLikes`. Wiederherstellung über das Importskript in eine neue Datenbank;
 der Browser verhindert eine unvollständige Wiederherstellung dieser Sicherungen.

@@ -39,6 +39,7 @@ export async function exportFirestore({ token, project, appId, origin, output })
     const config = documentData(configDocument);
     const localDocuments = {};
     for (const collection of ['checkins', 'auditLogs', 'presence', 'users', 'reports']) localDocuments[collection] = await list(base + (collection === 'reports' ? '' : 'data/') + collection);
+    localDocuments.globalAdmins = await list('globalAdmins');
     for (const [collection, path, id] of [['globalConfig', 'global/config', 'config'], ['stats', 'global/stats', 'stats'], ['broadcast', base + 'broadcast', 'broadcast']]) {
         const document = await read(path);
         localDocuments[collection] = document ? [{ id, data: documentData(document) }] : [];
