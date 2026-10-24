@@ -1,12 +1,41 @@
 # Vorbereitung einer Server-Datenbank
 
-## Produktivbetrieb seit 24.10.2026
+## Lokale Anmeldung aktiv seit v1.4.299
+
+Am 24.10.2026 wurde zusätzlich Firebase Authentication durch die lokale
+Anmeldung ersetzt. App-Daten und Anmeldung laufen nun auf dem eigenen Server.
+Der ursprüngliche Admin behält seine Nutzer-ID, verwendet aber ein separat
+im Serverterminal gesetztes lokales Passwort. Firebase wurde nicht gelöscht;
+die aktuelle App benötigt im aktivierten lokalen Modus keine Firebase-Anfragen.
+
+Die Aktivierung erfolgt über
+`/etc/systemd/system/lichternacht-api.service.d/auth-local.conf` mit
+`LOCAL_AUTH_ENABLED=true`, der festen `LOCAL_AUTH_ORIGIN` und
+`LOCAL_AUTH_PATH=/root/lichternacht-migration/.private/local-auth.sqlite3`.
+Ein Deployment allein darf diese Einstellungen nicht abschalten.
+
+Live geprüft wurden sichere HttpOnly-Sitzungen, anonyme Besucher-Schreibzugriffe,
+Schutz privater Daten, CSRF-Abwehr und Navigation ohne Firebase-Netzwerkzugriffe.
+Der Betreiber hat Admin-Anmeldung, Bearbeiten sowie den Eingang und das Öffnen
+der Passwortreset-Mail bestätigt. Details und Offline-Wiederherstellung stehen
+in `AUTH_MIGRATION.md`.
+
+Die geschützten täglichen Archive unter `/root/lichternacht-backups/` enthalten
+jetzt Datenbank, Uploads, Auth-Konten, SMTP-/Serverkonfiguration, systemd-Dateien
+und Versionsmanifest. Auth-Sitzungen und Resetlinks werden absichtlich nicht
+mitgesichert. Die Auth-Wiederherstellung wurde durch Integritäts- und
+Kontenabgleich geprüft; die letzten 14 Sicherungsstände bleiben erhalten.
+Diese Serverarchive enthalten vertrauliche Zugangsdaten und gehören nicht ins
+Webverzeichnis oder in den öffentlichen JSON-Export.
+
+## Datenbankumstellung mit v1.4.297 am 24.10.2026
 
 Der LXC nutzt mit Release `v1.4.297` die Datenbank
 `/root/lichternacht-migration/local.sqlite3`. Die Aktivierung liegt im
 systemd-Drop-in
 `/etc/systemd/system/lichternacht-api.service.d/local-database.conf`, nicht in
-der `.env`. Firebase Authentication bleibt aktiv.
+der `.env`. Bei diesem ersten Umstellungsschritt blieb Firebase Authentication
+noch aktiv; seit v1.4.299 gilt stattdessen der lokale Anmeldemodus oben.
 
 Firestore ist für Client-Schreibzugriffe gesperrt. Die zuvor veröffentlichten
 Regeln und die Schreibsperre sind unter `/root/lichternacht-migration/` gesichert

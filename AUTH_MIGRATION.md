@@ -1,5 +1,20 @@
 # Opt-in local authentication
 
+## Production status, 24 October 2026
+
+Local auth is active on the production server with release `v1.4.299`.
+The original admin UID is preserved. The owner confirmed local login, editing
+and reset-email delivery/form access. A fresh production browser made zero
+Firebase requests, used Secure/HttpOnly/Strict cookies, saved visitor presence
+and was denied private-data access and a foreign-Origin write.
+Protected daily backups include auth accounts and configuration; restore was
+verified without reviving sessions or reset links. Firebase project data remain
+untouched as historical records; they are not the active authentication source.
+
+The feature remains opt-in **for new installations**. Do not disable its
+production systemd override or deploy older auth code without a coordinated
+identity/data rollback.
+
 `local_auth.py` uses only the Python standard library. Server and frontend support
 the local mode, but it remains **off by default**. `LOCAL_AUTH_ENABLED=true` and
 `LOCAL_DATABASE_ENABLED=true` must both be set for activation. Merely having an
