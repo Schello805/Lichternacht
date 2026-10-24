@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.290';
-import { loadData } from './data.js?v=1.4.290';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.290';
-import { renderTimeline } from './ui.js?v=1.4.290';
+import { showToast } from './utils.js?v=1.4.291';
+import { loadData } from './data.js?v=1.4.291';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.291';
+import { renderTimeline } from './ui.js?v=1.4.291';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');

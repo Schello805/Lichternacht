@@ -1,13 +1,14 @@
 
 import { state } from './state.js';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.290';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.290';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.290';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.291';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.291';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.291';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.291';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.290';
-import { recordAuditEvent } from './audit.js?v=1.4.290';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.290';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.290';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.291';
+import { recordAuditEvent } from './audit.js?v=1.4.291';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.291';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.291';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -17,6 +18,8 @@ const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
 let auditLogEntries = [];
+let audienceMetricsCache = null;
+let audienceMetricsSavedAt = 0;
 
 async function getAdminToken() {
     const currentUser = state.auth?.currentUser;
@@ -151,6 +154,8 @@ function renderMetricCard({ label, value, detail = '', icon = 'ph-info', tone = 
 }
 
 async function loadAudienceMetrics() {
+    if (audienceMetricsCache && Date.now() - audienceMetricsSavedAt < 60000) return audienceMetricsCache;
+    if (!canUseFirestore()) return audienceMetricsCache || { activeVisitors: null, admins: null };
     if (state.useLocalStorage || !state.db) return { activeVisitors: null, admins: null };
     const { collection, query, where, getCountFromServer } = state.fb;
     const presenceRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'presence');
@@ -160,6 +165,7 @@ async function loadAudienceMetrics() {
         try {
             return (await getCountFromServer(source)).data().count;
         } catch (error) {
+            noteFirestoreError(error);
             console.warn(`${label} konnte nicht geladen werden`, error);
             return null;
         }
@@ -168,7 +174,9 @@ async function loadAudienceMetrics() {
         countDocuments(activeQuery, 'Besucherzahl'),
         countDocuments(usersRef, 'Adminzahl')
     ]);
-    return { activeVisitors, admins };
+    audienceMetricsCache = { activeVisitors, admins };
+    audienceMetricsSavedAt = Date.now();
+    return audienceMetricsCache;
 }
 
 export async function loadSystemMetrics() {
@@ -1143,7 +1151,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.290';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.291';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1733,9 +1741,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.290';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.290';
-import { renderList, renderTimeline } from './ui.js?v=1.4.290';
+import { showToast } from './utils.js?v=1.4.291';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.291';
+import { renderList, renderTimeline } from './ui.js?v=1.4.291';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

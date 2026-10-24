@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.291';
 import {
     showToast,
     getDistance,
@@ -7,11 +8,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.290';
-import * as utils from './utils.js?v=1.4.290';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.290';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.290';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.290';
+} from './utils.js?v=1.4.291';
+import * as utils from './utils.js?v=1.4.291';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.291';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.291';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.291';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -54,7 +55,7 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
         source: 'lichterpass',
         appId: state.appId || 'unknown'
     };
-    if (!navigator.onLine) {
+    if (!navigator.onLine || !canUseFirestore()) {
         queueOfflineAction('checkin', payload);
         return;
     }
@@ -71,6 +72,7 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
             if (!existing.exists()) throw error;
         }
     } catch (e) {
+        noteFirestoreError(e);
         console.warn('Anonymous check-in analytics failed', e);
         queueOfflineAction('checkin', payload);
     }
@@ -636,14 +638,16 @@ export function initPresence() {
     }
 
     const sendHeartbeat = async () => {
+        if (document.visibilityState === 'hidden' || !canUseFirestore()) return;
         try {
             const { doc, setDoc, serverTimestamp } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'presence', sessionId);
             await setDoc(ref, { lastSeen: serverTimestamp() });
-        } catch (e) { console.warn("Heartbeat failed", e); }
+        } catch (e) { noteFirestoreError(e); console.warn("Heartbeat failed", e); }
     };
 
     const updateUserCount = async () => {
+        if (document.visibilityState === 'hidden' || !canUseFirestore()) return;
         try {
             const { collection, query, where, getCountFromServer, doc, getDoc } = state.fb;
             const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);
@@ -671,6 +675,7 @@ export function initPresence() {
                 if (document.getElementById('count-diamond')) document.getElementById('count-diamond').innerText = d.count_diamond || 0;
             }
         } catch (e) {
+            noteFirestoreError(e);
             console.warn("Count failed", e);
             // Keep badge visible even if count fails
             const el = document.getElementById('user-count');
