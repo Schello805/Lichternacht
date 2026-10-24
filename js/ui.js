@@ -1,12 +1,13 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.289';
-import * as utils from './utils.js?v=1.4.289';
-import { saveData, deleteData } from './data.js?v=1.4.289';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.289';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.289';
-import { recordAuditEvent } from './audit.js?v=1.4.289';
-import { normalizeImageUrl } from './image-url.js?v=1.4.289';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.290';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.290';
+import * as utils from './utils.js?v=1.4.290';
+import { saveData, deleteData } from './data.js?v=1.4.290';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.290';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.290';
+import { recordAuditEvent } from './audit.js?v=1.4.290';
+import { normalizeImageUrl } from './image-url.js?v=1.4.290';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -545,7 +546,7 @@ export function renderFilterBar() {
     // Collect all tags from stations
     const allTags = new Set();
     state.stations.forEach(s => {
-        if (s.tags) s.tags.forEach(t => allTags.add(t));
+        getStationTags(s).forEach(t => allTags.add(t));
     });
     
     // Add default tags that should always appear if they exist or not? 
@@ -598,7 +599,7 @@ export function renderFilterBar() {
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const selected = currentFilter === tag ? 'selected' : '';
-        row2 += `<option value="${tag}" ${selected} class="text-gray-900 bg-white">${label}</option>`;
+        row2 += `<option value="${escapeHtml(tag)}" ${selected} class="text-gray-900 bg-white">${escapeHtml(label)}</option>`;
     });
 
     row2 += `
@@ -788,7 +789,7 @@ export function renderList(stations) {
     let listToRender = stations.filter(station => {
         if (currentFilter === 'favorites' && !state.favorites.has(station.id) && !state.favorites.has(String(station.id))) return false;
         if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
-        if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !(station.tags || []).includes(currentFilter)) return false;
+        if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !getStationTags(station).includes(currentFilter)) return false;
         const search = currentSearchQuery.toLowerCase();
         return !search || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
     }).map(s => ({...s}));
@@ -846,9 +847,7 @@ export function renderList(stations) {
     }
 
     container.innerHTML = listToRender.map(s => {
-        const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
-        const visibleTags = translatedTags.slice(0, 2);
-        const remainingTagCount = Math.max(0, translatedTags.length - visibleTags.length);
+        const visibleTags = getStationTags(s).map(t => TAG_TRANSLATIONS[t] || t);
         const isVisited = visitedStations.has(String(s.id));
         const isFavorite = state.favorites.has(s.id) || state.favorites.has(String(s.id));
         const hasProgram = (state.events || []).some(event => String(event.stationId || '') === String(s.id));
@@ -895,7 +894,6 @@ export function renderList(stations) {
                     </div>
                     <div class="mt-2 flex gap-1.5 flex-wrap">
                         ${visibleTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
-                        ${remainingTagCount ? `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">+${remainingTagCount}</span>` : ''}
                     </div>
                     ${distInfo}
                 </div>
@@ -939,6 +937,7 @@ export function filterStations(query) {
 }
 
 export function filterList(tag) {
+    tag = normalizeStationTag(tag);
     currentFilter = tag;
     currentSearchQuery = '';
     scrollStationListToTop();
@@ -963,7 +962,7 @@ export function filterList(tag) {
     }
     
     if (tag === 'favorites') {
-        const favs = state.stations.filter(s => state.favorites.has(s.id));
+        const favs = state.stations.filter(s => state.favorites.has(s.id) || state.favorites.has(String(s.id)));
         renderList(favs);
         if (favs.length === 0) {
             showToast("Keine Favoriten markiert", 'info');
@@ -983,7 +982,7 @@ export function filterList(tag) {
     }
 
     // Filter by tag
-    const filtered = state.stations.filter(s => s.tags && s.tags.includes(tag));
+    const filtered = state.stations.filter(s => getStationTags(s).includes(tag));
     renderList(filtered);
 }
 

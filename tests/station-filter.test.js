@@ -8,7 +8,7 @@ test('category survives searches, data refreshes and GPS redraws', async () => {
     globalThis.document = { getElementById: id => id === 'stations-list' ? container : null };
     globalThis.localStorage = { getItem: () => null };
     state.stations = [
-        { id: 1, name: 'Mit Toilette', offer: 'Kaffee', tags: ['wc'] },
+        { id: 1, name: 'Mit Toilette', offer: 'Kaffee', tags: [' WC '] },
         { id: 2, name: 'Ohne Toilette', offer: 'Kaffee', tags: ['food'] }
     ];
     state.favorites = new Set();
