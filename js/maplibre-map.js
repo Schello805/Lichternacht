@@ -1,12 +1,26 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.294';
-import { saveData } from './data.js?v=1.4.294';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.295';
+import { saveData } from './data.js?v=1.4.295';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
     dark: 'https://tiles.openfreemap.org/styles/dark'
 };
+let recentlyClosedStation = null;
+let recentlyClosedTimer = null;
+
+export function highlightRecentlyClosedStation(stationId) {
+    if (recentlyClosedTimer) window.clearTimeout(recentlyClosedTimer);
+    state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    recentlyClosedStation = stationId == null ? null : { id: String(stationId), until: Date.now() + 5000 };
+    if (!recentlyClosedStation) return;
+    recentlyClosedTimer = window.setTimeout(() => {
+        recentlyClosedStation = null;
+        recentlyClosedTimer = null;
+        state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    }, 5000);
+}
 const SATELLITE_STYLE = {
     version: 8,
     sources: {
@@ -532,6 +546,9 @@ export function refreshMapMarkers() {
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
+        if (recentlyClosedStation?.id === String(s.id) && Date.now() < recentlyClosedStation.until) {
+            icon.classList.add('recently-opened-station');
+        }
         icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
         
         if (hasProgram) {

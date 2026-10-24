@@ -15,6 +15,8 @@ test('station modal zooms from its marker and respects reduced motion', async ({
     expect(await page.evaluate(() => window.__stationAnimations[0][0].transform)).toMatch(/translate.*scale/);
     await page.getByRole('button', { name: 'Station schließen' }).click();
     await expect(page.locator('#detail-modal')).toBeHidden();
+    await expect(page.locator('.recently-opened-station')).toHaveCount(1);
+    await expect(page.locator('.recently-opened-station')).toHaveCount(0, { timeout: 6500 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.evaluate(() => window.openStation(1));
     await expect(page.locator('#detail-modal')).toBeVisible();

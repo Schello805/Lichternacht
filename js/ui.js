@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.294';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.294';
-import * as utils from './utils.js?v=1.4.294';
-import { saveData, deleteData } from './data.js?v=1.4.294';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.294';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.294';
-import { recordAuditEvent } from './audit.js?v=1.4.294';
-import { normalizeImageUrl } from './image-url.js?v=1.4.294';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.295';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.295';
+import * as utils from './utils.js?v=1.4.295';
+import { saveData, deleteData } from './data.js?v=1.4.295';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.295';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.295';
+import { recordAuditEvent } from './audit.js?v=1.4.295';
+import { normalizeImageUrl } from './image-url.js?v=1.4.295';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -324,7 +324,8 @@ export function closeModal(id) {
             }
         } catch (e) { }
         
-        const closingAnimation = animateStationModal(state.activeStationId, true);
+        const closedStationId = state.activeStationId;
+        const closingAnimation = animateStationModal(closedStationId, true);
 
         // Reset active station highlight
         if (state.activeStationId) {
@@ -339,6 +340,7 @@ export function closeModal(id) {
             stationModalCloseTimer = null;
             if (modal) modal.classList.add('hidden');
             stationModalAnimation?.cancel();
+            if (state.activeTab === 'map') highlightRecentlyClosedStation(closedStationId);
             refreshMapMarkers();
             if (state.modalReturnCamera && !state.skipModalMapRestore && state.map) {
                 try { state.map.easeTo({ ...state.modalReturnCamera, duration: 350 }); } catch (e) { }
