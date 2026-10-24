@@ -1,12 +1,27 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.282';
-import { saveData } from './data.js?v=1.4.282';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget } from './round-trip.js?v=1.4.299';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.299';
+import { saveData } from './data.js?v=1.4.299';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
     dark: 'https://tiles.openfreemap.org/styles/dark'
 };
+let recentlyClosedStation = null;
+let recentlyClosedTimer = null;
+
+export function highlightRecentlyClosedStation(stationId) {
+    if (recentlyClosedTimer) window.clearTimeout(recentlyClosedTimer);
+    state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    recentlyClosedStation = stationId == null ? null : { id: String(stationId), until: Date.now() + 5000 };
+    if (!recentlyClosedStation) return;
+    recentlyClosedTimer = window.setTimeout(() => {
+        recentlyClosedStation = null;
+        recentlyClosedTimer = null;
+        state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    }, 5000);
+}
 const SATELLITE_STYLE = {
     version: 8,
     sources: {
@@ -444,7 +459,6 @@ export function initMap() {
     state.map.dragRotate.disable();
     state.map.touchZoomRotate.disableRotation();
     state.map.on('style.load', restoreMapOverlays);
-    state.map.on('moveend', updateMarkerClusters);
     state.map.on('error', () => applyFallbackMapStyle());
     updateMapLayerButton();
     updateOverviewRouteButton();
@@ -477,44 +491,6 @@ function applyFallbackMapStyle() {
 function clearClusterMarkers() {
     (state.clusterMarkers || []).forEach(marker => marker.remove());
     state.clusterMarkers = [];
-}
-
-function updateMarkerClusters() {
-    clearClusterMarkers();
-    if (!state.map || state.isAdmin || state.map.getZoom() >= 18 || !Array.isArray(state.markers)) {
-        state.markers.forEach(item => { item.marker.getElement().style.display = ''; });
-        return;
-    }
-
-    const remaining = [...state.markers];
-    while (remaining.length) {
-        const first = remaining.shift();
-        const firstPoint = state.map.project(first.marker.getLngLat());
-        const group = [first];
-        for (let index = remaining.length - 1; index >= 0; index--) {
-            const point = state.map.project(remaining[index].marker.getLngLat());
-            if (Math.hypot(point.x - firstPoint.x, point.y - firstPoint.y) <= 46) {
-                group.push(remaining.splice(index, 1)[0]);
-            }
-        }
-        if (group.length === 1) {
-            first.marker.getElement().style.display = '';
-            continue;
-        }
-        group.forEach(item => { item.marker.getElement().style.display = 'none'; });
-        const positions = group.map(item => item.marker.getLngLat());
-        const center = positions.reduce((sum, position) => ({ lng: sum.lng + position.lng, lat: sum.lat + position.lat }), { lng: 0, lat: 0 });
-        center.lng /= positions.length;
-        center.lat /= positions.length;
-        const hasRestroom = group.some(item => item.hasRestroom);
-        const element = document.createElement('button');
-        element.type = 'button';
-        element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
-        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
-        element.setAttribute('aria-label', `${group.length} Stationen${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`);
-        element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
-        state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
-    }
 }
 
 export function updateMapTiles(isDark) {
@@ -567,11 +543,24 @@ export function refreshMapMarkers() {
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         const hasRestroom = stationOffersRestroom(s);
+        const hasProgram = state.events.some(event => String(event.stationId || '') === String(s.id));
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
+        if (recentlyClosedStation?.id === String(s.id) && Date.now() < recentlyClosedStation.until) {
+            icon.classList.add('recently-opened-station');
+        }
         icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
         
+        if (hasProgram) {
+            const badge = document.createElement('span');
+            badge.className = 'station-event-badge';
+            badge.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
+            badge.setAttribute('aria-label', 'Station mit Programm');
+            badge.title = 'Station mit Programm';
+            icon.appendChild(badge);
+        }
+
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
@@ -628,7 +617,8 @@ export function refreshMapMarkers() {
             const icon = document.createElement('button');
             icon.type = 'button';
             icon.className = 'program-pin';
-        icon.innerHTML = '<span>E</span>';
+            icon.style.zIndex = '30';
+        icon.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
         icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);
             icon.addEventListener('click', () => {
@@ -662,7 +652,6 @@ export function refreshMapMarkers() {
             }
             state.programMarkers.push(marker);
         });
-    updateMarkerClusters();
     refreshStandaloneRestroomMarkers();
     refreshStandaloneParkingMarkers();
 }
@@ -885,6 +874,7 @@ export function calculateRoute(destLat, destLng) {
 
 export function clearRoute() {
     state.routeGeometry = null;
+    clearOverviewRoute();
     if (!state.map) return;
     try {
         if (state.map.getLayer(ROUTE_LAYER_ID)) state.map.removeLayer(ROUTE_LAYER_ID);
@@ -892,7 +882,6 @@ export function clearRoute() {
     } catch (error) {
         console.warn('Route could not be cleared', error);
     }
-    if (state.overviewRouteGeometry) clearOverviewRoute();
     hideRouteInfoIfUnused();
 }
 
@@ -943,36 +932,7 @@ function getDistanceMeters(start, end) {
 }
 
 function buildOverviewRoundTrip(stationIds = null) {
-    const selectedIds = Array.isArray(stationIds) ? new Set(stationIds.map(String)) : null;
-    const stations = state.stations
-        .filter(station => !selectedIds || selectedIds.has(String(station.id)))
-        .map(station => {
-            const coordinates = getValidCoordinates(station.lat, station.lng);
-            return coordinates ? { station, coordinates: [coordinates.longitude, coordinates.latitude] } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => Number(a.station.id) - Number(b.station.id));
-    if (stations.length < 2) return { coordinates: [], stations: [] };
-
-    const remaining = [...stations];
-    const ordered = [remaining.shift()];
-    while (remaining.length) {
-        const current = ordered[ordered.length - 1].coordinates;
-        let nextIndex = 0;
-        let nearestDistance = Infinity;
-        remaining.forEach((candidate, index) => {
-            const distance = getDistanceMeters(current, candidate.coordinates);
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nextIndex = index;
-            }
-        });
-        ordered.push(remaining.splice(nextIndex, 1)[0]);
-    }
-    return {
-        coordinates: [...ordered.map(item => item.coordinates), ordered[0].coordinates],
-        stations: ordered.map(item => item.station)
-    };
+    return buildRoundTrip(state.stations, stationIds);
 }
 
 function formatRouteDistance(distanceMeters) {
@@ -987,6 +947,12 @@ function formatRouteDuration(durationSeconds) {
 
 function clearOverviewRoute() {
     state.overviewRouteRequestId += 1;
+    state.overviewRouteCalculating = false;
+    state.overviewRouteEstimated = false;
+    state.overviewRouteReached = 0;
+    state.overviewRouteSkipped = 0;
+    state.overviewRouteClosing = false;
+    state.overviewRouteCompleted = false;
     state.overviewRouteGeometry = null;
     state.overviewRouteStations = [];
     state.overviewRouteNavigationIndex = 0;
@@ -1025,23 +991,41 @@ function updateOverviewRouteNavigationButton() {
     if (!button || !state.overviewRouteGeometry || !stations.length) return;
     const index = state.overviewRouteNavigationIndex % stations.length;
     const station = stations[index];
-    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · Nächste: #${station.id} ${station.name || ''}`;
+    const targetLabel = state.overviewRouteClosing ? `Zurück zum Start: #${station.id}` : `Nächste: #${station.id} ${station.name || ''}`;
+    const result = `${state.overviewRouteReached} erreicht · ${state.overviewRouteSkipped} übersprungen`;
+    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · ${state.overviewRouteCompleted ? `Rundweg beendet · ${result}` : targetLabel}${state.overviewRouteEstimated ? ' · Nur Luftlinien, keine Navigation' : ''}`;
     button.innerHTML = state.overviewRouteNavigationActive
-        ? '<i class="ph ph-navigation-arrow"></i> Rundweg läuft'
+        ? (state.overviewRouteClosing ? 'Ankunft am Start bestätigen' : 'Station erreicht · Weiter')
         : '<i class="ph ph-navigation-arrow"></i> Rundweg starten';
-    button.disabled = state.overviewRouteNavigationActive;
+    button.disabled = state.overviewRouteEstimated || state.overviewRouteCompleted;
     button.classList.toggle('opacity-75', state.overviewRouteNavigationActive);
     button.classList.remove('hidden');
-    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive);
+    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive || state.overviewRouteClosing);
 }
 
 export function startOverviewNavigation() {
+    if (state.overviewRouteEstimated || state.overviewRouteCalculating || state.overviewRouteCompleted) return;
+    if (state.overviewRouteNavigationActive) {
+        const target = state.overviewRouteStations[state.overviewRouteNavigationIndex];
+        if (!canConfirmTarget(state, target)) {
+            showToast('Zum Bestätigen: frisches GPS (höchstens 15 Sek., Genauigkeit ≤ 50 m) und Nähe zur Station erforderlich.', 'info');
+            return;
+        }
+        advanceOverviewNavigation(false);
+        return;
+    }
     const stations = state.overviewRouteStations || [];
     if (!stations.length) {
         showToast('Erstelle zuerst einen Rundweg.', 'info');
         return;
     }
+    const requestId = state.overviewRouteRequestId;
     const beginNavigation = () => {
+        if (requestId !== state.overviewRouteRequestId || state.overviewRouteEstimated || !state.overviewRouteGeometry) return;
+        if (!hasNavigationFix(state)) {
+            showToast('Navigation benötigt frisches, genaues GPS. Bitte erneut starten.', 'info');
+            return;
+        }
         if (state.userLocation) {
             const userCoordinates = [state.userLocation.lng, state.userLocation.lat];
             state.overviewRouteNavigationIndex = stations.reduce((bestIndex, station, index) => {
@@ -1052,10 +1036,11 @@ export function startOverviewNavigation() {
             }, 0);
         }
         state.overviewRouteNavigationActive = true;
+        state.overviewRouteStartIndex = state.overviewRouteNavigationIndex;
         state.overviewRouteNavigationProgress = 0;
         updateOverviewRouteNavigationButton();
     };
-    if (state.userLocation) beginNavigation();
+    if (hasNavigationFix(state)) beginNavigation();
     else {
         const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
             localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
@@ -1063,14 +1048,24 @@ export function startOverviewNavigation() {
     }
 }
 
-function advanceOverviewNavigation() {
+function advanceOverviewNavigation(skipped = false) {
     const stations = state.overviewRouteStations || [];
     if (!state.overviewRouteNavigationActive || !stations.length) return;
+    if (state.overviewRouteClosing) {
+        state.overviewRouteNavigationActive = false;
+        state.overviewRouteCompleted = true;
+        updateOverviewRouteNavigationButton();
+        showToast(`Rundweg beendet: ${state.overviewRouteReached} erreicht, ${state.overviewRouteSkipped} übersprungen.`, 'success');
+        return;
+    }
+    if (skipped) state.overviewRouteSkipped += 1;
+    else state.overviewRouteReached += 1;
     state.overviewRouteNavigationProgress += 1;
     if (state.overviewRouteNavigationProgress >= stations.length) {
-        state.overviewRouteNavigationActive = false;
+        state.overviewRouteClosing = true;
+        state.overviewRouteNavigationIndex = state.overviewRouteStartIndex;
         updateOverviewRouteNavigationButton();
-        showToast('Rundweg abgeschlossen. Viel Spaß beim weiteren Entdecken!', 'success');
+        showToast('Stationen bearbeitet. Zum Start zurückkehren und Ankunft bestätigen.', 'info');
         return;
     }
     state.overviewRouteNavigationIndex = (state.overviewRouteNavigationIndex + 1) % stations.length;
@@ -1078,26 +1073,21 @@ function advanceOverviewNavigation() {
 }
 
 export function skipOverviewNavigationStation() {
-    if (!state.overviewRouteNavigationActive) return;
-    advanceOverviewNavigation();
+    if (!state.overviewRouteNavigationActive || state.overviewRouteClosing) return;
+    advanceOverviewNavigation(true);
 }
 
 function advanceOverviewNavigationIfReached(latitude, longitude) {
-    if (!state.overviewRouteNavigationActive) return;
-    const stations = state.overviewRouteStations || [];
-    const station = stations[state.overviewRouteNavigationIndex % stations.length];
-    const coordinates = station && getValidCoordinates(station.lat, station.lng);
-    if (!coordinates) return;
-    if (getDistanceMeters([longitude, latitude], [coordinates.longitude, coordinates.latitude]) <= 65) advanceOverviewNavigation();
+    if (state.overviewRouteNavigationActive) updateOverviewRouteNavigationButton();
 }
 
 export async function toggleOverviewRoute(stationIds = null) {
-    if (state.overviewRouteGeometry && stationIds === null) {
+    if ((state.overviewRouteGeometry || state.overviewRouteCalculating) && stationIds === null) {
         clearOverviewRoute();
         return;
     }
 
-    if (state.overviewRouteGeometry) clearOverviewRoute();
+    clearOverviewRoute();
     const overview = buildOverviewRoundTrip(stationIds);
     const coordinates = overview.coordinates;
     if (coordinates.length < 3) {
@@ -1108,6 +1098,7 @@ export async function toggleOverviewRoute(stationIds = null) {
     clearRoute();
     const requestId = state.overviewRouteRequestId + 1;
     state.overviewRouteRequestId = requestId;
+    state.overviewRouteCalculating = true;
     setRouteInfo('Rundweg wird berechnet', `${coordinates.length - 1} Stationen werden verbunden`);
     const fallbackDistance = coordinates.slice(1).reduce((total, coordinate, index) => total + getDistanceMeters(coordinates[index], coordinate), 0) * 1.25;
     const fallbackDuration = fallbackDistance / 1.25;
@@ -1116,9 +1107,9 @@ export async function toggleOverviewRoute(stationIds = null) {
     let duration = fallbackDuration;
     let estimated = true;
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
     try {
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
         const routeCoordinates = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
         const response = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${routeCoordinates}?overview=full&geometries=geojson`, { signal: controller.signal });
         window.clearTimeout(timeout);
@@ -1132,9 +1123,13 @@ export async function toggleOverviewRoute(stationIds = null) {
         estimated = false;
     } catch (error) {
         console.warn('Overview route fallback', error);
+    } finally {
+        window.clearTimeout(timeout);
     }
 
     if (requestId !== state.overviewRouteRequestId) return;
+    state.overviewRouteCalculating = false;
+    state.overviewRouteEstimated = estimated;
     state.overviewRouteGeometry = geometry;
     state.overviewRouteStations = overview.stations;
     state.overviewRouteNavigationIndex = 0;
@@ -1143,7 +1138,7 @@ export async function toggleOverviewRoute(stationIds = null) {
     renderOverviewRoute(geometry);
     updateOverviewRouteButton();
     const prefix = estimated ? 'Geschätzt: ' : '';
-    state.overviewRouteSummary = `${prefix}${formatRouteDistance(distance)} · ${formatRouteDuration(duration)}`;
+    state.overviewRouteSummary = `${prefix}${formatRouteDistance(distance)} · reine Gehzeit ${formatRouteDuration(duration)} (ohne Anweg und Aufenthalte)`;
     setRouteInfo(`Rundweg · ${coordinates.length - 1} Stationen`, state.overviewRouteSummary);
     updateOverviewRouteNavigationButton();
     fitCoordinates(geometry.coordinates, 70);

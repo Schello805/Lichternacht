@@ -1,5 +1,184 @@
 import { expect, test } from '@playwright/test';
 
+test('local authentication works without loading Firebase and preserves admin session when creating users', async ({ page }) => {
+    let current = null;
+    const visitor = { uid: 'anon_local-test', email: null, isAnonymous: true, isAdmin: false };
+    const admin = { uid: 'existing-admin', email: 'admin@example.test', isAnonymous: false, isAdmin: true };
+    const externalAuth = [];
+    page.on('request', request => {
+        if (/firebasejs|firestore\.googleapis|identitytoolkit\.googleapis/.test(request.url())) externalAuth.push(request.url());
+    });
+    await page.route('**/api/local-auth/**', route => {
+        const action = new URL(route.request().url()).pathname.split('/').pop();
+        if (action === 'login') {
+            const data = route.request().postDataJSON();
+            if (data.password !== 'Test-password-1234') return route.fulfill({ status: 401, json: { error: 'E-Mail oder Passwort ist nicht korrekt' } });
+            current = admin;
+        }
+        if (action === 'anonymous') current ||= visitor;
+        if (action === 'logout') current = null;
+        if (action === 'create-admin') return route.fulfill({ json: { ok: true, user: { ...admin, uid: 'second-admin' } } });
+        return route.fulfill({ json: { ok: true, enabled: true, user: current } });
+    });
+    await page.route('**/api/local-admin', route => route.fulfill({ json: { ok: true, isAdmin: Boolean(current?.isAdmin) } }));
+    await page.route('**/api/local-data**', route => {
+        const url = new URL(route.request().url());
+        if (route.request().method() === 'POST') return route.fulfill({ json: { ok: true } });
+        if (url.searchParams.get('count')) return route.fulfill({ json: { ok: true, count: 1 } });
+        if (url.searchParams.has('collection')) return route.fulfill({ json: { ok: true, records: [] } });
+        return route.fulfill({ json: { ok: true, appId: 'e2e-test', stations: [{ id: 1, name: 'Lokal', lat: 49.158, lng: 10.552 }], events: [], config: {} } });
+    });
+    await page.goto('/index.html');
+    await expect.poll(() => page.evaluate(() => window.state.auth.currentUser?.uid)).toBe(visitor.uid);
+    const invalid = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        try { await state.fb.signInWithEmailAndPassword(state.auth, 'admin@example.test', 'wrong'); } catch (error) { return error.code; }
+    });
+    expect(invalid).toBe('auth/invalid-credential');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        await state.fb.signInWithEmailAndPassword(state.auth, 'admin@example.test', 'Test-password-1234');
+        await state.fb.createUserWithEmailAndPassword(state.auth, 'second@example.test', 'Test-password-1234');
+    });
+    await expect.poll(() => page.evaluate(() => window.state.isAdmin)).toBe(true);
+    expect(await page.evaluate(() => window.state.auth.currentUser.uid)).toBe(admin.uid);
+    await page.evaluate(() => window.state.fb.signOut(window.state.auth));
+    await expect.poll(() => page.evaluate(() => window.state.auth.currentUser?.uid)).toBe(visitor.uid);
+    expect(externalAuth).toEqual([]);
+});
+
+test('admin user names remain literal text and cannot inject HTML or handlers', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const email = '<img/src=x/onerror=alert(1)>@example.test';
+        state.fb = { collection: () => ({}), getDocs: async () => ({ forEach: callback => callback({ id: "quoted'uid", data: () => ({ email }) }) }) };
+        const { loadUsers } = await import('/js/admin.js');
+        await loadUsers();
+    });
+    await expect(page.locator('#user-list img')).toHaveCount(0);
+    await expect(page.locator('#user-list')).toContainText('<img/src=x/onerror=alert(1)>@example.test');
+    await expect(page.locator('#user-list [data-admin-delete-id]')).toHaveAttribute('data-admin-delete-id', "quoted'uid");
+    await expect(page.locator('#user-list [data-admin-delete-id]')).not.toHaveAttribute('onclick');
+});
+
+test('local database routes telemetry and broadcasts without Firestore requests', async ({ page }) => {
+    const firestoreRequests = [];
+    const writes = [];
+    page.on('request', request => {
+        if (request.url().includes('firestore.googleapis.com')) firestoreRequests.push(request.url());
+    });
+    await page.route('**/api/local-data**', async route => {
+        const request = route.request();
+        const url = new URL(request.url());
+        if (request.method() === 'POST') {
+            writes.push(request.postDataJSON());
+            return route.fulfill({ json: { ok: true } });
+        }
+        const collection = url.searchParams.get('collection');
+        if (collection === 'presence' && url.searchParams.get('count') === 'true') return route.fulfill({ json: { ok: true, count: 1 } });
+        if (!collection) return route.fulfill({ json: { ok: true, appId: 'e2e-test', stations: [{ id: 1, name: 'Lokal' }], events: [], config: {} } });
+        const data = collection === 'stats' ? { count_gold: 2 } : collection === 'presence' ? { lastSeen: new Date().toISOString() } : { text: 'Lokal gespeichert' };
+        return route.fulfill({ json: { ok: true, records: [{ id: collection, data }] } });
+    });
+    await page.goto('/index.html');
+    const result = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const reference = (base, ...parts) => {
+            const path = [base.path, ...parts].filter(Boolean).join('/');
+            return { path, id: path.split('/').pop() };
+        };
+        state.fb = { doc: reference, collection: reference };
+        state.db = {};
+        state.auth = { currentUser: { uid: 'visitor', getIdToken: async () => 'test' } };
+        state.appId = 'e2e-test';
+        state.useLocalStorage = false;
+        const { initializeLocalBackend } = await import('/js/local-backend.js');
+        await initializeLocalBackend();
+        const { doc, collection, query, where } = state.fb;
+        const base = ['artifacts', 'e2e-test', 'public', 'data'];
+        const stats = await state.fb.getDoc(doc(state.db, 'global', 'stats'));
+        const count = await state.fb.getCountFromServer(query(collection(state.db, ...base, 'presence'), where('lastSeen', '>', new Date(Date.now() - 120000))));
+        await state.fb.addDoc(collection(state.db, ...base, 'auditLogs'), { eventType: 'station_opened' });
+        await state.fb.setDoc(doc(state.db, ...base, 'checkins', 'visitor_1'), { stationId: '1' });
+        const broadcast = await new Promise(resolve => {
+            const unsubscribe = state.fb.onSnapshot(doc(state.db, 'artifacts', 'e2e-test', 'public', 'broadcast'), snapshot => {
+                unsubscribe();
+                resolve(snapshot.data());
+            });
+        });
+        return { count: count.data().count, gold: stats.data().count_gold, text: broadcast.text };
+    });
+    expect(result).toEqual({ count: 1, gold: 2, text: 'Lokal gespeichert' });
+    expect(writes.map(write => write.collection)).toEqual(['auditLogs', 'checkins']);
+    expect(firestoreRequests).toEqual([]);
+});
+
+test('station modal zooms from its marker and respects reduced motion', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.__stationAnimations = [];
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function(frames, options) {
+            if (this.id === 'modal-content') window.__stationAnimations.push(frames);
+            return animate.call(this, frames, options);
+        };
+        window.openStation(1);
+    });
+    await expect.poll(() => page.evaluate(() => window.__stationAnimations.length)).toBe(1);
+    expect(await page.evaluate(() => window.__stationAnimations[0][0].transform)).toMatch(/translate.*scale/);
+    await page.getByRole('button', { name: 'Station schließen' }).click();
+    await expect(page.locator('#detail-modal')).toBeHidden();
+    await expect(page.locator('.recently-opened-station')).toHaveCount(1);
+    await expect(page.locator('.recently-opened-station')).toHaveCount(0, { timeout: 6500 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.evaluate(() => window.openStation(1));
+    await expect(page.locator('#detail-modal')).toBeVisible();
+    expect(await page.evaluate(() => window.__stationAnimations.length)).toBe(2);
+});
+
+test('stations and events stay individually displayed when zooming out', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const { refreshMapMarkers } = await import('/js/maplibre-map.js');
+        state.isAdmin = false;
+        state.stations = [
+            { id: 1, name: 'Mit Programm', lat: 49.158, lng: 10.552, tags: [] },
+            { id: 2, name: 'Nachbar', lat: 49.15801, lng: 10.55201, tags: [] }
+        ];
+        state.events = [
+            { id: 'concert', title: 'Konzert', stationId: 1 },
+            { id: 'solo', title: 'Solo', lat: 49.1581, lng: 10.5521 }
+        ];
+        state.map.jumpTo({ center: [10.552, 49.158], zoom: 14 });
+        refreshMapMarkers();
+    });
+    for (const zoom of [14, 12, 16]) {
+        await page.evaluate(async zoom => (await import('/js/state.js')).state.map.jumpTo({ zoom }), zoom);
+        await expect(page.locator('.station-cluster')).toHaveCount(0);
+        await expect(page.locator('.custom-pin')).toHaveCount(2);
+        await expect(page.locator('.program-pin')).toHaveCount(1);
+        for (const marker of await page.locator('.custom-pin, .program-pin').all()) await expect(marker).toBeVisible();
+    }
+});
+
+test('round trip can be planned before the event without GPS', async ({ page }) => {
+    await page.route('https://routing.openstreetmap.de/**', route => route.abort());
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        state.downloads.icsDate = '21.11.2099 17:00-21:00';
+        state.userLocation = null;
+        navigator.geolocation.getCurrentPosition = () => { throw new Error('Unexpected GPS request'); };
+        navigator.geolocation.watchPosition = () => { throw new Error('Unexpected GPS watch'); };
+        window.openRoutePlan();
+    });
+    await expect(page.locator('#route-plan-modal')).toContainText('Plane deinen Abend schon jetzt');
+    await page.locator('[data-route-plan-submit]').click();
+    await expect.poll(() => page.evaluate(async () => Boolean((await import('/js/state.js')).state.overviewRouteGeometry))).toBe(true);
+});
+
 test.beforeEach(async ({ page }) => {
     await page.route('**/config.js*', route => route.fulfill({
         contentType: 'application/javascript',
@@ -139,6 +318,141 @@ test('feedback is easy to find without a disruptive floating button', async ({ p
     await expect(page.locator('#bug-report-modal')).toContainText('Was gefällt dir');
 });
 
+test('presence waits for authentication and resumes without duplicate in-flight writes', async ({ page }) => {
+    await page.goto('/index.html');
+    const result = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const { initPresence } = await import('/js/gamification.js');
+        let listener;
+        let completeHeartbeat;
+        let writes = 0;
+        const intervals = [];
+        state.useLocalStorage = false;
+        state.localBackend = true;
+        state.auth = { currentUser: null };
+        state.fb = {
+            doc: () => ({}), collection: () => ({}), query: () => ({}), where: () => ({}),
+            serverTimestamp: () => ({}),
+            setDoc: () => { writes++; return new Promise(resolve => { completeHeartbeat = resolve; }); },
+            getCountFromServer: async () => ({ data: () => ({ count: 0 }) }),
+            getDoc: async () => ({ exists: () => false }),
+            onAuthStateChanged: (_auth, callback) => { listener = callback; return () => {}; }
+        };
+        const originalInterval = window.setInterval;
+        window.setInterval = callback => { intervals.push(callback); return 0; };
+        try { initPresence(); } finally { window.setInterval = originalInterval; }
+        const beforeAuthentication = writes;
+        state.auth.currentUser = { uid: 'visitor' };
+        listener(state.auth.currentUser);
+        listener(state.auth.currentUser);
+        const whilePending = writes;
+        completeHeartbeat();
+        await Promise.resolve();
+        state.auth.currentUser = null;
+        listener(null);
+        await intervals[0]();
+        return { beforeAuthentication, whilePending, afterSignOut: writes };
+    });
+    expect(result).toEqual({ beforeAuthentication: 0, whilePending: 1, afterSignOut: 1 });
+});
+
+test('feedback prevents duplicate sends and preserves text when rate limited', async ({ page }) => {
+    let pendingRoute;
+    let requests = 0;
+    await page.route('**/api/bug-report', route => {
+        expect(route.request().headers().authorization).toBe('Bearer test-feedback-token');
+        pendingRoute = route;
+        requests++;
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        state.auth = { currentUser: { uid: 'feedback-test', getIdToken: async () => 'test-feedback-token' } };
+    });
+    await page.getByRole('button', { name: 'Feedback geben' }).click();
+    await page.locator('#bug-desc').fill('Meine Rückmeldung bleibt erhalten.');
+    await page.locator('#bug-report-submit').click();
+    await expect.poll(() => requests).toBe(1);
+    await expect(page.locator('#bug-report-submit')).toBeDisabled();
+    await expect(page.locator('#bug-report-submit')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('[data-feedback-spinner]')).toBeVisible();
+    await page.evaluate(() => window.submitBugReport());
+    expect(requests).toBe(1);
+    await pendingRoute.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"rate_limited"}' });
+    await expect(page.getByText(/Zu viele Sendeversuche/)).toBeVisible();
+    await expect(page.locator('#bug-desc')).toHaveValue('Meine Rückmeldung bleibt erhalten.');
+    await expect(page.locator('#bug-report-submit')).toBeEnabled();
+    await expect(page.locator('#bug-report-submit')).toHaveAttribute('aria-busy', 'false');
+    await expect(page.locator('[data-feedback-spinner]')).toHaveCount(0);
+});
+
+test('feedback spinner stays until the server confirms successful delivery', async ({ page }) => {
+    let pendingRoute;
+    await page.route('**/api/bug-report', route => { pendingRoute = route; });
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'Feedback geben' }).click();
+    await page.locator('#bug-desc').fill('Testnachricht');
+    await page.locator('#bug-report-submit').click();
+    await expect(page.locator('[data-feedback-spinner]')).toBeVisible();
+    await expect(page.locator('#bug-report-submit')).toBeDisabled();
+    await expect(page.locator('#bug-report-submit')).toContainText('Wird gesendet');
+    await expect(page.locator('#bug-report-modal')).toBeVisible();
+    await expect(page.locator('#bug-desc')).toHaveValue('Testnachricht');
+    await expect.poll(() => Boolean(pendingRoute)).toBe(true);
+    await pendingRoute.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+    await expect(page.locator('#bug-report-modal')).toBeHidden();
+    await expect(page.locator('[data-feedback-spinner]')).toHaveCount(0);
+    await expect(page.locator('#bug-report-submit')).toBeEnabled();
+    await expect(page.locator('#bug-desc')).toHaveValue('');
+});
+
+for (const mode of ['disabled', 'included', 'denied']) {
+    test(`feedback location is optional and one-shot: ${mode}`, async ({ page }) => {
+        let payload;
+        await page.addInitScript(mode => {
+            window.__feedbackLocationRequests = 0;
+            navigator.geolocation.getCurrentPosition = (success, failure) => {
+                window.__feedbackLocationRequests++;
+                if (mode === 'denied') failure({ code: 1 });
+                else success({ coords: { latitude: 49.158, longitude: 10.552, accuracy: 15 }, timestamp: Date.now() });
+            };
+        }, mode);
+        await page.route('**/api/bug-report', route => {
+            payload = route.request().postDataJSON();
+            return route.fulfill({ status: 200, json: { ok: true } });
+        });
+        await page.goto('/index.html#private-fragment');
+        await page.getByRole('button', { name: 'Feedback geben' }).click();
+        await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        if (mode !== 'disabled') await page.locator('#bug-report-location').check();
+        else {
+            await page.locator('#bug-report-location').check();
+            await page.locator('#bug-report-modal').getByRole('button', { name: 'Abbrechen' }).click();
+            await page.getByRole('button', { name: 'Feedback geben' }).click();
+            await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        }
+        await page.locator('#bug-desc').fill('Standorttest');
+        await page.locator('#bug-report-submit').click();
+        await expect(page.locator('#bug-report-modal')).toBeHidden();
+        expect(await page.evaluate(() => window.__feedbackLocationRequests)).toBe(mode === 'disabled' ? 0 : 1);
+        expect(payload.text).not.toContain('private-fragment');
+        if (mode === 'included') expect(payload.location).toMatchObject({ lat: 49.158, lng: 10.552, accuracy: 15 });
+        else expect(payload).not.toHaveProperty('location');
+        if (mode === 'denied') await expect(page.getByText('Danke! Feedback ohne Standort gesendet.')).toBeVisible();
+        await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        expect(await page.evaluate(() => window.state.userLocation)).toBeNull();
+    });
+}
+
+test('station modal prioritizes its image immediately', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openModal({ id: 1, name: 'Bildtest', tags: [], image: '/downloads/stations/test.webp' }));
+    const image = page.locator('#modal-image-container img');
+    await expect(image).toHaveAttribute('loading', 'eager');
+    await expect(image).toHaveAttribute('fetchpriority', 'high');
+    await expect(image).toHaveAttribute('decoding', 'async');
+});
+
 test('stations offering a WC show a restroom icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     const restroomBadges = page.locator('.station-wc-badge');
@@ -272,7 +586,7 @@ test('admin can turn a linked program entry into a standalone event', async ({ p
     await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
 });
 
-test('standalone program entries use a distinct E marker on the map', async ({ page }) => {
+test('standalone program entries use a calendar icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
         window.state.events.push({
@@ -291,7 +605,8 @@ test('standalone program entries use a distinct E marker on the map', async ({ p
 
     const programMarker = page.getByRole('button', { name: 'Eigenständiges Event: Eigenständiges Programm' });
     await expect(programMarker).toBeVisible();
-    await expect(programMarker).toContainText('E');
+    await expect(programMarker.locator('.ph-calendar-star')).toBeVisible();
+    await expect(programMarker).not.toContainText('E');
     await programMarker.click();
     await expect(page.locator('#program-event-modal')).toBeVisible();
 });
@@ -480,7 +795,11 @@ test('map overview draws a guided round route without direction arrows', async (
         expect(layout.layerButtonOverlaps).toBe(false);
     }
     await expect(page.locator('.overview-route-arrow')).toHaveCount(0);
-    await page.evaluate(() => { window.state.userLocation = { lat: 49.15714, lng: 10.5484 }; });
+    await page.evaluate(() => {
+        window.state.userLocation = { lat: 49.15714, lng: 10.5484 };
+        window.state.gpsAccuracy = 10;
+        window.state.gpsLastFixAt = Date.now();
+    });
     await page.locator('#overview-route-navigation-btn').click();
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationActive)).toBe(true);
     await expect(page.locator('#overview-route-skip-btn')).toBeVisible();
@@ -554,13 +873,15 @@ test('moving an admin station marker saves its new coordinates', async ({ page }
     })).toEqual([49.15999, 10.55111]);
 });
 
-test('mobile map clusters close stations and zooms in on tap', async ({ page }) => {
+test('map keeps individual station markers clickable after zooming out', async ({ page }) => {
     await page.goto('/index.html');
-    const cluster = page.locator('.station-cluster').first();
-    await expect(cluster).toBeVisible();
-    const zoomBefore = await page.evaluate(() => window.state.map.getZoom());
-    await cluster.dispatchEvent('click');
-    await expect.poll(() => page.evaluate(() => window.state.map.getZoom())).toBeGreaterThan(zoomBefore);
+    await page.evaluate(() => window.state.map.jumpTo({ zoom: 13 }));
+    await expect(page.locator('.station-cluster')).toHaveCount(0);
+    const markers = page.locator('.custom-pin');
+    await expect(markers).toHaveCount(await page.evaluate(() => window.state.markers.length));
+    await markers.first().dispatchEvent('click');
+    await expect(page.locator('#detail-modal')).toBeVisible();
+    await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
 test('GPS watch centers once and then allows free map movement', async ({ page, context }) => {
@@ -832,6 +1153,32 @@ test('station without an ID can be assigned a station number', async ({ page }) 
     await expect.poll(() => page.evaluate(() => window.state.stations.some(station => station.id === 99 && station.name === 'Neue Station'))).toBe(true);
 });
 
+test('links in station descriptions are clickable and open safely', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const station = window.state.stations[0];
+        station.offer = 'Mehr Infos unter https://example.com/programm.';
+        window.openStation(station.id);
+    });
+
+    const descriptionLink = page.locator('#modal-desc a');
+    await expect(descriptionLink).toHaveText('https://example.com/programm');
+    await expect(descriptionLink).toHaveAttribute('href', 'https://example.com/programm');
+    await expect(descriptionLink).toHaveAttribute('target', '_blank');
+    await expect(descriptionLink).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+test('station list shows the station description', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const station = window.state.stations[0];
+        station.offer = 'Livemusik, Getränke und kleine Snacks.';
+        window.renderList(window.state.stations);
+    });
+
+    await expect(page.locator('#stations-list > button').first()).toContainText('Livemusik, Getränke und kleine Snacks.');
+});
+
 test('admin can create a standalone program event without a station', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
@@ -848,6 +1195,26 @@ test('admin can create a standalone program event without a station', async ({ p
 
     await expect(page.locator('#event-modal')).toBeHidden();
     await expect(page.locator('#timeline-container')).toContainText('Eigenständige Show');
+});
+
+test('admin can copy a program event and adjust it before saving', async ({ page }) => {
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.evaluate(() => window.editEvent(window.state.events[0].id));
+    const originalTitle = await page.locator('#evt-title').inputValue();
+    await page.locator('#btn-duplicate-event').click();
+
+    await expect(page.locator('#btn-delete-event')).toBeHidden();
+    await expect(page.locator('#btn-duplicate-event')).toBeHidden();
+    await expect(page.locator('#evt-title')).toHaveValue(`${originalTitle} (Kopie)`);
+    await page.locator('#evt-time').fill('22:15');
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+
+    await expect(page.locator('#event-modal')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.state.events.filter(event => event.title === `${window.state.events[0].title} (Kopie)`).length)).toBe(1);
 });
 
 test('linked program event identifies its station in the timeline', async ({ page }) => {

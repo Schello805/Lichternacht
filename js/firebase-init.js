@@ -1,6 +1,14 @@
 import { state } from './state.js';
+import { initializeLocalBackend } from './local-backend.js?v=1.4.299';
+import { initializeLocalAuth } from './local-auth.js?v=1.4.299';
 
 export async function initFirebase() {
+    try {
+        if (await initializeLocalAuth()) return true;
+    } catch (error) {
+        console.error('Lokale Anmeldung nicht verfügbar', error);
+        return false;
+    }
     if (typeof __firebase_config === 'undefined') {
         console.warn("No Firebase Config found.");
         return false;
@@ -63,6 +71,7 @@ export async function initFirebase() {
         state.fb.writeBatch = fbStore.writeBatch;
 
         state.useLocalStorage = false;
+        await initializeLocalBackend();
 
         return true;
     } catch (e) {

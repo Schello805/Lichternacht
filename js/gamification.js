@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.299';
 import {
     showToast,
     getDistance,
@@ -7,11 +8,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.282';
-import * as utils from './utils.js?v=1.4.282';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.282';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.282';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.282';
+} from './utils.js?v=1.4.299';
+import * as utils from './utils.js?v=1.4.299';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.299';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.299';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.299';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -54,15 +55,24 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
         source: 'lichterpass',
         appId: state.appId || 'unknown'
     };
-    if (!navigator.onLine) {
+    if (!navigator.onLine || (!state.localBackend && !canUseFirestore())) {
         queueOfflineAction('checkin', payload);
         return;
     }
     if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     try {
-        const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await state.fb.addDoc(colRef, payload);
+        const user = state.auth?.currentUser;
+        if (!user) throw new Error('Firebase-Anmeldung fehlt');
+        const reference = state.fb.doc(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins', `${user.uid}_${payload.stationId}`);
+        try {
+            await state.fb.setDoc(reference, { ...payload, ownerUid: user.uid, receivedAt: state.fb.serverTimestamp() });
+        } catch (error) {
+            if (error.code !== 'permission-denied') throw error;
+            const existing = await state.fb.getDoc(reference);
+            if (!existing.exists()) throw error;
+        }
     } catch (e) {
+        noteFirestoreError(e);
         console.warn('Anonymous check-in analytics failed', e);
         queueOfflineAction('checkin', payload);
     }
@@ -627,15 +637,21 @@ export function initPresence() {
         if (span && !span.innerText) span.innerText = '0';
     }
 
+    let heartbeatPending = false;
     const sendHeartbeat = async () => {
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
+        if (!state.auth?.currentUser || heartbeatPending) return;
+        heartbeatPending = true;
         try {
             const { doc, setDoc, serverTimestamp } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'presence', sessionId);
             await setDoc(ref, { lastSeen: serverTimestamp() });
-        } catch (e) { console.warn("Heartbeat failed", e); }
+        } catch (e) { noteFirestoreError(e); console.warn("Heartbeat failed", e); }
+        finally { heartbeatPending = false; }
     };
 
     const updateUserCount = async () => {
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
         try {
             const { collection, query, where, getCountFromServer, doc, getDoc } = state.fb;
             const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);
@@ -663,6 +679,7 @@ export function initPresence() {
                 if (document.getElementById('count-diamond')) document.getElementById('count-diamond').innerText = d.count_diamond || 0;
             }
         } catch (e) {
+            noteFirestoreError(e);
             console.warn("Count failed", e);
             // Keep badge visible even if count fails
             const el = document.getElementById('user-count');
@@ -674,6 +691,11 @@ export function initPresence() {
     };
 
     sendHeartbeat();
+    if (state.auth && typeof state.fb.onAuthStateChanged === 'function') {
+        state.fb.onAuthStateChanged(state.auth, user => {
+            if (user) sendHeartbeat();
+        });
+    }
     updateUserCount();
     setInterval(sendHeartbeat, 60 * 1000);
     setInterval(updateUserCount, 60 * 1000);

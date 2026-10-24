@@ -157,6 +157,24 @@ h3,
     line-height: 1;
 }
 
+.station-event-badge {
+    position: absolute;
+    top: -5px;
+    left: -7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 3px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #7c3aed;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 1px 4px #0004;
+}
+
 .program-pin {
     display: flex;
     width: 34px;
@@ -170,7 +188,7 @@ h3,
     color: #fff;
     box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
     font-family: sans-serif;
-    font-size: 13px;
+    font-size: 20px;
     font-weight: 800;
     line-height: 1;
 }
@@ -533,6 +551,34 @@ h3,
 .map-target-highlight {
     overflow: visible !important;
     z-index: 10000 !important;
+}
+
+.recently-opened-station {
+    z-index: 10001 !important;
+    overflow: visible !important;
+}
+
+.recently-opened-station::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    border: 3px solid #2563eb;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: recentStationPulse 1s ease-out infinite;
+}
+
+@keyframes recentStationPulse {
+    from { transform: translate(-50%, -50%) scale(.8); opacity: 1; }
+    to { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .recently-opened-station::after { animation: none; }
 }
 
 .map-target-highlight::after {

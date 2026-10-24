@@ -13,8 +13,16 @@ import urllib.error
 import shutil
 import resource
 import html
+import hashlib
+import base64
+import threading
+import math
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
+from http.cookies import SimpleCookie, CookieError
+from local_database import LocalDatabase
+from local_auth import LocalAuth
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -72,6 +80,18 @@ def load_dotenv(path='.env'):
 
 load_dotenv()
 
+LOCAL_DATABASE_ENABLED = os.environ.get('LOCAL_DATABASE_ENABLED', '').lower() == 'true'
+LOCAL_DATABASE_PATH = os.environ.get('LOCAL_DATABASE_PATH', os.path.join(PRIVATE_DIR, 'local.sqlite3'))
+LOCAL_AUTH_ENABLED = os.environ.get('LOCAL_AUTH_ENABLED', '').lower() == 'true'
+LOCAL_AUTH_PATH = os.environ.get('LOCAL_AUTH_PATH', os.path.join(PRIVATE_DIR, 'local-auth.sqlite3'))
+LOCAL_AUTH_ORIGIN = os.environ.get('LOCAL_AUTH_ORIGIN', 'https://lichternacht-bechhofen.de').rstrip('/')
+AUTH_COOKIE = '__Host-lichternacht_session'
+VISITOR_COOKIE = '__Host-lichternacht_visitor'
+TOKEN_CACHE = {}
+TOKEN_CACHE_LOCK = threading.Lock()
+RATE_LIMIT_LOCK = threading.Lock()
+
+
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Permissions-Policy', 'geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)')
@@ -84,6 +104,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _send_json(self, status, payload):
         self.send_response(status)
         self.send_header('Content-type', 'application/json')
+        self.send_header('Cache-Control', 'no-store')
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode('utf-8'))
 
@@ -109,16 +130,21 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             if forwarded:
                 ip = forwarded[:64]
         try:
-            store = getattr(self.server, "_rate_store", {})
-            key = f'{bucket}:{ip}'
-            recent = [stamp for stamp in store.get(key, []) if now - stamp < window_seconds]
-            if len(recent) >= limit:
-                return False
-            recent.append(now)
-            store[key] = recent
-            setattr(self.server, "_rate_store", store)
+            with RATE_LIMIT_LOCK:
+                store = getattr(self.server, "_rate_store", {})
+                key = f'{bucket}:{ip}'
+                recent = [stamp for stamp in store.get(key, []) if now - stamp < window_seconds]
+                if len(recent) >= limit:
+                    return False
+                if key not in store and len(store) >= 10000:
+                    store = {name: stamps for name, stamps in store.items() if stamps and now - stamps[-1] < 3600}
+                    if len(store) >= 10000:
+                        return False
+                recent.append(now)
+                store[key] = recent
+                setattr(self.server, "_rate_store", store)
         except Exception:
-            pass
+            return False
         return True
 
     @staticmethod
@@ -129,6 +155,30 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 <h1 style="font-size:20px;">Neues Feedback zur Lichternacht-App</h1>
 <div style="padding:14px 16px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;line-height:1.6;">{escaped}</div>
 </body></html>'''
+
+    @staticmethod
+    def _feedback_location(value):
+        if not isinstance(value, dict) or set(value) - {'lat', 'lng', 'accuracy', 'capturedAt'}:
+            raise ValueError('Ungültiger Standort')
+        latitude, longitude = value.get('lat'), value.get('lng')
+        for coordinate, limit in ((latitude, 90), (longitude, 180)):
+            if isinstance(coordinate, bool) or not isinstance(coordinate, (int, float)) or not math.isfinite(coordinate) or abs(coordinate) > limit:
+                raise ValueError('Ungültiger Standort')
+        accuracy = value.get('accuracy')
+        if accuracy is not None and (isinstance(accuracy, bool) or not isinstance(accuracy, (int, float)) or not math.isfinite(accuracy) or accuracy < 0):
+            raise ValueError('Ungültige Genauigkeit')
+        captured = value.get('capturedAt')
+        if not isinstance(captured, str) or len(captured) > 40:
+            raise ValueError('Ungültiger Zeitpunkt')
+        captured = datetime.fromisoformat(captured.replace('Z', '+00:00'))
+        if captured.tzinfo is None:
+            raise ValueError('Zeitzone fehlt')
+        link = f'https://www.openstreetmap.org/?mlat={latitude:.6f}&mlon={longitude:.6f}#map=18/{latitude:.6f}/{longitude:.6f}'
+        summary = f'\n\nFreiwillig mitgesendeter Gerätestandort (nicht unabhängig geprüft):\n{latitude:.6f}, {longitude:.6f}\n'
+        if accuracy is not None:
+            summary += f'Gemeldete Genauigkeit: ca. {accuracy:.0f} m\n'
+        summary += f'Erfasst: {captured.astimezone(timezone.utc).isoformat(timespec="seconds")}\nKarte: {link}'
+        return summary, link
 
     def _email_settings(self):
         settings = {
@@ -193,9 +243,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             'smtpPasswordConfigured': bool(settings['smtpPassword'])
         }
 
-    def _send_bug_report_email(self, subject, text, html_content=None):
+    def _send_bug_report_email(self, subject, text, html_content=None, recipient=None, include_admin_cc=True):
         settings = self._email_settings()
-        to_addr = settings['recipient']
+        to_addr = recipient or settings['recipient']
         from_addr = settings['fromEmail'] or to_addr
 
         host = settings['smtpHost']
@@ -212,7 +262,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         msg['From'] = formataddr((settings['senderName'], from_addr)) if settings['senderName'] else from_addr
         msg['To'] = to_addr
         admin_cc = settings['adminCc']
-        if admin_cc and admin_cc.lower() != to_addr.lower():
+        if include_admin_cc and admin_cc and admin_cc.lower() != to_addr.lower():
             msg['Cc'] = admin_cc
         msg.set_content(text)
         if html_content:
@@ -232,7 +282,120 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp.login(user, password)
                 smtp.send_message(msg)
 
+    def _cookie_token(self, name=AUTH_COOKIE):
+        try:
+            cookies = SimpleCookie()
+            cookies.load(self.headers.get('Cookie', ''))
+            return cookies[name].value if name in cookies else ''
+        except CookieError:
+            return ''
+
+    def _local_user(self, name=AUTH_COOKIE):
+        try:
+            return LocalAuth(LOCAL_AUTH_PATH).get_user(self._cookie_token(name))
+        except ValueError:
+            return None
+
+    def _auth_response(self, user, token=None, age=None, visitor=False, clear=False):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Cache-Control', 'no-store')
+        if clear:
+            self.send_header('Set-Cookie', f'{AUTH_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0')
+        if token:
+            lifetime = f'; Max-Age={max(0, int(age))}' if age is not None else ''
+            self.send_header('Set-Cookie', f'{AUTH_COOKIE}={token}; Path=/; Secure; HttpOnly; SameSite=Strict{lifetime}')
+            if visitor:
+                self.send_header('Set-Cookie', f'{VISITOR_COOKIE}={token}; Path=/; Secure; HttpOnly; SameSite=Strict{lifetime}')
+        self.end_headers()
+        self.wfile.write(json.dumps({'ok': True, 'enabled': True, 'user': user}).encode())
+
+    def _local_auth_post(self, action):
+        if not LOCAL_AUTH_ENABLED:
+            return self._send_json(404, {'ok': False})
+        if not LOCAL_DATABASE_ENABLED:
+            return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank erforderlich'})
+        data = self._read_json()
+        if not isinstance(data, dict):
+            return self._send_json(400, {'ok': False, 'error': 'Ungültige Anfrage'})
+        database = LocalAuth(LOCAL_AUTH_PATH)
+        try:
+            if action == 'login':
+                email = str(data.get('email', '')).strip().casefold()
+                bucket = hashlib.sha256(email.encode()).hexdigest()
+                if not self._rate_limit('auth-login-total', 60, 600) or not self._rate_limit('auth-login-' + bucket, 10, 600):
+                    return self._send_json(429, {'ok': False, 'error': 'Bitte später erneut anmelden'})
+                session = database.login(email, data.get('password'))
+                if not session:
+                    return self._send_json(401, {'ok': False, 'error': 'E-Mail oder Passwort ist nicht korrekt'})
+                previous = self._local_user()
+                if previous and not previous['isAnonymous']:
+                    database.logout(self._cookie_token())
+                return self._auth_response(session['user'], session['token'], session['expiresAt'] - time.time())
+            if action == 'anonymous':
+                previous = self._local_user()
+                if previous:
+                    return self._auth_response(previous)
+                visitor = self._local_user(VISITOR_COOKIE)
+                if visitor and visitor['isAnonymous']:
+                    return self._auth_response(visitor, self._cookie_token(VISITOR_COOKIE))
+                if not self._rate_limit('auth-anonymous', 500, 60):
+                    return self._send_json(429, {'ok': False, 'error': 'Bitte später erneut versuchen'})
+                session = database.anonymous()
+                return self._auth_response(session['user'], session['token'], session['expiresAt'] - time.time(), visitor=True)
+            if action == 'logout':
+                user = self._local_user()
+                if user and not user['isAnonymous']:
+                    database.logout(self._cookie_token())
+                return self._auth_response(None, clear=True)
+            if action in ('create-admin', 'delete-admin'):
+                if not self._verify_admin_token():
+                    return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung erforderlich'})
+                if action == 'create-admin':
+                    user = database.create_admin(data.get('email'), data.get('password'))
+                    LocalDatabase(LOCAL_DATABASE_PATH).write('set', 'users', user['uid'], {'email': user['email'], 'uid': user['uid']}, True)
+                    return self._send_json(200, {'ok': True, 'user': user})
+                database.delete_admin(str(data.get('uid', '')), self._verified_firebase_user['localId'])
+                for collection in ('users', 'globalAdmins'):
+                    LocalDatabase(LOCAL_DATABASE_PATH).write('delete', collection, str(data.get('uid', '')))
+                return self._send_json(200, {'ok': True})
+            if action == 'request-reset':
+                email = str(data.get('email', '')).strip().casefold()
+                bucket = hashlib.sha256(email.encode()).hexdigest()
+                if not self._rate_limit('auth-reset-total', 30, 900) or not self._rate_limit('auth-reset-' + bucket, 3, 900):
+                    return self._send_json(429, {'ok': False, 'error': 'Bitte später erneut versuchen'})
+                reset = database.issue_reset(email)
+                if reset:
+                    link = LOCAL_AUTH_ORIGIN + '/#reset-password=' + reset['token']
+                    def deliver_reset():
+                        try:
+                            self._send_bug_report_email('Lichternacht – Passwort zurücksetzen', 'Dieser Link ist 30 Minuten gültig und nur einmal nutzbar:\n' + link, recipient=email, include_admin_cc=False)
+                        except Exception:
+                            print('Passwort-Wiederherstellung: E-Mail-Versand fehlgeschlagen.', flush=True)
+                    threading.Thread(target=deliver_reset, daemon=True).start()
+                return self._send_json(200, {'ok': True})
+            if action == 'reset':
+                if not self._rate_limit('auth-reset-consume', 20, 600):
+                    return self._send_json(429, {'ok': False, 'error': 'Bitte später erneut versuchen'})
+                user = database.reset_password(data.get('token'), data.get('password'))
+                if not user:
+                    return self._send_json(400, {'ok': False, 'error': 'Link ungültig oder abgelaufen'})
+                return self._auth_response(None, clear=True)
+            return self._send_json(404, {'ok': False})
+        except ValueError:
+            if action == 'login':
+                return self._send_json(401, {'ok': False, 'error': 'E-Mail oder Passwort ist nicht korrekt'})
+            if action == 'delete-admin':
+                return self._send_json(400, {'ok': False, 'error': 'Das eigene oder letzte Admin-Konto kann nicht gelöscht werden.'})
+            return self._send_json(400, {'ok': False, 'error': 'Angaben oder Link ungültig. Neue Passwörter benötigen mindestens 12 Zeichen.'})
+
     def _verify_admin_token(self):
+        self._verified_firebase_user = None
+        if LOCAL_AUTH_ENABLED:
+            user = self._local_user()
+            if user:
+                self._verified_firebase_user = {'localId': user['uid'], 'email': user['email'] or ''}
+            return bool(user and user['isAdmin'] and not user['isAnonymous'])
         authorization = self.headers.get('Authorization', '')
         api_key = os.environ.get('FIREBASE_API_KEY', '').strip()
         if not api_key:
@@ -258,20 +421,41 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             },
             method='POST'
         )
-        try:
-            with urllib.request.urlopen(request, timeout=10) as response:
-                payload = json.loads(response.read().decode('utf-8'))
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
-            return False
+        cache_key = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        with TOKEN_CACHE_LOCK:
+            cached = TOKEN_CACHE.get(cache_key)
+        if cached and cached[0] > time.time():
+            payload = cached[1]
+        else:
+            try:
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    payload = json.loads(response.read().decode('utf-8'))
+                part = token.split('.')[1]
+                claims = json.loads(base64.urlsafe_b64decode(part + '=' * (-len(part) % 4)))
+                expires = min(time.time() + 300, float(claims['exp']))
+                with TOKEN_CACHE_LOCK:
+                    if len(TOKEN_CACHE) >= 2048:
+                        TOKEN_CACHE.clear()
+                    TOKEN_CACHE[cache_key] = (expires, payload)
+            except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, IndexError, TypeError):
+                return False
 
         users = payload.get('users') or []
+        self._verified_firebase_user = users[0] if users else None
         email = str(users[0].get('email') or '').strip().lower() if users else ''
         allowed = {
             item.strip().lower()
             for item in os.environ.get('ADMIN_EMAILS', '').split(',')
             if item.strip()
         }
-        return bool(email and email in allowed)
+        if email and email in allowed:
+            return True
+        if LOCAL_DATABASE_ENABLED and users:
+            try:
+                return LocalDatabase(LOCAL_DATABASE_PATH).is_admin(str(users[0]['localId']))
+            except Exception:
+                return False
+        return False
 
     def _write_client_error_log(self, data):
         def sanitize(value, limit):
@@ -364,6 +548,45 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         image_endpoint = self.path.split('?', 1)[0]
+        if LOCAL_AUTH_ENABLED and image_endpoint.startswith('/api/'):
+            if self.headers.get('Origin') != LOCAL_AUTH_ORIGIN:
+                return self._send_json(403, {'ok': False, 'error': 'Anfrage-Ursprung nicht erlaubt'})
+        if image_endpoint.startswith('/api/local-auth/'):
+            return self._local_auth_post(image_endpoint.rsplit('/', 1)[-1])
+        if image_endpoint == '/api/local-data':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            is_admin = self._verify_admin_token()
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                return self._send_json(400, {'ok': False, 'error': 'Ungültige Daten'})
+            if not is_admin or payload.get('action') == 'like' or payload.get('collection') == 'checkins':
+                user = self._verified_firebase_user
+                if not user:
+                    return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
+                if not self._rate_limit('local-visitor-' + str(user['localId']), 120, 60):
+                    return self._send_json(429, {'ok': False, 'error': 'Zu viele Anfragen'})
+                try:
+                    database = LocalDatabase(LOCAL_DATABASE_PATH)
+                    if payload.get('action') == 'like' and payload.get('collection') == 'stations':
+                        database.like(str(user['localId']), str(payload.get('id', '')))
+                    else:
+                        database.visitor_write(str(user['localId']), payload)
+                    return self._send_json(200, {'ok': True})
+                except ValueError as error:
+                    return self._send_json(403, {'ok': False, 'error': str(error)})
+                except Exception:
+                    return self._send_json(503, {'ok': False, 'error': 'Daten konnten nicht gespeichert werden'})
+            try:
+                operations = payload.get('operations', [payload])
+                if LOCAL_AUTH_ENABLED and any(operation.get('collection') in ('users', 'globalAdmins') for operation in operations):
+                    return self._send_json(403, {'ok': False, 'error': 'Berechtigungen nur über die Benutzerverwaltung ändern'})
+                LocalDatabase(LOCAL_DATABASE_PATH).write_many(operations)
+                return self._send_json(200, {'ok': True})
+            except ValueError as error:
+                return self._send_json(400, {'ok': False, 'error': str(error)})
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank nicht verfügbar'})
         if image_endpoint == '/api/flyer-pdf':
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
@@ -515,10 +738,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == '/api/bug-report':
-            if not self._rate_limit('bug-report', 3, 600):
-                self._send_json(429, {"ok": False, "error": "rate_limited"})
-                return
-
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                 self._send_json(400, {"ok": False, "error": "invalid_content_type"})
                 return
@@ -535,8 +754,29 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             if len(text) > 10_000:
                 text = text[:10_000] + "\n\n[gekürzt]"
 
+            location_link = None
+            if data.get('location') is not None:
+                try:
+                    summary, location_link = self._feedback_location(data['location'])
+                    text += summary
+                except (ValueError, TypeError, OverflowError):
+                    return self._send_json(400, {'ok': False, 'error': 'Ungültige Standortangaben'})
+
+            bucket = 'bug-report'
+            if self.headers.get('Authorization'):
+                self._verify_admin_token()
+                user = self._verified_firebase_user
+                if not user:
+                    return self._send_json(403, {"ok": False, "error": "invalid_auth"})
+                bucket += '-user-' + str(user['localId'])
+            if not self._rate_limit(bucket, 3, 600) or not self._rate_limit('bug-report-total', 60, 600):
+                return self._send_json(429, {"ok": False, "error": "rate_limited"})
+
             try:
-                self._send_bug_report_email('Feedback Lichternacht App', text, self._feedback_html(text))
+                content = self._feedback_html(text)
+                if location_link:
+                    content = content.replace('</body>', f'<p><a href="{html.escape(location_link, quote=True)}">Standort auf der Karte öffnen</a></p></body>')
+                self._send_bug_report_email('Feedback Lichternacht App', text, content)
                 self._send_json(200, {"ok": True})
             except Exception:
                 self._send_json(500, {"ok": False, "error": "Feedback konnte nicht versendet werden"})
@@ -547,6 +787,90 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/local-auth/session':
+            if not LOCAL_AUTH_ENABLED:
+                return self._send_json(404, {'ok': False})
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank erforderlich'})
+            user = self._local_user()
+            if not user:
+                visitor = self._local_user(VISITOR_COOKIE)
+                if visitor and visitor['isAnonymous']:
+                    return self._auth_response(visitor, self._cookie_token(VISITOR_COOKIE))
+            return self._auth_response(user)
+        if parsed_path.path == '/api/local-backup':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            if not self._verify_admin_token():
+                return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
+            try:
+                return self._send_json(200, LocalDatabase(LOCAL_DATABASE_PATH).backup())
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Sicherung fehlgeschlagen'})
+        if parsed_path.path == '/api/local-admin':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            is_admin = self._verify_admin_token()
+            if is_admin and self._verified_firebase_user:
+                user = self._verified_firebase_user
+                LocalDatabase(LOCAL_DATABASE_PATH).write('set', 'users', str(user['localId']), {'email': user.get('email', ''), 'uid': user['localId']}, True)
+            return self._send_json(200, {'ok': True, 'isAdmin': is_admin})
+        if parsed_path.path == '/api/local-data':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            try:
+                params = urllib.parse.parse_qs(parsed_path.query)
+                collection = (params.get('collection') or [''])[0]
+                identifier = (params.get('id') or [None])[0]
+                if collection:
+                    public = {'stations', 'events', 'config', 'broadcast', 'globalConfig', 'stats', 'presence'}
+                    private = {'checkins', 'auditLogs', 'users', 'reports', 'globalAdmins'}
+                    if collection not in public | private:
+                        return self._send_json(400, {'ok': False, 'error': 'Unbekannte Datensammlung'})
+                    if collection == 'presence' and (params.get('count') or [''])[0] == 'true':
+                        since = (params.get('since') or [''])[0]
+                        count = LocalDatabase(LOCAL_DATABASE_PATH).active_presence_count(since)
+                        return self._send_json(200, {'ok': True, 'count': count})
+                    if collection in private:
+                        is_admin = self._verify_admin_token()
+                        user = self._verified_firebase_user
+                        own_checkin = False
+                        if collection == 'checkins' and user and identifier:
+                            existing = LocalDatabase(LOCAL_DATABASE_PATH).records('checkins', identifier)
+                            own_checkin = bool(existing and existing[0]['data'].get('ownerUid') == str(user['localId']))
+                        if not is_admin and not own_checkin:
+                            return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
+                    if collection == 'globalAdmins':
+                        rows = [{'id': identifier, 'data': {'uid': identifier}}] if user and identifier == user['localId'] else []
+                    else:
+                        rows = LocalDatabase(LOCAL_DATABASE_PATH).records(collection, identifier)
+                    return self._send_json(200, {'ok': True, 'records': rows})
+                snapshot = LocalDatabase(LOCAL_DATABASE_PATH).read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                self.wfile.write(json.dumps({'ok': True, 'appId': snapshot.get('appId'), 'stations': snapshot['stations'], 'events': snapshot['events'], 'config': snapshot['config']}).encode('utf-8'))
+                return
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank nicht verfügbar'})
+        requested_path = urllib.parse.unquote(parsed_path.path)
+        path_segments = [segment for segment in requested_path.split('/') if segment]
+        protected_paths = {'logs', 'node_modules', 'scripts', 'server', 'tests'}
+        protected_files = {
+            '/server.py', '/deploy.sh', '/firebase.json', '/firestore.rules',
+            '/package.json', '/package-lock.json', '/playwright.config.js',
+            '/tailwind.config.js', '/server-htaccess', '/local_database.py', '/local_auth.py'
+        }
+
+        if (
+            any(segment.startswith('.') for segment in path_segments)
+            or (path_segments and path_segments[0] in protected_paths)
+            or requested_path in protected_files
+        ):
+            self.send_error(404)
+            return
+
         if parsed_path.path == '/api/email-settings':
             if not self._verify_admin_token():
                 return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
@@ -589,17 +913,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/api/health':
             self._send_json(200, {"ok": True})
             return
-        if parsed_path.path == '/.private' or parsed_path.path.startswith('/.private/'):
-            self.send_error(404)
-            return
         return super().do_GET()
 
 class ReusableTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-print(f"Server läuft auf http://{HOST}:{PORT}")
-print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
-
-with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
-    httpd.serve_forever()
+if __name__ == '__main__':
+    print(f"Server läuft auf http://{HOST}:{PORT}")
+    print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
+    with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
+        httpd.serve_forever()

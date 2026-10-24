@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.299';
 
 const QUEUE_KEY = 'offline_action_queue_v1';
 let flushing = false;
@@ -38,8 +39,16 @@ async function executeAction(action) {
         return;
     }
     if (action.type === 'checkin') {
-        const reference = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await addDoc(reference, action.payload);
+        const user = state.auth?.currentUser;
+        if (!user) throw new Error('Firebase-Anmeldung fehlt');
+        const reference = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins', `${user.uid}_${action.payload.stationId}`);
+        try {
+            await state.fb.setDoc(reference, { ...action.payload, ownerUid: user.uid, receivedAt: state.fb.serverTimestamp() });
+        } catch (error) {
+            if (error.code !== 'permission-denied') throw error;
+            const existing = await state.fb.getDoc(reference);
+            if (!existing.exists()) throw error;
+        }
         return;
     }
     if (action.type === 'like') {
@@ -53,6 +62,7 @@ async function executeAction(action) {
 
 export async function flushOfflineActions() {
     if (flushing || !navigator.onLine || state.useLocalStorage || !state.db) return;
+    if ((!state.localBackend && !canUseFirestore()) || globalThis.document?.visibilityState === 'hidden') return;
     flushing = true;
     try {
         const queue = readQueue();
@@ -62,6 +72,7 @@ export async function flushOfflineActions() {
                 await executeAction(action);
                 completedIds.add(action.id);
             } catch (error) {
+                if (noteFirestoreError(error)) break;
                 console.warn('Offline-Aktion konnte noch nicht synchronisiert werden.', error);
             }
         }

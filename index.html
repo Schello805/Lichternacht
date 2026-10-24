@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.282" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.299" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.282" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.299" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -144,7 +144,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.282">
+    <link rel="stylesheet" href="style.css?v=1.4.299">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1068,6 +1068,7 @@
                         class="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                         placeholder="Passwort" autocomplete="current-password">
                     <div id="login-error" role="alert" class="hidden mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"></div>
+                    <button id="local-password-reset-btn" type="button" onclick="requestLocalPasswordReset()" class="hidden mb-3 text-sm text-blue-700 underline dark:text-blue-300">Passwort vergessen?</button>
                     <div class="flex justify-end gap-2">
                         <button type="button" onclick="toggleAdminLogin()"
                             class="text-gray-500 px-3 py-2 hover:bg-gray-100 rounded dark:hover:bg-gray-700">Abbrechen</button>
@@ -1086,7 +1087,8 @@
                 <div class="flex items-start justify-between px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
                     <div>
                         <h2 id="route-plan-title" class="font-serif text-xl font-bold text-gray-900 dark:text-white">Dein Rundweg</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Wähle Stationen aus – die Reihenfolge planen wir automatisch.</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Plane deinen Abend schon jetzt – auch ohne GPS. Wähle Stationen aus, die Reihenfolge planen wir automatisch. Deine Auswahl bleibt auf diesem Gerät gespeichert.</p>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Nur das Einchecken ist zeitlich begrenzt: ab einer Stunde vor Beginn bis drei Stunden nach Ende.</p>
                     </div>
                     <button type="button" onclick="closeModal('route-plan-modal')" class="w-10 h-10 -mr-2 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Rundweg schließen"><i class="ph ph-x text-xl"></i></button>
                 </div>
@@ -1370,6 +1372,8 @@
                 <div class="sticky bottom-0 z-20 -mx-6 -mb-6 px-6 py-3 bg-white/95 backdrop-blur border-t border-gray-100 flex gap-2">
                     <button onclick="deleteEvent()" id="btn-delete-event"
                         class="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 hidden">Löschen</button>
+                    <button onclick="duplicateEvent()" id="btn-duplicate-event"
+                        class="flex-1 bg-blue-100 text-blue-700 py-2 rounded hover:bg-blue-200 hidden"><i class="ph ph-copy"></i> Kopieren</button>
                     <button onclick="closeEventModal()"
                         class="flex-1 bg-gray-200 text-gray-800 py-2 rounded">Abbruch</button>
                     <button onclick="saveEventChanges()"
@@ -1403,14 +1407,20 @@
             <textarea id="bug-desc" rows="4"
                 class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
                 placeholder="Deine Rückmeldung …"></textarea>
+            <label class="mb-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                <input id="bug-report-location" type="checkbox" class="h-4 w-4 rounded" aria-describedby="bug-report-location-hint bug-report-location-status">
+                Standort mitsenden (optional)
+            </label>
+            <p id="bug-report-location-hint" class="mb-2 text-xs text-gray-500 dark:text-gray-400">Nur für diese Rückmeldung: Beim Senden einmalig ermitteln und der E-Mail beifügen. Keine dauerhafte Standortverfolgung.</p>
+            <p id="bug-report-location-status" role="status" class="mb-3 text-xs text-gray-500 dark:text-gray-400"></p>
 
             <div class="flex gap-3">
                 <button onclick="document.getElementById('bug-report-modal').classList.add('hidden')"
                     class="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
                     Abbrechen
                 </button>
-                <button onclick="submitBugReport()"
-                    class="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
+                <button id="bug-report-submit" onclick="submitBugReport()"
+                    class="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
                     Senden
                 </button>
             </div>
@@ -1568,7 +1578,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.282', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.299', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1595,7 +1605,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.282"></script>
+    <script type="module" src="main.js?v=1.4.299"></script>
 </body>
 
 </html>

@@ -1,14 +1,26 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.282';
-import { loadData } from './data.js?v=1.4.282';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.282';
-import { renderTimeline } from './ui.js?v=1.4.282';
+import { showToast } from './utils.js?v=1.4.299';
+import { loadData } from './data.js?v=1.4.299';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.299';
+import { renderTimeline } from './ui.js?v=1.4.299';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
     if (!errorElement) return;
     errorElement.textContent = message;
     errorElement.classList.toggle('hidden', !message);
+}
+
+async function waitForFirebaseAuth(timeoutMs = 8000) {
+    const isReady = () => state.fb && typeof state.fb.signInWithEmailAndPassword === 'function';
+    if (isReady()) return true;
+
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && !window.__appReady) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (isReady()) return true;
+    }
+    return isReady();
 }
 
 export async function performLogin() {
@@ -22,7 +34,7 @@ export async function performLogin() {
         return;
     }
 
-    if (!state.fb || typeof state.fb.signInWithEmailAndPassword !== 'function') {
+    if (!await waitForFirebaseAuth()) {
         // Local-dev fallback: allow enabling admin mode without Firebase so you can test station creation.
         // This is intentionally limited to localhost environments.
         const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -83,7 +95,8 @@ export async function logoutAdmin() {
 }
 
 export async function createNewUser(email, pass) {
-    if (!confirm(`Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`)) return;
+    const message = state.localAuth ? `Neuen Admin ${email} anlegen? Deine Anmeldung bleibt bestehen.` : `Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`;
+    if (!confirm(message)) return;
 
     if (!state.fb || typeof state.fb.createUserWithEmailAndPassword !== 'function') {
         showToast('Nicht verfügbar ohne Firebase (config.js fehlt?)', 'error');
@@ -92,7 +105,7 @@ export async function createNewUser(email, pass) {
 
     try {
         await state.fb.createUserWithEmailAndPassword(state.auth, email, pass);
-        showToast(`Benutzer ${email} erstellt und eingeloggt`, 'success');
+        showToast(state.localAuth ? `Admin ${email} erstellt` : `Benutzer ${email} erstellt und eingeloggt`, 'success');
         // Admin state will automatically update via onAuthStateChanged
     } catch (e) {
         console.error("Create User Error:", e);
@@ -146,6 +159,24 @@ export function initAuthListener() {
             }
 
             // Authenticated Users (Admins)
+            if (state.localBackend) {
+                try {
+                    const response = await fetch('./api/local-admin', { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: 'no-store' });
+                    const result = await response.json();
+                    if (!response.ok || !result.isAdmin) throw new Error('Keine lokale Admin-Berechtigung');
+                    setAdminState(true);
+                    btn.innerText = 'Admin';
+                    await loadData();
+                    if (window.pendingAdminOpen && window.toggleAdminPanel) {
+                        window.pendingAdminOpen = false;
+                        window.toggleAdminPanel();
+                    }
+                } catch (error) {
+                    setAdminState(false);
+                    showToast('Admin-Berechtigung konnte nicht geprüft werden.', 'error');
+                }
+                return;
+            }
             const { doc, getDoc, setDoc, serverTimestamp } = state.fb;
             const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', user.uid);
             const globalAdminRef = doc(state.db, 'globalAdmins', user.uid);

@@ -27,8 +27,8 @@
         html.dark { background-color: #111827; color-scheme: dark; }
     </style>
 
-    <link href="./dist/output.css?v=1.4.282" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.4.282">
+    <link href="./dist/output.css?v=1.4.299" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1.4.299">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
@@ -178,10 +178,34 @@
                         E-Mail an mich gesendet. Das dient ausschließlich dazu, Fehler nachzuvollziehen und Feedback zu bearbeiten.
                     </div>
                     <div>
+                        Nur wenn du „Standort mitsenden“ aktiv auswählst, wird beim Senden einmalig dein Gerätestandort
+                        ermittelt. Koordinaten, gemeldete Genauigkeit und Erfassungszeit werden dann mit einem Kartenlink
+                        der Feedback-E-Mail beigefügt. Ohne diese Auswahl wird dafür kein Standort abgefragt. Ist die
+                        Standortfreigabe nicht verfügbar, kann das Feedback ohne Standort gesendet werden. Diese Funktion
+                        startet keine dauerhafte Standortverfolgung und legt keine Standortdaten im Aktivitätsprotokoll ab.
+                    </div>
+                    <div>
                         Zusätzlich protokolliert die App automatisch technische JavaScript-Fehler. Dabei werden nur Fehlerart,
                         bereinigte Fehlermeldung, Skript/Seite, Zeilennummer, App-Version und Zeitpunkt gespeichert. IP-Adresse,
                         genauer Standort, Name, E-Mail-Adresse, Check-ins und vollständige Seitenadressen mit Parametern werden
                         nicht in dieses Fehlerprotokoll übernommen. E-Mail-Adressen und Koordinaten werden vor dem Speichern zusätzlich entfernt.
+                    </div>
+                </section>
+
+                <section class="space-y-2">
+                    <h2 class="font-bold text-gray-900 dark:text-white">6a. Anmeldung und technisch notwendige Sitzungen</h2>
+                    <div>
+                        Im lokalen Anmeldemodus werden Admin-Konten, gesalzene Passwort-Hashes und Sitzungsinformationen
+                        auf dem App-Server gespeichert. Passwörter werden nicht im Klartext gespeichert. Technisch
+                        notwendige, gegen JavaScript-Zugriff geschützte Cookies verwalten die Anmeldung und eine zufällige
+                        Besucherkennung. Admin-Sitzungen sind höchstens zwölf Stunden, Besucher-Sitzungen höchstens
+                        dreißig Tage gültig. Ein Passwortreset-Link ist dreißig Minuten und nur einmal nutzbar.
+                    </div>
+                    <div>
+                        Im lokalen Anmeldemodus benötigt die App für die Anmeldung keine Verbindung zu Firebase.
+                        Solange der bisherige Anmeldemodus während der Umstellung noch aktiviert ist, wird stattdessen
+                        Firebase Authentication für Admin-Anmeldungen und anonyme Besucherkennungen verwendet.
+                        Die App-Daten wie Stationen, Programm und Check-ins liegen unabhängig davon auf dem App-Server.
                     </div>
                 </section>
 

@@ -1,5 +1,6 @@
 import { state } from './state.js';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.282';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.299';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.299';
 
 const VISITOR_ID_KEY = 'anonymous_audit_id_v1';
 const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']);
@@ -37,7 +38,7 @@ export async function recordAuditEvent(eventType, details = {}, options = {}) {
         details: safeDetails,
         appId: state.appId || 'unknown'
     };
-    if (!navigator.onLine) {
+    if (!navigator.onLine || (!state.localBackend && !canUseFirestore())) {
         queueOfflineAction('audit', payload);
         return;
     }
@@ -46,6 +47,7 @@ export async function recordAuditEvent(eventType, details = {}, options = {}) {
         const collectionRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'auditLogs');
         await state.fb.addDoc(collectionRef, payload);
     } catch (error) {
+        noteFirestoreError(error);
         console.warn('Audit event could not be recorded', error);
         queueOfflineAction('audit', payload);
     }
