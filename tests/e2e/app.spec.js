@@ -1,5 +1,42 @@
 import { expect, test } from '@playwright/test';
 
+test('program remains identifiable when its station is clustered', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const { refreshMapMarkers } = await import('/js/maplibre-map.js');
+        state.isAdmin = false;
+        state.stations = [
+            { id: 1, name: 'Mit Programm', lat: 49.158, lng: 10.552, tags: [] },
+            { id: 2, name: 'Nachbar', lat: 49.15801, lng: 10.55201, tags: [] }
+        ];
+        state.events = [{ id: 'concert', title: 'Konzert', stationId: 1 }];
+        state.map.jumpTo({ center: [10.552, 49.158], zoom: 14 });
+        refreshMapMarkers();
+    });
+    const cluster = page.locator('.station-cluster');
+    await expect(cluster).toHaveAttribute('aria-label', /mit 1 Programmpunkten/);
+    await expect(cluster.locator('.station-event-badge')).toBeVisible();
+    await cluster.click();
+    await expect.poll(() => page.evaluate(async () => (await import('/js/state.js')).state.map.getZoom())).toBeGreaterThan(14);
+});
+
+test('round trip can be planned before the event without GPS', async ({ page }) => {
+    await page.route('https://routing.openstreetmap.de/**', route => route.abort());
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        state.downloads.icsDate = '21.11.2099 17:00-21:00';
+        state.userLocation = null;
+        navigator.geolocation.getCurrentPosition = () => { throw new Error('Unexpected GPS request'); };
+        navigator.geolocation.watchPosition = () => { throw new Error('Unexpected GPS watch'); };
+        window.openRoutePlan();
+    });
+    await expect(page.locator('#route-plan-modal')).toContainText('Plane deinen Abend schon jetzt');
+    await page.locator('[data-route-plan-submit]').click();
+    await expect.poll(() => page.evaluate(async () => Boolean((await import('/js/state.js')).state.overviewRouteGeometry))).toBe(true);
+});
+
 test.beforeEach(async ({ page }) => {
     await page.route('**/config.js*', route => route.fulfill({
         contentType: 'application/javascript',

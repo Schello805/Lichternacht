@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.288';
-import { saveData } from './data.js?v=1.4.288';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.289';
+import { saveData } from './data.js?v=1.4.289';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -507,11 +507,15 @@ function updateMarkerClusters() {
         center.lng /= positions.length;
         center.lat /= positions.length;
         const hasRestroom = group.some(item => item.hasRestroom);
+        const stationIds = new Set(group.map(item => String(item.id)));
+        const programCount = state.events.filter(event => stationIds.has(String(event.stationId || ''))).length;
         const element = document.createElement('button');
         element.type = 'button';
         element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
-        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
-        element.setAttribute('aria-label', `${group.length} Stationen${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`);
+        element.innerHTML = `<span>${group.length}</span>${programCount ? `<span class="station-event-badge">E<span class="sr-only">: ${programCount} Programmpunkte</span></span>` : ''}${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
+        const label = `${group.length} Stationen${programCount ? ` mit ${programCount} Programmpunkten` : ''}${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`;
+        element.setAttribute('aria-label', label);
+        element.title = label;
         element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
         state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
     }
@@ -567,11 +571,20 @@ export function refreshMapMarkers() {
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         const hasRestroom = stationOffersRestroom(s);
+        const hasProgram = state.events.some(event => String(event.stationId || '') === String(s.id));
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
         icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
         
+        if (hasProgram) {
+            const badge = document.createElement('span');
+            badge.className = 'station-event-badge';
+            badge.textContent = 'E';
+            badge.title = 'Station mit Programm';
+            icon.appendChild(badge);
+        }
+
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
@@ -628,6 +641,7 @@ export function refreshMapMarkers() {
             const icon = document.createElement('button');
             icon.type = 'button';
             icon.className = 'program-pin';
+            icon.style.zIndex = '30';
         icon.innerHTML = '<span>E</span>';
         icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);

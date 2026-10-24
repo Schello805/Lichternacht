@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.288" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.289" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.288" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.289" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -144,7 +144,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.288">
+    <link rel="stylesheet" href="style.css?v=1.4.289">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1086,7 +1086,8 @@
                 <div class="flex items-start justify-between px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
                     <div>
                         <h2 id="route-plan-title" class="font-serif text-xl font-bold text-gray-900 dark:text-white">Dein Rundweg</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Wähle Stationen aus – die Reihenfolge planen wir automatisch.</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Plane deinen Abend schon jetzt – auch ohne GPS. Wähle Stationen aus, die Reihenfolge planen wir automatisch. Deine Auswahl bleibt auf diesem Gerät gespeichert.</p>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Nur das Einchecken ist zeitlich begrenzt: ab einer Stunde vor Beginn bis drei Stunden nach Ende.</p>
                     </div>
                     <button type="button" onclick="closeModal('route-plan-modal')" class="w-10 h-10 -mr-2 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Rundweg schließen"><i class="ph ph-x text-xl"></i></button>
                 </div>
@@ -1570,7 +1571,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.288', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.289', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1597,7 +1598,7 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.288"></script>
+    <script type="module" src="main.js?v=1.4.289"></script>
 </body>
 
 </html>

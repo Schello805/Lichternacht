@@ -157,6 +157,24 @@ h3,
     line-height: 1;
 }
 
+.station-event-badge {
+    position: absolute;
+    top: -5px;
+    left: -7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 3px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #7c3aed;
+    color: white;
+    font: 800 10px sans-serif;
+    box-shadow: 0 1px 4px #0004;
+}
+
 .program-pin {
     display: flex;
     width: 34px;
