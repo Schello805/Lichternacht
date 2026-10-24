@@ -1,5 +1,57 @@
 import { expect, test } from '@playwright/test';
 
+test('local database routes telemetry and broadcasts without Firestore requests', async ({ page }) => {
+    const firestoreRequests = [];
+    const writes = [];
+    page.on('request', request => {
+        if (request.url().includes('firestore.googleapis.com')) firestoreRequests.push(request.url());
+    });
+    await page.route('**/api/local-data**', async route => {
+        const request = route.request();
+        const url = new URL(request.url());
+        if (request.method() === 'POST') {
+            writes.push(request.postDataJSON());
+            return route.fulfill({ json: { ok: true } });
+        }
+        const collection = url.searchParams.get('collection');
+        if (collection === 'presence' && url.searchParams.get('count') === 'true') return route.fulfill({ json: { ok: true, count: 1 } });
+        if (!collection) return route.fulfill({ json: { ok: true, appId: 'e2e-test', stations: [{ id: 1, name: 'Lokal' }], events: [], config: {} } });
+        const data = collection === 'stats' ? { count_gold: 2 } : collection === 'presence' ? { lastSeen: new Date().toISOString() } : { text: 'Lokal gespeichert' };
+        return route.fulfill({ json: { ok: true, records: [{ id: collection, data }] } });
+    });
+    await page.goto('/index.html');
+    const result = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const reference = (base, ...parts) => {
+            const path = [base.path, ...parts].filter(Boolean).join('/');
+            return { path, id: path.split('/').pop() };
+        };
+        state.fb = { doc: reference, collection: reference };
+        state.db = {};
+        state.auth = { currentUser: { uid: 'visitor', getIdToken: async () => 'test' } };
+        state.appId = 'e2e-test';
+        state.useLocalStorage = false;
+        const { initializeLocalBackend } = await import('/js/local-backend.js');
+        await initializeLocalBackend();
+        const { doc, collection, query, where } = state.fb;
+        const base = ['artifacts', 'e2e-test', 'public', 'data'];
+        const stats = await state.fb.getDoc(doc(state.db, 'global', 'stats'));
+        const count = await state.fb.getCountFromServer(query(collection(state.db, ...base, 'presence'), where('lastSeen', '>', new Date(Date.now() - 120000))));
+        await state.fb.addDoc(collection(state.db, ...base, 'auditLogs'), { eventType: 'station_opened' });
+        await state.fb.setDoc(doc(state.db, ...base, 'checkins', 'visitor_1'), { stationId: '1' });
+        const broadcast = await new Promise(resolve => {
+            const unsubscribe = state.fb.onSnapshot(doc(state.db, 'artifacts', 'e2e-test', 'public', 'broadcast'), snapshot => {
+                unsubscribe();
+                resolve(snapshot.data());
+            });
+        });
+        return { count: count.data().count, gold: stats.data().count_gold, text: broadcast.text };
+    });
+    expect(result).toEqual({ count: 1, gold: 2, text: 'Lokal gespeichert' });
+    expect(writes.map(write => write.collection)).toEqual(['auditLogs', 'checkins']);
+    expect(firestoreRequests).toEqual([]);
+});
+
 test('station modal zooms from its marker and respects reduced motion', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {

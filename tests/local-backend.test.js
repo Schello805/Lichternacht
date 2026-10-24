@@ -30,6 +30,7 @@ test('local adapter reads core data and routes atomic batches without Firestore 
     const mixed = state.fb.writeBatch({});
     mixed.set({ path: stations.path + '/3' }, { id: 3 });
     mixed.set({ path: 'global/stats' }, {});
-    await assert.rejects(mixed.commit(), /Gemischte/);
-    assert.equal(writes.length, 2);
+    await mixed.commit();
+    assert.equal(writes[2].operations[1].collection, 'stats');
+    assert.equal(writes.length, 3);
 });

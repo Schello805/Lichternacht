@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.296';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
 import {
     showToast,
     getDistance,
@@ -8,11 +8,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.296';
-import * as utils from './utils.js?v=1.4.296';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.296';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.296';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.296';
+} from './utils.js?v=1.4.297';
+import * as utils from './utils.js?v=1.4.297';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.297';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.297';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.297';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -55,7 +55,7 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
         source: 'lichterpass',
         appId: state.appId || 'unknown'
     };
-    if (!navigator.onLine || !canUseFirestore()) {
+    if (!navigator.onLine || (!state.localBackend && !canUseFirestore())) {
         queueOfflineAction('checkin', payload);
         return;
     }
@@ -638,7 +638,7 @@ export function initPresence() {
     }
 
     const sendHeartbeat = async () => {
-        if (document.visibilityState === 'hidden' || !canUseFirestore()) return;
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
         try {
             const { doc, setDoc, serverTimestamp } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'presence', sessionId);
@@ -647,7 +647,7 @@ export function initPresence() {
     };
 
     const updateUserCount = async () => {
-        if (document.visibilityState === 'hidden' || !canUseFirestore()) return;
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
         try {
             const { collection, query, where, getCountFromServer, doc, getDoc } = state.fb;
             const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);

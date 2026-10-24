@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.296';
-import { loadData } from './data.js?v=1.4.296';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.296';
-import { renderTimeline } from './ui.js?v=1.4.296';
+import { showToast } from './utils.js?v=1.4.297';
+import { loadData } from './data.js?v=1.4.297';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.297';
+import { renderTimeline } from './ui.js?v=1.4.297';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -166,7 +166,10 @@ export function initAuthListener() {
                     setAdminState(true);
                     btn.innerText = 'Admin';
                     await loadData();
-                    if (window.pendingAdminOpen && window.toggleAdminPanel) window.toggleAdminPanel();
+                    if (window.pendingAdminOpen && window.toggleAdminPanel) {
+                        window.pendingAdminOpen = false;
+                        window.toggleAdminPanel();
+                    }
                 } catch (error) {
                     setAdminState(false);
                     showToast('Admin-Berechtigung konnte nicht geprüft werden.', 'error');

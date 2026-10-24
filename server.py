@@ -13,6 +13,9 @@ import urllib.error
 import shutil
 import resource
 import html
+import hashlib
+import base64
+import threading
 from email.message import EmailMessage
 from email.utils import formataddr
 from local_database import LocalDatabase
@@ -75,6 +78,8 @@ load_dotenv()
 
 LOCAL_DATABASE_ENABLED = os.environ.get('LOCAL_DATABASE_ENABLED', '').lower() == 'true'
 LOCAL_DATABASE_PATH = os.environ.get('LOCAL_DATABASE_PATH', os.path.join(PRIVATE_DIR, 'local.sqlite3'))
+TOKEN_CACHE = {}
+TOKEN_CACHE_LOCK = threading.Lock()
 
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
@@ -89,6 +94,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def _send_json(self, status, payload):
         self.send_response(status)
         self.send_header('Content-type', 'application/json')
+        self.send_header('Cache-Control', 'no-store')
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode('utf-8'))
 
@@ -264,11 +270,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             },
             method='POST'
         )
-        try:
-            with urllib.request.urlopen(request, timeout=10) as response:
-                payload = json.loads(response.read().decode('utf-8'))
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
-            return False
+        cache_key = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        with TOKEN_CACHE_LOCK:
+            cached = TOKEN_CACHE.get(cache_key)
+        if cached and cached[0] > time.time():
+            payload = cached[1]
+        else:
+            try:
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    payload = json.loads(response.read().decode('utf-8'))
+                part = token.split('.')[1]
+                claims = json.loads(base64.urlsafe_b64decode(part + '=' * (-len(part) % 4)))
+                expires = min(time.time() + 300, float(claims['exp']))
+                with TOKEN_CACHE_LOCK:
+                    if len(TOKEN_CACHE) >= 2048:
+                        TOKEN_CACHE.clear()
+                    TOKEN_CACHE[cache_key] = (expires, payload)
+            except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, IndexError, TypeError):
+                return False
 
         users = payload.get('users') or []
         self._verified_firebase_user = users[0] if users else None
@@ -278,7 +297,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             for item in os.environ.get('ADMIN_EMAILS', '').split(',')
             if item.strip()
         }
-        return bool(email and email in allowed)
+        if email and email in allowed:
+            return True
+        if LOCAL_DATABASE_ENABLED and users:
+            try:
+                return LocalDatabase(LOCAL_DATABASE_PATH).is_admin(str(users[0]['localId']))
+            except Exception:
+                return False
+        return False
 
     def _write_client_error_log(self, data):
         def sanitize(value, limit):
@@ -378,17 +404,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             payload = self._read_json()
             if not isinstance(payload, dict):
                 return self._send_json(400, {'ok': False, 'error': 'Ungültige Daten'})
-            if not is_admin or payload.get('action') == 'like':
+            if not is_admin or payload.get('action') == 'like' or payload.get('collection') == 'checkins':
                 user = self._verified_firebase_user
-                if not user or payload.get('action') != 'like' or payload.get('collection') != 'stations':
+                if not user:
                     return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
-                if not self._rate_limit('local-like', 30, 60):
+                if not self._rate_limit('local-visitor-' + str(user['localId']), 120, 60):
                     return self._send_json(429, {'ok': False, 'error': 'Zu viele Anfragen'})
                 try:
-                    LocalDatabase(LOCAL_DATABASE_PATH).like(str(user['localId']), str(payload.get('id', '')))
+                    database = LocalDatabase(LOCAL_DATABASE_PATH)
+                    if payload.get('action') == 'like' and payload.get('collection') == 'stations':
+                        database.like(str(user['localId']), str(payload.get('id', '')))
+                    else:
+                        database.visitor_write(str(user['localId']), payload)
                     return self._send_json(200, {'ok': True})
+                except ValueError as error:
+                    return self._send_json(403, {'ok': False, 'error': str(error)})
                 except Exception:
-                    return self._send_json(400, {'ok': False, 'error': 'Bewertung konnte nicht gespeichert werden'})
+                    return self._send_json(503, {'ok': False, 'error': 'Daten konnten nicht gespeichert werden'})
             try:
                 operations = payload.get('operations', [payload])
                 LocalDatabase(LOCAL_DATABASE_PATH).write_many(operations)
@@ -580,14 +612,53 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/local-backup':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            if not self._verify_admin_token():
+                return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
+            try:
+                return self._send_json(200, LocalDatabase(LOCAL_DATABASE_PATH).backup())
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Sicherung fehlgeschlagen'})
         if parsed_path.path == '/api/local-admin':
             if not LOCAL_DATABASE_ENABLED:
                 return self._send_json(404, {'ok': False})
-            return self._send_json(200, {'ok': True, 'isAdmin': self._verify_admin_token()})
+            is_admin = self._verify_admin_token()
+            if is_admin and self._verified_firebase_user:
+                user = self._verified_firebase_user
+                LocalDatabase(LOCAL_DATABASE_PATH).write('set', 'users', str(user['localId']), {'email': user.get('email', ''), 'uid': user['localId']}, True)
+            return self._send_json(200, {'ok': True, 'isAdmin': is_admin})
         if parsed_path.path == '/api/local-data':
             if not LOCAL_DATABASE_ENABLED:
                 return self._send_json(404, {'ok': False})
             try:
+                params = urllib.parse.parse_qs(parsed_path.query)
+                collection = (params.get('collection') or [''])[0]
+                identifier = (params.get('id') or [None])[0]
+                if collection:
+                    public = {'stations', 'events', 'config', 'broadcast', 'globalConfig', 'stats', 'presence'}
+                    private = {'checkins', 'auditLogs', 'users', 'reports', 'globalAdmins'}
+                    if collection not in public | private:
+                        return self._send_json(400, {'ok': False, 'error': 'Unbekannte Datensammlung'})
+                    if collection == 'presence' and (params.get('count') or [''])[0] == 'true':
+                        since = (params.get('since') or [''])[0]
+                        count = LocalDatabase(LOCAL_DATABASE_PATH).active_presence_count(since)
+                        return self._send_json(200, {'ok': True, 'count': count})
+                    if collection in private:
+                        is_admin = self._verify_admin_token()
+                        user = self._verified_firebase_user
+                        own_checkin = False
+                        if collection == 'checkins' and user and identifier:
+                            existing = LocalDatabase(LOCAL_DATABASE_PATH).records('checkins', identifier)
+                            own_checkin = bool(existing and existing[0]['data'].get('ownerUid') == str(user['localId']))
+                        if not is_admin and not own_checkin:
+                            return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
+                    if collection == 'globalAdmins':
+                        rows = [{'id': identifier, 'data': {'uid': identifier}}] if user and identifier == user['localId'] else []
+                    else:
+                        rows = LocalDatabase(LOCAL_DATABASE_PATH).records(collection, identifier)
+                    return self._send_json(200, {'ok': True, 'records': rows})
                 snapshot = LocalDatabase(LOCAL_DATABASE_PATH).read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -662,8 +733,8 @@ class ReusableTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-print(f"Server läuft auf http://{HOST}:{PORT}")
-print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
-
-with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
-    httpd.serve_forever()
+if __name__ == '__main__':
+    print(f"Server läuft auf http://{HOST}:{PORT}")
+    print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
+    with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
+        httpd.serve_forever()

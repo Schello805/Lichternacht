@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.296';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
 
 const QUEUE_KEY = 'offline_action_queue_v1';
 let flushing = false;
@@ -62,7 +62,7 @@ async function executeAction(action) {
 
 export async function flushOfflineActions() {
     if (flushing || !navigator.onLine || state.useLocalStorage || !state.db) return;
-    if (!canUseFirestore() || globalThis.document?.visibilityState === 'hidden') return;
+    if ((!state.localBackend && !canUseFirestore()) || globalThis.document?.visibilityState === 'hidden') return;
     flushing = true;
     try {
         const queue = readQueue();

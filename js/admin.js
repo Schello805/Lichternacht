@@ -1,14 +1,14 @@
 
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.296';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.296';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.296';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.296';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.297';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.297';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.297';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.296';
-import { recordAuditEvent } from './audit.js?v=1.4.296';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.296';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.296';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.297';
+import { recordAuditEvent } from './audit.js?v=1.4.297';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.297';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.297';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -155,7 +155,7 @@ function renderMetricCard({ label, value, detail = '', icon = 'ph-info', tone = 
 
 async function loadAudienceMetrics() {
     if (audienceMetricsCache && Date.now() - audienceMetricsSavedAt < 60000) return audienceMetricsCache;
-    if (!canUseFirestore()) return audienceMetricsCache || { activeVisitors: null, admins: null };
+    if (!state.localBackend && !canUseFirestore()) return audienceMetricsCache || { activeVisitors: null, admins: null };
     if (state.useLocalStorage || !state.db) return { activeVisitors: null, admins: null };
     const { collection, query, where, getCountFromServer } = state.fb;
     const presenceRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'presence');
@@ -1001,7 +1001,12 @@ async function collectStoredBackupAssets(backup) {
 }
 
 async function createAndDownloadFullBackup() {
-    const backup = createFullBackupBase();
+    let backup = createFullBackupBase();
+    if (state.localBackend) {
+        const response = await fetch('./api/local-backup', { headers: { Authorization: `Bearer ${await getAdminToken()}` }, cache: 'no-store' });
+        if (!response.ok) throw new Error('Lokale Komplettsicherung konnte nicht gelesen werden.');
+        backup = await response.json();
+    }
     showToast('Komplettsicherung wird mit Bildern und PDFs vorbereitet …', 'info');
     backup.assets = await collectStoredBackupAssets(backup);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1103,6 +1108,7 @@ export async function restoreFullBackup(input) {
     try {
         const backup = JSON.parse(await file.text());
         if (!isValidBackup(backup)) throw new Error('Ungültige oder veraltete Lichternacht-Sicherung.');
+        if (backup.localDocuments) throw new Error('Diese vollständige Datenbanksicherung bitte über das Server-Importskript in eine neue Datenbank wiederherstellen.');
         if (backup.appId !== state.appId) throw new Error(`Diese Sicherung gehört zu ${backup.appId || 'einem anderen Jahr'}.`);
         if (!confirm(`Komplettsicherung vom ${new Date(backup.createdAt).toLocaleString('de-DE')} wiederherstellen?\n\nDie aktuellen Stationen, Programmpunkte und App-Konfiguration werden vollständig ersetzt.`)) return;
 
@@ -1151,7 +1157,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.296';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.297';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1741,9 +1747,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.296';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.296';
-import { renderList, renderTimeline } from './ui.js?v=1.4.296';
+import { showToast } from './utils.js?v=1.4.297';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.297';
+import { renderList, renderTimeline } from './ui.js?v=1.4.297';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

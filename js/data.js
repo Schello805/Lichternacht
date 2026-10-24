@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.296';
-import { showToast } from './utils.js?v=1.4.296';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.297';
+import { showToast } from './utils.js?v=1.4.297';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.296';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.297';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
@@ -269,7 +269,7 @@ export async function loadData(options = {}) {
     } catch (e) { }
 }
 
-export function refreshVisitorDataIfStale(maxAgeMs = 10 * 60 * 1000) {
+export function refreshVisitorDataIfStale(maxAgeMs = state.localBackend ? 60000 : 10 * 60 * 1000) {
     if (!navigator.onLine || state.useLocalStorage || !state.db) return Promise.resolve(false);
     if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return Promise.resolve(false);
     if (refreshPromise) return refreshPromise;
@@ -331,7 +331,6 @@ export async function deleteData(type, id) {
 export async function syncGlobalConfig() {
     if (state.localBackend) {
         state.appId = state.localBackendAppId;
-        return;
     }
     try {
         const { doc, getDoc, getDocFromServer } = state.fb;
@@ -340,7 +339,7 @@ export async function syncGlobalConfig() {
         const docSnap = await withTimeout(readDocument(docRef), 'Jahreskonfiguration', 6000);
         if (docSnap.exists()) {
             const data = docSnap.data();
-            if (data.activeYear) {
+            if (data.activeYear && !state.localBackend) {
                 state.appId = `lichternacht-${data.activeYear}`;
                 console.log("Configured Year:", data.activeYear);
                 document.querySelectorAll('.year-display').forEach(el => el.innerText = data.activeYear);
