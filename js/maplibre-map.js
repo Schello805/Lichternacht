@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.291';
-import { saveData } from './data.js?v=1.4.291';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.292';
+import { saveData } from './data.js?v=1.4.292';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -444,7 +444,6 @@ export function initMap() {
     state.map.dragRotate.disable();
     state.map.touchZoomRotate.disableRotation();
     state.map.on('style.load', restoreMapOverlays);
-    state.map.on('moveend', updateMarkerClusters);
     state.map.on('error', () => applyFallbackMapStyle());
     updateMapLayerButton();
     updateOverviewRouteButton();
@@ -477,48 +476,6 @@ function applyFallbackMapStyle() {
 function clearClusterMarkers() {
     (state.clusterMarkers || []).forEach(marker => marker.remove());
     state.clusterMarkers = [];
-}
-
-function updateMarkerClusters() {
-    clearClusterMarkers();
-    if (!state.map || state.isAdmin || state.map.getZoom() >= 18 || !Array.isArray(state.markers)) {
-        state.markers.forEach(item => { item.marker.getElement().style.display = ''; });
-        return;
-    }
-
-    const remaining = [...state.markers];
-    while (remaining.length) {
-        const first = remaining.shift();
-        const firstPoint = state.map.project(first.marker.getLngLat());
-        const group = [first];
-        for (let index = remaining.length - 1; index >= 0; index--) {
-            const point = state.map.project(remaining[index].marker.getLngLat());
-            if (Math.hypot(point.x - firstPoint.x, point.y - firstPoint.y) <= 46) {
-                group.push(remaining.splice(index, 1)[0]);
-            }
-        }
-        if (group.length === 1) {
-            first.marker.getElement().style.display = '';
-            continue;
-        }
-        group.forEach(item => { item.marker.getElement().style.display = 'none'; });
-        const positions = group.map(item => item.marker.getLngLat());
-        const center = positions.reduce((sum, position) => ({ lng: sum.lng + position.lng, lat: sum.lat + position.lat }), { lng: 0, lat: 0 });
-        center.lng /= positions.length;
-        center.lat /= positions.length;
-        const hasRestroom = group.some(item => item.hasRestroom);
-        const stationIds = new Set(group.map(item => String(item.id)));
-        const programCount = state.events.filter(event => stationIds.has(String(event.stationId || ''))).length;
-        const element = document.createElement('button');
-        element.type = 'button';
-        element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
-        element.innerHTML = `<span>${group.length}</span>${programCount ? `<span class="station-event-badge">E<span class="sr-only">: ${programCount} Programmpunkte</span></span>` : ''}${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
-        const label = `${group.length} Stationen${programCount ? ` mit ${programCount} Programmpunkten` : ''}${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`;
-        element.setAttribute('aria-label', label);
-        element.title = label;
-        element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
-        state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
-    }
 }
 
 export function updateMapTiles(isDark) {
@@ -676,7 +633,6 @@ export function refreshMapMarkers() {
             }
             state.programMarkers.push(marker);
         });
-    updateMarkerClusters();
     refreshStandaloneRestroomMarkers();
     refreshStandaloneParkingMarkers();
 }

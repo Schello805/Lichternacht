@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('program remains identifiable when its station is clustered', async ({ page }) => {
+test('stations and events stay individually displayed when zooming out', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(async () => {
         const { state } = await import('/js/state.js');
@@ -10,15 +10,20 @@ test('program remains identifiable when its station is clustered', async ({ page
             { id: 1, name: 'Mit Programm', lat: 49.158, lng: 10.552, tags: [] },
             { id: 2, name: 'Nachbar', lat: 49.15801, lng: 10.55201, tags: [] }
         ];
-        state.events = [{ id: 'concert', title: 'Konzert', stationId: 1 }];
+        state.events = [
+            { id: 'concert', title: 'Konzert', stationId: 1 },
+            { id: 'solo', title: 'Solo', lat: 49.1581, lng: 10.5521 }
+        ];
         state.map.jumpTo({ center: [10.552, 49.158], zoom: 14 });
         refreshMapMarkers();
     });
-    const cluster = page.locator('.station-cluster');
-    await expect(cluster).toHaveAttribute('aria-label', /mit 1 Programmpunkten/);
-    await expect(cluster.locator('.station-event-badge')).toBeVisible();
-    await cluster.click();
-    await expect.poll(() => page.evaluate(async () => (await import('/js/state.js')).state.map.getZoom())).toBeGreaterThan(14);
+    for (const zoom of [14, 12, 16]) {
+        await page.evaluate(async zoom => (await import('/js/state.js')).state.map.jumpTo({ zoom }), zoom);
+        await expect(page.locator('.station-cluster')).toHaveCount(0);
+        await expect(page.locator('.custom-pin')).toHaveCount(2);
+        await expect(page.locator('.program-pin')).toHaveCount(1);
+        for (const marker of await page.locator('.custom-pin, .program-pin').all()) await expect(marker).toBeVisible();
+    }
 });
 
 test('round trip can be planned before the event without GPS', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.291';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.292';
 import {
     showToast,
     getDistance,
@@ -8,11 +8,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.291';
-import * as utils from './utils.js?v=1.4.291';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.291';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.291';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.291';
+} from './utils.js?v=1.4.292';
+import * as utils from './utils.js?v=1.4.292';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.292';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.292';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.292';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
