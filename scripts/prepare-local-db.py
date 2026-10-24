@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -19,7 +20,7 @@ def import_backup(source, destination):
     descriptor = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     os.close(descriptor)
     try:
-        with sqlite3.connect(destination) as database:
+        with closing(sqlite3.connect(destination)) as database, database:
             database.execute('CREATE TABLE snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL)')
             database.execute('CREATE TABLE assets (position INTEGER PRIMARY KEY, metadata TEXT NOT NULL, content BLOB NOT NULL)')
             metadata = {key: value for key, value in backup.items() if key != 'assets'}
@@ -34,7 +35,7 @@ def import_backup(source, destination):
 
 
 def export_backup(source):
-    with sqlite3.connect(Path(source).resolve().as_uri() + '?mode=ro', uri=True) as database:
+    with closing(sqlite3.connect(Path(source).resolve().as_uri() + '?mode=ro', uri=True)) as database:
         backup = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
         backup['assets'] = []
         for metadata, content in database.execute('SELECT metadata, content FROM assets ORDER BY position'):

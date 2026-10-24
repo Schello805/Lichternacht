@@ -27,5 +27,27 @@ und keinen vollständigen Export von Check-ins oder Auditlogs.
 6. Schreibzugriffe während des finalen Abgleichs kurz sperren und auf die neue
    API umstellen. Einen geprüften Rückweg mit Datenabgleich bereithalten.
 
-Die Testdatenbank wird noch nicht von der App verwendet. Während des
-Parallelbetriebs bleibt Firebase die maßgebliche Datenquelle.
+## Verfügbare Anbindung
+
+Der Python-Server bietet jetzt `/api/local-data` für Stationen, Events und
+Einstellungen. Admin-Änderungen werden über Firebase-ID-Tokens und `ADMIN_EMAILS`
+geprüft. Mehrere Änderungen können atomar gespeichert werden. Likes sind pro
+Firebase-Nutzer und Station auf eine Bewertung beschränkt.
+
+Die App erkennt diesen Endpunkt, wenn `LOCAL_DATABASE_ENABLED=true` gesetzt ist.
+`LOCAL_DATABASE_PATH` muss auf eine bereits importierte Datenbank zeigen. Sie
+leitet dann Lesen und Bearbeiten von Stationen, Events und Einstellungen an
+SQLite um. Die Datenquelle wird beim Laden gewählt und nicht nachträglich pro
+Schreibzugriff gewechselt.
+
+Dieser Hybridbetrieb ersetzt noch nicht alle Firebase-Funktionen: Anmeldung,
+Check-ins, Auditlogs, Broadcasts, globale Statistiken und Benutzerverwaltung
+bleiben bei Firebase. Lokale Adminrechte stammen aus `ADMIN_EMAILS`.
+Gemischte Transaktionen über beide Datenbanken werden abgelehnt. Der Jahresreset
+benötigt deshalb noch eine Anpassung. Vor der Freigabe sind komplette
+Admin-/Besucherabläufe mit einer aktuellen Sicherung zu testen. Keine Aktivierung
+auf dem Live-Server allein durch ein Deployment.
+
+Im Testbetrieb ist SQLite für die drei genannten Datenbereiche maßgeblich.
+Es gibt keine automatische Rücksynchronisation nach Firebase. Zurückschalten
+erfordert deshalb vorher einen Export und Datenabgleich.

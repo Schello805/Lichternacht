@@ -15,6 +15,7 @@ import resource
 import html
 from email.message import EmailMessage
 from email.utils import formataddr
+from local_database import LocalDatabase
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -71,6 +72,10 @@ def load_dotenv(path='.env'):
 
 
 load_dotenv()
+
+LOCAL_DATABASE_ENABLED = os.environ.get('LOCAL_DATABASE_ENABLED', '').lower() == 'true'
+LOCAL_DATABASE_PATH = os.environ.get('LOCAL_DATABASE_PATH', os.path.join(PRIVATE_DIR, 'local.sqlite3'))
+
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -233,6 +238,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 smtp.send_message(msg)
 
     def _verify_admin_token(self):
+        self._verified_firebase_user = None
         authorization = self.headers.get('Authorization', '')
         api_key = os.environ.get('FIREBASE_API_KEY', '').strip()
         if not api_key:
@@ -265,6 +271,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             return False
 
         users = payload.get('users') or []
+        self._verified_firebase_user = users[0] if users else None
         email = str(users[0].get('email') or '').strip().lower() if users else ''
         allowed = {
             item.strip().lower()
@@ -364,6 +371,32 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         image_endpoint = self.path.split('?', 1)[0]
+        if image_endpoint == '/api/local-data':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            is_admin = self._verify_admin_token()
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                return self._send_json(400, {'ok': False, 'error': 'Ungültige Daten'})
+            if not is_admin or payload.get('action') == 'like':
+                user = self._verified_firebase_user
+                if not user or payload.get('action') != 'like' or payload.get('collection') != 'stations':
+                    return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
+                if not self._rate_limit('local-like', 30, 60):
+                    return self._send_json(429, {'ok': False, 'error': 'Zu viele Anfragen'})
+                try:
+                    LocalDatabase(LOCAL_DATABASE_PATH).like(str(user['localId']), str(payload.get('id', '')))
+                    return self._send_json(200, {'ok': True})
+                except Exception:
+                    return self._send_json(400, {'ok': False, 'error': 'Bewertung konnte nicht gespeichert werden'})
+            try:
+                operations = payload.get('operations', [payload])
+                LocalDatabase(LOCAL_DATABASE_PATH).write_many(operations)
+                return self._send_json(200, {'ok': True})
+            except ValueError as error:
+                return self._send_json(400, {'ok': False, 'error': str(error)})
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank nicht verfügbar'})
         if image_endpoint == '/api/flyer-pdf':
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
@@ -547,13 +580,30 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/local-admin':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            return self._send_json(200, {'ok': True, 'isAdmin': self._verify_admin_token()})
+        if parsed_path.path == '/api/local-data':
+            if not LOCAL_DATABASE_ENABLED:
+                return self._send_json(404, {'ok': False})
+            try:
+                snapshot = LocalDatabase(LOCAL_DATABASE_PATH).read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                self.wfile.write(json.dumps({'ok': True, 'appId': snapshot.get('appId'), 'stations': snapshot['stations'], 'events': snapshot['events'], 'config': snapshot['config']}).encode('utf-8'))
+                return
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Lokale Datenbank nicht verfügbar'})
         requested_path = urllib.parse.unquote(parsed_path.path)
         path_segments = [segment for segment in requested_path.split('/') if segment]
         protected_paths = {'logs', 'node_modules', 'scripts', 'server', 'tests'}
         protected_files = {
             '/server.py', '/deploy.sh', '/firebase.json', '/firestore.rules',
             '/package.json', '/package-lock.json', '/playwright.config.js',
-            '/tailwind.config.js', '/server-htaccess'
+            '/tailwind.config.js', '/server-htaccess', '/local_database.py'
         }
 
         if (

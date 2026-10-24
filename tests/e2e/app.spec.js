@@ -1,5 +1,26 @@
 import { expect, test } from '@playwright/test';
 
+test('station modal zooms from its marker and respects reduced motion', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.__stationAnimations = [];
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function(frames, options) {
+            if (this.id === 'modal-content') window.__stationAnimations.push(frames);
+            return animate.call(this, frames, options);
+        };
+        window.openStation(1);
+    });
+    await expect.poll(() => page.evaluate(() => window.__stationAnimations.length)).toBe(1);
+    expect(await page.evaluate(() => window.__stationAnimations[0][0].transform)).toMatch(/translate.*scale/);
+    await page.getByRole('button', { name: 'Station schließen' }).click();
+    await expect(page.locator('#detail-modal')).toBeHidden();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.evaluate(() => window.openStation(1));
+    await expect(page.locator('#detail-modal')).toBeVisible();
+    expect(await page.evaluate(() => window.__stationAnimations.length)).toBe(2);
+});
+
 test('stations and events stay individually displayed when zooming out', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(async () => {

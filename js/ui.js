@@ -1,13 +1,13 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.292';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.292';
-import * as utils from './utils.js?v=1.4.292';
-import { saveData, deleteData } from './data.js?v=1.4.292';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.292';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.292';
-import { recordAuditEvent } from './audit.js?v=1.4.292';
-import { normalizeImageUrl } from './image-url.js?v=1.4.292';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.293';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.293';
+import * as utils from './utils.js?v=1.4.293';
+import { saveData, deleteData } from './data.js?v=1.4.293';
+import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.293';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.293';
+import { recordAuditEvent } from './audit.js?v=1.4.293';
+import { normalizeImageUrl } from './image-url.js?v=1.4.293';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -21,6 +21,25 @@ const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
 let editingStation = null;
 let editingStationSnapshot = null;
+let stationModalAnimation = null;
+
+function animateStationModal(stationId, reverse = false) {
+    const content = document.getElementById('modal-content');
+    if (!content || state.activeTab !== 'map' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const marker = state.markers.find(item => String(item.id) === String(stationId))?.marker.getElement();
+    if (!marker || !content.animate) return;
+    stationModalAnimation?.cancel();
+    const origin = marker.getBoundingClientRect();
+    content.style.transition = 'none';
+    const destination = content.getBoundingClientRect();
+    if (!origin.width || !destination.width || !destination.height) return;
+    const frames = [
+        { transformOrigin: 'center', transform: `translate(${origin.x + origin.width / 2 - destination.x - destination.width / 2}px, ${origin.y + origin.height / 2 - destination.y - destination.height / 2}px) scale(${Math.max(0.04, origin.width / destination.width)}, ${Math.max(0.04, origin.height / destination.height)})`, opacity: 0.25 },
+        { transformOrigin: 'center', transform: 'translate(0, 0) scale(1)', opacity: 1 }
+    ];
+    stationModalAnimation = content.animate(reverse ? frames.reverse() : frames, { duration: reverse ? 260 : 360, easing: 'cubic-bezier(.2,.8,.2,1)', fill: reverse ? 'forwards' : 'none' });
+    return stationModalAnimation;
+}
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
 
 function getRoutePlanStationIds() {
@@ -171,6 +190,7 @@ export function openModal(target) {
         // Station Object
         const s = target;
         const detailModal = document.getElementById('detail-modal');
+        const isOpening = detailModal?.classList.contains('hidden');
         if (state.map && detailModal?.classList.contains('hidden') && !state.modalReturnCamera) {
             const center = state.map.getCenter();
             state.modalReturnCamera = {
@@ -238,6 +258,7 @@ export function openModal(target) {
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
         if (modal) {
+            if (isOpening) stationModalAnimation?.cancel();
             if (content) {
                 content.style.transform = '';
                 content.style.transition = '';
@@ -247,6 +268,7 @@ export function openModal(target) {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     if (content) content.classList.remove('translate-y-full');
+                    if (isOpening) animateStationModal(s.id);
                 });
             });
             
@@ -278,6 +300,7 @@ export function closeModal(id) {
         // Default to detail modal if no ID passed (e.g. from X button)
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
+        stationModalAnimation?.cancel();
 
         // If the active station is a draft, ask before discarding it
         try {
@@ -296,6 +319,8 @@ export function closeModal(id) {
             }
         } catch (e) { }
         
+        const closingAnimation = animateStationModal(state.activeStationId, true);
+
         // Reset active station highlight
         if (state.activeStationId) {
             state.activeStationId = null;
@@ -303,7 +328,7 @@ export function closeModal(id) {
             refreshMapMarkers();
         }
 
-        if (content) content.classList.add('translate-y-full');
+        if (content && !closingAnimation) content.classList.add('translate-y-full');
         
         // Wait for animation
         setTimeout(() => {

@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.292';
-import { loadData } from './data.js?v=1.4.292';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.292';
-import { renderTimeline } from './ui.js?v=1.4.292';
+import { showToast } from './utils.js?v=1.4.293';
+import { loadData } from './data.js?v=1.4.293';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.293';
+import { renderTimeline } from './ui.js?v=1.4.293';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -158,6 +158,21 @@ export function initAuthListener() {
             }
 
             // Authenticated Users (Admins)
+            if (state.localBackend) {
+                try {
+                    const response = await fetch('./api/local-admin', { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: 'no-store' });
+                    const result = await response.json();
+                    if (!response.ok || !result.isAdmin) throw new Error('Keine lokale Admin-Berechtigung');
+                    setAdminState(true);
+                    btn.innerText = 'Admin';
+                    await loadData();
+                    if (window.pendingAdminOpen && window.toggleAdminPanel) window.toggleAdminPanel();
+                } catch (error) {
+                    setAdminState(false);
+                    showToast('Admin-Berechtigung konnte nicht geprüft werden.', 'error');
+                }
+                return;
+            }
             const { doc, getDoc, setDoc, serverTimestamp } = state.fb;
             const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', user.uid);
             const globalAdminRef = doc(state.db, 'globalAdmins', user.uid);
