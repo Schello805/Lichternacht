@@ -619,13 +619,15 @@ test('moving an admin station marker saves its new coordinates', async ({ page }
     })).toEqual([49.15999, 10.55111]);
 });
 
-test('mobile map clusters close stations and zooms in on tap', async ({ page }) => {
+test('map keeps individual station markers clickable after zooming out', async ({ page }) => {
     await page.goto('/index.html');
-    const cluster = page.locator('.station-cluster').first();
-    await expect(cluster).toBeVisible();
-    const zoomBefore = await page.evaluate(() => window.state.map.getZoom());
-    await cluster.dispatchEvent('click');
-    await expect.poll(() => page.evaluate(() => window.state.map.getZoom())).toBeGreaterThan(zoomBefore);
+    await page.evaluate(() => window.state.map.jumpTo({ zoom: 13 }));
+    await expect(page.locator('.station-cluster')).toHaveCount(0);
+    const markers = page.locator('.custom-pin');
+    await expect(markers).toHaveCount(await page.evaluate(() => window.state.markers.length));
+    await markers.first().dispatchEvent('click');
+    await expect(page.locator('#detail-modal')).toBeVisible();
+    await expect(page.locator('#modal-title')).not.toBeEmpty();
 });
 
 test('GPS watch centers once and then allows free map movement', async ({ page, context }) => {
