@@ -1,14 +1,14 @@
 
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.298';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.298';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.298';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.298';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.299';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.299';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.299';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.299';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.298';
-import { recordAuditEvent } from './audit.js?v=1.4.298';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.298';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.298';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.299';
+import { recordAuditEvent } from './audit.js?v=1.4.299';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.299';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.299';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -820,18 +820,27 @@ function renderUserList(users) {
     listEl.innerHTML = users.map(u => `
         <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 text-sm mb-1">
             <div class="overflow-hidden">
-                <div class="font-bold truncate" title="${u.email}">${u.email}</div>
-                <div class="text-[10px] text-gray-400 truncate">${u.id}</div>
+                <div class="font-bold truncate" title="${escapeHtml(u.email)}">${escapeHtml(u.email)}</div>
+                <div class="text-[10px] text-gray-400 truncate">${escapeHtml(u.id)}</div>
             </div>
-            <button onclick="deleteUser('${u.id}', '${u.email}')" class="text-red-500 hover:bg-red-50 p-1 rounded" title="Löschen"><i class="ph ph-trash"></i></button>
+            <button data-admin-delete-id="${escapeHtml(u.id)}" data-admin-delete-email="${escapeHtml(u.email)}" class="text-red-500 hover:bg-red-50 p-1 rounded" title="Löschen"><i class="ph ph-trash"></i></button>
         </div>
     `).join('');
+    listEl.querySelectorAll('[data-admin-delete-id]').forEach(button => {
+        button.onclick = () => deleteUser(button.dataset.adminDeleteId, button.dataset.adminDeleteEmail);
+    });
 }
 
 export async function deleteUser(uid, email) {
     if (!confirm(`Soll der Nutzer "${email}" wirklich gelöscht werden? Er verliert dadurch sofort den Zugriff.`)) return;
     
     try {
+        if (state.localAuth) {
+            await state.fb.deleteLocalAdmin(uid);
+            showToast(`Nutzer ${email} gelöscht`, 'success');
+            await loadUsers();
+            return;
+        }
         const { doc, deleteDoc } = state.fb;
         const userRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'users', uid);
         await deleteDoc(userRef);
@@ -1123,6 +1132,7 @@ export async function restoreFullBackup(input) {
             localStorage.setItem('app_config', JSON.stringify(restoredConfig));
         } else {
             if (!state.fb?.writeBatch) {
+                if (state.localAuth) throw new Error('Lokale Datenanbindung ist nicht bereit.');
                 const fbStore = await import('https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js');
                 Object.assign(state.fb, fbStore);
             }
@@ -1157,7 +1167,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.298';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.299';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1747,9 +1757,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.298';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.298';
-import { renderList, renderTimeline } from './ui.js?v=1.4.298';
+import { showToast } from './utils.js?v=1.4.299';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.299';
+import { renderList, renderTimeline } from './ui.js?v=1.4.299';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -1903,6 +1913,7 @@ export async function sendBroadcast() {
         }
 
         if (!state.fb?.doc || !state.fb?.setDoc) {
+            if (state.localAuth) throw new Error('Lokale Datenanbindung ist nicht bereit.');
             const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
             Object.assign(state.fb, fbStore);
         }
@@ -1935,6 +1946,7 @@ export async function deleteBroadcast() {
         }
 
         if (!state.fb?.doc || !state.fb?.deleteDoc) {
+            if (state.localAuth) throw new Error('Lokale Datenanbindung ist nicht bereit.');
             const fbStore = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
             Object.assign(state.fb, fbStore);
         }

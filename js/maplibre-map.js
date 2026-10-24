@@ -1,6 +1,7 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.298';
-import { saveData } from './data.js?v=1.4.298';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget } from './round-trip.js?v=1.4.299';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.299';
+import { saveData } from './data.js?v=1.4.299';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -873,6 +874,7 @@ export function calculateRoute(destLat, destLng) {
 
 export function clearRoute() {
     state.routeGeometry = null;
+    clearOverviewRoute();
     if (!state.map) return;
     try {
         if (state.map.getLayer(ROUTE_LAYER_ID)) state.map.removeLayer(ROUTE_LAYER_ID);
@@ -880,7 +882,6 @@ export function clearRoute() {
     } catch (error) {
         console.warn('Route could not be cleared', error);
     }
-    if (state.overviewRouteGeometry) clearOverviewRoute();
     hideRouteInfoIfUnused();
 }
 
@@ -931,36 +932,7 @@ function getDistanceMeters(start, end) {
 }
 
 function buildOverviewRoundTrip(stationIds = null) {
-    const selectedIds = Array.isArray(stationIds) ? new Set(stationIds.map(String)) : null;
-    const stations = state.stations
-        .filter(station => !selectedIds || selectedIds.has(String(station.id)))
-        .map(station => {
-            const coordinates = getValidCoordinates(station.lat, station.lng);
-            return coordinates ? { station, coordinates: [coordinates.longitude, coordinates.latitude] } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => Number(a.station.id) - Number(b.station.id));
-    if (stations.length < 2) return { coordinates: [], stations: [] };
-
-    const remaining = [...stations];
-    const ordered = [remaining.shift()];
-    while (remaining.length) {
-        const current = ordered[ordered.length - 1].coordinates;
-        let nextIndex = 0;
-        let nearestDistance = Infinity;
-        remaining.forEach((candidate, index) => {
-            const distance = getDistanceMeters(current, candidate.coordinates);
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nextIndex = index;
-            }
-        });
-        ordered.push(remaining.splice(nextIndex, 1)[0]);
-    }
-    return {
-        coordinates: [...ordered.map(item => item.coordinates), ordered[0].coordinates],
-        stations: ordered.map(item => item.station)
-    };
+    return buildRoundTrip(state.stations, stationIds);
 }
 
 function formatRouteDistance(distanceMeters) {
@@ -975,6 +947,12 @@ function formatRouteDuration(durationSeconds) {
 
 function clearOverviewRoute() {
     state.overviewRouteRequestId += 1;
+    state.overviewRouteCalculating = false;
+    state.overviewRouteEstimated = false;
+    state.overviewRouteReached = 0;
+    state.overviewRouteSkipped = 0;
+    state.overviewRouteClosing = false;
+    state.overviewRouteCompleted = false;
     state.overviewRouteGeometry = null;
     state.overviewRouteStations = [];
     state.overviewRouteNavigationIndex = 0;
@@ -1013,23 +991,41 @@ function updateOverviewRouteNavigationButton() {
     if (!button || !state.overviewRouteGeometry || !stations.length) return;
     const index = state.overviewRouteNavigationIndex % stations.length;
     const station = stations[index];
-    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · Nächste: #${station.id} ${station.name || ''}`;
+    const targetLabel = state.overviewRouteClosing ? `Zurück zum Start: #${station.id}` : `Nächste: #${station.id} ${station.name || ''}`;
+    const result = `${state.overviewRouteReached} erreicht · ${state.overviewRouteSkipped} übersprungen`;
+    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · ${state.overviewRouteCompleted ? `Rundweg beendet · ${result}` : targetLabel}${state.overviewRouteEstimated ? ' · Nur Luftlinien, keine Navigation' : ''}`;
     button.innerHTML = state.overviewRouteNavigationActive
-        ? '<i class="ph ph-navigation-arrow"></i> Rundweg läuft'
+        ? (state.overviewRouteClosing ? 'Ankunft am Start bestätigen' : 'Station erreicht · Weiter')
         : '<i class="ph ph-navigation-arrow"></i> Rundweg starten';
-    button.disabled = state.overviewRouteNavigationActive;
+    button.disabled = state.overviewRouteEstimated || state.overviewRouteCompleted;
     button.classList.toggle('opacity-75', state.overviewRouteNavigationActive);
     button.classList.remove('hidden');
-    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive);
+    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive || state.overviewRouteClosing);
 }
 
 export function startOverviewNavigation() {
+    if (state.overviewRouteEstimated || state.overviewRouteCalculating || state.overviewRouteCompleted) return;
+    if (state.overviewRouteNavigationActive) {
+        const target = state.overviewRouteStations[state.overviewRouteNavigationIndex];
+        if (!canConfirmTarget(state, target)) {
+            showToast('Zum Bestätigen: frisches GPS (höchstens 15 Sek., Genauigkeit ≤ 50 m) und Nähe zur Station erforderlich.', 'info');
+            return;
+        }
+        advanceOverviewNavigation(false);
+        return;
+    }
     const stations = state.overviewRouteStations || [];
     if (!stations.length) {
         showToast('Erstelle zuerst einen Rundweg.', 'info');
         return;
     }
+    const requestId = state.overviewRouteRequestId;
     const beginNavigation = () => {
+        if (requestId !== state.overviewRouteRequestId || state.overviewRouteEstimated || !state.overviewRouteGeometry) return;
+        if (!hasNavigationFix(state)) {
+            showToast('Navigation benötigt frisches, genaues GPS. Bitte erneut starten.', 'info');
+            return;
+        }
         if (state.userLocation) {
             const userCoordinates = [state.userLocation.lng, state.userLocation.lat];
             state.overviewRouteNavigationIndex = stations.reduce((bestIndex, station, index) => {
@@ -1040,10 +1036,11 @@ export function startOverviewNavigation() {
             }, 0);
         }
         state.overviewRouteNavigationActive = true;
+        state.overviewRouteStartIndex = state.overviewRouteNavigationIndex;
         state.overviewRouteNavigationProgress = 0;
         updateOverviewRouteNavigationButton();
     };
-    if (state.userLocation) beginNavigation();
+    if (hasNavigationFix(state)) beginNavigation();
     else {
         const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
             localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
@@ -1051,14 +1048,24 @@ export function startOverviewNavigation() {
     }
 }
 
-function advanceOverviewNavigation() {
+function advanceOverviewNavigation(skipped = false) {
     const stations = state.overviewRouteStations || [];
     if (!state.overviewRouteNavigationActive || !stations.length) return;
+    if (state.overviewRouteClosing) {
+        state.overviewRouteNavigationActive = false;
+        state.overviewRouteCompleted = true;
+        updateOverviewRouteNavigationButton();
+        showToast(`Rundweg beendet: ${state.overviewRouteReached} erreicht, ${state.overviewRouteSkipped} übersprungen.`, 'success');
+        return;
+    }
+    if (skipped) state.overviewRouteSkipped += 1;
+    else state.overviewRouteReached += 1;
     state.overviewRouteNavigationProgress += 1;
     if (state.overviewRouteNavigationProgress >= stations.length) {
-        state.overviewRouteNavigationActive = false;
+        state.overviewRouteClosing = true;
+        state.overviewRouteNavigationIndex = state.overviewRouteStartIndex;
         updateOverviewRouteNavigationButton();
-        showToast('Rundweg abgeschlossen. Viel Spaß beim weiteren Entdecken!', 'success');
+        showToast('Stationen bearbeitet. Zum Start zurückkehren und Ankunft bestätigen.', 'info');
         return;
     }
     state.overviewRouteNavigationIndex = (state.overviewRouteNavigationIndex + 1) % stations.length;
@@ -1066,26 +1073,21 @@ function advanceOverviewNavigation() {
 }
 
 export function skipOverviewNavigationStation() {
-    if (!state.overviewRouteNavigationActive) return;
-    advanceOverviewNavigation();
+    if (!state.overviewRouteNavigationActive || state.overviewRouteClosing) return;
+    advanceOverviewNavigation(true);
 }
 
 function advanceOverviewNavigationIfReached(latitude, longitude) {
-    if (!state.overviewRouteNavigationActive) return;
-    const stations = state.overviewRouteStations || [];
-    const station = stations[state.overviewRouteNavigationIndex % stations.length];
-    const coordinates = station && getValidCoordinates(station.lat, station.lng);
-    if (!coordinates) return;
-    if (getDistanceMeters([longitude, latitude], [coordinates.longitude, coordinates.latitude]) <= 65) advanceOverviewNavigation();
+    if (state.overviewRouteNavigationActive) updateOverviewRouteNavigationButton();
 }
 
 export async function toggleOverviewRoute(stationIds = null) {
-    if (state.overviewRouteGeometry && stationIds === null) {
+    if ((state.overviewRouteGeometry || state.overviewRouteCalculating) && stationIds === null) {
         clearOverviewRoute();
         return;
     }
 
-    if (state.overviewRouteGeometry) clearOverviewRoute();
+    clearOverviewRoute();
     const overview = buildOverviewRoundTrip(stationIds);
     const coordinates = overview.coordinates;
     if (coordinates.length < 3) {
@@ -1096,6 +1098,7 @@ export async function toggleOverviewRoute(stationIds = null) {
     clearRoute();
     const requestId = state.overviewRouteRequestId + 1;
     state.overviewRouteRequestId = requestId;
+    state.overviewRouteCalculating = true;
     setRouteInfo('Rundweg wird berechnet', `${coordinates.length - 1} Stationen werden verbunden`);
     const fallbackDistance = coordinates.slice(1).reduce((total, coordinate, index) => total + getDistanceMeters(coordinates[index], coordinate), 0) * 1.25;
     const fallbackDuration = fallbackDistance / 1.25;
@@ -1104,9 +1107,9 @@ export async function toggleOverviewRoute(stationIds = null) {
     let duration = fallbackDuration;
     let estimated = true;
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
     try {
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
         const routeCoordinates = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
         const response = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${routeCoordinates}?overview=full&geometries=geojson`, { signal: controller.signal });
         window.clearTimeout(timeout);
@@ -1120,9 +1123,13 @@ export async function toggleOverviewRoute(stationIds = null) {
         estimated = false;
     } catch (error) {
         console.warn('Overview route fallback', error);
+    } finally {
+        window.clearTimeout(timeout);
     }
 
     if (requestId !== state.overviewRouteRequestId) return;
+    state.overviewRouteCalculating = false;
+    state.overviewRouteEstimated = estimated;
     state.overviewRouteGeometry = geometry;
     state.overviewRouteStations = overview.stations;
     state.overviewRouteNavigationIndex = 0;
@@ -1131,7 +1138,7 @@ export async function toggleOverviewRoute(stationIds = null) {
     renderOverviewRoute(geometry);
     updateOverviewRouteButton();
     const prefix = estimated ? 'Geschätzt: ' : '';
-    state.overviewRouteSummary = `${prefix}${formatRouteDistance(distance)} · ${formatRouteDuration(duration)}`;
+    state.overviewRouteSummary = `${prefix}${formatRouteDistance(distance)} · reine Gehzeit ${formatRouteDuration(duration)} (ohne Anweg und Aufenthalte)`;
     setRouteInfo(`Rundweg · ${coordinates.length - 1} Stationen`, state.overviewRouteSummary);
     updateOverviewRouteNavigationButton();
     fitCoordinates(geometry.coordinates, 70);

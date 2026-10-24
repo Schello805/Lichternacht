@@ -1,5 +1,67 @@
 import { expect, test } from '@playwright/test';
 
+test('local authentication works without loading Firebase and preserves admin session when creating users', async ({ page }) => {
+    let current = null;
+    const visitor = { uid: 'anon_local-test', email: null, isAnonymous: true, isAdmin: false };
+    const admin = { uid: 'existing-admin', email: 'admin@example.test', isAnonymous: false, isAdmin: true };
+    const externalAuth = [];
+    page.on('request', request => {
+        if (/firebasejs|firestore\.googleapis|identitytoolkit\.googleapis/.test(request.url())) externalAuth.push(request.url());
+    });
+    await page.route('**/api/local-auth/**', route => {
+        const action = new URL(route.request().url()).pathname.split('/').pop();
+        if (action === 'login') {
+            const data = route.request().postDataJSON();
+            if (data.password !== 'Test-password-1234') return route.fulfill({ status: 401, json: { error: 'E-Mail oder Passwort ist nicht korrekt' } });
+            current = admin;
+        }
+        if (action === 'anonymous') current ||= visitor;
+        if (action === 'logout') current = null;
+        if (action === 'create-admin') return route.fulfill({ json: { ok: true, user: { ...admin, uid: 'second-admin' } } });
+        return route.fulfill({ json: { ok: true, enabled: true, user: current } });
+    });
+    await page.route('**/api/local-admin', route => route.fulfill({ json: { ok: true, isAdmin: Boolean(current?.isAdmin) } }));
+    await page.route('**/api/local-data**', route => {
+        const url = new URL(route.request().url());
+        if (route.request().method() === 'POST') return route.fulfill({ json: { ok: true } });
+        if (url.searchParams.get('count')) return route.fulfill({ json: { ok: true, count: 1 } });
+        if (url.searchParams.has('collection')) return route.fulfill({ json: { ok: true, records: [] } });
+        return route.fulfill({ json: { ok: true, appId: 'e2e-test', stations: [{ id: 1, name: 'Lokal', lat: 49.158, lng: 10.552 }], events: [], config: {} } });
+    });
+    await page.goto('/index.html');
+    await expect.poll(() => page.evaluate(() => window.state.auth.currentUser?.uid)).toBe(visitor.uid);
+    const invalid = await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        try { await state.fb.signInWithEmailAndPassword(state.auth, 'admin@example.test', 'wrong'); } catch (error) { return error.code; }
+    });
+    expect(invalid).toBe('auth/invalid-credential');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        await state.fb.signInWithEmailAndPassword(state.auth, 'admin@example.test', 'Test-password-1234');
+        await state.fb.createUserWithEmailAndPassword(state.auth, 'second@example.test', 'Test-password-1234');
+    });
+    await expect.poll(() => page.evaluate(() => window.state.isAdmin)).toBe(true);
+    expect(await page.evaluate(() => window.state.auth.currentUser.uid)).toBe(admin.uid);
+    await page.evaluate(() => window.state.fb.signOut(window.state.auth));
+    await expect.poll(() => page.evaluate(() => window.state.auth.currentUser?.uid)).toBe(visitor.uid);
+    expect(externalAuth).toEqual([]);
+});
+
+test('admin user names remain literal text and cannot inject HTML or handlers', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const email = '<img/src=x/onerror=alert(1)>@example.test';
+        state.fb = { collection: () => ({}), getDocs: async () => ({ forEach: callback => callback({ id: "quoted'uid", data: () => ({ email }) }) }) };
+        const { loadUsers } = await import('/js/admin.js');
+        await loadUsers();
+    });
+    await expect(page.locator('#user-list img')).toHaveCount(0);
+    await expect(page.locator('#user-list')).toContainText('<img/src=x/onerror=alert(1)>@example.test');
+    await expect(page.locator('#user-list [data-admin-delete-id]')).toHaveAttribute('data-admin-delete-id', "quoted'uid");
+    await expect(page.locator('#user-list [data-admin-delete-id]')).not.toHaveAttribute('onclick');
+});
+
 test('local database routes telemetry and broadcasts without Firestore requests', async ({ page }) => {
     const firestoreRequests = [];
     const writes = [];
@@ -312,13 +374,75 @@ test('feedback prevents duplicate sends and preserves text when rate limited', a
     await page.locator('#bug-report-submit').click();
     await expect.poll(() => requests).toBe(1);
     await expect(page.locator('#bug-report-submit')).toBeDisabled();
+    await expect(page.locator('#bug-report-submit')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('[data-feedback-spinner]')).toBeVisible();
     await page.evaluate(() => window.submitBugReport());
     expect(requests).toBe(1);
     await pendingRoute.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"rate_limited"}' });
     await expect(page.getByText(/Zu viele Sendeversuche/)).toBeVisible();
     await expect(page.locator('#bug-desc')).toHaveValue('Meine Rückmeldung bleibt erhalten.');
     await expect(page.locator('#bug-report-submit')).toBeEnabled();
+    await expect(page.locator('#bug-report-submit')).toHaveAttribute('aria-busy', 'false');
+    await expect(page.locator('[data-feedback-spinner]')).toHaveCount(0);
 });
+
+test('feedback spinner stays until the server confirms successful delivery', async ({ page }) => {
+    let pendingRoute;
+    await page.route('**/api/bug-report', route => { pendingRoute = route; });
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'Feedback geben' }).click();
+    await page.locator('#bug-desc').fill('Testnachricht');
+    await page.locator('#bug-report-submit').click();
+    await expect(page.locator('[data-feedback-spinner]')).toBeVisible();
+    await expect(page.locator('#bug-report-submit')).toBeDisabled();
+    await expect(page.locator('#bug-report-submit')).toContainText('Wird gesendet');
+    await expect(page.locator('#bug-report-modal')).toBeVisible();
+    await expect(page.locator('#bug-desc')).toHaveValue('Testnachricht');
+    await expect.poll(() => Boolean(pendingRoute)).toBe(true);
+    await pendingRoute.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+    await expect(page.locator('#bug-report-modal')).toBeHidden();
+    await expect(page.locator('[data-feedback-spinner]')).toHaveCount(0);
+    await expect(page.locator('#bug-report-submit')).toBeEnabled();
+    await expect(page.locator('#bug-desc')).toHaveValue('');
+});
+
+for (const mode of ['disabled', 'included', 'denied']) {
+    test(`feedback location is optional and one-shot: ${mode}`, async ({ page }) => {
+        let payload;
+        await page.addInitScript(mode => {
+            window.__feedbackLocationRequests = 0;
+            navigator.geolocation.getCurrentPosition = (success, failure) => {
+                window.__feedbackLocationRequests++;
+                if (mode === 'denied') failure({ code: 1 });
+                else success({ coords: { latitude: 49.158, longitude: 10.552, accuracy: 15 }, timestamp: Date.now() });
+            };
+        }, mode);
+        await page.route('**/api/bug-report', route => {
+            payload = route.request().postDataJSON();
+            return route.fulfill({ status: 200, json: { ok: true } });
+        });
+        await page.goto('/index.html#private-fragment');
+        await page.getByRole('button', { name: 'Feedback geben' }).click();
+        await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        if (mode !== 'disabled') await page.locator('#bug-report-location').check();
+        else {
+            await page.locator('#bug-report-location').check();
+            await page.locator('#bug-report-modal').getByRole('button', { name: 'Abbrechen' }).click();
+            await page.getByRole('button', { name: 'Feedback geben' }).click();
+            await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        }
+        await page.locator('#bug-desc').fill('Standorttest');
+        await page.locator('#bug-report-submit').click();
+        await expect(page.locator('#bug-report-modal')).toBeHidden();
+        expect(await page.evaluate(() => window.__feedbackLocationRequests)).toBe(mode === 'disabled' ? 0 : 1);
+        expect(payload.text).not.toContain('private-fragment');
+        if (mode === 'included') expect(payload.location).toMatchObject({ lat: 49.158, lng: 10.552, accuracy: 15 });
+        else expect(payload).not.toHaveProperty('location');
+        if (mode === 'denied') await expect(page.getByText('Danke! Feedback ohne Standort gesendet.')).toBeVisible();
+        await expect(page.locator('#bug-report-location')).not.toBeChecked();
+        expect(await page.evaluate(() => window.state.userLocation)).toBeNull();
+    });
+}
 
 test('station modal prioritizes its image immediately', async ({ page }) => {
     await page.goto('/index.html');
@@ -671,7 +795,11 @@ test('map overview draws a guided round route without direction arrows', async (
         expect(layout.layerButtonOverlaps).toBe(false);
     }
     await expect(page.locator('.overview-route-arrow')).toHaveCount(0);
-    await page.evaluate(() => { window.state.userLocation = { lat: 49.15714, lng: 10.5484 }; });
+    await page.evaluate(() => {
+        window.state.userLocation = { lat: 49.15714, lng: 10.5484 };
+        window.state.gpsAccuracy = 10;
+        window.state.gpsLastFixAt = Date.now();
+    });
     await page.locator('#overview-route-navigation-btn').click();
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationActive)).toBe(true);
     await expect(page.locator('#overview-route-skip-btn')).toBeVisible();

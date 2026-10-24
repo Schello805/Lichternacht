@@ -21,6 +21,13 @@ export const state = {
     overviewRouteNavigationProgress: 0,
     overviewRouteSummary: '',
     overviewRouteRequestId: 0,
+    overviewRouteCalculating: false,
+    overviewRouteEstimated: false,
+    overviewRouteReached: 0,
+    overviewRouteSkipped: 0,
+    overviewRouteStartIndex: 0,
+    overviewRouteClosing: false,
+    overviewRouteCompleted: false,
     proximityCircle: null,
     stations: [],
     events: [],
@@ -48,6 +55,7 @@ export const state = {
     db: null,
     firebaseApiKey: '',
     auth: null,
+    localAuth: false,
     appId: null,
     // Firebase functions container
     fb: {}

@@ -9,7 +9,7 @@ Options -Indexes
   Require all denied
 </If>
 
-<FilesMatch "^(?:server\.py|local_database\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
+<FilesMatch "^(?:server\.py|local_database\.py|local_auth\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
   Require all denied
 </FilesMatch>
 

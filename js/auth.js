@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.298';
-import { loadData } from './data.js?v=1.4.298';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.298';
-import { renderTimeline } from './ui.js?v=1.4.298';
+import { showToast } from './utils.js?v=1.4.299';
+import { loadData } from './data.js?v=1.4.299';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.299';
+import { renderTimeline } from './ui.js?v=1.4.299';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -95,7 +95,8 @@ export async function logoutAdmin() {
 }
 
 export async function createNewUser(email, pass) {
-    if (!confirm(`Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`)) return;
+    const message = state.localAuth ? `Neuen Admin ${email} anlegen? Deine Anmeldung bleibt bestehen.` : `Achtung: Das Erstellen eines neuen Benutzers (${email}) loggt dich sofort als dieser Benutzer ein. Du verlierst temporär den Admin-Zugriff. Fortfahren?`;
+    if (!confirm(message)) return;
 
     if (!state.fb || typeof state.fb.createUserWithEmailAndPassword !== 'function') {
         showToast('Nicht verfügbar ohne Firebase (config.js fehlt?)', 'error');
@@ -104,7 +105,7 @@ export async function createNewUser(email, pass) {
 
     try {
         await state.fb.createUserWithEmailAndPassword(state.auth, email, pass);
-        showToast(`Benutzer ${email} erstellt und eingeloggt`, 'success');
+        showToast(state.localAuth ? `Admin ${email} erstellt` : `Benutzer ${email} erstellt und eingeloggt`, 'success');
         // Admin state will automatically update via onAuthStateChanged
     } catch (e) {
         console.error("Create User Error:", e);

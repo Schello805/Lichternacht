@@ -82,3 +82,30 @@ class LocalApiTest(unittest.TestCase):
         handler.headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer invalid'}
         handler.do_POST()
         self.assertEqual(handler.responses[0][0], 403)
+
+    def test_feedback_optional_location_is_in_email_only_and_has_clickable_map(self):
+        messages = []
+        for location in (None, {'lat': 49.158, 'lng': 10.552, 'accuracy': 12, 'capturedAt': '2026-10-24T12:00:00.000Z'}):
+            payload = {'text': 'Test'}
+            if location:
+                payload['location'] = location
+            handler = self.handler('/api/bug-report', payload)
+            handler.headers = {'Content-Type': 'application/json'}
+            handler._send_bug_report_email = lambda *args: messages.append(args)
+            handler.do_POST()
+            self.assertEqual(handler.responses[0][0], 200)
+        self.assertEqual(messages[0][1], 'Test')
+        self.assertNotIn('openstreetmap.org', messages[0][2])
+        self.assertIn('49.158000, 10.552000', messages[1][1])
+        self.assertIn('Genauigkeit: ca. 12 m', messages[1][1])
+        self.assertIn('<a href="https://www.openstreetmap.org/', messages[1][2])
+        self.assertEqual(self.database.records('reports'), [])
+
+    def test_feedback_invalid_locations_are_rejected_without_sending_mail(self):
+        valid = {'lat': 49.158, 'lng': 10.552, 'capturedAt': '2026-10-24T12:00:00Z'}
+        for changes in ({'lat': True}, {'lat': 91}, {'lng': float('nan')}, {'accuracy': -1}, {'capturedAt': '<script>'}):
+            handler = self.handler('/api/bug-report', {'text': 'Test', 'location': {**valid, **changes}})
+            handler.headers = {'Content-Type': 'application/json'}
+            handler._send_bug_report_email = lambda *args: self.fail('Invalid coordinates must not be sent')
+            handler.do_POST()
+            self.assertEqual(handler.responses[0][0], 400)

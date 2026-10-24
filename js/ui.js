@@ -1,13 +1,14 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.298';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.298';
-import * as utils from './utils.js?v=1.4.298';
-import { saveData, deleteData } from './data.js?v=1.4.298';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.298';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.298';
-import { recordAuditEvent } from './audit.js?v=1.4.298';
-import { normalizeImageUrl } from './image-url.js?v=1.4.298';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.299';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.299';
+import * as utils from './utils.js?v=1.4.299';
+import { saveData, deleteData } from './data.js?v=1.4.299';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.299';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.299';
+import { recordAuditEvent } from './audit.js?v=1.4.299';
+import { normalizeImageUrl } from './image-url.js?v=1.4.299';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.299';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -46,8 +47,13 @@ function animateStationModal(stationId, reverse = false) {
 }
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
 
+function hasRoutePlanCoordinates(station) {
+    return [station.lat, station.lng].every(value => value != null && typeof value !== 'boolean' && String(value).trim() !== '' && Number.isFinite(Number(value)))
+        && Math.abs(Number(station.lat)) <= 90 && Math.abs(Number(station.lng)) <= 180;
+}
+
 function getRoutePlanStationIds() {
-    const validIds = new Set(state.stations.map(station => String(station.id)));
+    const validIds = new Set(state.stations.filter(hasRoutePlanCoordinates).map(station => String(station.id)));
     try {
         const storedIds = JSON.parse(localStorage.getItem(ROUTE_PLAN_STORAGE_KEY) || 'null');
         if (Array.isArray(storedIds)) return storedIds.map(String).filter(id => validIds.has(id));
@@ -57,7 +63,7 @@ function getRoutePlanStationIds() {
     const configuredIds = Array.isArray(state.config?.defaultRouteStationIds)
         ? state.config.defaultRouteStationIds.map(String).filter(id => validIds.has(id))
         : [];
-    return configuredIds.length ? configuredIds : state.stations.map(station => String(station.id));
+    return configuredIds.length ? configuredIds : [...validIds];
 }
 
 function persistRoutePlanStationIds(stationIds) {
@@ -78,6 +84,7 @@ export function openRoutePlan() {
     if (!modal || !list) return;
     const selectedIds = new Set(getRoutePlanStationIds());
     const stations = [...state.stations]
+        .filter(hasRoutePlanCoordinates)
         .filter(station => String(station.id || '').trim())
         .sort((first, second) => Number(first.id) - Number(second.id));
 
@@ -2015,6 +2022,12 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
 }
 
 export function openBugReportModal() {
+    if (!bugReportSending) {
+        const locationOption = document.getElementById('bug-report-location');
+        if (locationOption) locationOption.checked = false;
+        const status = document.getElementById('bug-report-location-status');
+        if (status) status.textContent = '';
+    }
     openModal('bug-report-modal');
 }
 
@@ -2028,6 +2041,8 @@ export async function submitBugReport() {
         return; 
     }
 
+    const reportUrl = new URL(window.location.href);
+    reportUrl.hash = '';
     const report = {
         description: desc,
         timestamp: Date.now(),
@@ -2036,7 +2051,7 @@ export async function submitBugReport() {
         user: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.email || 'anonymous') : 'anonymous',
         userId: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.uid || '') : '',
         appId: state.appId || 'unknown',
-        url: window.location.href
+        url: reportUrl.href
     };
 
     const reportText = [
@@ -2052,9 +2067,27 @@ export async function submitBugReport() {
     // Send to backend endpoint which sends an email (anonymous users supported).
     // A browser cannot send emails by itself; this needs a server-side mail relay.
     const submitButton = document.getElementById('bug-report-submit');
+    const locationOption = document.getElementById('bug-report-location');
+    const locationStatus = document.getElementById('bug-report-location-status');
+    const includeLocation = locationOption?.checked === true;
+    if (locationStatus) locationStatus.textContent = '';
+    const originalButtonContent = submitButton?.innerHTML;
     bugReportSending = true;
-    if (submitButton) submitButton.disabled = true;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
+        submitButton.innerHTML = '<svg data-feedback-spinner class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"/><path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span>Wird gesendet…</span>';
+    }
+    if (locationOption) locationOption.disabled = true;
     try {
+        let location;
+        if (includeLocation) {
+            if (locationStatus) locationStatus.textContent = 'Standort wird einmalig ermittelt…';
+            location = await getFeedbackLocation();
+            if (locationStatus) locationStatus.textContent = location
+                ? 'Der Standort wird dieser Rückmeldung beigefügt.'
+                : 'Standort nicht verfügbar. Die Rückmeldung wird ohne Standort gesendet.';
+        }
         const headers = { 'Content-Type': 'application/json' };
         const user = state.auth?.currentUser;
         if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
@@ -2062,7 +2095,8 @@ export async function submitBugReport() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                text: reportText
+                text: reportText,
+                ...(location ? { location } : {})
             })
         });
 
@@ -2074,17 +2108,26 @@ export async function submitBugReport() {
             const msg = await res.text().catch(() => '');
             throw new Error(msg || `HTTP ${res.status}`);
         }
+        const result = await res.json();
+        if (result.ok !== true) throw new Error('Versand wurde nicht bestätigt');
 
         document.getElementById('bug-desc').value = '';
+        if (locationOption) locationOption.checked = false;
+        if (locationStatus) locationStatus.textContent = '';
         closeModal('bug-report-modal');
-        showToast('Danke! Feedback gesendet.', 'success');
+        showToast(includeLocation && !location ? 'Danke! Feedback ohne Standort gesendet.' : 'Danke! Feedback gesendet.', 'success');
         return;
     } catch (e) {
         console.error("Bug report send failed", e);
         showToast('Feedback konnte nicht gesendet werden. Bitte später erneut versuchen. Dein Text bleibt erhalten.', 'error');
     } finally {
         bugReportSending = false;
-        if (submitButton) submitButton.disabled = false;
+        if (locationOption) locationOption.disabled = false;
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.setAttribute('aria-busy', 'false');
+            submitButton.innerHTML = originalButtonContent;
+        }
     }
 }
 
