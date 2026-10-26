@@ -1,4 +1,6 @@
 import { state } from './state.js';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.300';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.300';
 import {
     showToast,
     getDistance,
@@ -7,11 +9,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.282';
-import * as utils from './utils.js?v=1.4.282';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.282';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.282';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.282';
+} from './utils.js?v=1.4.300';
+import * as utils from './utils.js?v=1.4.300';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.300';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.300';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.300';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -54,15 +56,29 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
         source: 'lichterpass',
         appId: state.appId || 'unknown'
     };
-    if (!navigator.onLine) {
+    if (state.localBackend) {
+        queueOfflineAction('checkin', payload);
+        await flushOfflineActions();
+        return;
+    }
+    if (!navigator.onLine || (!state.localBackend && !canUseFirestore())) {
         queueOfflineAction('checkin', payload);
         return;
     }
     if (state.useLocalStorage || !state.db || !state.fb?.addDoc || !state.fb?.collection) return;
     try {
-        const colRef = state.fb.collection(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins');
-        await state.fb.addDoc(colRef, payload);
+        const user = state.auth?.currentUser;
+        if (!user) throw new Error('Firebase-Anmeldung fehlt');
+        const reference = state.fb.doc(state.db, 'artifacts', state.appId, 'public', 'data', 'checkins', `${user.uid}_${payload.stationId}`);
+        try {
+            await state.fb.setDoc(reference, { ...payload, ownerUid: user.uid, receivedAt: state.fb.serverTimestamp() });
+        } catch (error) {
+            if (error.code !== 'permission-denied') throw error;
+            const existing = await state.fb.getDoc(reference);
+            if (!existing.exists()) throw error;
+        }
     } catch (e) {
+        noteFirestoreError(e);
         console.warn('Anonymous check-in analytics failed', e);
         queueOfflineAction('checkin', payload);
     }
@@ -244,7 +260,22 @@ export function undoCheckIn(id) {
         return;
     }
 
+    if (!state.useLocalStorage && !state.localBackend) {
+        showToast('Rücknahme ist nur mit der lokalen Datenbank verfügbar.', 'info');
+        return;
+    }
+    if (state.localBackend || localStorage.getItem('local_backend_enabled') === 'true') {
+        queueOfflineAction('undo-checkin', { stationId: String(id) });
+        flushOfflineActions();
+    }
     removeStationVisited(id);
+    const count = getVisitedStationIdSet().size;
+    const total = state.stations.length;
+    const rewards = getRewardConfig();
+    for (const level of ['bronze', 'silver', 'gold']) {
+        if (count < percentToCount(rewards.thresholdsPercent[level], total)) localStorage.removeItem(`reached_${level}`);
+    }
+    if (count < total) localStorage.removeItem('reached_diamond');
 
     const lastChecked = localStorage.getItem('last_checked_station');
     if (lastChecked && lastChecked.toString() === id.toString()) {
@@ -254,7 +285,7 @@ export function undoCheckIn(id) {
 
     updatePassProgress();
     updateCheckInBtn(id);
-    showToast('Check-in rückgängig gemacht.', 'success');
+    showToast(state.localBackend ? 'Besuch lokal entfernt. Die Rücknahme wird mit dem Server abgeglichen.' : 'Lokale Besuchsmarkierung entfernt.', 'info');
     const station = state.stations.find(item => item.id == id);
     recordAuditEvent('checkin_removed', { stationId: id, stationName: station?.name || '' });
 
@@ -433,7 +464,7 @@ export async function checkIn(id) {
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
-    const ALLOWED_RADIUS = 25; // 25m
+    const ALLOWED_RADIUS = STATION_ARRIVAL_RADIUS_METERS;
 
     if (dist > ALLOWED_RADIUS) {
         setCheckInButtonState(id, 'too-far', Math.round(dist));
@@ -576,13 +607,16 @@ export function updateCheckInBtn(id) {
     btn.classList.remove('bg-gray-700', 'bg-red-50', 'text-red-700', 'border-red-200');
 
     if (visitedStations.has(String(id))) {
+        const sync = getCheckinSyncStatus(id);
+        const label = sync?.status === 'pending' ? 'Besucht · Übertragung ausstehend'
+            : sync?.status === 'rejected' ? 'Besucht · nur auf diesem Gerät' : 'Erfolgreich besucht';
         btn.innerHTML = `
             <div class="flex items-center justify-between w-full">
                 <div class="flex items-center">
                     <i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i>
-                    <span class="text-green-600 font-bold">Erfolgreich besucht</span>
+                    <span class="text-green-600 font-bold">${label}</span>
                 </div>
-                <button type="button" onclick="window.undoCheckIn(${JSON.stringify(id)})" aria-label="Check-in rückgängig" title="Rückgängig"
+                <button type="button" onclick="event.stopPropagation(); window.undoCheckIn(${JSON.stringify(id)})" aria-label="Check-in rückgängig" title="Rückgängig"
                     class="ml-3 w-9 h-9 rounded-full border border-red-200 bg-white text-red-600 flex items-center justify-center shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow active:scale-95 transition">
                     <i class="ph-bold ph-x text-lg"></i>
                 </button>
@@ -598,6 +632,10 @@ export function updateCheckInBtn(id) {
         btn.classList.add('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
     }
 }
+
+if (typeof window.addEventListener === 'function') window.addEventListener('lichternacht:checkin-sync', () => {
+    if (state.activeStationId != null) updateCheckInBtn(state.activeStationId);
+});
 
 export function updatePassProgress() {
     const count = getVisitedStationRecords().length;
@@ -627,15 +665,21 @@ export function initPresence() {
         if (span && !span.innerText) span.innerText = '0';
     }
 
+    let heartbeatPending = false;
     const sendHeartbeat = async () => {
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
+        if (!state.auth?.currentUser || heartbeatPending) return;
+        heartbeatPending = true;
         try {
             const { doc, setDoc, serverTimestamp } = state.fb;
             const ref = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'presence', sessionId);
             await setDoc(ref, { lastSeen: serverTimestamp() });
-        } catch (e) { console.warn("Heartbeat failed", e); }
+        } catch (e) { noteFirestoreError(e); console.warn("Heartbeat failed", e); }
+        finally { heartbeatPending = false; }
     };
 
     const updateUserCount = async () => {
+        if (document.visibilityState === 'hidden' || (!state.localBackend && !canUseFirestore())) return;
         try {
             const { collection, query, where, getCountFromServer, doc, getDoc } = state.fb;
             const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);
@@ -663,6 +707,7 @@ export function initPresence() {
                 if (document.getElementById('count-diamond')) document.getElementById('count-diamond').innerText = d.count_diamond || 0;
             }
         } catch (e) {
+            noteFirestoreError(e);
             console.warn("Count failed", e);
             // Keep badge visible even if count fails
             const el = document.getElementById('user-count');
@@ -674,6 +719,11 @@ export function initPresence() {
     };
 
     sendHeartbeat();
+    if (state.auth && typeof state.fb.onAuthStateChanged === 'function') {
+        state.fb.onAuthStateChanged(state.auth, user => {
+            if (user) sendHeartbeat();
+        });
+    }
     updateUserCount();
     setInterval(sendHeartbeat, 60 * 1000);
     setInterval(updateUserCount, 60 * 1000);
@@ -696,7 +746,7 @@ export function checkProximity(lat, lng) {
     // Find nearest unvisited station (and keep all candidates within radius)
     let nearest = null;
     let minDist = Infinity;
-    const DETECT_RADIUS = 25; // 25m detection radius
+    const DETECT_RADIUS = STATION_ARRIVAL_RADIUS_METERS;
     const candidates = [];
 
     state.stations.forEach(s => {

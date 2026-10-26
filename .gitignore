@@ -3,6 +3,9 @@
 config.js
 node_modules/
 .env
+.private/
+__pycache__/
+*.sqlite3
 logs/
 test-results/
 playwright-report/

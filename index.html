@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.282" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.300" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.282" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.300" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -144,7 +144,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.282">
+    <link rel="stylesheet" href="style.css?v=1.4.300">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -402,9 +402,10 @@
 
                     <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900 dark:bg-amber-950/20">
                         <div class="font-bold text-sm text-amber-950 dark:text-amber-100"><i class="ph ph-shield-check"></i> JSON-Komplettsicherung</div>
-                        <p class="mt-1 text-[11px] text-gray-700 dark:text-gray-300">Sichert Stationen, Programm, App-Einstellungen sowie alle auf diesem Server hochgeladenen Bilder und Flyer-PDFs. Externe Weblinks bleiben erhalten. Persönliche Besucher-, Analyse- und Zugangsdaten werden bewusst nicht exportiert.</p>
+                        <p class="mt-1 text-[11px] text-gray-700 dark:text-gray-300">Sichert Stationen, Programm, App-Einstellungen, Bilder und Flyer-PDFs. Bei lokaler Datenbank auch Check-ins, Analyse-/Protokolldaten, Likes und Admin-Metadaten. Vertraulich aufbewahren und nicht öffentlich teilen. Passwörter, Sitzungen und SMTP-Zugangsdaten sind nicht enthalten; dafür ist die geschützte Serversicherung erforderlich. Externe Weblinks bleiben Links.</p>
                         <button type="button" onclick="downloadFullBackup()" class="mt-3 w-full rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"><i class="ph ph-download-simple"></i> Komplettsicherung als JSON herunterladen</button>
-                        <div class="mt-3 border-t border-amber-200 pt-3 dark:border-amber-900">
+                        <p id="admin-server-restore-info" class="mt-3 text-xs text-amber-950 dark:text-amber-100">Lokale Datenbanksicherungen werden sicher auf dem Server in eine neue Datenbank importiert und geprüft, bevor umgeschaltet wird. Der JSON-Export lässt sich hier nicht direkt wieder einspielen. Für eine vollständige Wiederherstellung einschließlich Anmeldung die geschützte Serversicherung verwenden. Zusätzlich eine Kopie außerhalb dieses Servers aufbewahren.</p>
+                        <div id="admin-legacy-restore" class="hidden mt-3 border-t border-amber-200 pt-3 dark:border-amber-900">
                             <label class="text-xs font-bold text-gray-800 dark:text-gray-200" for="admin-full-backup-file">Sicherung wiederherstellen</label>
                             <input id="admin-full-backup-file" type="file" accept="application/json,.json" class="mt-1 w-full text-xs" />
                             <button type="button" onclick="restoreFullBackup(document.getElementById('admin-full-backup-file'))" data-online-only="true" class="mt-2 w-full rounded-lg border border-red-500 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 dark:bg-gray-800 dark:text-red-300"><i class="ph ph-warning"></i> Diese Sicherung vollständig wiederherstellen</button>
@@ -858,6 +859,7 @@
                 <div id="visitor-start-next" class="mt-3 text-xs rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-100 dark:border-gray-600 p-2 text-gray-700 dark:text-gray-200">
                     Gleich siehst du, was als Nächstes wichtig ist.
                 </div>
+                <button type="button" data-event-calendar onclick="generateICS()" class="hidden mt-2 rounded-lg px-2 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-gray-700"><i class="ph ph-calendar-plus mr-1" aria-hidden="true"></i> Im Kalender speichern</button>
                 <div class="mt-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">
                     <strong>Lichter-Pass:</strong> Stationen vor Ort sammeln. Ab 3 Check-ins kannst du freiwillig am Gewinnspiel teilnehmen. Sammeln funktioniert ohne Name und E-Mail.
                 </div>
@@ -939,7 +941,7 @@
                         <div id="map-gps-status" role="status" class="whitespace-nowrap rounded-full bg-gray-900/75 px-2.5 py-1 text-[10px] font-bold text-white shadow">GPS aus</div>
                     </div>
                 </div>
-                <div class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+                <div id="map-secondary-controls" class="absolute top-4 right-4 z-[400] flex flex-col gap-2">
                     <button id="map-overview-route-btn" onclick="openRoutePlan()" aria-label="Rundweg planen"
                         class="map-control-button bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-500 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition-colors flex items-center justify-center"
                         title="Rundweg planen">
@@ -1030,6 +1032,7 @@
                             class="hidden mt-4 w-full rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs font-bold text-white hover:bg-white/25">
                             <i class="ph ph-bell-ringing mr-1"></i> 15-Minuten-Erinnerungen aktivieren
                         </button>
+                        <button type="button" data-event-calendar onclick="generateICS()" class="hidden relative mt-2 rounded-lg border border-white/40 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"><i class="ph ph-calendar-plus mr-1" aria-hidden="true"></i> Im Kalender speichern</button>
                     </div>
                     <section id="program-flyer-downloads" class="hidden mb-3" aria-label="Flyer herunterladen"></section>
                     <h3 class="text-gray-800 font-bold mb-2 px-1 border-b border-gray-200 pb-1">Programmablauf</h3>
@@ -1068,6 +1071,7 @@
                         class="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                         placeholder="Passwort" autocomplete="current-password">
                     <div id="login-error" role="alert" class="hidden mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"></div>
+                    <button id="local-password-reset-btn" type="button" onclick="requestLocalPasswordReset()" class="hidden mb-3 text-sm text-blue-700 underline dark:text-blue-300">Passwort vergessen?</button>
                     <div class="flex justify-end gap-2">
                         <button type="button" onclick="toggleAdminLogin()"
                             class="text-gray-500 px-3 py-2 hover:bg-gray-100 rounded dark:hover:bg-gray-700">Abbrechen</button>
@@ -1085,21 +1089,28 @@
                 <div class="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mt-3 sm:hidden"></div>
                 <div class="flex items-start justify-between px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
                     <div>
-                        <h2 id="route-plan-title" class="font-serif text-xl font-bold text-gray-900 dark:text-white">Dein Rundweg</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Wähle Stationen aus – die Reihenfolge planen wir automatisch.</p>
+                        <h2 id="route-plan-title" class="font-serif text-xl font-bold text-gray-900 dark:text-white">Deine Stationentour</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Wähle deine Stationen schon jetzt – auch ohne GPS. Beim Start beginnt die Tour an deinem aktuellen GPS-Standort und führt jeweils zur nächsten gewählten Station auf Fußwegen. Deine Auswahl bleibt gespeichert.</p>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Nur das Einchecken ist zeitlich begrenzt: ab einer Stunde vor Beginn bis drei Stunden nach Ende.</p>
                     </div>
                     <button type="button" onclick="closeModal('route-plan-modal')" class="w-10 h-10 -mr-2 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Rundweg schließen"><i class="ph ph-x text-xl"></i></button>
                 </div>
-                <div class="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-gray-700">
-                    <button type="button" data-route-plan-recommended class="shrink-0 rounded-full bg-yellow-100 px-3 py-2 text-xs font-bold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">Empfehlung</button>
-                    <button type="button" data-route-plan-favorites class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200"><i class="ph-fill ph-star text-yellow-500"></i> Favoriten</button>
-                    <button type="button" data-route-plan-all class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Alle markieren</button>
-                    <button type="button" data-route-plan-none class="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Auswahl aufheben</button>
+                <div class="px-5 py-3 grid grid-cols-2 sm:grid-cols-4 shrink-0 gap-2 border-b border-gray-100 dark:border-gray-700">
+                    <button type="button" data-route-plan-recommended class="min-w-0 min-h-[44px] whitespace-normal break-words rounded-full bg-yellow-100 px-3 py-2 text-xs font-bold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">Empfehlung</button>
+                    <button type="button" data-route-plan-favorites class="min-w-0 min-h-[44px] whitespace-normal break-words rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200"><i class="ph-fill ph-star text-yellow-500"></i> Favoriten</button>
+                    <button type="button" data-route-plan-all class="min-w-0 min-h-[44px] whitespace-normal break-words rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Alle markieren</button>
+                    <button type="button" data-route-plan-none class="min-w-0 min-h-[44px] whitespace-normal break-words rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Auswahl aufheben</button>
                 </div>
+                <label class="block px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white">Art der Tour
+                    <select data-route-plan-mode class="mt-1 w-full rounded-lg p-2 bg-gray-100 dark:bg-gray-700">
+                        <option value="round">Rundweg – zurück zu meinem GPS-Start</option>
+                        <option value="open">Strecke – an der letzten Station enden</option>
+                    </select>
+                </label>
                 <div id="route-plan-stations" class="max-h-[42vh] overflow-y-auto px-5 py-3 space-y-2"></div>
                 <div class="border-t border-gray-100 dark:border-gray-700 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white dark:bg-gray-800">
                     <div data-route-plan-count class="mb-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400"></div>
-                    <button type="button" data-route-plan-submit class="w-full rounded-xl bg-yellow-500 py-3 font-bold text-white shadow-lg shadow-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-45"><i class="ph ph-route"></i> Rundweg anzeigen</button>
+                    <button type="button" data-route-plan-submit class="w-full rounded-xl bg-yellow-500 py-3 font-bold text-white shadow-lg shadow-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-45"><i class="ph ph-route"></i> Ab meinem Standort starten</button>
                 </div>
             </section>
         </div>
@@ -1370,6 +1381,8 @@
                 <div class="sticky bottom-0 z-20 -mx-6 -mb-6 px-6 py-3 bg-white/95 backdrop-blur border-t border-gray-100 flex gap-2">
                     <button onclick="deleteEvent()" id="btn-delete-event"
                         class="flex-1 bg-red-100 text-red-600 py-2 rounded hover:bg-red-200 hidden">Löschen</button>
+                    <button onclick="duplicateEvent()" id="btn-duplicate-event"
+                        class="flex-1 bg-blue-100 text-blue-700 py-2 rounded hover:bg-blue-200 hidden"><i class="ph ph-copy"></i> Kopieren</button>
                     <button onclick="closeEventModal()"
                         class="flex-1 bg-gray-200 text-gray-800 py-2 rounded">Abbruch</button>
                     <button onclick="saveEventChanges()"
@@ -1403,14 +1416,20 @@
             <textarea id="bug-desc" rows="4"
                 class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
                 placeholder="Deine Rückmeldung …"></textarea>
+            <label class="mb-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                <input id="bug-report-location" type="checkbox" class="h-4 w-4 rounded" aria-describedby="bug-report-location-hint bug-report-location-status">
+                Standort mitsenden (optional)
+            </label>
+            <p id="bug-report-location-hint" class="mb-2 text-xs text-gray-500 dark:text-gray-400">Nur für diese Rückmeldung: Beim Senden einmalig ermitteln und der E-Mail beifügen. Keine dauerhafte Standortverfolgung.</p>
+            <p id="bug-report-location-status" role="status" class="mb-3 text-xs text-gray-500 dark:text-gray-400"></p>
 
             <div class="flex gap-3">
                 <button onclick="document.getElementById('bug-report-modal').classList.add('hidden')"
                     class="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
                     Abbrechen
                 </button>
-                <button onclick="submitBugReport()"
-                    class="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
+                <button id="bug-report-submit" onclick="submitBugReport()"
+                    class="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30">
                     Senden
                 </button>
             </div>
@@ -1568,7 +1587,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.282', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.300', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1595,7 +1614,11 @@
             });
         }
     </script>
-    <script type="module" src="main.js?v=1.4.282"></script>
+    <div id="app-load-error" role="alert" class="hidden fixed inset-x-4 top-24 z-[7000] mx-auto max-w-md rounded-xl border border-red-300 bg-white p-5 text-gray-900 shadow-lg dark:bg-gray-900 dark:text-white">
+        <p>Die App konnte nicht vollständig geladen werden. Bitte prüfe deine Verbindung und lade die Seite erneut.</p>
+        <button type="button" onclick="location.reload()" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white">Erneut laden</button>
+    </div>
+    <script type="module" src="main.js?v=1.4.300" onerror="document.getElementById('app-load-error').classList.remove('hidden')"></script>
 </body>
 
 </html>

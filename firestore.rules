@@ -54,9 +54,17 @@ service cloud.firestore {
         request.resource.data.lastSeen == request.time;
     }
 
-    function validCheckin(appId) {
+    function validCheckin(appId, checkinId) {
+      let config = get(/databases/$(database)/documents/artifacts/$(appId)/public/config).data;
       return request.auth != null &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        checkinId == request.auth.uid + '_' + request.resource.data.stationId &&
+        exists(/databases/$(database)/documents/artifacts/$(appId)/public/data/stations/$(request.resource.data.stationId)) &&
+        request.resource.data.receivedAt == request.time &&
+        request.time.toMillis() >= config.checkinWindow.startMs &&
+        request.time.toMillis() <= config.checkinWindow.endMs &&
         request.resource.data.keys().hasOnly([
+          'ownerUid', 'receivedAt',
           'type', 'anonymousId', 'stationId', 'stationName', 'checkedAt',
           'dateKey', 'hour', 'passCountAfter', 'reachedLevel', 'source', 'appId'
         ]) &&
@@ -140,8 +148,9 @@ service cloud.firestore {
 
       // Anonymous Lichter-Pass analytics
       match /checkins/{checkinId} {
-        allow create: if validCheckin(appId);
-        allow read, update, delete: if isAppAdmin(appId);
+        allow create: if validCheckin(appId, checkinId);
+        allow get: if isAppAdmin(appId) || (request.auth != null && resource.data.ownerUid == request.auth.uid);
+        allow list, update, delete: if isAppAdmin(appId);
       }
 
       // Pseudonymous activity log. No contact, GPS or free-text fields.

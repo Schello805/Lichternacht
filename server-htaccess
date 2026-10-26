@@ -1,4 +1,19 @@
 # ----------------------------------------------------------------------
+# | Sensitive Files                                                     |
+# ----------------------------------------------------------------------
+# The application directory is also the document root. Keep operational
+# files, logs and repository metadata from ever being served by Apache.
+Options -Indexes
+
+<If "%{REQUEST_URI} =~ m#(?i)(?:/\.[^/]*|/(?:logs|node_modules|scripts|server|tests)(?:/|$))#">
+  Require all denied
+</If>
+
+<FilesMatch "^(?:server\.py|local_database\.py|local_auth\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
+  Require all denied
+</FilesMatch>
+
+# ----------------------------------------------------------------------
 # | Compression                                                        |
 # ----------------------------------------------------------------------
 <IfModule mod_deflate.c>

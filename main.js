@@ -1,28 +1,36 @@
 import { state } from './js/state.js';
-import { shareStation, showToast } from './js/utils.js?v=1.4.282';
-import * as utils from './js/utils.js?v=1.4.282';
-import { initFirebase } from './js/firebase-init.js';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.282';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.282';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.282';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.282';
+import { shareStation, showToast } from './js/utils.js?v=1.4.300';
+import * as utils from './js/utils.js?v=1.4.300';
+import { initFirebase } from './js/firebase-init.js?v=1.4.300';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.300';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.300';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.300';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.300';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.300';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
     handleImageUpload, handleEventImageUpload, clearEventImage, editStation, openEventModal, closeEventModal,
-    fillEventCoords, saveEventChanges, deleteEvent, filterStations, filterList, generateICS, searchAddress,
+    fillEventCoords, saveEventChanges, deleteEvent, duplicateEvent, filterStations, filterList, generateICS, updateCalendarButtons, searchAddress,
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.282';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.282';
-import { recordAuditEvent } from './js/audit.js?v=1.4.282';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.282';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.282';
-import { initOfflineSync, flushOfflineActions } from './js/offline-sync.js?v=1.4.282';
+} from './js/ui.js?v=1.4.300';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.300';
+import { recordAuditEvent } from './js/audit.js?v=1.4.300';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.300';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.300';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.300';
+
+window.__appStartupPhase = 'module-loaded';
+
+window.addEventListener('lichternacht:checkin-sync', () => {
+    const status = document.getElementById('pass-sync-status');
+    if (status) status.textContent = getCheckinSyncSummary();
+});
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.282";
+const APP_VERSION = "1.4.300";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -628,6 +636,7 @@ window.showPassInfo = () => {
                 <div class="mt-1 text-gray-600 dark:text-gray-300">Gehe zu einer Station, aktiviere GPS und tippe in der Nähe auf „Einchecken“.${raffleAvailable ? ' Wenn du eine Preisstufe erreichst, kannst du den Preis hier anfordern.' : ''}</div>
                 <div class="mt-2 font-bold text-gray-900 dark:text-white">${escapeHtml(nextGoalText)}</div>
                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Dein persönlicher Fortschritt bleibt lokal auf diesem Gerät, solange du Website-Daten nicht löschst. Normale Check-ins werden zusätzlich anonymisiert/pseudonymisiert zentral für die Nachbereitung gezählt.</div>
+                <p id="pass-sync-status" role="status" class="mt-2 text-xs text-gray-600 dark:text-gray-300">${escapeHtml(getCheckinSyncSummary())}</p>
             </div>
 
             ${raffleAvailable && visited >= 3 ? `
@@ -945,7 +954,7 @@ window.startMiniTour = (force = false) => {
         {
             elId: 'map-overview-route-btn',
             title: 'Rundweg planen',
-            text: 'Wähle deine Favoriten oder Stationen aus und die App zeigt dir einen passenden Weg durch den Ort.'
+            text: 'Plane deinen Abend schon jetzt, auch ohne GPS: Wähle Favoriten oder Stationen aus. Nur das Einchecken ist auf den Veranstaltungszeitraum mit einer Stunde Vorlauf und drei Stunden Nachlauf begrenzt.'
         },
         {
             tab: 'list',
@@ -1238,6 +1247,7 @@ window.addEventListener('app-theme-change', event => updateMapTiles(Boolean(even
 window.toggleSatelliteView = toggleSatelliteView;
 window.toggleOverviewRoute = toggleOverviewRoute;
 window.startOverviewNavigation = startOverviewNavigation;
+window.requestLocalPasswordReset = requestLocalPasswordReset;
 window.skipOverviewNavigationStation = skipOverviewNavigationStation;
 window.openRoutePlan = openRoutePlan;
 window.openHelpModal = openHelpModal;
@@ -1263,6 +1273,7 @@ window.searchStationAddress = searchStationAddress;
 window.startStationPicker = startStationPicker;
 window.saveEventChanges = saveEventChanges;
 window.deleteEvent = deleteEvent;
+window.duplicateEvent = duplicateEvent;
 window.shareStation = (id) => {
     const station = state.stations.find(item => item.id == id);
     recordAuditEvent('station_shared', { stationId: id, stationName: station?.name || '' });
@@ -1276,6 +1287,9 @@ window.clearRoute = clearRoute;
 window.resetMap = resetMap;
 window.refreshMapMarkers = refreshMapMarkers;
 window.generateICS = generateICS;
+window.updateCalendarButtons = updateCalendarButtons;
+window.addEventListener('focus', updateCalendarButtons);
+document.addEventListener('visibilitychange', updateCalendarButtons);
 window.searchAddress = searchAddress;
 window.openBugReportModal = openBugReportModal;
 window.submitBugReport = submitBugReport;
@@ -1492,23 +1506,28 @@ function initFastTooltips() {
 }
 
 const initializeApp = async () => {
+    window.__appStartupPhase = 'configuration';
     initFastTooltips();
     initStationModalSwipe();
 
     // Try to load config.js dynamically to avoid 404 console spam if missing
     try {
-        await new Promise((resolve, reject) => {
+        await new Promise(resolve => {
             const script = document.createElement('script');
             script.src = `config.js?v=${APP_VERSION}`;
-            script.onload = resolve;
-            script.onerror = () => { console.log('config.js not found (using local/defaults)'); resolve(); }; // Resolve anyway to continue
+            const timer = setTimeout(() => { script.remove(); resolve(); }, 5000);
+            script.onload = script.onerror = () => { clearTimeout(timer); resolve(); };
             document.body.appendChild(script);
         });
     } catch (e) { console.log('Config load skipped'); }
 
     // Load Favorites
-    const savedFavs = localStorage.getItem('favorites');
-    if (savedFavs) state.favorites = new Set(JSON.parse(savedFavs));
+    try {
+        const savedFavs = JSON.parse(localStorage.getItem('favorites') || '[]');
+        state.favorites = new Set(Array.isArray(savedFavs) ? savedFavs : []);
+    } catch {
+        state.favorites = new Set();
+    }
 
     initializeThemePreference();
     // Search
@@ -1539,6 +1558,7 @@ const initializeApp = async () => {
     setTimeout(remindPrizeClaimAfterEvent, 1500);
 
     // Init
+    window.__appStartupPhase = 'map';
     initMap();
     hydrateVisitorDataCache();
     resumeGrantedLocation();
@@ -1550,7 +1570,9 @@ const initializeApp = async () => {
     }
 
     // Init Firebase
+    window.__appStartupPhase = 'authentication';
     const fbReady = await initFirebase();
+    window.__appStartupPhase = 'data';
 
     if (fbReady) {
         state.useLocalStorage = false;
@@ -1568,7 +1590,7 @@ const initializeApp = async () => {
         
         // 2. Sync Config (might override App ID)
         await syncGlobalConfig();
-        await flushOfflineActions();
+        flushOfflineActions();
         console.log("Using Final App ID:", state.appId);
 
         // 3. Init Listeners
@@ -1638,6 +1660,7 @@ const initializeApp = async () => {
     } catch (e) { }
 
     window.__appReady = true;
+    window.__appStartupPhase = 'ready';
     window.dispatchEvent(new Event('lichternacht:ready'));
 
     // Defensive: if flags already set, ensure prompt is not visible
@@ -1684,6 +1707,24 @@ function injectTrackingCode(codeHtml) {
     });
 }
 
+function showTeamMessage(text) {
+    let dialog = document.getElementById('team-message-dialog');
+    if (!dialog) {
+        dialog = document.createElement('dialog');
+        dialog.id = 'team-message-dialog';
+        dialog.className = 'team-message-dialog';
+        dialog.setAttribute('aria-labelledby', 'team-message-title');
+        dialog.setAttribute('aria-describedby', 'team-message-text');
+        dialog.innerHTML = `<div class="team-message-icon" aria-hidden="true">✦</div>
+            <h2 id="team-message-title">Nachricht vom Team</h2>
+            <p id="team-message-text"></p>
+            <form method="dialog"><button autofocus>Verstanden</button></form>`;
+        document.body.appendChild(dialog);
+    }
+    dialog.querySelector('#team-message-text').textContent = String(text || '');
+    if (!dialog.open) dialog.showModal();
+}
+
 function initBroadcastListener() {
     const { doc, onSnapshot } = state.fb;
 
@@ -1715,8 +1756,7 @@ function initBroadcastListener() {
             // Auto-Popup if NEW and recent
             if (data.timestamp > lastSeen && data.timestamp > fourHoursAgo) {
                 localStorage.setItem('last_broadcast_seen', data.timestamp);
-                sendLocalNotification('Nachricht vom Team', data.text);
-                alert(`NACHRICHT VOM TEAM:\n\n${data.text}`);
+                showTeamMessage(data.text);
             }
         } else {
             // Document deleted -> Hide Bell
@@ -1736,7 +1776,7 @@ window.showLastBroadcast = () => {
         const badge = btn.querySelector('span');
         if (badge) badge.classList.add('hidden');
 
-        alert(`NACHRICHT VOM TEAM:\n\n${state.lastBroadcast.text}`);
+        showTeamMessage(state.lastBroadcast.text);
     }
 };
 

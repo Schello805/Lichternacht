@@ -1,12 +1,15 @@
 
 import { state } from './state.js';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.282';
-import * as utils from './utils.js?v=1.4.282';
-import { saveData, deleteData } from './data.js?v=1.4.282';
-import { refreshMapMarkers, toggleOverviewRoute } from './maplibre-map.js?v=1.4.282';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.282';
-import { recordAuditEvent } from './audit.js?v=1.4.282';
-import { normalizeImageUrl } from './image-url.js?v=1.4.282';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.300';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.300';
+import * as utils from './utils.js?v=1.4.300';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.300';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.300';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.300';
+import { recordAuditEvent } from './audit.js?v=1.4.300';
+import { normalizeImageUrl } from './image-url.js?v=1.4.300';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.300';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.300';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -20,10 +23,40 @@ const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
 let editingStation = null;
 let editingStationSnapshot = null;
+let stationSaving = false;
+let stationImageUploading = false;
+let stationModalAnimation = null;
+let stationModalCloseTimer = null;
+
+function animateStationModal(stationId, reverse = false) {
+    const content = document.getElementById('modal-content');
+    if (!content || state.activeTab !== 'map' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const marker = state.markers.find(item => String(item.id) === String(stationId))?.marker.getElement();
+    if (!marker || !content.animate) return;
+    stationModalAnimation?.cancel();
+    const origin = marker.getBoundingClientRect();
+    content.style.transition = 'none';
+    const destination = content.getBoundingClientRect();
+    if (!origin.width || !destination.width || !destination.height) return;
+    const scale = Math.max(0.12, Math.min(0.25, origin.width / destination.width));
+    content.style.willChange = 'transform, opacity';
+    const frames = [
+        { transformOrigin: 'center', transform: `translate3d(${origin.x + origin.width / 2 - destination.x - destination.width / 2}px, ${origin.y + origin.height / 2 - destination.y - destination.height / 2}px, 0) scale(${scale})`, opacity: 0 },
+        { transformOrigin: 'center', transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 }
+    ];
+    stationModalAnimation = content.animate(reverse ? frames.reverse() : frames, { duration: reverse ? 180 : 240, easing: 'cubic-bezier(.16,1,.3,1)', fill: reverse ? 'forwards' : 'none' });
+    stationModalAnimation.finished.catch(() => {}).finally(() => { content.style.willChange = ''; });
+    return stationModalAnimation;
+}
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
 
+function hasRoutePlanCoordinates(station) {
+    return [station.lat, station.lng].every(value => value != null && typeof value !== 'boolean' && String(value).trim() !== '' && Number.isFinite(Number(value)))
+        && Math.abs(Number(station.lat)) <= 90 && Math.abs(Number(station.lng)) <= 180;
+}
+
 function getRoutePlanStationIds() {
-    const validIds = new Set(state.stations.map(station => String(station.id)));
+    const validIds = new Set(state.stations.filter(hasRoutePlanCoordinates).map(station => String(station.id)));
     try {
         const storedIds = JSON.parse(localStorage.getItem(ROUTE_PLAN_STORAGE_KEY) || 'null');
         if (Array.isArray(storedIds)) return storedIds.map(String).filter(id => validIds.has(id));
@@ -33,7 +66,7 @@ function getRoutePlanStationIds() {
     const configuredIds = Array.isArray(state.config?.defaultRouteStationIds)
         ? state.config.defaultRouteStationIds.map(String).filter(id => validIds.has(id))
         : [];
-    return configuredIds.length ? configuredIds : state.stations.map(station => String(station.id));
+    return configuredIds.length ? configuredIds : [...validIds];
 }
 
 function persistRoutePlanStationIds(stationIds) {
@@ -53,7 +86,11 @@ export function openRoutePlan() {
     const list = document.getElementById('route-plan-stations');
     if (!modal || !list) return;
     const selectedIds = new Set(getRoutePlanStationIds());
+    const modeSelect = modal.querySelector('[data-route-plan-mode]');
+    modeSelect.value = localStorage.getItem('route_plan_mode') === 'open' ? 'open' : 'round';
+    modeSelect.onchange = () => localStorage.setItem('route_plan_mode', modeSelect.value);
     const stations = [...state.stations]
+        .filter(hasRoutePlanCoordinates)
         .filter(station => String(station.id || '').trim())
         .sort((first, second) => Number(first.id) - Number(second.id));
 
@@ -65,6 +102,7 @@ export function openRoutePlan() {
         const wanted = new Set(ids.map(String));
         list.querySelectorAll('input[data-route-plan-station]').forEach(input => { input.checked = wanted.has(input.value); });
         updateRoutePlanSelectionCount(modal);
+        persistRoutePlanStationIds([...list.querySelectorAll('input[data-route-plan-station]:checked')].map(input => input.value));
     };
     modal.querySelector('[data-route-plan-recommended]').onclick = () => {
         const configured = Array.isArray(state.config?.defaultRouteStationIds) ? state.config.defaultRouteStationIds : [];
@@ -80,13 +118,17 @@ export function openRoutePlan() {
     };
     modal.querySelector('[data-route-plan-all]').onclick = () => selectIds(stations.map(station => station.id));
     modal.querySelector('[data-route-plan-none]').onclick = () => selectIds([]);
-    list.onchange = () => updateRoutePlanSelectionCount(modal);
+    list.onchange = () => {
+        updateRoutePlanSelectionCount(modal);
+        persistRoutePlanStationIds([...list.querySelectorAll('input[data-route-plan-station]:checked')].map(input => input.value));
+    };
     modal.querySelector('[data-route-plan-submit]').onclick = async () => {
         const ids = [...list.querySelectorAll('input[data-route-plan-station]:checked')].map(input => input.value);
         if (ids.length < 2) return;
         persistRoutePlanStationIds(ids);
+        localStorage.setItem('route_plan_mode', modeSelect.value);
         modal.classList.add('hidden');
-        await toggleOverviewRoute(ids);
+        await toggleOverviewRoute(ids, modeSelect.value);
     };
 }
 
@@ -100,6 +142,30 @@ function normalizeExternalLink(value) {
     } catch (e) {
         return null;
     }
+}
+
+function linkifyDescription(value) {
+    const text = String(value ?? '');
+    const urlPattern = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+    let html = '';
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(urlPattern)) {
+        const rawUrl = match[0];
+        const startIndex = match.index ?? 0;
+        const trailingPunctuation = rawUrl.match(/[.,!?;:]+$/)?.[0] || '';
+        const url = trailingPunctuation ? rawUrl.slice(0, -trailingPunctuation.length) : rawUrl;
+        const href = normalizeExternalLink(url);
+
+        html += escapeHtml(text.slice(lastIndex, startIndex));
+        html += href
+            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="break-all font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-800 dark:text-blue-300 dark:decoration-blue-500">${escapeHtml(url)}</a>`
+            : escapeHtml(url);
+        html += escapeHtml(trailingPunctuation);
+        lastIndex = startIndex + rawUrl.length;
+    }
+
+    return html + escapeHtml(text.slice(lastIndex));
 }
 
 function normalizeStationImage(value) {
@@ -130,7 +196,7 @@ function renderModalStationImage(station, isEditing = false) {
         </button>`;
 
     imageContainer.innerHTML = stationImage
-        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
+        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" loading="eager" fetchpriority="high" decoding="async" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
         : `<button type="button" onclick="document.getElementById('image-upload').click()" class="flex h-36 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-gray-900 dark:text-blue-200" aria-label="Bild auswählen"><i class="ph ph-camera text-2xl"></i><span>Bild auswählen</span></button>`;
     imageContainer.classList.remove('hidden');
 }
@@ -143,9 +209,16 @@ export function openModal(target) {
         const el = document.getElementById(target);
         if (el) el.classList.remove('hidden');
     } else if (typeof target === 'object' && target !== null) {
+        if (editingStation && !leaveStationEdit()) return false;
         // Station Object
         const s = target;
         const detailModal = document.getElementById('detail-modal');
+        const isOpening = detailModal?.classList.contains('hidden');
+        if (stationModalCloseTimer !== null) {
+            clearTimeout(stationModalCloseTimer);
+            stationModalCloseTimer = null;
+            stationModalAnimation?.cancel();
+        }
         if (state.map && detailModal?.classList.contains('hidden') && !state.modalReturnCamera) {
             const center = state.map.getCenter();
             state.modalReturnCamera = {
@@ -161,7 +234,7 @@ export function openModal(target) {
         // Populate Modal
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-subtitle').innerText = s.desc || '';
-        document.getElementById('modal-desc').innerText = s.offer || s.desc || 'Keine Beschreibung verfügbar.';
+        document.getElementById('modal-desc').innerHTML = linkifyDescription(s.offer || s.desc || 'Keine Beschreibung verfügbar.');
         document.getElementById('modal-wc-badge')?.classList.toggle('hidden', !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
         
         // Fix ID Display
@@ -178,6 +251,7 @@ export function openModal(target) {
         
         if (btnRoute) {
             btnRoute.onclick = () => {
+                if (!leaveStationEdit()) return;
                 recordAuditEvent('route_opened', { stationId: s.id, stationName: s.name || '' });
                 state.skipModalMapRestore = true;
                 closeModal();
@@ -213,17 +287,13 @@ export function openModal(target) {
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
         if (modal) {
+            if (isOpening) stationModalAnimation?.cancel();
             if (content) {
                 content.style.transform = '';
-                content.style.transition = '';
+                content.style.transition = 'none';
+                content.classList.remove('translate-y-full');
             }
             modal.classList.remove('hidden');
-            // Animate in - Double RAF for safety
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (content) content.classList.remove('translate-y-full');
-                });
-            });
             
             // Reset view mode
             setInlineStationEditMode(false);
@@ -235,6 +305,7 @@ export function openModal(target) {
 
             // Ensure like button reflects liked state + count immediately
             try { updateLikeBtn(s.id, s.likes || 0); } catch (e) { }
+            if (isOpening) animateStationModal(s.id);
         }
     }
 }
@@ -249,10 +320,15 @@ export function openStation(id) {
 }
 
 export function closeModal(id) {
+    if (id === 'detail-modal') return closeModal();
     if (!id) {
+        if (stationModalCloseTimer !== null) return true;
+        if (stationSaving || stationImageUploading) return false;
+        let discardedDraft = false;
         // Default to detail modal if no ID passed (e.g. from X button)
         const modal = document.getElementById('detail-modal');
         const content = document.getElementById('modal-content');
+        stationModalAnimation?.cancel();
 
         // If the active station is a draft, ask before discarding it
         try {
@@ -260,7 +336,8 @@ export function closeModal(id) {
             const s = state.stations.find(x => x.id == sId);
             if (s && s.__draft) {
                 const ok = confirm('Neue Station verwerfen? (Nicht gespeichert)');
-                if (!ok) return;
+                if (!ok) return false;
+                discardedDraft = true;
 
                 state.stations = state.stations.filter(x => x.id != sId);
                 state.activeStationId = null;
@@ -270,40 +347,47 @@ export function closeModal(id) {
                 if (window.refreshMapMarkers) window.refreshMapMarkers();
             }
         } catch (e) { }
+        if (!leaveStationEdit(discardedDraft)) return false;
         
+        const closedStationId = state.activeStationId;
+        const closingAnimation = animateStationModal(closedStationId, true);
+
         // Reset active station highlight
         if (state.activeStationId) {
             state.activeStationId = null;
             window.activeStationId = null;
-            refreshMapMarkers();
         }
 
-        if (content) content.classList.add('translate-y-full');
+        if (content && !closingAnimation) content.classList.add('translate-y-full');
         
         // Wait for animation
-        setTimeout(() => {
+        stationModalCloseTimer = setTimeout(() => {
+            stationModalCloseTimer = null;
             if (modal) modal.classList.add('hidden');
+            stationModalAnimation?.cancel();
+            if (state.activeTab === 'map') highlightRecentlyClosedStation(closedStationId);
+            refreshMapMarkers();
             if (state.modalReturnCamera && !state.skipModalMapRestore && state.map) {
                 try { state.map.easeTo({ ...state.modalReturnCamera, duration: 350 }); } catch (e) { }
             }
             state.modalReturnCamera = null;
             state.skipModalMapRestore = false;
-        }, 300);
-        return;
+        }, closingAnimation ? 180 : 0);
+        return true;
     }
 
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
+    return true;
 }
 
 export function switchTab(tab) {
     console.log("switchTab called for:", tab);
-    document.getElementById('floating-status')?.classList.toggle('is-non-map', tab !== 'map');
-
     const detailModal = document.getElementById('detail-modal');
     if (detailModal && !detailModal.classList.contains('hidden')) {
-        closeModal();
+        if (closeModal() === false) return;
     }
+    document.getElementById('floating-status')?.classList.toggle('is-non-map', tab !== 'map');
     document.getElementById('program-event-modal')?.remove();
 
     const adminPanel = document.getElementById('admin-panel');
@@ -521,7 +605,7 @@ export function renderFilterBar() {
     // Collect all tags from stations
     const allTags = new Set();
     state.stations.forEach(s => {
-        if (s.tags) s.tags.forEach(t => allTags.add(t));
+        getStationTags(s).forEach(t => allTags.add(t));
     });
     
     // Add default tags that should always appear if they exist or not? 
@@ -574,7 +658,7 @@ export function renderFilterBar() {
     sortedTags.forEach(tag => {
         const label = TAG_TRANSLATIONS[tag] || tag;
         const selected = currentFilter === tag ? 'selected' : '';
-        row2 += `<option value="${tag}" ${selected} class="text-gray-900 bg-white">${label}</option>`;
+        row2 += `<option value="${escapeHtml(tag)}" ${selected} class="text-gray-900 bg-white">${escapeHtml(label)}</option>`;
     });
 
     row2 += `
@@ -761,7 +845,13 @@ export function renderList(stations) {
     if (!container) return;
     
     // Create a copy to avoid mutating the original if we sort, and add dist property safely
-    let listToRender = stations.map(s => ({...s}));
+    let listToRender = stations.filter(station => {
+        if (currentFilter === 'favorites' && !state.favorites.has(station.id) && !state.favorites.has(String(station.id))) return false;
+        if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
+        if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !getStationTags(station).includes(currentFilter)) return false;
+        const search = currentSearchQuery.toLowerCase();
+        return !search || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
+    }).map(s => ({...s}));
 
     // If we have a user location, calculate distances!
     if (state.userLocation) {
@@ -816,9 +906,7 @@ export function renderList(stations) {
     }
 
     container.innerHTML = listToRender.map(s => {
-        const translatedTags = (s.tags || []).map(t => TAG_TRANSLATIONS[t] || t);
-        const visibleTags = translatedTags.slice(0, 2);
-        const remainingTagCount = Math.max(0, translatedTags.length - visibleTags.length);
+        const visibleTags = getStationTags(s).map(t => TAG_TRANSLATIONS[t] || t);
         const isVisited = visitedStations.has(String(s.id));
         const isFavorite = state.favorites.has(s.id) || state.favorites.has(String(s.id));
         const hasProgram = (state.events || []).some(event => String(event.stationId || '') === String(s.id));
@@ -828,12 +916,10 @@ export function renderList(stations) {
         let distInfo = '';
         // Only show distance if user location is active AND distance is calculated
         if (state.userLocation && s._dist !== undefined && s._dist !== null) {
-            // Factor 1.3 for walking detour (not straight line)
             const walkingDist = s._dist * 1.3;
             const minutes = Math.ceil(walkingDist / 80); // ~4.8 km/h
             
-            // Use walkingDist for display to satisfy "not air line" request
-            const distStr = walkingDist > 1000 ? (walkingDist/1000).toFixed(1) + ' km' : Math.round(walkingDist) + ' m';
+            const distStr = (s._dist > 1000 ? (s._dist/1000).toFixed(1) + ' km' : Math.round(s._dist) + ' m') + ' Luftlinie';
             
             distInfo = `
                 <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 font-medium border-t border-gray-100 pt-2 dark:border-gray-700">
@@ -857,6 +943,7 @@ export function renderList(stations) {
                         </div>
                     </div>
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(s.desc || '')}</p>
+                    ${s.offer ? `<p class="mt-2 line-clamp-2 text-sm leading-relaxed text-gray-700 dark:text-gray-200">${escapeHtml(s.offer)}</p>` : ''}
                     <div class="mt-2 flex gap-1.5 flex-wrap">
                         <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ph ph-map-pin"></i> Station</span>
                         ${hasProgram ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-calendar-star"></i> Mit Programm</span>' : ''}
@@ -864,7 +951,6 @@ export function renderList(stations) {
                     </div>
                     <div class="mt-2 flex gap-1.5 flex-wrap">
                         ${visibleTags.map(t => `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
-                        ${remainingTagCount ? `<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">+${remainingTagCount}</span>` : ''}
                     </div>
                     ${distInfo}
                 </div>
@@ -879,10 +965,11 @@ export function updateStationDistances() {
         const lat = Number(card.dataset.stationLat);
         const lng = Number(card.dataset.stationLng);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        const walkingDistance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng) * 1.3;
-        const distanceLabel = walkingDistance > 1000
-            ? `${(walkingDistance / 1000).toFixed(1)} km`
-            : `${Math.round(walkingDistance)} m`;
+        const distance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+        const walkingDistance = distance * 1.3;
+        const distanceLabel = distance > 1000
+            ? `${(distance / 1000).toFixed(1)} km Luftlinie`
+            : `${Math.round(distance)} m Luftlinie`;
         const distanceElement = card.querySelector('[data-station-distance]');
         const timeElement = card.querySelector('[data-station-walk-time]');
         if (distanceElement) distanceElement.textContent = distanceLabel;
@@ -891,7 +978,7 @@ export function updateStationDistances() {
 }
 
 export function refreshStationList() {
-    filterList(currentFilter);
+    renderList(state.stations);
 }
 
 function scrollStationListToTop() {
@@ -904,15 +991,11 @@ export function filterStations(query) {
     // Basic filter implementation
     currentSearchQuery = String(query || '').trim();
     scrollStationListToTop();
-    const lower = currentSearchQuery.toLowerCase();
-    const filtered = state.stations.filter(s => 
-        s.name.toLowerCase().includes(lower) || 
-        (s.desc && s.desc.toLowerCase().includes(lower))
-    );
-    renderList(filtered);
+    renderList(state.stations);
 }
 
 export function filterList(tag) {
+    tag = normalizeStationTag(tag);
     currentFilter = tag;
     currentSearchQuery = '';
     scrollStationListToTop();
@@ -937,7 +1020,7 @@ export function filterList(tag) {
     }
     
     if (tag === 'favorites') {
-        const favs = state.stations.filter(s => state.favorites.has(s.id));
+        const favs = state.stations.filter(s => state.favorites.has(s.id) || state.favorites.has(String(s.id)));
         renderList(favs);
         if (favs.length === 0) {
             showToast("Keine Favoriten markiert", 'info');
@@ -957,7 +1040,7 @@ export function filterList(tag) {
     }
 
     // Filter by tag
-    const filtered = state.stations.filter(s => s.tags && s.tags.includes(tag));
+    const filtered = state.stations.filter(s => getStationTags(s).includes(tag));
     renderList(filtered);
 }
 
@@ -1069,11 +1152,12 @@ export function editStation(id) {
         ? id
         : state.stations.find(x => x.id == (id || state.activeStationId));
     if (!s) return;
-    editingStation = s;
-    editingStationSnapshot = JSON.parse(JSON.stringify(s));
+    if (editingStation && !leaveStationEdit()) return;
 
     const detailModal = document.getElementById('detail-modal');
-    if (detailModal?.classList.contains('hidden')) openModal(s);
+    if (detailModal?.classList.contains('hidden') || state.activeStationId != s.id) openModal(s);
+    editingStation = JSON.parse(JSON.stringify(s));
+    editingStationSnapshot = JSON.parse(JSON.stringify(s));
 
     state.activeStationId = s.id;
     window.activeStationId = s.id;
@@ -1137,12 +1221,12 @@ function setInlineStationEditMode(isEditing) {
         if (isEditing) element.setAttribute('aria-label', element.dataset.placeholder || 'Stationsdaten bearbeiten');
         else element.removeAttribute('aria-label');
     });
-    const station = state.stations.find(item => item.id == state.activeStationId);
+    const station = editingStation || state.stations.find(item => item.id == state.activeStationId);
     if (station) renderModalStationImage(station, isEditing);
 }
 
 function syncInlineStationEditFields() {
-    const getText = id => document.getElementById(id)?.innerText.trim() || '';
+    const getText = id => editableText(document.getElementById(id));
     document.getElementById('edit-id').value = getText('modal-number');
     document.getElementById('edit-name').value = getText('modal-title');
     document.getElementById('edit-desc').value = getText('modal-subtitle');
@@ -1152,11 +1236,49 @@ function syncInlineStationEditFields() {
     document.getElementById('edit-link').value = document.getElementById('inline-edit-link')?.value || '';
 }
 
-export function cancelStationEdit() {
-    const station = editingStation;
-    if (station && editingStationSnapshot) Object.assign(station, JSON.parse(JSON.stringify(editingStationSnapshot)));
+function editableText(element) {
+    if (!element) return '';
+    const transform = element.style.textTransform;
+    try {
+        element.style.textTransform = 'none';
+        return element.innerText.trim();
+    } finally {
+        element.style.textTransform = transform;
+    }
+}
+
+export function hasUnsavedStationChanges() {
+    if (!editingStation) return false;
+    if (stationImageUploading || stationSaving) return true;
+    const original = editingStationSnapshot;
+    const fields = ['modal-number', 'modal-title', 'modal-subtitle', 'modal-desc', 'inline-edit-lat', 'inline-edit-lng', 'inline-edit-link', 'edit-tags'];
+    const values = [original.id, original.name, original.desc, original.offer, original.lat, original.lng, original.link, (original.tags || []).join(', ')];
+    return fields.some((id, index) => {
+        const element = document.getElementById(id);
+        return String(element?.value ?? editableText(element)).trim() !== String(values[index] ?? '').trim();
+    }) || editingStation.image !== original.image;
+}
+
+function leaveStationEdit(discardConfirmed = false) {
+    if (stationSaving || stationImageUploading) {
+        showToast('Bitte warten, bis der laufende Vorgang abgeschlossen ist.', 'info');
+        return false;
+    }
+    if (!discardConfirmed && hasUnsavedStationChanges() && !confirm('Ungespeicherte Änderungen verwerfen? Abbrechen = weiterbearbeiten.')) return false;
     editingStation = null;
     editingStationSnapshot = null;
+    return true;
+}
+
+if (typeof window.addEventListener === 'function') window.addEventListener('beforeunload', event => {
+    if (!hasUnsavedStationChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
+});
+
+export function cancelStationEdit() {
+    const station = state.stations.find(item => item.id == state.activeStationId);
+    if (!leaveStationEdit()) return;
     if (station) openModal(station);
 }
 
@@ -1215,9 +1337,11 @@ function updateImageUploadUI(imageSrc) {
 }
 
 export async function saveStationChanges() {
+    if (stationSaving || stationImageUploading) return;
     const oldId = state.activeStationId;
-    const s = editingStation || state.stations.find(x => x.id == oldId);
-    if (!s) return;
+    const original = editingStationSnapshot || state.stations.find(x => x.id == oldId);
+    if (!original) return;
+    const s = { ...(editingStation || original) };
     syncInlineStationEditFields();
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
@@ -1296,7 +1420,6 @@ export async function saveStationChanges() {
     // Update Local Object
     // If ID changed, we need to handle that carefully
     const idChanged = (newId != oldId);
-    const originalDocumentId = String(s.__docId ?? oldId ?? '').trim();
     
     if (idChanged && /^\d+$/.test(String(oldId ?? ''))) {
         if (!confirm(`Möchtest du die Station wirklich von Nr. ${oldId} in Nr. ${newId} umbenennen?`)) return;
@@ -1316,16 +1439,13 @@ export async function saveStationChanges() {
     if (!String(newOffer || '').trim()) stationHints.push('Angebot/Werbetext fehlt');
     if (newTags.length === 0) stationHints.push('keine Tags/Filter gesetzt');
 
+    const saveButton = document.querySelector('#modal-inline-edit-actions button:last-child');
+    stationSaving = true;
+    if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Wird gespeichert…'; }
     try {
-        // If ID changed, we must DELETE the old doc first (or after) to avoid duplicates
-        if (idChanged && originalDocumentId && originalDocumentId !== String(newId)) {
-            await deleteData('station', originalDocumentId);
-            console.log(`Old station ${originalDocumentId} deleted`);
-        }
-
         s.__docId = String(newId);
-        await saveData('station', s);
         if (s.__draft) delete s.__draft;
+        await saveStationEdit(original, s);
         showToast("Station gespeichert", 'success');
         if (stationHints.length > 0) {
             setTimeout(() => showToast(`Hinweis: ${stationHints.join(' · ')}`, 'info'), 350);
@@ -1346,17 +1466,22 @@ export async function saveStationChanges() {
         openModal(s); 
     } catch (e) {
         console.error(e);
-        showToast("Fehler beim Speichern", 'error');
-        // Revert ID if save failed? Complex.
+        showToast(`Nicht gespeichert: ${e.message || 'Verbindung prüfen'}. Deine Änderungen bleiben zur Bearbeitung erhalten.`, 'error');
+    } finally {
+        stationSaving = false;
+        if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'Speichern'; }
     }
 }
 
 export async function deleteStation(id) {
+    if (stationSaving || stationImageUploading) return;
     if (!confirm("Station wirklich löschen?")) return;
     const sId = id || state.activeStationId;
     
     try {
         await deleteData('station', sId);
+        editingStation = null;
+        editingStationSnapshot = null;
         showToast("Station gelöscht", 'success');
         
         // Refresh UI
@@ -1409,8 +1534,10 @@ async function compressStationImage(file) {
 export async function handleImageUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    const station = state.stations.find(item => item.id == state.activeStationId);
+    const station = editingStation;
     if (!station) return;
+    if (stationSaving || stationImageUploading) return;
+    stationImageUploading = true;
     const uploadButton = document.getElementById('modal-image-change-btn');
     const originalLabel = uploadButton?.innerHTML;
 
@@ -1459,6 +1586,7 @@ export async function handleImageUpload(input) {
         showToast(error?.message || 'Bild konnte nicht hochgeladen werden', 'error');
         if (uploadButton && originalLabel) uploadButton.innerHTML = originalLabel;
     } finally {
+        stationImageUploading = false;
         if (uploadButton) uploadButton.disabled = false;
         input.value = '';
     }
@@ -1528,7 +1656,8 @@ export function clearEventImage() {
 }
 
 export function clearStationImage() {
-    const s = state.stations.find(x => x.id == state.activeStationId);
+    if (stationSaving || stationImageUploading) return;
+    const s = editingStation;
     if (s) {
         s.image = null;
         renderModalStationImage(s, true);
@@ -1597,7 +1726,21 @@ export function editEvent(id) {
     // but we could match by coords or name.
     
     document.getElementById('btn-delete-event').classList.remove('hidden');
+    document.getElementById('btn-duplicate-event').classList.remove('hidden');
     openModal('event-modal');
+}
+
+export function duplicateEvent() {
+    if (!state.activeEventId) return;
+
+    const titleInput = document.getElementById('evt-title');
+    const copySuffix = ' (Kopie)';
+    const copyTitle = titleInput.value.trim();
+    titleInput.value = `${copyTitle.slice(0, Math.max(0, EVENT_TITLE_MAX_LENGTH - copySuffix.length))}${copySuffix}`;
+    state.activeEventId = null;
+    document.getElementById('btn-delete-event').classList.add('hidden');
+    document.getElementById('btn-duplicate-event').classList.add('hidden');
+    showToast('Kopie erstellt – Zeit prüfen und speichern.', 'info');
 }
 
 function resetEventModal() {
@@ -1614,6 +1757,7 @@ function resetEventModal() {
     eventImageDraft = '';
     updateEventImageUI('');
     document.getElementById('btn-delete-event').classList.add('hidden');
+    document.getElementById('btn-duplicate-event').classList.add('hidden');
     updateEventDescCounter();
     document.getElementById('evt-desc').oninput = updateEventDescCounter;
     
@@ -1941,16 +2085,27 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
 }
 
 export function openBugReportModal() {
+    if (!bugReportSending) {
+        const locationOption = document.getElementById('bug-report-location');
+        if (locationOption) locationOption.checked = false;
+        const status = document.getElementById('bug-report-location-status');
+        if (status) status.textContent = '';
+    }
     openModal('bug-report-modal');
 }
 
+let bugReportSending = false;
+
 export async function submitBugReport() {
+    if (bugReportSending) return;
     const desc = document.getElementById('bug-desc').value;
     if (!desc) { 
         showToast("Bitte Beschreibung eingeben", 'error'); 
         return; 
     }
 
+    const reportUrl = new URL(window.location.href);
+    reportUrl.hash = '';
     const report = {
         description: desc,
         timestamp: Date.now(),
@@ -1959,7 +2114,7 @@ export async function submitBugReport() {
         user: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.email || 'anonymous') : 'anonymous',
         userId: (state.auth && state.auth.currentUser) ? (state.auth.currentUser.uid || '') : '',
         appId: state.appId || 'unknown',
-        url: window.location.href
+        url: reportUrl.href
     };
 
     const reportText = [
@@ -1974,27 +2129,68 @@ export async function submitBugReport() {
 
     // Send to backend endpoint which sends an email (anonymous users supported).
     // A browser cannot send emails by itself; this needs a server-side mail relay.
+    const submitButton = document.getElementById('bug-report-submit');
+    const locationOption = document.getElementById('bug-report-location');
+    const locationStatus = document.getElementById('bug-report-location-status');
+    const includeLocation = locationOption?.checked === true;
+    if (locationStatus) locationStatus.textContent = '';
+    const originalButtonContent = submitButton?.innerHTML;
+    bugReportSending = true;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
+        submitButton.innerHTML = '<svg data-feedback-spinner class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"/><path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span>Wird gesendet…</span>';
+    }
+    if (locationOption) locationOption.disabled = true;
     try {
+        let location;
+        if (includeLocation) {
+            if (locationStatus) locationStatus.textContent = 'Standort wird einmalig ermittelt…';
+            location = await getFeedbackLocation();
+            if (locationStatus) locationStatus.textContent = location
+                ? 'Der Standort wird dieser Rückmeldung beigefügt.'
+                : 'Standort nicht verfügbar. Die Rückmeldung wird ohne Standort gesendet.';
+        }
+        const headers = { 'Content-Type': 'application/json' };
+        const user = state.auth?.currentUser;
+        if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
         const res = await fetch('./api/bug-report', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
-                text: reportText
+                text: reportText,
+                ...(location ? { location } : {})
             })
         });
 
+        if (res.status === 429) {
+            showToast('Zu viele Sendeversuche. Bitte in 10 Minuten erneut versuchen. Dein Text bleibt erhalten.', 'error');
+            return;
+        }
         if (!res.ok) {
             const msg = await res.text().catch(() => '');
             throw new Error(msg || `HTTP ${res.status}`);
         }
+        const result = await res.json();
+        if (result.ok !== true) throw new Error('Versand wurde nicht bestätigt');
 
         document.getElementById('bug-desc').value = '';
+        if (locationOption) locationOption.checked = false;
+        if (locationStatus) locationStatus.textContent = '';
         closeModal('bug-report-modal');
-        showToast('Danke! Feedback gesendet.', 'success');
+        showToast(includeLocation && !location ? 'Danke! Feedback ohne Standort gesendet.' : 'Danke! Feedback gesendet.', 'success');
         return;
     } catch (e) {
         console.error("Bug report send failed", e);
-        showToast('Senden nicht möglich (Server/Email nicht konfiguriert).', 'error');
+        showToast('Feedback konnte nicht gesendet werden. Bitte später erneut versuchen. Dein Text bleibt erhalten.', 'error');
+    } finally {
+        bugReportSending = false;
+        if (locationOption) locationOption.disabled = false;
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.setAttribute('aria-busy', 'false');
+            submitButton.innerHTML = originalButtonContent;
+        }
     }
 }
 
@@ -2006,59 +2202,26 @@ export function closeEventModal() {
     closeModal('event-modal');
 }
 
+let calendarButtonTimer;
+
+export function updateCalendarButtons() {
+    clearTimeout(calendarButtonTimer);
+    const value = state.downloads?.icsDate;
+    const visible = canDownloadEventCalendar(value);
+    document.querySelectorAll('[data-event-calendar]').forEach(button => button.classList.toggle('hidden', !visible));
+    if (visible) {
+        const delay = Math.min(getCalendarEventWindow(value).cutoff - Date.now(), 86400000);
+        calendarButtonTimer = setTimeout(updateCalendarButtons, Math.max(1, delay));
+    }
+}
+
 export function generateICS() {
-    // Generate ICS for all events
-    if (!state.events || state.events.length === 0) {
-        showToast("Keine Events für Kalender", "error");
+    const icsContent = buildEventCalendar(state.downloads?.icsDate, state.config?.title || 'Lichternacht Bechhofen');
+    if (!icsContent) {
+        updateCalendarButtons();
         return;
     }
-
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Lichternacht//DE\n";
-    
-    // Determine Base Date
-    let year, month, day;
-    const configDate = state.downloads?.icsDate;
-    
-    if (configDate) {
-        const windowConfig = (typeof utils.parseEventWindowConfig === 'function')
-            ? utils.parseEventWindowConfig(configDate)
-            : null;
-        if (windowConfig?.dateKey) {
-            const parts = windowConfig.dateKey.split('-').map(Number);
-            year = parts[0];
-            month = parts[1] - 1;
-            day = parts[2];
-        }
-    }
-
-    if (year === undefined) {
-         const now = new Date();
-         year = now.getFullYear();
-         month = now.getMonth();
-         day = now.getDate();
-         showToast("Hinweis: Kein gültiges Event-Datum gesetzt – Kalender nutzt heute.", "info");
-    }
-    
-    state.events.forEach(e => {
-        const [h, m] = e.time.split(':');
-        // use parsed date
-        const start = new Date(year, month, day, h, m);
-        const end = new Date(start.getTime() + 30 * 60000); // 30 min default duration
-        
-        const format = (date) => date.toISOString().replace(/-|:|\.\d+/g, "");
-        
-        icsContent += "BEGIN:VEVENT\n";
-        icsContent += `SUMMARY:${e.title}\n`;
-        icsContent += `DESCRIPTION:${e.desc || ''}\n`;
-        icsContent += `LOCATION:${e.loc}\n`;
-        icsContent += `DTSTART:${format(start)}\n`;
-        icsContent += `DTEND:${format(end)}\n`;
-        icsContent += "END:VEVENT\n";
-    });
-    
-    icsContent += "END:VCALENDAR";
-    
-    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2066,8 +2229,7 @@ export function generateICS() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    showToast("Kalender heruntergeladen", "success");
+    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
 }
 
 function escapeHtml(value) {
@@ -2152,10 +2314,10 @@ function getEventLocationInfo(event) {
 
     let distanceText = '';
     if (state.userLocation) {
-        const distance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng) * 1.3;
-        const minutes = Math.ceil(distance / 80);
+        const distance = getDistance(state.userLocation.lat, state.userLocation.lng, lat, lng);
+        const minutes = Math.ceil(distance * 1.3 / 80);
         const distanceLabel = distance > 1000 ? `${(distance / 1000).toFixed(1)} km` : `${Math.round(distance)} m`;
-        distanceText = `${distanceLabel} · ca. ${minutes} min`;
+        distanceText = `${distanceLabel} Luftlinie · Gehzeit geschätzt ca. ${minutes} min`;
     }
 
     return {
@@ -2225,7 +2387,7 @@ export function openProgramEvent(id) {
     overlay.innerHTML = `
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close="1"></div>
         <div id="program-event-modal-content" class="swipe-dismiss-sheet relative z-10 w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 dark:text-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
-            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
+            ${eventImage ? `<img src="${escapeHtml(eventImage)}" alt="Bild zu ${escapeHtml(event.title)}" loading="eager" fetchpriority="high" decoding="async" class="h-52 w-full object-cover rounded-t-2xl sm:h-64">` : ''}
             <div class="p-5">
             <div class="w-16 h-6 -mt-3 mb-1 mx-auto relative sm:hidden" aria-label="Fenster nach unten wischen">
                 <span class="absolute left-1/2 top-1/2 w-12 h-1 -translate-x-1/2 -translate-y-1/2 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
@@ -2254,7 +2416,7 @@ export function openProgramEvent(id) {
                 </button>
             </div>
 
-            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">${escapeHtml(event.desc || 'Keine weitere Beschreibung hinterlegt.')}</div>
+            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">${linkifyDescription(event.desc || 'Keine weitere Beschreibung hinterlegt.')}</div>
 
             ${locationInfo.distanceText ? `<div class="mt-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><i class="ph-fill ph-navigation-arrow text-blue-500"></i>${escapeHtml(locationInfo.distanceText)}</div>` : ''}
 
@@ -2475,7 +2637,7 @@ export function renderTimeline() {
             return;
         }
         if (configuredWindow && (!isEventDay || isAfterEventWindow)) {
-            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${formatWindow(configuredWindow)}.</p>`;
+            headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${utils.formatEventWindowDe(configuredWindow)}.</p>`;
             return;
         }
         const spotlightCard = (event, type) => {

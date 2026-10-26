@@ -1,12 +1,28 @@
 import { state } from './state.js';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.282';
-import { saveData } from './data.js?v=1.4.282';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.300';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.300';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.300';
+import { saveData } from './data.js?v=1.4.300';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
     dark: 'https://tiles.openfreemap.org/styles/dark'
 };
+let recentlyClosedStation = null;
+let recentlyClosedTimer = null;
+
+export function highlightRecentlyClosedStation(stationId) {
+    if (recentlyClosedTimer) window.clearTimeout(recentlyClosedTimer);
+    state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    recentlyClosedStation = stationId == null ? null : { id: String(stationId), until: Date.now() + 5000 };
+    if (!recentlyClosedStation) return;
+    recentlyClosedTimer = window.setTimeout(() => {
+        recentlyClosedStation = null;
+        recentlyClosedTimer = null;
+        state.markers.forEach(item => item.marker.getElement().classList.remove('recently-opened-station'));
+    }, 5000);
+}
 const SATELLITE_STYLE = {
     version: 8,
     sources: {
@@ -48,6 +64,8 @@ let gpsFallbackTimer = null;
 let proximityCleanupToken = 0;
 let usingFallbackStyle = false;
 let mapFallbackTimer = null;
+let amenityNavigationPopup = null;
+let amenityNavigationTarget = null;
 const MAP_VIEW_STORAGE_KEY = 'map_view_mode_v1';
 
 function isSatelliteView() {
@@ -136,7 +154,64 @@ function clearStandaloneParkingMarkers() {
     state.parkingMarkers = [];
 }
 
+function closeInvalidAmenityNavigation() {
+    const target = amenityNavigationTarget;
+    if (!target) return;
+    const items = target.station ? state.stations : target.kind === 'parking' ? getStandaloneParking() : getStandaloneRestrooms();
+    const item = items.find(item => String(item.id) === String(target.id));
+    const position = item && getValidCoordinates(item.lat, item.lng);
+    if ((state.isAdmin && state.mapEditMode) || !position
+        || position.latitude !== target.latitude || position.longitude !== target.longitude
+        || (target.station && !stationOffersRestroom(item))) amenityNavigationPopup?.remove();
+}
+
+function bindAmenityNavigation(element, coordinates, kind, options) {
+    element.setAttribute('role', 'button');
+    element.setAttribute('tabindex', '0');
+    element.setAttribute('aria-haspopup', 'dialog');
+    element.addEventListener('click', event => {
+        event.stopPropagation();
+        if (state.isAdmin && state.mapEditMode) return;
+        amenityNavigationPopup?.remove();
+        const parking = kind === 'parking';
+        const title = parking ? 'Parkplatz' : 'WC';
+        const content = document.createElement('section');
+        content.className = 'amenity-navigation';
+        content.setAttribute('aria-label', `${title} – Navigation`);
+        const heading = document.createElement('h3');
+        heading.textContent = options.name ? `${title} · ${options.name}` : title;
+        const description = document.createElement('p');
+        description.textContent = parking ? 'Autoroute in Google Maps öffnen.' : 'Fußweg in Google Maps öffnen.';
+        const link = document.createElement('a');
+        const url = new URL('https://www.google.com/maps/dir/');
+        url.search = new URLSearchParams({ api: '1', destination: `${coordinates.latitude},${coordinates.longitude}`, travelmode: parking ? 'driving' : 'walking' });
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = parking ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren';
+        content.append(heading, description, link);
+        amenityNavigationPopup = new maplibregl.Popup({ className: 'amenity-navigation-popup', offset: 24, maxWidth: '280px' })
+            .setLngLat([coordinates.longitude, coordinates.latitude])
+            .setDOMContent(content)
+            .addTo(state.map);
+        amenityNavigationPopup.getElement().querySelector('.maplibregl-popup-close-button')?.setAttribute('aria-label', 'Hinweis schließen');
+        amenityNavigationTarget = { ...options, ...coordinates, kind };
+        amenityNavigationPopup.on('close', () => {
+            amenityNavigationPopup = null;
+            amenityNavigationTarget = null;
+        });
+    });
+    if (element.tagName !== 'BUTTON') element.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            element.click();
+        }
+    });
+}
+
 export function refreshStandaloneRestroomMarkers() {
+    closeInvalidAmenityNavigation();
     clearStandaloneRestroomMarkers();
     if (!state.map) return;
 
@@ -149,6 +224,7 @@ export function refreshStandaloneRestroomMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'WC');
         element.innerHTML = '<span aria-hidden="true">WC</span><span class="sr-only">WC</span>';
+        bindAmenityNavigation(element, coordinates, 'wc', { id: restroom.id });
         const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: isDraggable })
             .setLngLat([coordinates.longitude, coordinates.latitude])
@@ -168,6 +244,7 @@ export function refreshStandaloneRestroomMarkers() {
 }
 
 export function refreshStandaloneParkingMarkers() {
+    closeInvalidAmenityNavigation();
     clearStandaloneParkingMarkers();
     if (!state.map) return;
 
@@ -180,6 +257,7 @@ export function refreshStandaloneParkingMarkers() {
         element.setAttribute('role', 'img');
         element.setAttribute('aria-label', 'Parkplatz');
         element.innerHTML = '<span aria-hidden="true">P</span><span class="sr-only">Parkplatz</span>';
+        bindAmenityNavigation(element, coordinates, 'parking', { id: parking.id });
         const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element, anchor: 'center', draggable: isDraggable })
             .setLngLat([coordinates.longitude, coordinates.latitude])
@@ -431,26 +509,36 @@ function getGeolocationStrategy() {
 
 export function initMap() {
     setGpsUiStatus('idle');
-    state.map = new maplibregl.Map({
-        container: 'map',
-        style: getMapStyle(document.documentElement.classList.contains('dark')),
-        center: [10.552, 49.158],
-        zoom: 16,
-        maxZoom: 18,
-        attributionControl: false
-    });
-    state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
-    state.map.once('load', keepMapAttributionCompact);
-    state.map.dragRotate.disable();
-    state.map.touchZoomRotate.disableRotation();
-    state.map.on('style.load', restoreMapOverlays);
-    state.map.on('moveend', updateMarkerClusters);
-    state.map.on('error', () => applyFallbackMapStyle());
-    updateMapLayerButton();
-    updateOverviewRouteButton();
-    mapFallbackTimer = window.setTimeout(() => {
-        if (!state.map?.areTilesLoaded?.()) applyFallbackMapStyle();
-    }, 8000);
+    try {
+        state.map = new maplibregl.Map({
+            container: 'map',
+            style: getMapStyle(document.documentElement.classList.contains('dark')),
+            center: [10.552, 49.158],
+            zoom: 16,
+            maxZoom: 18,
+            attributionControl: false
+        });
+        state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
+        state.map.once('load', keepMapAttributionCompact);
+        state.map.dragRotate.disable();
+        state.map.touchZoomRotate.disableRotation();
+        state.map.on('style.load', restoreMapOverlays);
+        state.map.on('error', () => applyFallbackMapStyle());
+        updateMapLayerButton();
+        updateOverviewRouteButton();
+        mapFallbackTimer = window.setTimeout(() => {
+            if (!state.map?.areTilesLoaded?.()) applyFallbackMapStyle();
+        }, 8000);
+    } catch (error) {
+        console.error('Kartenstart fehlgeschlagen', error);
+        try { state.map?.remove(); } catch {}
+        state.map = null;
+        const container = document.getElementById('map');
+        if (container) {
+            container.innerHTML = '<div role="status" class="p-6 bg-white dark:bg-gray-900 dark:text-white">Die Karte konnte nicht gestartet werden. Stationen und Programm sind weiterhin verfügbar.<button type="button" class="block mt-4 rounded bg-blue-600 p-3 text-white">Stationsliste öffnen</button></div>';
+            container.querySelector('button').onclick = () => window.switchTab('list');
+        }
+    }
 }
 
 function keepMapAttributionCompact() {
@@ -479,44 +567,6 @@ function clearClusterMarkers() {
     state.clusterMarkers = [];
 }
 
-function updateMarkerClusters() {
-    clearClusterMarkers();
-    if (!state.map || state.isAdmin || state.map.getZoom() >= 18 || !Array.isArray(state.markers)) {
-        state.markers.forEach(item => { item.marker.getElement().style.display = ''; });
-        return;
-    }
-
-    const remaining = [...state.markers];
-    while (remaining.length) {
-        const first = remaining.shift();
-        const firstPoint = state.map.project(first.marker.getLngLat());
-        const group = [first];
-        for (let index = remaining.length - 1; index >= 0; index--) {
-            const point = state.map.project(remaining[index].marker.getLngLat());
-            if (Math.hypot(point.x - firstPoint.x, point.y - firstPoint.y) <= 46) {
-                group.push(remaining.splice(index, 1)[0]);
-            }
-        }
-        if (group.length === 1) {
-            first.marker.getElement().style.display = '';
-            continue;
-        }
-        group.forEach(item => { item.marker.getElement().style.display = 'none'; });
-        const positions = group.map(item => item.marker.getLngLat());
-        const center = positions.reduce((sum, position) => ({ lng: sum.lng + position.lng, lat: sum.lat + position.lat }), { lng: 0, lat: 0 });
-        center.lng /= positions.length;
-        center.lat /= positions.length;
-        const hasRestroom = group.some(item => item.hasRestroom);
-        const element = document.createElement('button');
-        element.type = 'button';
-        element.className = `station-cluster${hasRestroom ? ' has-restroom' : ''}`;
-        element.innerHTML = `<span>${group.length}</span>${hasRestroom ? '<span class="station-wc-badge station-cluster-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}`;
-        element.setAttribute('aria-label', `${group.length} Stationen${hasRestroom ? ', mindestens ein WC vorhanden' : ''} – hineinzoomen`);
-        element.addEventListener('click', () => state.map.flyTo({ center: [center.lng, center.lat], zoom: Math.min(19, state.map.getZoom() + 2), duration: 500 }));
-        state.clusterMarkers.push(new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([center.lng, center.lat]).addTo(state.map));
-    }
-}
-
 export function updateMapTiles(isDark) {
     if (!state.map) return;
     console.log('Update Map Tiles:', isSatelliteView() ? 'SATELLITE' : (isDark ? 'DARK' : 'LIGHT'));
@@ -540,6 +590,7 @@ export function toggleSatelliteView() {
 function restoreMapOverlays() {
     if (state.routeGeometry) renderRoute(state.routeGeometry);
     if (state.overviewRouteGeometry) renderOverviewRoute(state.overviewRouteGeometry);
+    if (state.overviewApproach?.route) renderOverviewApproach(state.overviewApproach.route.geometry);
     if (state.proximityCircle) renderProximityCircle(state.proximityCircle);
 }
 
@@ -567,11 +618,25 @@ export function refreshMapMarkers() {
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         const hasRestroom = stationOffersRestroom(s);
+        const hasProgram = state.events.some(event => String(event.stationId || '') === String(s.id));
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
-        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<span class="station-wc-badge" title="WC vorhanden">WC<span class="sr-only"> vorhanden</span></span>' : ''}</div>`;
+        if (recentlyClosedStation?.id === String(s.id) && Date.now() < recentlyClosedStation.until) {
+            icon.classList.add('recently-opened-station');
+        }
+        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<button type="button" class="station-wc-badge" title="WC vorhanden" aria-label="Zum WC navigieren">WC<span class="sr-only"> vorhanden</span></button>' : ''}</div>`;
+        if (hasRestroom) bindAmenityNavigation(icon.querySelector('.station-wc-badge'), coordinates, 'wc', { id: s.id, station: true, name: s.name });
         
+        if (hasProgram) {
+            const badge = document.createElement('span');
+            badge.className = 'station-event-badge';
+            badge.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
+            badge.setAttribute('aria-label', 'Station mit Programm');
+            badge.title = 'Station mit Programm';
+            icon.appendChild(badge);
+        }
+
         // Admin: Draggable Markers
         const isDraggable = state.isAdmin && state.mapEditMode;
         const marker = new maplibregl.Marker({ element: icon, draggable: isDraggable, anchor: 'center' })
@@ -628,7 +693,8 @@ export function refreshMapMarkers() {
             const icon = document.createElement('button');
             icon.type = 'button';
             icon.className = 'program-pin';
-        icon.innerHTML = '<span>E</span>';
+            icon.style.zIndex = '30';
+        icon.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
         icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
             icon.setAttribute('aria-label', icon.title);
             icon.addEventListener('click', () => {
@@ -662,7 +728,6 @@ export function refreshMapMarkers() {
             }
             state.programMarkers.push(marker);
         });
-    updateMarkerClusters();
     refreshStandaloneRestroomMarkers();
     refreshStandaloneParkingMarkers();
 }
@@ -735,7 +800,7 @@ export async function locateUser(cb, options = {}) {
         localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
         advanceOverviewNavigationIfReached(userLat, userLng);
 
-        if (context.cb && !context.cbCalled && isFreshFix) {
+        if (context.cb && !context.cbCalled && isFreshFix && (!options.requireNavigationFix || hasNavigationFix(state))) {
             context.cbCalled = true;
             try { context.cb(); } catch (e) { }
         }
@@ -885,6 +950,7 @@ export function calculateRoute(destLat, destLng) {
 
 export function clearRoute() {
     state.routeGeometry = null;
+    clearOverviewRoute();
     if (!state.map) return;
     try {
         if (state.map.getLayer(ROUTE_LAYER_ID)) state.map.removeLayer(ROUTE_LAYER_ID);
@@ -892,7 +958,6 @@ export function clearRoute() {
     } catch (error) {
         console.warn('Route could not be cleared', error);
     }
-    if (state.overviewRouteGeometry) clearOverviewRoute();
     hideRouteInfoIfUnused();
 }
 
@@ -943,36 +1008,8 @@ function getDistanceMeters(start, end) {
 }
 
 function buildOverviewRoundTrip(stationIds = null) {
-    const selectedIds = Array.isArray(stationIds) ? new Set(stationIds.map(String)) : null;
-    const stations = state.stations
-        .filter(station => !selectedIds || selectedIds.has(String(station.id)))
-        .map(station => {
-            const coordinates = getValidCoordinates(station.lat, station.lng);
-            return coordinates ? { station, coordinates: [coordinates.longitude, coordinates.latitude] } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => Number(a.station.id) - Number(b.station.id));
-    if (stations.length < 2) return { coordinates: [], stations: [] };
-
-    const remaining = [...stations];
-    const ordered = [remaining.shift()];
-    while (remaining.length) {
-        const current = ordered[ordered.length - 1].coordinates;
-        let nextIndex = 0;
-        let nearestDistance = Infinity;
-        remaining.forEach((candidate, index) => {
-            const distance = getDistanceMeters(current, candidate.coordinates);
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nextIndex = index;
-            }
-        });
-        ordered.push(remaining.splice(nextIndex, 1)[0]);
-    }
-    return {
-        coordinates: [...ordered.map(item => item.coordinates), ordered[0].coordinates],
-        stations: ordered.map(item => item.station)
-    };
+    const origin = hasNavigationFix(state) ? [state.userLocation.lng, state.userLocation.lat] : null;
+    return buildRoundTrip(state.stations, stationIds, 20000, state.overviewRouteMode, origin);
 }
 
 function formatRouteDistance(distanceMeters) {
@@ -986,7 +1023,20 @@ function formatRouteDuration(durationSeconds) {
 }
 
 function clearOverviewRoute() {
+    state.overviewRouteStartMarker?.remove();
+    state.overviewRouteStartMarker = null;
+    state.overviewRouteController?.abort();
+    clearOverviewApproach();
+    if (state.overviewRouteUiTimer) window.clearTimeout(state.overviewRouteUiTimer);
     state.overviewRouteRequestId += 1;
+    state.overviewRouteCalculating = false;
+    state.overviewRouteEstimated = false;
+    state.overviewRouteWalkingOptimized = false;
+    state.overviewRouteOrigin = null;
+    state.overviewRouteReached = 0;
+    state.overviewRouteSkipped = 0;
+    state.overviewRouteClosing = false;
+    state.overviewRouteCompleted = false;
     state.overviewRouteGeometry = null;
     state.overviewRouteStations = [];
     state.overviewRouteNavigationIndex = 0;
@@ -1013,8 +1063,54 @@ function renderOverviewRoute(geometry) {
         type: 'line',
         source: OVERVIEW_ROUTE_SOURCE_ID,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#f59e0b', 'line-opacity': 0.9, 'line-width': 5, 'line-dasharray': [1.5, 1] }
+        paint: { 'line-color': '#f59e0b', 'line-opacity': 0.9, 'line-width': 5 }
     }], { type: 'Feature', properties: {}, geometry });
+}
+
+function renderOverviewApproach(geometry) {
+    setGeoJsonLayer('overview-approach', [{ id: 'overview-approach-line', type: 'line', source: 'overview-approach',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#2563eb', 'line-width': 6, 'line-opacity': 0.9 }
+    }], { type: 'Feature', properties: {}, geometry });
+}
+
+function clearOverviewApproach() {
+    state.overviewApproachController?.abort();
+    state.overviewApproach = null;
+    if (state.map?.getLayer('overview-approach-line')) state.map.removeLayer('overview-approach-line');
+    if (state.map?.getSource('overview-approach')) state.map.removeSource('overview-approach');
+}
+
+async function refreshOverviewApproach() {
+    if (!state.overviewRouteNavigationActive) {
+        if (state.overviewApproach) clearOverviewApproach();
+        return;
+    }
+    if (!hasNavigationFix(state)) return;
+    const target = state.overviewRouteClosing ? state.overviewRouteOrigin : state.overviewRouteStations[state.overviewRouteNavigationIndex];
+    if (!target) return;
+    const position = [state.userLocation.lng, state.userLocation.lat];
+    const destination = [Number(target.lng), Number(target.lat)];
+    const key = `${state.overviewRouteRequestId}:${state.overviewRouteNavigationProgress}:${destination.join(',')}:${state.overviewRouteClosing}`;
+    const previous = state.overviewApproach;
+    if (previous?.key === key && (previous.pending || Date.now() - previous.at < (previous.failed ? 60000 : 20000) || (previous.route && getDistanceMeters(position, previous.position) < 10))) return;
+    clearOverviewApproach();
+    const controller = new AbortController();
+    state.overviewApproachController = controller;
+    const approach = { key, position, at: Date.now(), pending: true };
+    state.overviewApproach = approach;
+    try {
+        const route = await fetchFootRoute([position, destination], controller.signal);
+        if (controller.signal.aborted || state.overviewApproach !== approach) return;
+        approach.route = route;
+        renderOverviewApproach(route.geometry);
+        if (!previous || previous.key !== key) fitCoordinates(route.geometry.coordinates, 70);
+    } catch (error) {
+        if (controller.signal.aborted || state.overviewApproach !== approach) return;
+        approach.failed = true;
+    } finally {
+        if (state.overviewApproach === approach) approach.pending = false;
+    }
 }
 
 function updateOverviewRouteNavigationButton() {
@@ -1024,53 +1120,73 @@ function updateOverviewRouteNavigationButton() {
     const stations = state.overviewRouteStations || [];
     if (!button || !state.overviewRouteGeometry || !stations.length) return;
     const index = state.overviewRouteNavigationIndex % stations.length;
-    const station = stations[index];
-    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · Nächste: #${station.id} ${station.name || ''}`;
+    const station = state.overviewRouteClosing ? state.overviewRouteOrigin : stations[index];
+    const targetLabel = state.overviewRouteClosing ? 'Zurück zu deinem GPS-Ausgangspunkt' : `Nächste: #${station.id} ${station.name || ''}`;
+    const result = `${state.overviewRouteReached} erreicht · ${state.overviewRouteSkipped} übersprungen`;
+    const active = state.overviewRouteNavigationActive;
+    void refreshOverviewApproach();
+    const canConfirm = active && canConfirmTarget(state, station);
+    const approach = state.overviewApproach;
+    const currentApproach = hasNavigationFix(state) && approach?.route && getDistanceMeters([state.userLocation.lng, state.userLocation.lat], approach.position) < 10;
+    const distanceLabel = active ? ` · ${currentApproach
+        ? `Fußweg zum Ziel: ca. ${formatRouteDistance(approach.route.distance)} · ${formatRouteDuration(approach.route.duration)} (blau)`
+        : `${targetDistanceLabel(state, station)}${approach?.pending ? ' · Fußweg wird berechnet' : approach?.failed ? ' · Fußweg zum Ziel derzeit nicht verfügbar' : ''}`}` : '';
+    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · ${state.overviewRouteCompleted ? `Tour beendet · ${result}` : targetLabel}${distanceLabel}${active ? ` · ${result}` : ''}`;
     button.innerHTML = state.overviewRouteNavigationActive
-        ? '<i class="ph ph-navigation-arrow"></i> Rundweg läuft'
-        : '<i class="ph ph-navigation-arrow"></i> Rundweg starten';
-    button.disabled = state.overviewRouteNavigationActive;
+        ? (canConfirm ? (state.overviewRouteClosing ? 'Ankunft am Start bestätigen' : 'Ankunft bestätigen · Weiter') : (hasNavigationFix(state) ? 'Noch nicht am Ziel' : 'Warte auf genaues GPS'))
+        : `<i class="ph ph-navigation-arrow"></i> ${state.overviewRouteMode === 'open' ? 'Tour' : 'Rundweg'} starten`;
+    button.disabled = state.overviewRouteEstimated || state.overviewRouteCompleted || (active && !canConfirm);
     button.classList.toggle('opacity-75', state.overviewRouteNavigationActive);
     button.classList.remove('hidden');
-    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive);
+    skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive || state.overviewRouteClosing);
+    if (state.overviewRouteUiTimer) window.clearTimeout(state.overviewRouteUiTimer);
+    if (active) state.overviewRouteUiTimer = window.setTimeout(updateOverviewRouteNavigationButton, 1000);
 }
 
 export function startOverviewNavigation() {
+    if (state.overviewRouteEstimated || state.overviewRouteCalculating || state.overviewRouteCompleted) return;
+    if (state.overviewRouteNavigationActive) {
+        const target = state.overviewRouteClosing ? state.overviewRouteOrigin : state.overviewRouteStations[state.overviewRouteNavigationIndex];
+        if (!canConfirmTarget(state, target)) {
+            showToast('Zum Bestätigen: frisches GPS (höchstens 15 Sek., Genauigkeit ≤ 50 m) und Nähe zur Station erforderlich.', 'info');
+            return;
+        }
+        advanceOverviewNavigation(false);
+        return;
+    }
     const stations = state.overviewRouteStations || [];
     if (!stations.length) {
         showToast('Erstelle zuerst einen Rundweg.', 'info');
         return;
     }
-    const beginNavigation = () => {
-        if (state.userLocation) {
-            const userCoordinates = [state.userLocation.lng, state.userLocation.lat];
-            state.overviewRouteNavigationIndex = stations.reduce((bestIndex, station, index) => {
-                const best = getValidCoordinates(stations[bestIndex].lat, stations[bestIndex].lng);
-                const current = getValidCoordinates(station.lat, station.lng);
-                if (!best || !current) return bestIndex;
-                return getDistanceMeters(userCoordinates, [current.longitude, current.latitude]) < getDistanceMeters(userCoordinates, [best.longitude, best.latitude]) ? index : bestIndex;
-            }, 0);
-        }
-        state.overviewRouteNavigationActive = true;
-        state.overviewRouteNavigationProgress = 0;
-        updateOverviewRouteNavigationButton();
-    };
-    if (state.userLocation) beginNavigation();
-    else {
-        const gpsWasAlreadyActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
-            localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
-        locateUser(beginNavigation, { userInitiated: !gpsWasAlreadyActivated, forceCenter: false });
-    }
+    void toggleOverviewRoute(stations.map(station => station.id), state.overviewRouteMode);
 }
 
-function advanceOverviewNavigation() {
+function advanceOverviewNavigation(skipped = false) {
     const stations = state.overviewRouteStations || [];
     if (!state.overviewRouteNavigationActive || !stations.length) return;
+    if (state.overviewRouteClosing) {
+        state.overviewRouteNavigationActive = false;
+        state.overviewRouteCompleted = true;
+        updateOverviewRouteNavigationButton();
+        showToast(`Rundweg beendet: ${state.overviewRouteReached} erreicht, ${state.overviewRouteSkipped} übersprungen.`, 'success');
+        return;
+    }
+    if (skipped) state.overviewRouteSkipped += 1;
+    else state.overviewRouteReached += 1;
     state.overviewRouteNavigationProgress += 1;
     if (state.overviewRouteNavigationProgress >= stations.length) {
-        state.overviewRouteNavigationActive = false;
+        if (state.overviewRouteMode === 'open') {
+            state.overviewRouteNavigationActive = false;
+            state.overviewRouteCompleted = true;
+            updateOverviewRouteNavigationButton();
+            showToast(`Tour beendet: ${state.overviewRouteReached} erreicht, ${state.overviewRouteSkipped} übersprungen.`, 'success');
+            return;
+        }
+        state.overviewRouteClosing = true;
+        state.overviewRouteNavigationIndex = state.overviewRouteStartIndex;
         updateOverviewRouteNavigationButton();
-        showToast('Rundweg abgeschlossen. Viel Spaß beim weiteren Entdecken!', 'success');
+        showToast('Stationen bearbeitet. Zum Start zurückkehren und Ankunft bestätigen.', 'info');
         return;
     }
     state.overviewRouteNavigationIndex = (state.overviewRouteNavigationIndex + 1) % stations.length;
@@ -1078,73 +1194,95 @@ function advanceOverviewNavigation() {
 }
 
 export function skipOverviewNavigationStation() {
-    if (!state.overviewRouteNavigationActive) return;
-    advanceOverviewNavigation();
+    if (!state.overviewRouteNavigationActive || state.overviewRouteClosing) return;
+    advanceOverviewNavigation(true);
 }
 
 function advanceOverviewNavigationIfReached(latitude, longitude) {
-    if (!state.overviewRouteNavigationActive) return;
-    const stations = state.overviewRouteStations || [];
-    const station = stations[state.overviewRouteNavigationIndex % stations.length];
-    const coordinates = station && getValidCoordinates(station.lat, station.lng);
-    if (!coordinates) return;
-    if (getDistanceMeters([longitude, latitude], [coordinates.longitude, coordinates.latitude]) <= 65) advanceOverviewNavigation();
+    if (state.overviewRouteNavigationActive) updateOverviewRouteNavigationButton();
 }
 
-export async function toggleOverviewRoute(stationIds = null) {
-    if (state.overviewRouteGeometry && stationIds === null) {
+export async function toggleOverviewRoute(stationIds = null, mode = 'round') {
+    if ((state.overviewRouteGeometry || state.overviewRouteCalculating) && stationIds === null) {
         clearOverviewRoute();
         return;
     }
 
-    if (state.overviewRouteGeometry) clearOverviewRoute();
-    const overview = buildOverviewRoundTrip(stationIds);
+    clearOverviewRoute();
+    state.overviewRouteMode = mode === 'open' ? 'open' : 'round';
+    if (!hasNavigationFix(state)) {
+        const requestId = state.overviewRouteRequestId;
+        setRouteInfo('GPS für den Tourstart', 'Die Stationenauswahl bleibt gespeichert. Die Tour startet erst mit einem frischen Standort.');
+        locateUser(() => {
+            if (requestId !== state.overviewRouteRequestId) return;
+            if (!hasNavigationFix(state)) {
+                showToast('Bitte auf einen frischen, genaueren Standort warten und die Tour erneut starten.', 'info');
+                return;
+            }
+            void toggleOverviewRoute(stationIds, mode);
+        }, { userInitiated: false, forceCenter: false, requireNavigationFix: true });
+        return;
+    }
+    const origin = { lat: Number(state.userLocation.lat), lng: Number(state.userLocation.lng) };
+    let overview = buildOverviewRoundTrip(stationIds);
     const coordinates = overview.coordinates;
-    if (coordinates.length < 3) {
+    if (overview.stations.length < 2) {
         showToast('Für einen Rundweg werden mindestens zwei Stationen mit Kartenposition benötigt.', 'info');
         return;
     }
 
     clearRoute();
+    state.overviewRouteOrigin = origin;
     const requestId = state.overviewRouteRequestId + 1;
     state.overviewRouteRequestId = requestId;
-    setRouteInfo('Rundweg wird berechnet', `${coordinates.length - 1} Stationen werden verbunden`);
-    const fallbackDistance = coordinates.slice(1).reduce((total, coordinate, index) => total + getDistanceMeters(coordinates[index], coordinate), 0) * 1.25;
-    const fallbackDuration = fallbackDistance / 1.25;
-    let geometry = { type: 'LineString', coordinates };
-    let distance = fallbackDistance;
-    let duration = fallbackDuration;
+    state.overviewRouteCalculating = true;
+    setRouteInfo('Fußweg wird berechnet', `${overview.stations.length} Stationen werden verbunden`);
+    let geometry = null;
+    let distance = 0;
+    let duration = 0;
     let estimated = true;
 
+    const controller = new AbortController();
+    state.overviewRouteController = controller;
     try {
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
-        const routeCoordinates = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
-        const response = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${routeCoordinates}?overview=full&geometries=geojson`, { signal: controller.signal });
-        window.clearTimeout(timeout);
-        if (!response.ok) throw new Error('Rundweg-Dienst nicht erreichbar');
-        const result = await response.json();
-        const route = result.routes?.[0];
-        if (!route?.geometry?.coordinates?.length) throw new Error('Kein Rundweg gefunden');
+        const planned = await planWalkingTour(overview.stations, state.overviewRouteMode, [origin.lng, origin.lat], controller.signal);
+        overview = { ...overview, stations: planned.stations };
+        const route = planned.route;
         geometry = route.geometry;
-        distance = Number(route.distance) || fallbackDistance;
-        duration = Number(route.duration) || fallbackDuration;
+        distance = route.distance;
+        duration = route.duration;
         estimated = false;
     } catch (error) {
-        console.warn('Overview route fallback', error);
+        console.warn('Foot route calculation failed', error);
     }
 
     if (requestId !== state.overviewRouteRequestId) return;
+    state.overviewRouteCalculating = false;
+    if (estimated) {
+        clearOverviewRoute();
+        setRouteInfo('Fußweg konnte nicht berechnet werden', 'Keine Luftlinien-Ersatzroute. Bitte die Tourplanung erneut öffnen und noch einmal versuchen. Deine Auswahl bleibt gespeichert.');
+        showToast('Der Fußweg-Dienst ist derzeit nicht erreichbar oder hat keine Route gefunden.', 'error');
+        return;
+    }
+    state.overviewRouteEstimated = estimated;
+    state.overviewRouteWalkingOptimized = true;
     state.overviewRouteGeometry = geometry;
     state.overviewRouteStations = overview.stations;
     state.overviewRouteNavigationIndex = 0;
-    state.overviewRouteNavigationActive = false;
+    state.overviewRouteNavigationActive = true;
     state.overviewRouteNavigationProgress = 0;
     renderOverviewRoute(geometry);
+    if (state.map) {
+        const marker = document.createElement('div');
+        marker.className = 'tour-start-marker';
+        marker.textContent = 'Start';
+        marker.setAttribute('aria-label', 'Dein gespeicherter GPS-Ausgangspunkt');
+        state.overviewRouteStartMarker = new maplibregl.Marker({ element: marker })
+            .setLngLat([origin.lng, origin.lat]).addTo(state.map);
+    }
     updateOverviewRouteButton();
-    const prefix = estimated ? 'Geschätzt: ' : '';
-    state.overviewRouteSummary = `${prefix}${formatRouteDistance(distance)} · ${formatRouteDuration(duration)}`;
-    setRouteInfo(`Rundweg · ${coordinates.length - 1} Stationen`, state.overviewRouteSummary);
+    state.overviewRouteSummary = `${state.overviewRouteMode === 'open' ? 'Gesamte Strecke' : 'Gesamter Rundweg'} ab deinem GPS-Start: ${formatRouteDistance(distance)} · reine Gehzeit ${formatRouteDuration(duration)} (inkl. Anweg${state.overviewRouteMode === 'round' ? ' und Rückweg' : ''}, ohne Aufenthalte)`;
+    setRouteInfo(`${state.overviewRouteMode === 'open' ? 'Stationentour' : 'Rundweg'} · ${overview.stations.length} Stationen`, state.overviewRouteSummary);
     updateOverviewRouteNavigationButton();
     fitCoordinates(geometry.coordinates, 70);
 }
