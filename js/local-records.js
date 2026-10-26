@@ -37,6 +37,7 @@ export function installLocalRecords(appId) {
         if (!response.ok) {
             const error = new Error(result.error || 'Lokale Datenbank nicht verfügbar');
             error.code = response.status === 403 ? 'permission-denied' : 'unavailable';
+            error.permanent = result.permanent === true;
             throw error;
         }
         return result;
@@ -101,6 +102,8 @@ export function installLocalRecords(appId) {
         return request(operation(reference, action, data, merge));
     };
     state.fb.setDoc = (reference, data, options) => write(reference, 'set', data, options?.merge === true);
+    state.fb.renameStation = (id, data) => request({ action: 'rename', collection: 'stations', id: String(id), data });
+    state.fb.undoCheckin = id => request({ action: 'undo-checkin', collection: 'checkins', id: String(id) });
     state.fb.updateDoc = (reference, data) => write(reference, 'set', data, true);
     state.fb.deleteDoc = reference => write(reference, 'delete');
     state.fb.addDoc = async (reference, data) => {

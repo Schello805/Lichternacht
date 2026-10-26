@@ -138,6 +138,8 @@ h3,
 }
 
 .station-wc-badge {
+    padding: 0;
+    cursor: pointer;
     position: absolute;
     right: -8px;
     bottom: -8px;
@@ -226,6 +228,69 @@ h3,
     line-height: 1;
 }
 
+.standalone-restroom-marker,
+.standalone-parking-marker {
+    cursor: pointer;
+}
+
+.amenity-navigation-popup .maplibregl-popup-content {
+    border-radius: 12px;
+    padding: 18px;
+    background: #fff;
+    color: #111827;
+}
+
+.amenity-navigation h3 {
+    margin: 0 18px 8px 0;
+    font-size: 15px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.amenity-navigation p {
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.amenity-navigation a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #0b55a5;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.dark .amenity-navigation-popup .maplibregl-popup-content {
+    background: #1f2937;
+    color: #f9fafb;
+}
+
+.dark .amenity-navigation-popup .maplibregl-popup-close-button {
+    color: #f9fafb;
+}
+
+.dark .amenity-navigation-popup[class*="popup-anchor-bottom"] .maplibregl-popup-tip {
+    border-top-color: #1f2937;
+}
+
+.dark .amenity-navigation-popup[class*="popup-anchor-top"] .maplibregl-popup-tip {
+    border-bottom-color: #1f2937;
+}
+
+.dark .amenity-navigation-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+    border-right-color: #1f2937;
+}
+
+.dark .amenity-navigation-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+    border-left-color: #1f2937;
+}
+
 .modal-wc-badge {
     display: inline-flex;
     align-items: center;
@@ -280,9 +345,10 @@ h3,
         justify-content: flex-end;
         flex-wrap: wrap;
     }
-    #view-map.route-info-visible #map-overview-route-btn,
-    #view-map.route-info-visible #map-layer-btn {
-        transform: translateY(15rem);
+    #view-map.route-info-visible #map-secondary-controls {
+        top: 9rem;
+        left: 1rem;
+        right: auto;
     }
     .maplibregl-ctrl-top-left {
         top: 11rem;
@@ -812,3 +878,49 @@ h3,
     border-color: rgba(251, 191, 36, 0.95);
     color: #111827;
 }
+.tour-start-marker {
+    background: #1d4ed8;
+    color: #fff;
+    border: 3px solid #fff;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px #0005;
+}
+
+#route-plan-modal > section {
+    display: flex;
+    flex-direction: column;
+    max-height: 88dvh;
+}
+#route-plan-modal > section > :not(#route-plan-stations) { flex-shrink: 0; }
+#route-plan-stations { min-height: 0; flex: 1 1 auto; }
+
+.team-message-dialog {
+    width: min(420px, calc(100% - 32px));
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    margin: auto;
+    padding: 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 24px 80px #0005;
+}
+.team-message-dialog::backdrop { background: #11182799; }
+.team-message-icon { color: #ca8a04; font-size: 32px; }
+.team-message-dialog h2 { margin: 8px 0 16px; font-size: 22px; font-weight: 700; }
+.team-message-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.team-message-dialog button {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 24px;
+    border-radius: 12px;
+    background: #eab308;
+    color: #111827;
+    font-weight: 700;
+}
+.team-message-dialog button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.dark .team-message-dialog { background: #1f2937; color: #f9fafb; border-color: #374151; }

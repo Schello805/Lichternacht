@@ -66,6 +66,9 @@ class LocalDatabase:
             for operation in operations:
                 collection = operation.get('collection')
                 identifier = str(operation.get('id', ''))
+                if collection == 'stations' and operation.get('action') == 'rename':
+                    self.rename_station(database, snapshot, identifier, operation.get('data'))
+                    continue
                 if collection in ('stations', 'events', 'config'):
                     self.apply(snapshot, operation.get('action'), collection, identifier, operation.get('data'), operation.get('merge') is True)
                     if collection == 'stations' and (operation.get('data') or {}).get('likes') == 0:
@@ -74,6 +77,35 @@ class LocalDatabase:
                 else:
                     self.apply_document(database, operation)
             database.execute('UPDATE snapshot SET data = ? WHERE id = 1', (json.dumps(snapshot, ensure_ascii=False),))
+
+    @staticmethod
+    def rename_station(database, snapshot, old_id, data):
+        new_id = str((data or {}).get('id', ''))
+        if not new_id.isdigit() or int(new_id) < 1:
+            raise ValueError('Ungültige Stationsnummer.')
+        source = next((item for item in snapshot['stations'] if str(item.get('__docId', item.get('id'))) == old_id), None)
+        if source is None:
+            raise ValueError('Die ursprüngliche Station existiert nicht mehr.')
+        old_number = str(source.get('id'))
+        if any(item is not source and str(item.get('id')) == new_id for item in snapshot['stations']):
+            raise ValueError('Die neue Stationsnummer ist bereits vergeben.')
+        for event in snapshot['events']:
+            if str(event.get('stationId', '')) == old_number:
+                event['stationId'] = data['id']
+        for identifier, encoded in database.execute("SELECT id, data FROM documents WHERE collection = 'checkins'").fetchall():
+            checkin = json.loads(encoded)
+            if str(checkin.get('stationId')) != old_number:
+                continue
+            owner = checkin.get('ownerUid')
+            if not owner:
+                raise ValueError('Check-in ohne Besitzer: Umnummerierung abgebrochen.')
+            checkin['stationId'] = new_id
+            database.execute("DELETE FROM documents WHERE collection = 'checkins' AND id = ?", (identifier,))
+            database.execute("INSERT INTO documents VALUES ('checkins', ?, ?)", (owner + '_' + new_id, json.dumps(checkin, ensure_ascii=False)))
+        if database.execute("SELECT 1 FROM sqlite_master WHERE name = 'likes'").fetchone():
+            database.execute('UPDATE likes SET station_id = ? WHERE station_id = ?', (new_id, old_id))
+        source.update(data)
+        source['__docId'] = new_id
 
     @staticmethod
     def apply_document(database, operation):
@@ -120,6 +152,8 @@ class LocalDatabase:
         collection = operation.get('collection')
         identifier = str(operation.get('id', ''))
         data = operation.get('data')
+        if collection == 'checkins' and operation.get('action') == 'undo-checkin':
+            return self.undo_checkin(user_id, identifier)
         if operation.get('action') != 'set' or not isinstance(data, dict):
             raise ValueError('Diese Änderung benötigt Adminrechte.')
         now = datetime.now(timezone.utc)
@@ -176,6 +210,39 @@ class LocalDatabase:
             if level and not database.execute("SELECT 1 FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ? AND json_extract(data, '$.reachedLevel') = ? AND id != ?", (user_id, level, identifier)).fetchone():
                 stats['count_' + level] = int(stats.get('count_' + level, 0)) + 1
                 self.apply_document(database, {'action': 'set', 'collection': 'stats', 'id': 'stats', 'data': stats})
+
+    def undo_checkin(self, user_id, station_id):
+        with self.connect() as database:
+            database.execute('BEGIN IMMEDIATE')
+            rows = database.execute("SELECT id, data FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ? ORDER BY json_extract(data, '$.checkedAt'), id", (user_id,)).fetchall()
+            previous_levels = {json.loads(encoded).get('reachedLevel') for _, encoded in rows} - {None, ''}
+            database.execute("DELETE FROM documents WHERE collection = 'checkins' AND id = ? AND json_extract(data, '$.ownerUid') = ?", (user_id + '_' + station_id, user_id))
+            snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
+            total = len(snapshot['stations'])
+            thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
+            count = 0
+            levels = set()
+            for identifier, encoded in rows:
+                if identifier == user_id + '_' + station_id:
+                    continue
+                count += 1
+                data = json.loads(encoded)
+                level = 'diamond' if count == total and total else ''
+                if not level:
+                    for candidate, fallback in [('gold', 95), ('silver', 90), ('bronze', 80)]:
+                        if total and count >= max(1, int(total * float(thresholds.get(candidate, fallback)) / 100)):
+                            level = candidate
+                            break
+                data.update(passCountAfter=count, reachedLevel=level)
+                if level:
+                    levels.add(level)
+                database.execute("UPDATE documents SET data = ? WHERE collection = 'checkins' AND id = ?", (json.dumps(data, ensure_ascii=False), identifier))
+            row = database.execute("SELECT data FROM documents WHERE collection = 'stats' AND id = 'stats'").fetchone()
+            stats = json.loads(row[0]) if row else {}
+            for level in previous_levels | levels:
+                key = 'count_' + level
+                stats[key] = max(0, int(stats.get(key, 0)) + int(level in levels) - int(level in previous_levels))
+            self.apply_document(database, {'action': 'set', 'collection': 'stats', 'id': 'stats', 'data': stats})
 
     @staticmethod
     def apply(snapshot, action, collection, identifier, data=None, merge=False):

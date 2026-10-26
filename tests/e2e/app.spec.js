@@ -1,4 +1,32 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+test('event calendar downloads one event and hides automatically at the one-hour cutoff', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T14:29:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T14:29:59Z'));
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.downloads.icsDate = '21.11.2099 16:30-21:00';
+        window.state.events = [];
+        window.updateCalendarButtons();
+        window.switchTab('events');
+    });
+    const buttons = page.locator('[data-event-calendar]');
+    expect(await buttons.count()).toBe(2);
+    await expect(buttons.first()).not.toHaveClass(/hidden/);
+    const downloadReady = page.waitForEvent('download');
+    await page.locator('#view-events [data-event-calendar]').click();
+    const download = await downloadReady;
+    expect(download.suggestedFilename()).toBe('lichternacht.ics');
+    const content = await readFile(await download.path(), 'utf8');
+    expect(content.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(content).toContain('DTSTART:20991121T153000Z');
+    expect(content).toContain('DTEND:20991121T200000Z');
+    await page.clock.runFor(1000);
+    for (const button of await buttons.all()) await expect(button).toHaveClass(/hidden/);
+    await page.evaluate(() => { window.state.downloads.icsDate = ''; window.updateCalendarButtons(); });
+    await expect(page.locator('#view-events [data-event-calendar]')).toBeHidden();
+});
 
 test('local authentication works without loading Firebase and preserves admin session when creating users', async ({ page }) => {
     let current = null;
@@ -163,23 +191,32 @@ test('stations and events stay individually displayed when zooming out', async (
     }
 });
 
-test('round trip can be planned before the event without GPS', async ({ page }) => {
+test('failed foot routing preserves the plan without drawing air lines or requesting GPS', async ({ page }) => {
     await page.route('https://routing.openstreetmap.de/**', route => route.abort());
     await page.goto('/index.html');
     await page.evaluate(async () => {
         const { state } = await import('/js/state.js');
         state.downloads.icsDate = '21.11.2099 17:00-21:00';
-        state.userLocation = null;
+        state.userLocation = { lat: 49.157, lng: 10.548 };
+        state.gpsAccuracy = 5;
+        state.gpsLastFixAt = Date.now();
         navigator.geolocation.getCurrentPosition = () => { throw new Error('Unexpected GPS request'); };
         navigator.geolocation.watchPosition = () => { throw new Error('Unexpected GPS watch'); };
         window.openRoutePlan();
     });
-    await expect(page.locator('#route-plan-modal')).toContainText('Plane deinen Abend schon jetzt');
+    await expect(page.locator('#route-plan-modal')).toContainText('Wähle deine Stationen schon jetzt');
     await page.locator('[data-route-plan-submit]').click();
-    await expect.poll(() => page.evaluate(async () => Boolean((await import('/js/state.js')).state.overviewRouteGeometry))).toBe(true);
+    await expect(page.locator('#route-info')).toContainText('Fußweg konnte nicht berechnet werden');
+    expect(await page.evaluate(() => window.state.overviewRouteGeometry)).toBeNull();
+    await page.evaluate(() => window.openRoutePlan());
+    expect(await page.locator('[data-route-plan-station]:checked').count()).toBeGreaterThan(1);
 });
 
 test.beforeEach(async ({ page }) => {
+    page.on('pageerror', error => console.error('Browser runtime error:', error.message));
+    const startupMessages = [];
+    page.on('console', message => { startupMessages.push(message.text()); if (startupMessages.length > 30) startupMessages.shift(); });
+    page.on('requestfailed', request => console.error('Browser request failed:', request.url(), request.failure()?.errorText));
     await page.route('**/config.js*', route => route.fulfill({
         contentType: 'application/javascript',
         body: `var __firebase_config = '{"apiKey":""}'; var __app_id = 'e2e-test';`
@@ -187,8 +224,13 @@ test.beforeEach(async ({ page }) => {
     const originalGoto = page.goto.bind(page);
     page.goto = async (...args) => {
         const response = await originalGoto(...args);
-        if (!String(args[0]).includes('help.html')) {
-            await page.waitForFunction(() => window.__appReady === true);
+        if (!String(args[0]).includes('help.html') && args[1]?.waitUntil !== 'commit') {
+            try {
+                await page.waitForFunction(() => window.__appReady === true, null, { timeout: 20000 });
+            } catch (error) {
+                console.error('Startup diagnostics:', await page.evaluate(() => ({ phase: window.__appStartupPhase, ready: document.readyState, stations: window.state?.stations?.length })), startupMessages);
+                throw error;
+            }
         }
         return response;
     };
@@ -199,6 +241,123 @@ test.beforeEach(async ({ page }) => {
         localStorage.setItem('visitor_start_card_dismissed_v1', 'true');
         localStorage.setItem('visitor_start_card_dismissed_v2', 'true');
     });
+});
+
+test('unsaved station edits survive cancelled navigation and can be discarded explicitly', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => { window.state.isAdmin = true; window.openStation(1); window.editStation(1); });
+    await page.locator('#modal-title').fill('Noch nicht gespeichert');
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.evaluate(() => window.switchTab('events'));
+    await expect(page.locator('#modal-title')).toHaveText('Noch nicht gespeichert');
+    await expect(page.locator('#modal-content')).toHaveClass(/is-inline-station-editing/);
+    page.once('dialog', dialog => dialog.accept());
+    await page.evaluate(() => window.switchTab('events'));
+    await expect(page.locator('#detail-modal')).toBeHidden();
+    await page.evaluate(() => window.openStation(1));
+    await expect(page.locator('#modal-title')).not.toHaveText('Noch nicht gespeichert');
+});
+
+test('failed station renumbering keeps original data and the editable draft', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.isAdmin = true;
+        window.openStation(1); window.editStation(1);
+        window.state.useLocalStorage = false;
+        window.__renameCalls = 0;
+        window.state.fb.renameStation = async () => { window.__renameCalls++; throw new Error('Simulierter Verbindungsfehler'); };
+        window.state.fb.deleteDoc = async () => { throw new Error('Einzelnes Löschen darf nie aufgerufen werden'); };
+    });
+    await page.locator('#modal-number').fill('999');
+    page.once('dialog', dialog => dialog.accept());
+    await page.evaluate(() => window.saveStationChanges());
+    expect(await page.evaluate(() => window.__renameCalls)).toBe(1);
+    expect(await page.evaluate(() => window.state.stations.some(station => station.id === 1))).toBe(true);
+    expect(await page.evaluate(() => window.state.stations.some(station => station.id === 999))).toBe(false);
+    await expect(page.locator('#modal-number')).toHaveText('999');
+    await expect(page.locator('#modal-content')).toHaveClass(/is-inline-station-editing/);
+});
+
+test('local backup explains server restore before offering a file picker', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.isAdmin = true;
+        window.state.localBackend = true;
+        const admin = await import('/js/admin.js?v=1.4.299');
+        admin.updateAdminUiAvailability();
+    });
+    await expect(page.locator('#admin-legacy-restore')).toHaveClass(/hidden/);
+    await expect(page.locator('#admin-server-restore-info')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#admin-server-restore-info')).toContainText('neue Datenbank');
+});
+
+test('map initialization failure does not block stations and program', async ({ page }) => {
+    await page.addInitScript(() => {
+        const getContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+            return String(type).includes('webgl') ? null : getContext.call(this, type, ...args);
+        };
+    });
+    await page.goto('/index.html');
+    await expect(page.locator('#map')).toContainText('Stationen und Programm sind weiterhin verfügbar');
+    await page.getByRole('button', { name: 'Stationsliste öffnen', exact: true }).click();
+    await expect(page.locator('#view-list')).toBeVisible();
+    await page.evaluate(() => window.switchTab('events'));
+    await expect(page.locator('#view-events')).toBeVisible();
+});
+
+test('invalid saved favorites do not interrupt app startup', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('favorites', '{invalid'));
+    await page.goto('/index.html');
+    expect(await page.evaluate(() => window.state.favorites.size)).toBe(0);
+    await page.evaluate(() => window.switchTab('list'));
+    await expect(page.locator('#view-list')).toBeVisible();
+});
+
+test('failed app module download offers an explicit reload action', async ({ page }) => {
+    await page.route('**/js/local-records.js*', route => route.abort('connectionreset'));
+    await page.goto('/index.html', { waitUntil: 'commit' });
+    await expect(page.locator('#app-load-error')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Erneut laden', exact: true })).toBeVisible();
+});
+
+test('undo check-in sends a server reversal without checking in again', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const { markStationVisited } = await import('/js/utils.js?v=1.4.299');
+        markStationVisited(1);
+        window.state.localBackend = true;
+        window.state.useLocalStorage = false;
+        window.state.db = {};
+        window.state.auth = { currentUser: { uid: 'audit-visitor' } };
+        window.__undoCalls = [];
+        window.__checkinCalls = 0;
+        window.checkIn = () => { window.__checkinCalls++; };
+        window.state.fb = {
+            collection: () => ({}), addDoc: async () => {},
+            undoCheckin: async id => { window.__undoCalls.push(String(id)); }
+        };
+        window.openStation(1);
+    });
+    await page.getByRole('button', { name: 'Check-in rückgängig', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.__undoCalls)).toEqual(['1']);
+    expect(await page.evaluate(() => window.__checkinCalls)).toBe(0);
+    await expect(page.locator('#checkin-btn')).toContainText('Einchecken');
+});
+
+test('station image removal stays in the draft until saved', async ({ page }) => {
+    await page.goto('/index.html');
+    const original = await page.evaluate(() => {
+        window.state.isAdmin = true;
+        window.openStation(1); window.editStation(1);
+        const image = window.state.stations.find(station => station.id === 1).image;
+        window.clearStationImage();
+        return image;
+    });
+    expect(await page.evaluate(() => window.state.stations.find(station => station.id === 1).image)).toBe(original);
+    page.once('dialog', dialog => dialog.accept());
+    await page.evaluate(() => window.cancelStationEdit());
+    await expect(page.locator('#modal-image-container img')).toHaveAttribute('src', original);
 });
 
 test('saved dark mode is applied before the first render', async ({ page }) => {
@@ -508,6 +667,60 @@ test('admin can add a standalone parking marker on the map', async ({ page }) =>
     await expect(page.locator('.standalone-parking-marker')).toBeVisible();
 });
 
+for (const kind of ['parking', 'wc', 'station-wc']) {
+    test(`${kind} marker offers the correct external navigation without requesting GPS`, async ({ page }) => {
+        await page.addInitScript(() => {
+            window.__amenityGpsRequests = 0;
+            navigator.geolocation.getCurrentPosition = () => { window.__amenityGpsRequests++; };
+            navigator.geolocation.watchPosition = () => { window.__amenityGpsRequests++; };
+        });
+        await page.goto('/index.html');
+        await page.evaluate(kind => {
+            window.state.stations = kind === 'station-wc' ? [{ id: 1, name: 'WC bei Teststation', lat: 49.158, lng: 10.552, tags: ['wc'] }] : [];
+            window.state.events = [];
+            window.state.config.standaloneParking = kind === 'parking' ? [{ id: 'test-p', lat: 49.158, lng: 10.552 }] : [];
+            window.state.config.standaloneRestrooms = kind === 'wc' ? [{ id: 'test-wc', lat: 49.158, lng: 10.552 }] : [];
+            window.state.map.jumpTo({ center: [10.552, 49.158], zoom: 17 });
+            window.refreshMapMarkers();
+        }, kind);
+        const selector = kind === 'parking' ? '.standalone-parking-marker' : kind === 'wc' ? '.standalone-restroom-marker' : '.station-wc-badge';
+        await page.locator(selector).click();
+        const popup = page.locator('.amenity-navigation-popup');
+        await expect(popup).toBeVisible();
+        const link = popup.getByRole('link', { name: kind === 'parking' ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren' });
+        const url = new URL(await link.getAttribute('href'));
+        expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/');
+        expect(url.searchParams.get('destination')).toBe('49.158,10.552');
+        expect(url.searchParams.get('travelmode')).toBe(kind === 'parking' ? 'driving' : 'walking');
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(await page.evaluate(() => window.__amenityGpsRequests)).toBe(0);
+        await expect(page.locator('#detail-modal')).toBeHidden();
+        await page.evaluate(() => window.refreshMapMarkers());
+        await expect(popup).toBeVisible();
+        await popup.getByRole('button', { name: 'Hinweis schließen' }).click();
+        await expect(popup).toHaveCount(0);
+    });
+}
+
+test('amenity navigation is keyboard accessible and does not interfere with admin movement', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.stations = [];
+        window.state.events = [];
+        window.state.config.standaloneParking = [{ id: 'test-p', lat: 49.158, lng: 10.552 }];
+        window.refreshMapMarkers();
+    });
+    await page.locator('.standalone-parking-marker').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.amenity-navigation-popup')).toBeVisible();
+    await page.evaluate(() => { window.state.isAdmin = true; window.toggleMapEditMode(); });
+    await expect(page.locator('.amenity-navigation-popup')).toHaveCount(0);
+    await page.locator('.standalone-parking-marker').click();
+    await expect(page.locator('.amenity-navigation-popup')).toHaveCount(0);
+    expect(await page.evaluate(() => window.state.parkingMarkers[0].isDraggable())).toBe(true);
+});
+
 test('admin must explicitly enable marker movement', async ({ page }) => {
     await page.goto('/admin/');
     await page.locator('#admin-email').fill('local@example.test');
@@ -552,6 +765,16 @@ test('admin can edit stations and program entries from their visitor lists', asy
     await expect(page.locator('#inline-edit-tags input')).toHaveCount(0);
     await expect(page.locator('#inline-available-tags button')).not.toHaveCount(0);
     await expect(page.locator('#modal-image-change-btn, #modal-image-container [aria-label="Bild auswählen"]')).toBeVisible();
+
+    expect(await page.evaluate(async () => {
+        const { hasUnsavedStationChanges } = await import('/js/ui.js?v=1.4.299');
+        if (!hasUnsavedStationChanges()) return null;
+        const station = window.state.stations.find(item => item.id == window.state.activeStationId);
+        return { station, fields: ['modal-number', 'modal-title', 'modal-subtitle', 'modal-desc', 'inline-edit-lat', 'inline-edit-lng', 'inline-edit-link', 'edit-tags'].map(id => {
+            const element = document.getElementById(id);
+            return [id, element.value ?? element.innerText];
+        }) };
+    })).toBeNull();
 
     await page.evaluate(() => {
         window.closeModal();
@@ -756,9 +979,14 @@ test('map layer control toggles satellite view without an API key', async ({ pag
 });
 
 test('map overview draws a guided round route without direction arrows', async ({ page }) => {
-    await page.route('https://routing.openstreetmap.de/**', route => route.fulfill({
+    await page.route('https://routing.openstreetmap.de/**/table/**', route => {
+        const count = route.request().url().split('/driving/')[1].split('?')[0].split(';').length;
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ code: 'Ok', durations: Array.from({ length: count }, (_, row) => Array.from({ length: count }, (_, column) => Math.abs(row - column) * 60)) }) });
+    });
+    await page.route('https://routing.openstreetmap.de/**/route/**', route => route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
+            code: 'Ok',
             routes: [{
                 distance: 2400,
                 duration: 1800,
@@ -770,6 +998,11 @@ test('map overview draws a guided round route without direction arrows', async (
         })
     }));
     await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.userLocation = { lat: 49.15714, lng: 10.5484 };
+        window.state.gpsAccuracy = 10;
+        window.state.gpsLastFixAt = Date.now();
+    });
 
     const routeButton = page.locator('#map-overview-route-btn');
     await routeButton.click();
@@ -780,8 +1013,8 @@ test('map overview draws a guided round route without direction arrows', async (
     await expect(page.locator('#route-info-title')).toContainText('Rundweg');
     await expect(page.locator('#route-info-detail')).toContainText('2.4 km');
     if (page.viewportSize().width < 640) {
-        const layout = await page.locator('#route-info, #map-overview-route-btn, #map-layer-btn').evaluateAll(elements => {
-            const [routeInfo, routeButton, layerButton] = elements.map(element => element.getBoundingClientRect());
+        const layout = await page.evaluate(() => {
+            const [routeInfo, routeButton, layerButton] = ['route-info', 'map-overview-route-btn', 'map-layer-btn'].map(id => document.getElementById(id).getBoundingClientRect());
             const overlaps = (first, second) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top;
             return {
                 routeInfo: { left: routeInfo.left, right: routeInfo.right },
@@ -800,14 +1033,69 @@ test('map overview draws a guided round route without direction arrows', async (
         window.state.gpsAccuracy = 10;
         window.state.gpsLastFixAt = Date.now();
     });
-    await page.locator('#overview-route-navigation-btn').click();
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationActive)).toBe(true);
+    await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewApproach?.route))).toBe(true);
+    await expect(page.locator('#route-info-detail')).toContainText('Fußweg zum Ziel');
+    expect(await page.evaluate(() => Boolean(window.state.map.getLayer('overview-approach-line')))).toBe(true);
     await expect(page.locator('#overview-route-skip-btn')).toBeVisible();
     await page.locator('#overview-route-skip-btn').click();
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationProgress)).toBe(1);
 
     await page.locator('#route-info button[onclick="clearRoute()"]').click();
     await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(false);
+    expect(await page.evaluate(() => Boolean(window.state.map.getLayer('overview-approach-line')))).toBe(false);
+});
+
+for (const mode of ['open', 'round']) test(`${mode} walking tour starts at GPS and finishes at the correct endpoint`, async ({ page }) => {
+    await page.route('https://routing.openstreetmap.de/**', route => {
+        const url = route.request().url();
+        const count = url.split('/driving/')[1].split('?')[0].split(';').length;
+        const result = url.includes('/table/')
+            ? { code: 'Ok', durations: Array.from({ length: count }, (_, row) => Array.from({ length: count }, (_, column) => Math.abs(row - column) * 60)) }
+            : { code: 'Ok', routes: [{ distance: 150, duration: 120, geometry: { type: 'LineString', coordinates: [[10.5484, 49.15714], [10.552, 49.158]] } }] };
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(result) });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.userLocation = { lat: 49.15, lng: 10.54 };
+        window.state.gpsAccuracy = 5;
+        window.state.gpsLastFixAt = Date.now();
+    });
+    await page.evaluate(() => window.openRoutePlan());
+    await page.locator('[data-route-plan-mode]').selectOption(mode);
+    await page.locator('[data-route-plan-none]').click();
+    const options = page.locator('[data-route-plan-station]');
+    await options.nth(0).check();
+    await options.nth(1).check();
+    await options.nth(2).check();
+    await page.locator('[data-route-plan-submit]').click();
+    await expect(page.locator('#route-info-title')).toContainText(`${mode === 'open' ? 'Stationentour' : 'Rundweg'} · 3 Stationen`);
+    expect(await page.evaluate(() => window.state.overviewRouteOrigin)).toEqual({ lat: 49.15, lng: 10.54 });
+    await expect(page.locator('.tour-start-marker')).toHaveText('Start');
+    for (let stop = 0; stop < 3; stop += 1) {
+        await page.evaluate(() => {
+            const target = window.state.overviewRouteStations[window.state.overviewRouteNavigationIndex];
+            window.state.userLocation = { lat: Number(target.lat), lng: Number(target.lng) };
+            window.state.gpsLastFixAt = Date.now();
+        });
+        await expect(page.locator('#overview-route-navigation-btn')).toBeEnabled();
+        await page.locator('#overview-route-navigation-btn').click();
+    }
+    if (mode === 'round') {
+        await expect(page.locator('#route-info-detail')).toContainText('Zurück zu deinem GPS-Ausgangspunkt');
+        await expect(page.locator('#overview-route-navigation-btn')).toBeDisabled();
+        await page.evaluate(() => {
+            window.state.userLocation = { ...window.state.overviewRouteOrigin };
+            window.state.gpsLastFixAt = Date.now();
+        });
+        await expect(page.locator('#overview-route-navigation-btn')).toBeEnabled();
+        await page.locator('#overview-route-navigation-btn').click();
+    }
+    await expect(page.locator('#route-info-detail')).toContainText('Tour beendet · 3 erreicht');
+    expect(await page.evaluate(() => window.state.overviewRouteOrigin)).toEqual({ lat: 49.15, lng: 10.54 });
+    expect(await page.evaluate(() => window.state.overviewApproach)).toBeNull();
+    await page.evaluate(() => window.openRoutePlan());
+    await expect(page.locator('[data-route-plan-mode]')).toHaveValue(mode);
 });
 
 test('route planner uses favorites and lets visitors adjust the selected stations', async ({ page }) => {
@@ -826,6 +1114,37 @@ test('route planner uses favorites and lets visitors adjust the selected station
     await page.locator('[data-route-plan-none]').click();
     await expect(page.locator('input[data-route-plan-station]:checked')).toHaveCount(0);
     await expect(page.locator('[data-route-plan-submit]')).toBeDisabled();
+});
+
+test('route planner selection buttons fit narrow screens without horizontal scrolling', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openRoutePlan());
+    for (const width of [320, 375, 390, 430, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        const bounds = await page.locator('[data-route-plan-none]').evaluate(button => {
+            const container = button.parentElement;
+            const rectangle = container.getBoundingClientRect();
+            return {
+                width: container.clientWidth, scrollWidth: container.scrollWidth,
+                left: rectangle.left, right: rectangle.right,
+                buttons: [...container.querySelectorAll('button')].map(item => {
+                    const bounds = item.getBoundingClientRect();
+                    return { left: bounds.left, right: bounds.right, height: bounds.height, width: item.clientWidth, scrollWidth: item.scrollWidth };
+                })
+            };
+        });
+        expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width);
+        for (const button of bounds.buttons) {
+            expect(button.left).toBeGreaterThanOrEqual(Math.max(0, bounds.left));
+            expect(button.right).toBeLessThanOrEqual(Math.min(width, bounds.right));
+            expect(button.height).toBeGreaterThanOrEqual(44);
+            expect(button.scrollWidth).toBeLessThanOrEqual(button.width);
+        }
+        await page.locator('[data-route-plan-none]').click();
+        await expect(page.locator('input[data-route-plan-station]:checked')).toHaveCount(0);
+        await page.locator('[data-route-plan-all]').click();
+        await expect(page.locator('[data-route-plan-submit]')).toBeEnabled();
+    }
 });
 
 test('map falls back to OpenStreetMap raster tiles when vector style fails', async ({ page }) => {

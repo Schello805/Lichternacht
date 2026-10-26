@@ -574,7 +574,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                         database.visitor_write(str(user['localId']), payload)
                     return self._send_json(200, {'ok': True})
                 except ValueError as error:
-                    return self._send_json(403, {'ok': False, 'error': str(error)})
+                    return self._send_json(403, {'ok': False, 'error': str(error), 'permanent': True})
                 except Exception:
                     return self._send_json(503, {'ok': False, 'error': 'Daten konnten nicht gespeichert werden'})
             try:
@@ -918,6 +918,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 class ReusableTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
+    request_queue_size = 128
 
 if __name__ == '__main__':
     print(f"Server läuft auf http://{HOST}:{PORT}")

@@ -66,6 +66,23 @@ class LocalApiTest(unittest.TestCase):
         handler.do_GET()
         self.assertEqual(handler.responses[0][0], 403)
 
+    def test_expired_checkin_is_terminal_but_missing_authentication_is_not(self):
+        payload = {'action': 'set', 'collection': 'checkins', 'id': 'visitor_1', 'data': {'stationId': '1'}}
+        handler = self.handler('/api/local-data', payload, 'visitor')
+        handler.do_POST()
+        self.assertEqual(handler.responses[0][0], 403)
+        self.assertTrue(handler.responses[0][1]['permanent'])
+        handler = self.handler('/api/local-data', payload)
+        handler.do_POST()
+        self.assertEqual(handler.responses[0][0], 403)
+        self.assertNotIn('permanent', handler.responses[0][1])
+
+    def test_station_rename_requires_admin(self):
+        handler = self.handler('/api/local-data', {'action': 'rename', 'collection': 'stations', 'id': '1', 'data': {'id': 2}}, 'visitor')
+        handler.do_POST()
+        self.assertEqual(handler.responses[0][0], 403)
+        self.assertEqual(self.database.read()['stations'][0]['id'], 1)
+
     def test_feedback_limits_verified_visitors_separately_behind_shared_proxy(self):
         buckets = []
         for user in ('visitor-one', 'visitor-two'):

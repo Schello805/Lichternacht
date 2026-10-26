@@ -74,6 +74,7 @@ function renderLoadedData() {
     if (window.checkPlanningMode) window.checkPlanningMode();
     if (window.updateVisitorStartCard) window.updateVisitorStartCard();
     if (window.updateHeaderCountdown) window.updateHeaderCountdown();
+    if (window.updateCalendarButtons) window.updateCalendarButtons();
     const detailModal = document.getElementById('detail-modal');
     const inlineStationEditOpen = document.getElementById('modal-content')?.classList.contains('is-inline-station-editing');
     const legacyEditModeOpen = !document.getElementById('modal-edit-mode')?.classList.contains('hidden');
@@ -279,6 +280,50 @@ export function refreshVisitorDataIfStale(maxAgeMs = state.localBackend ? 60000 
         .then(() => true)
         .finally(() => { refreshPromise = null; });
     return refreshPromise;
+}
+
+export async function saveStationEdit(original, draft) {
+    const oldId = String(original.__docId ?? original.id);
+    const newId = String(draft.id);
+    const data = { ...draft };
+    delete data.__docId;
+    delete data.__draft;
+    const renamedEvents = state.events.map(event => String(event.stationId) === String(original.id)
+        ? { ...event, stationId: draft.id } : event);
+    remoteDataVersion += 1;
+    remoteWriteCount += 1;
+    try {
+        if (state.useLocalStorage) {
+            const stations = state.stations.map(station => String(station.id) === String(original.id) ? draft : station);
+            const previousStations = localStorage.getItem('stations_data');
+            const previousEvents = localStorage.getItem('events_data');
+            try {
+                localStorage.setItem('stations_data', JSON.stringify(stations));
+                localStorage.setItem('events_data', JSON.stringify(renamedEvents));
+            } catch (error) {
+                if (previousStations === null) localStorage.removeItem('stations_data');
+                else localStorage.setItem('stations_data', previousStations);
+                if (previousEvents === null) localStorage.removeItem('events_data');
+                else localStorage.setItem('events_data', previousEvents);
+                throw error;
+            }
+        } else {
+            if (!original.__draft) delete data.likes;
+            if (oldId !== newId) {
+                if (!state.fb.renameStation) throw new Error('Sichere Umnummerierung benötigt die aktuelle lokale Datenbank.');
+                await state.fb.renameStation(oldId, data);
+            } else {
+                const reference = state.fb.doc(state.db, 'artifacts', state.appId, 'public', 'data', 'stations', newId);
+                await state.fb.setDoc(reference, data, { merge: true });
+            }
+        }
+        state.stations = state.stations.map(station => String(station.id) === String(original.id)
+            ? { ...draft, __docId: newId } : station);
+        state.events = renamedEvents;
+        persistVisitorDataCache();
+    } finally {
+        remoteWriteCount -= 1;
+    }
 }
 
 export async function saveData(type, item) {

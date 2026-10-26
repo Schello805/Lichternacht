@@ -762,6 +762,9 @@ export function toggleAdminPanel() {
 }
 
 export function updateAdminUiAvailability() {
+    const local = state.localBackend || localStorage.getItem('local_backend_enabled') === 'true';
+    document.getElementById('admin-legacy-restore')?.classList.toggle('hidden', local);
+    document.getElementById('admin-server-restore-info')?.classList.toggle('hidden', !local);
     const label = document.getElementById('admin-mode-label');
     if (label) {
         label.innerText = state.useLocalStorage ? '🔧 ADMIN (Lokal)' : '🔧 ADMIN (Online)';

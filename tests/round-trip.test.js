@@ -2,10 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { buildRoundTrip, stationCoordinates, distanceMeters, hasNavigationFix, canConfirmTarget } from '../js/round-trip.js';
+import { buildRoundTrip, stationCoordinates, distanceMeters, hasNavigationFix, canConfirmTarget, targetDistanceLabel, STATION_ARRIVAL_RADIUS_METERS } from '../js/round-trip.js';
 
 const stations = [{ id: 1, lat: 49, lng: 10 }, { id: 2, lat: 49.001, lng: 10.001 }, { id: 3, lat: 49.002, lng: 10 }];
 const length = route => route.coordinates.slice(1).reduce((total, coordinate, index) => total + distanceMeters(route.coordinates[index], coordinate), 0);
+
+test('arrival uses the shared 20 meter radius, not the previous 25 or 65 meters', () => {
+    assert.equal(STATION_ARRIVAL_RADIUS_METERS, 20);
+    const now = 100000;
+    const state = { userLocation: { lat: 0, lng: 0 }, gpsAccuracy: 5, gpsLastFixAt: now };
+    for (const meters of [0, 19.99, 20.01, 25, 65]) {
+        const target = { lat: meters / 6371000 * 180 / Math.PI, lng: 0 };
+        assert.equal(canConfirmTarget(state, target, now), meters <= 20);
+    }
+});
+
+test('target distance explicitly labels straight line and never presents stale GPS as current', () => {
+    const now = 100000;
+    const state = { userLocation: stations[0], gpsAccuracy: 12.1, gpsLastFixAt: now };
+    assert.match(targetDistanceLabel(state, stations[1], now), /ca\. 133 m Luftlinie \(GPS ±13 m\)/);
+    assert.match(targetDistanceLabel(state, stations[1], now + 15001), /GPS erforderlich/);
+    assert.match(targetDistanceLabel({ ...state, gpsAccuracy: 51 }, stations[1], now), /GPS erforderlich/);
+    assert.match(targetDistanceLabel(state, { lat: null }, now), /nicht verfügbar/);
+    assert.match(targetDistanceLabel(state, { lat: 50, lng: 10 }, now), /km Luftlinie/);
+});
 
 test('coordinate validation rejects missing, blank, nonfinite and out-of-range values', () => {
     for (const value of [null, undefined, '', ' ', true, NaN, Infinity, 'invalid']) {
@@ -65,12 +85,39 @@ async function navigationHarness() {
         overviewRouteNavigationProgress: 0, overviewRouteNavigationActive: false, overviewRouteReached: 0, overviewRouteSkipped: 0,
         userLocation: stations[0], gpsAccuracy: 10, gpsLastFixAt: Date.now() };
     const context = vm.createContext({ state, hasNavigationFix, canConfirmTarget, getValidCoordinates: (lat, lng) => ({ latitude: lat, longitude: lng }),
+        toggleOverviewRoute() { if (hasNavigationFix(state)) { state.overviewRouteNavigationActive = true; state.overviewRouteOrigin = { ...state.userLocation }; } },
         getDistanceMeters: distanceMeters, showToast() {}, updateOverviewRouteNavigationButton() {}, locateUser() {}, localStorage: { getItem() { return null; } },
         GPS_AUTO_RESUME_STORAGE_KEY: '', GPS_AUTO_RESUME_INTENT_STORAGE_KEY: '' });
     const navigation = source.slice(source.indexOf('export function startOverviewNavigation()'), source.indexOf('export async function toggleOverviewRoute'));
     vm.runInContext(navigation.replaceAll('export function', 'function'), context);
     return { state, context };
 }
+
+test('route controls distinguish distance, arrival and expired GPS without advancing automatically', async () => {
+    const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
+    const elements = Object.fromEntries(['overview-route-navigation-btn', 'overview-route-skip-btn', 'route-info-detail'].map(id => [id, { classList: { toggle() {}, remove() {} } }]));
+    const state = { overviewRouteGeometry: {}, overviewRouteStations: stations, overviewRouteNavigationIndex: 0,
+        overviewRouteNavigationActive: true, overviewRouteSummary: 'Gesamte Runde: 442 m', overviewRouteReached: 0, overviewRouteSkipped: 0,
+        userLocation: { lat: 50, lng: 10 }, gpsAccuracy: 10, gpsLastFixAt: Date.now() };
+    let scheduled;
+    const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, refreshOverviewApproach() {},
+        document: { getElementById: id => elements[id] }, window: { clearTimeout() {}, setTimeout(callback) { scheduled = callback; return 1; } } });
+    vm.runInContext(source.slice(source.indexOf('function updateOverviewRouteNavigationButton()'), source.indexOf('export function startOverviewNavigation()')), context);
+    context.updateOverviewRouteNavigationButton();
+    const button = elements['overview-route-navigation-btn'];
+    assert.equal(button.disabled, true);
+    assert.equal(button.innerHTML, 'Noch nicht am Ziel');
+    assert.match(elements['route-info-detail'].textContent, /Gesamte Runde: 442 m.*Zum Ziel:.*km Luftlinie/);
+    state.userLocation = stations[0];
+    context.updateOverviewRouteNavigationButton();
+    assert.equal(button.disabled, false);
+    assert.equal(button.innerHTML, 'Ankunft bestätigen · Weiter');
+    state.gpsLastFixAt = Date.now() - 16000;
+    scheduled();
+    assert.equal(button.disabled, true);
+    assert.equal(button.innerHTML, 'Warte auf genaues GPS');
+    assert.equal(state.overviewRouteReached, 0);
+});
 
 test('GPS updates never advance stops; manual confirmations count one stop and require loop closure', async () => {
     const { state, context } = await navigationHarness();
@@ -107,11 +154,11 @@ test('estimated routes and missing or inaccurate GPS cannot start navigation', a
 
 test('clearing a calculation without geometry invalidates late responses and GPS callbacks', async () => {
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
-    const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [] };
+    const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
     const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, canConfirmTarget, AbortController,
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
-        fetch: () => new Promise(resolve => responses.push(resolve)),
+        planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
         renderOverviewRoute() {}, fitCoordinates() {}, setGeoJsonLayer() {}, getDistanceMeters: distanceMeters,
         clearRoute() { context.clearOverviewRoute(); } });
@@ -122,19 +169,19 @@ test('clearing a calculation without geometry invalidates late responses and GPS
     assert.equal(state.overviewRouteGeometry, null);
     await context.toggleOverviewRoute();
     assert.equal(state.overviewRouteCalculating, false);
-    responses[0]({ ok: true, json: async () => ({ routes: [{ geometry: { type: 'LineString', coordinates: [[10, 49], [10.001, 49.001]] }, distance: 100, duration: 80 }] }) });
+    responses[0]({ stations, route: { geometry: { type: 'LineString', coordinates: [[10, 49], [10.001, 49.001]] }, distance: 100, duration: 80 } });
     await pending;
     assert.equal(state.overviewRouteGeometry, null);
     assert.equal(state.overviewRouteStations.length, 0);
 });
 
-test('a replacement calculation owns the result even when earlier fetch resolves last', async () => {
+test('failed foot routing never draws straight lines, including late responses', async () => {
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
-    const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [] };
+    const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
-    const context = vm.createContext({ state, buildRoundTrip, AbortController,
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController,
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
-        fetch: () => new Promise(resolve => responses.push(resolve)),
+        planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
         fitCoordinates() {}, setGeoJsonLayer() {}, getDistanceMeters: distanceMeters,
         clearRoute() { context.clearOverviewRoute(); }, OVERVIEW_ROUTE_SOURCE_ID: 'route', OVERVIEW_ROUTE_LAYER_ID: 'line' });
@@ -145,11 +192,91 @@ test('a replacement calculation owns the result even when earlier fetch resolves
     const response = { ok: false };
     responses[1](response);
     await second;
-    assert.equal(state.overviewRouteEstimated, true);
+    assert.equal(state.overviewRouteGeometry, null);
     assert.equal(state.overviewRouteCalculating, false);
-    assert.deepEqual(Array.from(state.overviewRouteStations, station => station.id), [2, 3]);
+    assert.equal(state.overviewRouteStations.length, 0);
     responses[0](response);
     await first;
-    assert.deepEqual(Array.from(state.overviewRouteStations, station => station.id), [2, 3]);
-    assert.match(state.overviewRouteSummary, /reine Gehzeit/);
+    assert.equal(state.overviewRouteStations.length, 0);
+    assert.equal(state.overviewRouteGeometry, null);
+});
+
+test('GPS is required at start and a cancelled GPS callback cannot start a tour', async () => {
+    const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
+    const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: null };
+    let gpsCallback;
+    let routeCalls = 0;
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController,
+        document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout },
+        planWalkingTour() { routeCalls += 1; }, locateUser(callback) { gpsCallback = callback; },
+        showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, setGeoJsonLayer() {}, updateOverviewRouteButton() {},
+        clearRoute() { context.clearOverviewRoute(); } });
+    const routeCode = source.slice(source.indexOf('function buildOverviewRoundTrip('), source.indexOf('export function resetMap()'));
+    vm.runInContext(routeCode.replaceAll('export async function', 'async function').replaceAll('export function', 'function'), context);
+    await context.toggleOverviewRoute([1, 2]);
+    assert.equal(routeCalls, 0);
+    assert.equal(state.overviewRouteNavigationActive, false);
+    context.clearOverviewRoute();
+    state.userLocation = stations[0];
+    state.gpsAccuracy = 5;
+    state.gpsLastFixAt = Date.now();
+    gpsCallback();
+    assert.equal(routeCalls, 0);
+    assert.equal(state.overviewRouteOrigin, null);
+});
+
+test('open tour visits every selected station once without a closing segment', () => {
+    const input = [{ id: 1, lat: 0, lng: 0.002 }, { id: 2, lat: 0, lng: 0 }, { id: 3, lat: 0, lng: 0.001 }];
+    const tour = buildRoundTrip(input, null, 20000, 'open');
+    assert.equal(tour.coordinates.length, 3);
+    assert.equal(new Set(tour.stations.map(station => station.id)).size, 3);
+    assert.ok(length(tour) < length(buildRoundTrip(input)));
+    const fromGps = buildRoundTrip(input, null, 20000, 'open', [0, 0]);
+    assert.equal(fromGps.stations[0].id, 2);
+    assert.deepEqual(fromGps.stations.map(station => station.id), [2, 3, 1]);
+});
+
+test('open navigation keeps its planned first stop and ends without returning to start', async () => {
+    const { state, context } = await navigationHarness();
+    state.overviewRouteMode = 'open';
+    state.userLocation = stations[2];
+    context.startOverviewNavigation();
+    assert.equal(state.overviewRouteNavigationIndex, 0);
+    context.skipOverviewNavigationStation();
+    context.skipOverviewNavigationStation();
+    context.startOverviewNavigation();
+    assert.equal(state.overviewRouteCompleted, true);
+    assert.equal(state.overviewRouteNavigationActive, false);
+    assert.ok(!state.overviewRouteClosing);
+    assert.equal(state.overviewRouteReached, 1);
+    assert.equal(state.overviewRouteSkipped, 2);
+});
+
+test('approach requests are throttled and old target responses cannot overwrite the current leg', async () => {
+    const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
+    const state = { overviewRouteNavigationActive: true, overviewRouteStations: stations, overviewRouteNavigationIndex: 0,
+        overviewRouteRequestId: 1, overviewRouteNavigationProgress: 0, userLocation: stations[2], gpsAccuracy: 10, gpsLastFixAt: Date.now() };
+    const pending = [];
+    const rendered = [];
+    const context = vm.createContext({ state, AbortController, hasNavigationFix, getDistanceMeters: distanceMeters,
+        fetchFootRoute: (coordinates, signal) => new Promise(resolve => pending.push({ resolve, signal, coordinates })),
+        setGeoJsonLayer: (id, layers, feature) => rendered.push(feature.geometry), fitCoordinates() {} });
+    vm.runInContext(source.slice(source.indexOf('function renderOverviewApproach('), source.indexOf('function updateOverviewRouteNavigationButton()')), context);
+    const first = context.refreshOverviewApproach();
+    await context.refreshOverviewApproach();
+    assert.equal(pending.length, 1);
+    state.overviewRouteNavigationIndex = 1;
+    state.overviewRouteNavigationProgress = 1;
+    const second = context.refreshOverviewApproach();
+    assert.equal(pending[0].signal.aborted, true);
+    const geometry = { type: 'LineString', coordinates: [[10, 49], [10.1, 49]] };
+    pending[1].resolve({ geometry, distance: 100, duration: 60 });
+    await second;
+    pending[0].resolve({ geometry: { old: true }, distance: 200, duration: 120 });
+    await first;
+    assert.deepEqual(rendered, [geometry]);
+    assert.equal(state.overviewApproach.route.distance, 100);
+    state.overviewRouteNavigationActive = false;
+    await context.refreshOverviewApproach();
+    assert.equal(state.overviewApproach, null);
 });

@@ -1,5 +1,26 @@
 # Vorbereitung einer Server-Datenbank
 
+## Workflow-Korrekturen (vorbereitet, noch nicht veröffentlicht)
+
+- Stationsnummern werden mit einer einzigen Transaktion geändert. Verknüpfte
+  Programmpunkte, Check-in-Datensätze und Like-Sperren werden mitgeführt;
+  belegte Zielnummern oder Fehler rollen den gesamten Vorgang zurück.
+- Check-in-Rücknahmen sind auf den angemeldeten Besitzer beschränkt. Der Server
+  korrigiert dessen verbleibende Check-in-Fortschritte und Champion-Zähler.
+  Rücknahmen sind auch nach Ende des Check-in-Fensters zulässig.
+- Offline-Einchecken markiert den Besuch zunächst nur auf dem Gerät. Neue
+  Server-Check-ins müssen innerhalb des konfigurierten Zeitfensters eingehen.
+  Client-Zeitstempel verlängern dieses Fenster nicht. Endgültig abgelehnte
+  Aktionen werden aus der Wiederholungswarteschlange entfernt und bleiben als
+  nicht übertragener lokaler Besuch sichtbar. Temporäre Netzwerk-/Anmeldefehler
+  bleiben wiederholbar. Rücknahmen laufen geordnet hinter offenen Check-ins.
+- Die JSON-Sicherung enthält im lokalen Modus auch vorhandene Dokumentdaten
+  (u.a. Check-ins, Protokolle, Admin-Metadaten) und Likes. Sie ist vertraulich,
+  enthält aber keine Auth-Passworthashes/Sitzungen oder SMTP-Geheimnisse.
+  Wiederherstellung erfolgt über den geprüften Server-Import in eine neue
+  Datenbank, nicht über den alten Browser-Import. Vollständige System-Restores
+  benötigen die geschützte Serversicherung inklusive Auth-Datenbank.
+
 ## Lokale Anmeldung aktiv seit v1.4.299
 
 Am 24.10.2026 wurde zusätzlich Firebase Authentication durch die lokale

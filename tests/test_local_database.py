@@ -41,6 +41,42 @@ class LocalDatabaseTest(unittest.TestCase):
             ])
         self.assertEqual(self.database.read(), previous)
 
+    def test_rename_migrates_links_likes_and_checkins_atomically(self):
+        self.database.write('set', 'events', 'event', {'stationId': 1, 'title': 'Konzert'})
+        self.database.like('visitor', '1')
+        self.database.write('set', 'checkins', 'visitor_1', {'ownerUid': 'visitor', 'stationId': '1'})
+        before = self.database.backup()
+        operation = {'action': 'rename', 'collection': 'stations', 'id': '1', 'data': {'id': 2, 'name': 'Neu'}}
+        with self.assertRaises(ValueError):
+            self.database.write_many([operation, {'action': 'set', 'collection': 'invalid', 'id': 'bad', 'data': {}}])
+        after = self.database.backup()
+        for key in ('stations', 'events', 'localDocuments', 'localLikes'):
+            self.assertEqual(before[key], after[key])
+        self.database.write_many([operation])
+        self.assertEqual(self.database.read()['events'][0]['stationId'], 2)
+        self.assertEqual(self.database.records('checkins')[0]['id'], 'visitor_2')
+        self.assertEqual(self.database.records('checkins')[0]['data']['stationId'], '2')
+        self.database.like('visitor', '2')
+        self.assertEqual(self.database.read()['stations'][0]['likes'], 1)
+
+    def test_rename_refuses_existing_destination(self):
+        self.database.write('set', 'stations', '2', {'id': 2, 'name': 'Andere'})
+        before = self.database.read()
+        with self.assertRaises(ValueError):
+            self.database.write_many([{'action': 'rename', 'collection': 'stations', 'id': '1', 'data': {'id': 2}}])
+        self.assertEqual(self.database.read(), before)
+
+    def test_undo_is_owner_scoped_idempotent_and_updates_statistics(self):
+        self.database.write('set', 'config', 'config', {'checkinWindow': {'startMs': 0, 'endMs': (time.time() + 60) * 1000}}, True)
+        self.database.checkin('visitor', {'stationId': '1'})
+        self.database.checkin('other', {'stationId': '1'})
+        self.database.visitor_write('visitor', {'action': 'undo-checkin', 'collection': 'checkins', 'id': '1'})
+        self.database.visitor_write('visitor', {'action': 'undo-checkin', 'collection': 'checkins', 'id': '1'})
+        self.assertEqual([item['id'] for item in self.database.records('checkins')], ['other_1'])
+        self.assertEqual(self.database.records('stats')[0]['data']['count_diamond'], 1)
+        self.database.checkin('visitor', {'stationId': '1'})
+        self.assertEqual(self.database.records('stats')[0]['data']['count_diamond'], 2)
+
     def test_likes_are_idempotent_per_user(self):
         self.database.like('visitor', '1')
         self.database.like('visitor', '1')
