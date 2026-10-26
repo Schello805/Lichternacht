@@ -1,14 +1,14 @@
 
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.299';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.299';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.299';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.299';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.300';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.300';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.300';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.300';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.299';
-import { recordAuditEvent } from './audit.js?v=1.4.299';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.299';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.299';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.300';
+import { recordAuditEvent } from './audit.js?v=1.4.300';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.300';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.300';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1170,7 +1170,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.299';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.300';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1760,9 +1760,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.299';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.299';
-import { renderList, renderTimeline } from './ui.js?v=1.4.299';
+import { showToast } from './utils.js?v=1.4.300';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.300';
+import { renderList, renderTimeline } from './ui.js?v=1.4.300';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

@@ -283,7 +283,7 @@ test('local backup explains server restore before offering a file picker', async
     await page.evaluate(async () => {
         window.state.isAdmin = true;
         window.state.localBackend = true;
-        const admin = await import('/js/admin.js?v=1.4.299');
+        const admin = await import(`/js/admin.js?v=${window.APP_VERSION}`);
         admin.updateAdminUiAvailability();
     });
     await expect(page.locator('#admin-legacy-restore')).toHaveClass(/hidden/);
@@ -324,7 +324,7 @@ test('failed app module download offers an explicit reload action', async ({ pag
 test('undo check-in sends a server reversal without checking in again', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(async () => {
-        const { markStationVisited } = await import('/js/utils.js?v=1.4.299');
+        const { markStationVisited } = await import(`/js/utils.js?v=${window.APP_VERSION}`);
         markStationVisited(1);
         window.state.localBackend = true;
         window.state.useLocalStorage = false;
@@ -767,7 +767,7 @@ test('admin can edit stations and program entries from their visitor lists', asy
     await expect(page.locator('#modal-image-change-btn, #modal-image-container [aria-label="Bild auswählen"]')).toBeVisible();
 
     expect(await page.evaluate(async () => {
-        const { hasUnsavedStationChanges } = await import('/js/ui.js?v=1.4.299');
+        const { hasUnsavedStationChanges } = await import(`/js/ui.js?v=${window.APP_VERSION}`);
         if (!hasUnsavedStationChanges()) return null;
         const station = window.state.stations.find(item => item.id == window.state.activeStationId);
         return { station, fields: ['modal-number', 'modal-title', 'modal-subtitle', 'modal-desc', 'inline-edit-lat', 'inline-edit-lng', 'inline-edit-link', 'edit-tags'].map(id => {

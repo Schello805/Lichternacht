@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.299';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.299';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.299';
-import { saveData } from './data.js?v=1.4.299';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.300';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.300';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.300';
+import { saveData } from './data.js?v=1.4.300';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
