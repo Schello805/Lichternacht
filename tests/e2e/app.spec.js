@@ -1116,6 +1116,28 @@ test('route planner uses favorites and lets visitors adjust the selected station
     await expect(page.locator('[data-route-plan-submit]')).toBeDisabled();
 });
 
+test('route planner collapses instructions and reserves space for scrolling stations', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openRoutePlan());
+    const help = page.locator('[data-route-plan-help]');
+    const list = page.locator('#route-plan-stations');
+    await expect(help).not.toHaveAttribute('open', '');
+    await expect(help.locator('.route-plan-help-text')).not.toBeVisible();
+    const closedHeight = await list.evaluate(element => element.clientHeight);
+    expect(closedHeight).toBeGreaterThanOrEqual(220);
+    await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(list.locator('label').last()).toBeInViewport();
+    await expect(page.locator('[data-route-plan-submit]')).toBeInViewport();
+    await help.locator('summary').click();
+    await expect(help.locator('.route-plan-help-text')).toBeVisible();
+    expect(await list.evaluate(element => element.clientHeight)).toBeGreaterThanOrEqual(100);
+    await help.locator('summary').click();
+    expect(await list.evaluate(element => element.clientHeight)).toBe(closedHeight);
+    await list.evaluate(element => { element.scrollTop = 0; });
+    await page.screenshot({ path: `/tmp/lichternacht-route-compact-${test.info().project.name}.png` });
+});
+
 test('route planner selection buttons fit narrow screens without horizontal scrolling', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => window.openRoutePlan());
@@ -1308,6 +1330,28 @@ test('GPS activation is retained when the page reloads before the first location
     await expect(page.locator('#map-locate-btn')).toHaveAttribute('aria-label', 'Standort erneut bestimmen');
 });
 
+test('GPS button recenters an active location without restarting GPS or requesting compass', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.__gpsRequests = 0;
+        window.__compassRequests = 0;
+        Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+            getCurrentPosition() { window.__gpsRequests += 1; },
+            watchPosition() { window.__gpsRequests += 1; return 99; },
+            clearWatch() { window.__gpsRequests += 1; }
+        } });
+        Object.defineProperty(window, 'DeviceOrientationEvent', { configurable: true, value: {
+            requestPermission: async () => { window.__compassRequests += 1; return 'granted'; }
+        } });
+        Object.assign(window.state, { userLocation: { lat: 49.157, lng: 10.548 }, gpsLastFixAt: Date.now(), gpsAccuracy: 10, watchId: 42, gpsStatus: 'connected' });
+        window.state.map.jumpTo({ center: [10.56, 49.16], zoom: 14 });
+    });
+    await page.locator('#map-locate-btn').click();
+    await expect.poll(() => page.evaluate(() => Math.abs(window.state.map.getCenter().lat - 49.157))).toBeLessThan(0.00001);
+    await page.locator('#map-locate-btn').click();
+    expect(await page.evaluate(() => ({ gps: window.__gpsRequests, compass: window.__compassRequests, watch: window.state.watchId }))).toEqual({ gps: 0, compass: 0, watch: 42 });
+});
+
 test('starting a route does not request compass permission again after GPS was activated', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.setItem('gps_auto_resume_v1', 'true');
@@ -1342,7 +1386,7 @@ test('starting a route does not request compass permission again after GPS was a
     await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
 });
 
-test('compass permission is requested only after tapping the GPS control', async ({ page }) => {
+test('GPS activated elsewhere does not cause a subsequent compass permission prompt', async ({ page }) => {
     await page.addInitScript(() => {
         window.__compassPermissionRequests = 0;
         Object.defineProperty(window, 'DeviceOrientationEvent', {
@@ -1369,7 +1413,7 @@ test('compass permission is requested only after tapping the GPS control', async
 
     await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
     await page.locator('#map-locate-btn').click();
-    await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__compassPermissionRequests)).toBe(0);
 });
 
 test('empty station search explains active filters and can reset them', async ({ page }) => {

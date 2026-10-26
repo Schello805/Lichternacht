@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.300';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.300';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.300';
-import { saveData } from './data.js?v=1.4.300';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.301';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.301';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.301';
+import { saveData } from './data.js?v=1.4.301';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 const MAP_STYLES = {
@@ -751,6 +751,13 @@ export async function resumeGrantedLocation() {
 }
 
 export async function locateUser(cb, options = {}) {
+    const knownPosition = getValidCoordinates(state.userLocation?.lat, state.userLocation?.lng);
+    const recentPosition = Number.isFinite(state.gpsLastFixAt) && Date.now() >= state.gpsLastFixAt && Date.now() - state.gpsLastFixAt <= 60000;
+    if (!cb && options.forceCenter !== false && knownPosition && recentPosition && state.watchId != null && state.gpsStatus !== 'denied') {
+        state.map?.flyTo({ center: [knownPosition.longitude, knownPosition.latitude], zoom: Math.max(state.map.getZoom(), 18) });
+        state.hasLocatedUser = true;
+        return;
+    }
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
         setGpsUiStatus('error');
@@ -764,7 +771,8 @@ export async function locateUser(cb, options = {}) {
 
     if (startedFromUserGesture) {
         localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
-        if (options.requestCompass === true) {
+        const gpsAlreadyAllowed = Boolean(knownPosition) || localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true';
+        if (options.requestCompass === true && !gpsAlreadyAllowed) {
             await enableCompassFromUserGesture();
         }
         if (requestToken !== state.gpsRequestToken) return;
