@@ -1,4 +1,4 @@
-import { parseEventWindowConfig } from './utils.js?v=1.4.300';
+import { parseEventWindowConfig } from './utils.js?v=1.4.301';
 
 const berlin = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',

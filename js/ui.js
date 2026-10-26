@@ -1,15 +1,15 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.300';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.300';
-import * as utils from './utils.js?v=1.4.300';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.300';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.300';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.300';
-import { recordAuditEvent } from './audit.js?v=1.4.300';
-import { normalizeImageUrl } from './image-url.js?v=1.4.300';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.300';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.300';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.301';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.301';
+import * as utils from './utils.js?v=1.4.301';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.301';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.301';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.301';
+import { recordAuditEvent } from './audit.js?v=1.4.301';
+import { normalizeImageUrl } from './image-url.js?v=1.4.301';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.301';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.301';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -85,6 +85,7 @@ export function openRoutePlan() {
     const modal = document.getElementById('route-plan-modal');
     const list = document.getElementById('route-plan-stations');
     if (!modal || !list) return;
+    modal.querySelector('[data-route-plan-help]').open = false;
     const selectedIds = new Set(getRoutePlanStationIds());
     const modeSelect = modal.querySelector('[data-route-plan-mode]');
     modeSelect.value = localStorage.getItem('route_plan_mode') === 'open' ? 'open' : 'round';

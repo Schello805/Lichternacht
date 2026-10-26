@@ -892,10 +892,15 @@ h3,
 #route-plan-modal > section {
     display: flex;
     flex-direction: column;
-    max-height: 88dvh;
+    max-height: min(88dvh, 100%);
 }
 #route-plan-modal > section > :not(#route-plan-stations) { flex-shrink: 0; }
 #route-plan-stations { min-height: 0; flex: 1 1 auto; }
+.route-plan-header { padding: 8px 20px 0; }
+[data-route-plan-help] summary { min-height: 44px; padding: 10px 0; }
+.route-plan-help-text { max-height: 120px; overflow-y: auto; padding-bottom: 8px; }
+.route-plan-tools, .route-plan-mode { padding: 8px 20px; }
+.route-plan-footer { padding: 10px 20px max(10px, env(safe-area-inset-bottom)); }
 
 .team-message-dialog {
     width: min(420px, calc(100% - 32px));
