@@ -1,15 +1,15 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.304';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.304';
-import * as utils from './utils.js?v=1.4.304';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.304';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.304';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.304';
-import { recordAuditEvent } from './audit.js?v=1.4.304';
-import { normalizeImageUrl } from './image-url.js?v=1.4.304';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.304';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.304';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.305';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.305';
+import * as utils from './utils.js?v=1.4.305';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.305';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.305';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.305';
+import { recordAuditEvent } from './audit.js?v=1.4.305';
+import { normalizeImageUrl } from './image-url.js?v=1.4.305';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.305';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.305';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
