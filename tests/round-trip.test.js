@@ -96,26 +96,30 @@ async function navigationHarness() {
 test('route controls distinguish distance, arrival and expired GPS without advancing automatically', async () => {
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
     const elements = Object.fromEntries(['overview-route-navigation-btn', 'overview-route-skip-btn', 'route-info-detail'].map(id => [id, { classList: { toggle() {}, remove() {} } }]));
-    const state = { overviewRouteGeometry: {}, overviewRouteStations: stations, overviewRouteNavigationIndex: 0,
+    const state = { overviewRouteGeometry: {}, overviewRouteStations: stations.map(station => ({ ...station, name: '<img src=x onerror=alert(1)>' })), overviewRouteNavigationIndex: 0,
         overviewRouteNavigationActive: true, overviewRouteSummary: 'Gesamte Runde: 442 m', overviewRouteReached: 0, overviewRouteSkipped: 0,
         userLocation: { lat: 50, lng: 10 }, gpsAccuracy: 10, gpsLastFixAt: Date.now() };
     let scheduled;
     const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, refreshOverviewApproach() {},
         document: { getElementById: id => elements[id] }, window: { clearTimeout() {}, setTimeout(callback) { scheduled = callback; return 1; } } });
+    vm.runInContext(source.slice(source.indexOf('function escapeHtml('), source.indexOf('const MAP_STYLES')), context);
     vm.runInContext(source.slice(source.indexOf('function updateOverviewRouteNavigationButton()'), source.indexOf('export function startOverviewNavigation()')), context);
     context.updateOverviewRouteNavigationButton();
     const button = elements['overview-route-navigation-btn'];
     assert.equal(button.disabled, true);
-    assert.equal(button.innerHTML, 'Noch nicht am Ziel');
-    assert.match(elements['route-info-detail'].textContent, /Gesamte Runde: 442 m.*Zum Ziel:.*km Luftlinie/);
+    assert.equal(button.innerHTML, 'Unterwegs');
+    assert.match(elements['route-info-detail'].innerHTML, /Gesamte Runde: 442 m/);
+    assert.match(elements['route-info-detail'].innerHTML, /km Luftlinie/);
+    assert.match(elements['route-info-detail'].innerHTML, /&lt;img/);
+    assert.doesNotMatch(elements['route-info-detail'].innerHTML, /<img/);
     state.userLocation = stations[0];
     context.updateOverviewRouteNavigationButton();
     assert.equal(button.disabled, false);
-    assert.equal(button.innerHTML, 'Ankunft bestätigen · Weiter');
+    assert.equal(button.innerHTML, '✓ Weiter');
     state.gpsLastFixAt = Date.now() - 16000;
     scheduled();
     assert.equal(button.disabled, true);
-    assert.equal(button.innerHTML, 'Warte auf genaues GPS');
+    assert.equal(button.innerHTML, 'GPS abwarten');
     assert.equal(state.overviewRouteReached, 0);
 });
 

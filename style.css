@@ -889,6 +889,16 @@ h3,
     box-shadow: 0 2px 8px #0005;
 }
 
+#route-info > div:first-child { min-width: 0; flex: 1; }
+.route-summary-line, .route-target-line { line-height: 1.35; overflow-wrap: anywhere; }
+.route-target-line { margin-top: 3px; }
+.route-status-line, .route-progress-line, .route-info-hints { font-size: 11px; font-weight: 500; line-height: 1.4; }
+.route-status-line { margin-top: 4px; }
+.route-progress-line { opacity: 0.75; }
+.route-info-hints { margin-top: 4px; }
+.route-info-hints summary { cursor: pointer; padding: 3px 0; }
+.route-info-hints p { max-width: 36rem; margin-top: 4px; }
+
 #route-plan-modal > section {
     display: flex;
     flex-direction: column;
