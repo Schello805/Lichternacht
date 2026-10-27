@@ -1733,13 +1733,37 @@ test('mobile bottom navigation keeps every label fully visible', async ({ page }
             const box = element.getBoundingClientRect();
             return { top: box.top, bottom: box.bottom };
         });
-        const attribution = await page.locator('.maplibregl-ctrl-top-left').evaluate(element => {
+        const attribution = await page.locator('.maplibregl-ctrl-bottom-right').evaluate(element => {
             const box = element.getBoundingClientRect();
             return { top: box.top, bottom: box.bottom };
         });
         expect(attribution.top).toBeGreaterThanOrEqual(gpsStatus.bottom + 8);
+        expect(attribution.bottom).toBeLessThanOrEqual(layout.navTop - 8);
         await expect(page.locator('#map .maplibregl-ctrl-attrib')).not.toHaveAttribute('open', '');
     }
+});
+
+test('map attribution stays clear of GPS and remains accessible above the bottom menu', async ({ page }) => {
+    await page.goto('/index.html');
+    const control = page.locator('#map .maplibregl-ctrl-attrib');
+    await expect(control).toBeVisible();
+    const bounds = await page.evaluate(() => {
+        const box = id => document.getElementById(id).getBoundingClientRect();
+        const attribution = document.querySelector('#map .maplibregl-ctrl-attrib').getBoundingClientRect();
+        const gps = box('map-locate-btn');
+        const status = box('floating-status');
+        const nav = box('bottom-nav');
+        const overlaps = rectangle => rectangle.left < attribution.right && rectangle.right > attribution.left && rectangle.top < attribution.bottom && rectangle.bottom > attribution.top;
+        return { gpsOverlap: overlaps(gps), statusOverlap: overlaps(status), bottom: attribution.bottom, navTop: nav.top, right: attribution.right };
+    });
+    expect(bounds.gpsOverlap).toBe(false);
+    expect(bounds.statusOverlap).toBe(false);
+    expect(bounds.bottom).toBeLessThanOrEqual(bounds.navTop - 8);
+    expect(bounds.right).toBeLessThanOrEqual(page.viewportSize().width);
+    await expect(control).not.toHaveAttribute('open', '');
+    await control.locator('summary').click();
+    await expect(control).toHaveAttribute('open', '');
+    await expect(control.locator('a').first()).toBeVisible();
 });
 
 test('program details can be dismissed by swiping the modal body down', async ({ page }) => {

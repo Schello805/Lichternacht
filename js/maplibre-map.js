@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.304';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.304';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.304';
-import { saveData } from './data.js?v=1.4.304';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.305';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.305';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.305';
+import { saveData } from './data.js?v=1.4.305';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -522,8 +522,8 @@ export function initMap() {
             maxZoom: 18,
             attributionControl: false
         });
-        state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
-        state.map.once('load', keepMapAttributionCompact);
+        state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+        keepMapAttributionCompact();
         state.map.dragRotate.disable();
         state.map.touchZoomRotate.disableRotation();
         state.map.on('style.load', restoreMapOverlays);
@@ -548,10 +548,30 @@ export function initMap() {
 function keepMapAttributionCompact() {
     const attribution = document.querySelector('#map .maplibregl-ctrl-attrib');
     if (!(attribution instanceof HTMLDetailsElement)) return;
-    attribution.open = false;
+    let interacted = false;
+    const collapse = () => {
+        attribution.open = false;
+        attribution.classList.remove('maplibregl-compact-show');
+    };
+    collapse();
+    state.map.once('load', () => { if (!interacted) collapse(); });
+    attribution.querySelector('summary')?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        interacted = true;
+        attribution.open = !attribution.open;
+        attribution.classList.toggle('maplibregl-compact-show', attribution.open);
+    }, true);
     attribution.addEventListener('toggle', () => {
-        if (!attribution.open) return;
-        window.setTimeout(() => { attribution.open = false; }, 2500);
+        if (attribution.open && !interacted) {
+            collapse();
+            return;
+        }
+        if (!attribution.open) {
+            attribution.classList.remove('maplibregl-compact-show');
+            return;
+        }
+        window.setTimeout(collapse, 2500);
     });
 }
 
