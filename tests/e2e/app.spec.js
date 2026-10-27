@@ -1098,7 +1098,26 @@ test('repeated skipping keeps its control stable while target text and route req
         }
     }
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationIndex)).toBe(4);
-    await page.evaluate(() => window.clearRoute());
+    for (const width of [320, 375, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        const geometry = await page.locator('#route-info-actions').evaluate(element => {
+            const bounds = element.getBoundingClientRect();
+            const close = element.querySelector('#route-close-btn').getBoundingClientRect();
+            return { right: bounds.right, width: element.clientWidth, scrollWidth: element.scrollWidth,
+                close: { right: close.right, width: close.width, height: close.height },
+                overlaps: [...element.querySelectorAll('button:not(#route-close-btn)')].filter(button => button.getBoundingClientRect().width).some(button => {
+                    const rectangle = button.getBoundingClientRect();
+                    return rectangle.left < close.right && rectangle.right > close.left && rectangle.top < close.bottom && rectangle.bottom > close.top;
+                }) };
+        });
+        expect(geometry.close.width).toBe(44);
+        expect(geometry.close.height).toBe(44);
+        expect(Math.abs(geometry.close.right - geometry.right)).toBeLessThanOrEqual(1);
+        expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.width);
+        expect(geometry.overlaps).toBe(false);
+    }
+    await page.getByRole('button', { name: 'Tour beenden', exact: true }).click();
+    await expect(page.locator('#route-info')).toBeHidden();
     for (const route of pending) await route.abort().catch(() => {});
 });
 
