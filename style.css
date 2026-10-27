@@ -343,8 +343,9 @@ h3,
     }
     #route-info-actions {
         order: -1;
+        width: 100%;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
         align-items: stretch;
         gap: 6px;
     }
@@ -370,6 +371,26 @@ h3,
     .maplibregl-ctrl-top-left {
         top: 11rem;
     }
+}
+
+@media (max-width: 360px) {
+    #route-info-actions { grid-template-columns: minmax(0, 1fr) 44px; }
+    #overview-route-skip-btn { grid-column: 1; grid-row: 1; }
+    #overview-route-navigation-btn { grid-column: 1; grid-row: 2; }
+    #route-info-actions #route-close-btn { grid-column: 2; grid-row: 1; }
+}
+
+#route-info-actions #route-close-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    max-height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
 }
 
 #modal-drag-handle {
