@@ -342,8 +342,25 @@ h3,
         gap: 0.5rem;
     }
     #route-info-actions {
-        justify-content: flex-end;
-        flex-wrap: wrap;
+        order: -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        align-items: stretch;
+        gap: 6px;
+    }
+    #route-info-actions button {
+        min-width: 0;
+        min-height: 44px;
+        font-size: 11px;
+        line-height: 1.2;
+        padding: 6px;
+        touch-action: manipulation;
+    }
+    #overview-route-navigation-btn { grid-column: 1; grid-row: 1; }
+    #overview-route-skip-btn { grid-column: 2; grid-row: 1; }
+    #route-info-actions button[onclick="clearRoute()"] {
+        grid-column: 3;
+        grid-row: 1;
     }
     #view-map.route-info-visible #map-secondary-controls {
         top: 9rem;
@@ -890,6 +907,7 @@ h3,
 }
 
 #route-info > div:first-child { min-width: 0; flex: 1; }
+#route-info-actions { align-self: flex-start; }
 .route-summary-line, .route-target-line { line-height: 1.35; overflow-wrap: anywhere; }
 .route-target-line { margin-top: 3px; }
 .route-status-line, .route-progress-line, .route-info-hints { font-size: 11px; font-weight: 500; line-height: 1.4; }

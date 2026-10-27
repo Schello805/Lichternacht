@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.302';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.302';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.302';
-import { saveData } from './data.js?v=1.4.302';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.303';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.303';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.303';
+import { saveData } from './data.js?v=1.4.303';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -1101,12 +1101,13 @@ async function refreshOverviewApproach() {
         if (state.overviewApproach) clearOverviewApproach();
         return;
     }
-    if (!hasNavigationFix(state)) return;
     const target = state.overviewRouteClosing ? state.overviewRouteOrigin : state.overviewRouteStations[state.overviewRouteNavigationIndex];
     if (!target) return;
-    const position = [state.userLocation.lng, state.userLocation.lat];
     const destination = [Number(target.lng), Number(target.lat)];
     const key = `${state.overviewRouteRequestId}:${state.overviewRouteNavigationProgress}:${destination.join(',')}:${state.overviewRouteClosing}`;
+    if (state.overviewApproach && state.overviewApproach.key !== key) clearOverviewApproach();
+    if (!hasNavigationFix(state)) return;
+    const position = [state.userLocation.lng, state.userLocation.lat];
     const previous = state.overviewApproach;
     if (previous?.key === key && (previous.pending || Date.now() - previous.at < (previous.failed ? 60000 : 20000) || (previous.route && getDistanceMeters(position, previous.position) < 10))) return;
     clearOverviewApproach();

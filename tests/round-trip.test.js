@@ -280,6 +280,13 @@ test('approach requests are throttled and old target responses cannot overwrite 
     await first;
     assert.deepEqual(rendered, [geometry]);
     assert.equal(state.overviewApproach.route.distance, 100);
+    state.gpsLastFixAt = 1;
+    state.overviewRouteNavigationIndex = 2;
+    state.overviewRouteNavigationProgress = 2;
+    await context.refreshOverviewApproach();
+    assert.equal(state.overviewApproach, null);
+    assert.equal(pending[1].signal.aborted, true);
+    assert.equal(pending.length, 2);
     state.overviewRouteNavigationActive = false;
     await context.refreshOverviewApproach();
     assert.equal(state.overviewApproach, null);

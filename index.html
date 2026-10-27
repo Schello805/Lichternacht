@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.302" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.303" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.302" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.303" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -144,7 +144,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.302">
+    <link rel="stylesheet" href="style.css?v=1.4.303">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -1592,7 +1592,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.302', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.303', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1623,7 +1623,7 @@
         <p>Die App konnte nicht vollständig geladen werden. Bitte prüfe deine Verbindung und lade die Seite erneut.</p>
         <button type="button" onclick="location.reload()" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white">Erneut laden</button>
     </div>
-    <script type="module" src="main.js?v=1.4.302" onerror="document.getElementById('app-load-error').classList.remove('hidden')"></script>
+    <script type="module" src="main.js?v=1.4.303" onerror="document.getElementById('app-load-error').classList.remove('hidden')"></script>
 </body>
 
 </html>

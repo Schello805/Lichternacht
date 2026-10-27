@@ -1056,6 +1056,52 @@ test('map overview draws a guided round route without direction arrows', async (
     expect(await page.evaluate(() => Boolean(window.state.map.getLayer('overview-approach-line')))).toBe(false);
 });
 
+test('repeated skipping keeps its control stable while target text and route requests change', async ({ page }) => {
+    const pending = [];
+    await page.route('https://routing.openstreetmap.de/**', route => {
+        const url = route.request().url();
+        const count = url.split('/driving/')[1].split('?')[0].split(';').length;
+        if (!url.includes('/table/') && count === 2) {
+            pending.push(route);
+            return;
+        }
+        const result = url.includes('/table/')
+            ? { code: 'Ok', durations: Array.from({ length: count }, (_, row) => Array.from({ length: count }, (_, column) => row === column ? 0 : column + 1)) }
+            : { code: 'Ok', routes: [{ distance: 500, duration: 400, geometry: { type: 'LineString', coordinates: [[10.548, 49.157], [10.552, 49.158]] } }] };
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(result) });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.stations = Array.from({ length: 5 }, (_, index) => ({ id: index + 1,
+            name: index % 2 ? 'Sehr langer Stationsname mit vielen zusätzlichen Wörtern für einen mehrzeiligen Titel' : 'Kurz',
+            lat: 49.157 + index * 0.001, lng: 10.548 }));
+        window.state.userLocation = { lat: 49.156, lng: 10.548 };
+        window.state.gpsAccuracy = 5;
+        window.state.gpsLastFixAt = Date.now();
+        await window.toggleOverviewRoute([1, 2, 3, 4, 5], 'open');
+    });
+    const skip = page.locator('#overview-route-skip-btn');
+    await expect(skip).toBeVisible();
+    const bounds = await skip.boundingBox();
+    for (let count = 1; count <= 4; count += 1) {
+        if (test.info().project.name === 'chromium-mobile') await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        else await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        await expect.poll(() => page.evaluate(() => window.state.overviewRouteSkipped)).toBe(count);
+        await expect(page.locator('.route-target-line')).toContainText(`#${count + 1} `);
+        await expect(page.locator('.route-progress-line')).toContainText(`${count} übersprungen`);
+        const current = await skip.boundingBox();
+        expect(Math.abs(current.y - bounds.y)).toBeLessThanOrEqual(1);
+        expect(Math.abs(current.x - bounds.x)).toBeLessThanOrEqual(1);
+        if (count === 2) {
+            await page.evaluate(() => { window.state.gpsLastFixAt = Date.now() - 16000; });
+            await expect(page.locator('.route-status-line')).toContainText('GPS wird aktualisiert');
+        }
+    }
+    await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationIndex)).toBe(4);
+    await page.evaluate(() => window.clearRoute());
+    for (const route of pending) await route.abort().catch(() => {});
+});
+
 for (const mode of ['open', 'round']) test(`${mode} walking tour starts at GPS and finishes at the correct endpoint`, async ({ page }) => {
     await page.route('https://routing.openstreetmap.de/**', route => {
         const url = route.request().url();
