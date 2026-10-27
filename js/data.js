@@ -1,9 +1,9 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.302';
-import { showToast } from './utils.js?v=1.4.302';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.303';
+import { showToast } from './utils.js?v=1.4.303';
 import { validateStations, validateEvents } from './validate.js';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.302';
-import { preloadImage } from './image-preload.js?v=1.4.302';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.303';
+import { preloadImage } from './image-preload.js?v=1.4.303';
 
 export const seedStations = [
     { id: 1, name: "Deutsches Pinsel- & Bürstenmuseum", desc: "Genussgalerie, Cocktails. Dinkelsbühler Str. 23", lat: 49.15714, lng: 10.5484, tags: ["drink", "food", "culture"], image: "https://images.unsplash.com/photo-1513883049090-d0b7439799bf?q=80&w=1000&auto=format&fit=crop" },
