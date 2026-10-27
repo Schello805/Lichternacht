@@ -1040,6 +1040,16 @@ test('map overview draws a guided round route without direction arrows', async (
     await expect(page.locator('#overview-route-skip-btn')).toBeVisible();
     await page.locator('#overview-route-skip-btn').click();
     await expect.poll(() => page.evaluate(() => window.state.overviewRouteNavigationProgress)).toBe(1);
+    await expect(page.locator('.route-summary-line')).not.toContainText('Aufenthalte');
+    await expect(page.locator('.route-progress-line')).toContainText('1 übersprungen');
+    await expect(page.locator('.route-info-hints p')).not.toBeVisible();
+    await page.locator('.route-info-hints summary').click();
+    await expect(page.locator('.route-info-hints p')).toBeVisible();
+    await page.evaluate(() => { window.state.gpsLastFixAt = Date.now() - 16000; });
+    await expect(page.locator('.route-status-line')).toContainText('GPS wird aktualisiert');
+    await expect(page.locator('.route-info-hints p')).toBeVisible();
+    await page.locator('.route-info-hints summary').click();
+    await page.screenshot({ path: `/tmp/lichternacht-compact-route-info-${test.info().project.name}.png` });
 
     await page.locator('#route-info button[onclick="clearRoute()"]').click();
     await expect.poll(() => page.evaluate(() => Boolean(window.state.overviewRouteGeometry))).toBe(false);
@@ -1091,7 +1101,8 @@ for (const mode of ['open', 'round']) test(`${mode} walking tour starts at GPS a
         await expect(page.locator('#overview-route-navigation-btn')).toBeEnabled();
         await page.locator('#overview-route-navigation-btn').click();
     }
-    await expect(page.locator('#route-info-detail')).toContainText('Tour beendet · 3 erreicht');
+    await expect(page.locator('#route-info-detail .route-target-line')).toContainText('Tour beendet');
+    await expect(page.locator('#route-info-detail .route-progress-line')).toContainText('3 erreicht');
     expect(await page.evaluate(() => window.state.overviewRouteOrigin)).toEqual({ lat: 49.15, lng: 10.54 });
     expect(await page.evaluate(() => window.state.overviewApproach)).toBeNull();
     await page.evaluate(() => window.openRoutePlan());

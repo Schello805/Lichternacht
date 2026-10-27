@@ -1,9 +1,13 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.301';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.301';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.301';
-import { saveData } from './data.js?v=1.4.301';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.302';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.302';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.302';
+import { saveData } from './data.js?v=1.4.302';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+}
 
 const MAP_STYLES = {
     light: 'https://tiles.openfreemap.org/styles/positron',
@@ -975,7 +979,10 @@ function setRouteInfo(title, detail) {
     const titleElement = document.getElementById('route-info-title');
     const detailElement = document.getElementById('route-info-detail');
     if (titleElement) titleElement.textContent = title;
-    if (detailElement) detailElement.textContent = detail;
+    if (detailElement) {
+        detailElement.textContent = detail;
+        detailElement._routeContent = null;
+    }
     document.getElementById('overview-route-navigation-btn')?.classList.add('hidden');
     document.getElementById('overview-route-skip-btn')?.classList.add('hidden');
     mapView?.classList.add('route-info-visible');
@@ -1130,22 +1137,40 @@ function updateOverviewRouteNavigationButton() {
     const index = state.overviewRouteNavigationIndex % stations.length;
     const station = state.overviewRouteClosing ? state.overviewRouteOrigin : stations[index];
     const targetLabel = state.overviewRouteClosing ? 'Zurück zu deinem GPS-Ausgangspunkt' : `Nächste: #${station.id} ${station.name || ''}`;
-    const result = `${state.overviewRouteReached} erreicht · ${state.overviewRouteSkipped} übersprungen`;
+    const result = `${state.overviewRouteReached} erreicht${state.overviewRouteSkipped ? ` · ${state.overviewRouteSkipped} übersprungen` : ''}`;
     const active = state.overviewRouteNavigationActive;
     void refreshOverviewApproach();
     const canConfirm = active && canConfirmTarget(state, station);
     const approach = state.overviewApproach;
     const currentApproach = hasNavigationFix(state) && approach?.route && getDistanceMeters([state.userLocation.lng, state.userLocation.lat], approach.position) < 10;
-    const distanceLabel = active ? ` · ${currentApproach
-        ? `Fußweg zum Ziel: ca. ${formatRouteDistance(approach.route.distance)} · ${formatRouteDuration(approach.route.duration)} (blau)`
-        : `${targetDistanceLabel(state, station)}${approach?.pending ? ' · Fußweg wird berechnet' : approach?.failed ? ' · Fußweg zum Ziel derzeit nicht verfügbar' : ''}`}` : '';
-    if (detailElement) detailElement.textContent = `${state.overviewRouteSummary} · ${state.overviewRouteCompleted ? `Tour beendet · ${result}` : targetLabel}${distanceLabel}${active ? ` · ${result}` : ''}`;
+    const distanceLabel = active ? (currentApproach
+        ? `Fußweg zum Ziel: ${formatRouteDistance(approach.route.distance)} · ${formatRouteDuration(approach.route.duration)}`
+        : !hasNavigationFix(state) ? 'GPS wird aktualisiert'
+            : `${targetDistanceLabel(state, station).replace('Zum Ziel: ', '')}${approach?.pending ? ' · Wegsuche…' : approach?.failed ? ' · Fußweg nicht verfügbar' : ''}`) : '';
+    if (detailElement) {
+        const target = state.overviewRouteCompleted ? 'Tour beendet' : targetLabel;
+        const progress = state.overviewRouteCompleted ? result
+            : `${state.overviewRouteReached}/${stations.length} erreicht${state.overviewRouteSkipped ? ` · ${state.overviewRouteSkipped} übersprungen` : ''}`;
+        const hint = `${state.overviewRouteMode === 'open' ? 'Der Anweg ist enthalten. Die Strecke endet an der letzten Station.' : 'An- und Rückweg zu deinem gespeicherten GPS-Ausgangspunkt sind enthalten.'} Die Gehzeit enthält keine Aufenthalte. Für die Ankunftsbestätigung sind frisches GPS und höchstens 20 m Abstand nötig.`;
+        const html = `<div class="route-summary-line"><span aria-hidden="true">↔</span> ${escapeHtml(state.overviewRouteSummary)}</div>
+            <div class="route-target-line"><span aria-hidden="true">${state.overviewRouteCompleted ? '✓' : '→'}</span> ${escapeHtml(target)}</div>
+            ${distanceLabel ? `<div class="route-status-line" title="${escapeHtml(targetDistanceLabel(state, station))}"><span aria-hidden="true">⌖</span> ${escapeHtml(distanceLabel)}</div>` : ''}
+            <div class="route-progress-line"><span aria-hidden="true">✓</span> ${escapeHtml(progress)}</div>
+            <details class="route-info-hints"><summary>Hinweise</summary><p>${escapeHtml(hint)}</p></details>`;
+        if (detailElement._routeContent !== html) {
+            const expanded = detailElement.querySelector?.('details')?.open;
+            detailElement.innerHTML = html;
+            if (expanded) detailElement.querySelector('details').open = true;
+            detailElement._routeContent = html;
+        }
+    }
     button.innerHTML = state.overviewRouteNavigationActive
-        ? (canConfirm ? (state.overviewRouteClosing ? 'Ankunft am Start bestätigen' : 'Ankunft bestätigen · Weiter') : (hasNavigationFix(state) ? 'Noch nicht am Ziel' : 'Warte auf genaues GPS'))
+        ? (canConfirm ? (state.overviewRouteClosing ? '✓ Am Start' : '✓ Weiter') : (hasNavigationFix(state) ? 'Unterwegs' : 'GPS abwarten'))
         : `<i class="ph ph-navigation-arrow"></i> ${state.overviewRouteMode === 'open' ? 'Tour' : 'Rundweg'} starten`;
+    button.setAttribute?.('aria-label', canConfirm ? (state.overviewRouteClosing ? 'Ankunft am GPS-Ausgangspunkt bestätigen' : 'Ankunft bestätigen und zur nächsten Station wechseln') : button.textContent);
     button.disabled = state.overviewRouteEstimated || state.overviewRouteCompleted || (active && !canConfirm);
     button.classList.toggle('opacity-75', state.overviewRouteNavigationActive);
-    button.classList.remove('hidden');
+    button.classList.toggle('hidden', Boolean(state.overviewRouteCompleted));
     skipButton?.classList.toggle('hidden', !state.overviewRouteNavigationActive || state.overviewRouteClosing);
     if (state.overviewRouteUiTimer) window.clearTimeout(state.overviewRouteUiTimer);
     if (active) state.overviewRouteUiTimer = window.setTimeout(updateOverviewRouteNavigationButton, 1000);
@@ -1289,7 +1314,7 @@ export async function toggleOverviewRoute(stationIds = null, mode = 'round') {
             .setLngLat([origin.lng, origin.lat]).addTo(state.map);
     }
     updateOverviewRouteButton();
-    state.overviewRouteSummary = `${state.overviewRouteMode === 'open' ? 'Gesamte Strecke' : 'Gesamter Rundweg'} ab deinem GPS-Start: ${formatRouteDistance(distance)} · reine Gehzeit ${formatRouteDuration(duration)} (inkl. Anweg${state.overviewRouteMode === 'round' ? ' und Rückweg' : ''}, ohne Aufenthalte)`;
+    state.overviewRouteSummary = `${formatRouteDistance(distance)} · Gehzeit ${formatRouteDuration(duration)}`;
     setRouteInfo(`${state.overviewRouteMode === 'open' ? 'Stationentour' : 'Rundweg'} · ${overview.stations.length} Stationen`, state.overviewRouteSummary);
     updateOverviewRouteNavigationButton();
     fitCoordinates(geometry.coordinates, 70);
