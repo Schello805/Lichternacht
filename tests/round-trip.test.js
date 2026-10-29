@@ -101,7 +101,7 @@ test('route controls distinguish distance, arrival and expired GPS without advan
         overviewRouteNavigationActive: true, overviewRouteSummary: 'Gesamte Runde: 442 m', overviewRouteReached: 0, overviewRouteSkipped: 0,
         userLocation: { lat: 50, lng: 10 }, gpsAccuracy: 10, gpsLastFixAt: Date.now() };
     let scheduled;
-    const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, getStationNumber, refreshOverviewApproach() {},
+    const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, getStationNumber, refreshOverviewApproach() {}, saveTour() {}, localStorage: {},
         document: { getElementById: id => elements[id] }, window: { clearTimeout() {}, setTimeout(callback) { scheduled = callback; return 1; } } });
     vm.runInContext(source.slice(source.indexOf('function escapeHtml('), source.indexOf('const MAP_STYLES')), context);
     vm.runInContext(source.slice(source.indexOf('function updateOverviewRouteNavigationButton()'), source.indexOf('export function startOverviewNavigation()')), context);
@@ -161,7 +161,7 @@ test('clearing a calculation without geometry invalidates late responses and GPS
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, canConfirmTarget, AbortController,
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, canConfirmTarget, AbortController, dismissSavedTour() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
         planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
@@ -184,7 +184,7 @@ test('failed foot routing never draws straight lines, including late responses',
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController,
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
         planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
@@ -211,7 +211,7 @@ test('GPS is required at start and a cancelled GPS callback cannot start a tour'
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: null };
     let gpsCallback;
     let routeCalls = 0;
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController,
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout },
         planWalkingTour() { routeCalls += 1; }, locateUser(callback) { gpsCallback = callback; },
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, setGeoJsonLayer() {}, updateOverviewRouteButton() {},

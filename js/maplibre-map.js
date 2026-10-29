@@ -1,9 +1,10 @@
 import { state } from './state.js';
-import { getStationNumber } from './station-number.js?v=1.4.308';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.308';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.308';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.308';
-import { saveData } from './data.js?v=1.4.308';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.309';
+import { getStationNumber } from './station-number.js?v=1.4.309';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.309';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.309';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.309';
+import { saveData } from './data.js?v=1.4.309';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -16,6 +17,69 @@ const MAP_STYLES = {
 };
 let recentlyClosedStation = null;
 let recentlyClosedTimer = null;
+let savedTourOffered = false;
+
+function dismissSavedTour() {
+    document.getElementById('saved-tour-dialog')?.remove();
+    try { localStorage.removeItem(TOUR_STORAGE_KEY); } catch {}
+}
+
+function offerSavedTour() {
+    if (savedTourOffered || !state.stations.length || state.overviewRouteNavigationActive) return;
+    savedTourOffered = true;
+    const tour = readSavedTour(localStorage, state.stations);
+    if (!tour) {
+        dismissSavedTour();
+        return;
+    }
+    const dialog = document.createElement('dialog');
+    dialog.id = 'saved-tour-dialog';
+    dialog.className = 'rounded-2xl p-5 shadow-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-[calc(100%-2rem)] max-w-sm';
+    dialog.setAttribute('aria-labelledby', 'saved-tour-title');
+    dialog.innerHTML = `<h2 id="saved-tour-title" class="text-xl font-bold mb-2">Tour fortsetzen?</h2>
+        <p class="text-sm mb-2">Deine laufende Tour wurde nur in diesem Browser gespeichert. Der ursprüngliche GPS-Start und dein Fortschritt bleiben erhalten.</p>
+        <p class="text-sm mb-4">${tour.reached} erreicht · ${tour.skipped} übersprungen · ${tour.stationIds.length - tour.progress} offen</p>
+        <div class="flex gap-3"><button data-tour-cancel class="flex-1 rounded-xl bg-gray-100 dark:bg-gray-700 px-3 py-3 font-bold">Abbrechen</button><button data-tour-resume class="flex-1 rounded-xl bg-yellow-500 text-gray-900 px-3 py-3 font-bold">Fortsetzen</button></div>`;
+    dialog.querySelector('[data-tour-cancel]').onclick = dismissSavedTour;
+    dialog.addEventListener('cancel', event => { event.preventDefault(); dismissSavedTour(); });
+    dialog.querySelector('[data-tour-resume]').onclick = () => {
+        const saved = readSavedTour(localStorage, state.stations);
+        if (!saved) {
+            dismissSavedTour();
+            showToast('Die gespeicherte Tour ist nicht mehr verfügbar. Bitte neu planen.', 'info');
+            return;
+        }
+        dialog.remove();
+        clearRoute();
+        state.overviewRouteRequestId += 1;
+        state.overviewRouteMode = saved.mode;
+        state.overviewRouteOrigin = saved.origin;
+        state.overviewRouteGeometry = saved.geometry;
+        state.overviewRouteStations = saved.stations;
+        state.overviewRouteNavigationProgress = saved.progress;
+        state.overviewRouteNavigationIndex = saved.progress % saved.stations.length;
+        state.overviewRouteReached = saved.reached;
+        state.overviewRouteSkipped = saved.skipped;
+        state.overviewRouteClosing = saved.progress === saved.stations.length;
+        state.overviewRouteCompleted = false;
+        state.overviewRouteNavigationActive = true;
+        state.overviewRouteEstimated = false;
+        state.overviewRouteSummary = saved.summary;
+        renderOverviewRoute(saved.geometry);
+        const marker = document.createElement('div');
+        marker.className = 'tour-start-marker';
+        marker.textContent = 'Start';
+        marker.setAttribute('aria-label', 'Dein gespeicherter GPS-Ausgangspunkt');
+        state.overviewRouteStartMarker = new maplibregl.Marker({ element: marker }).setLngLat([saved.origin.lng, saved.origin.lat]).addTo(state.map);
+        updateOverviewRouteButton();
+        setRouteInfo(`${saved.mode === 'open' ? 'Stationentour' : 'Rundweg'} · ${saved.stations.length} Stationen`, saved.summary);
+        updateOverviewRouteNavigationButton();
+        fitCoordinates(saved.geometry.coordinates, 70);
+        if (!hasNavigationFix(state)) locateUser(null, { userInitiated: false, forceCenter: false, requireNavigationFix: true });
+    };
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
 
 export function highlightRecentlyClosedStation(stationId) {
     if (recentlyClosedTimer) window.clearTimeout(recentlyClosedTimer);
@@ -621,6 +685,7 @@ function restoreMapOverlays() {
 
 export function refreshMapMarkers() {
     if (!state.map) return;
+    offerSavedTour();
     updateMapEditModeUi();
     clearClusterMarkers();
     state.markers.forEach(m => m.marker.remove());
@@ -1059,6 +1124,7 @@ function formatRouteDuration(durationSeconds) {
 }
 
 function clearOverviewRoute() {
+    dismissSavedTour();
     state.overviewRouteStartMarker?.remove();
     state.overviewRouteStartMarker = null;
     state.overviewRouteController?.abort();
@@ -1151,6 +1217,7 @@ async function refreshOverviewApproach() {
 }
 
 function updateOverviewRouteNavigationButton() {
+    saveTour(localStorage, state);
     const button = document.getElementById('overview-route-navigation-btn');
     const skipButton = document.getElementById('overview-route-skip-btn');
     const detailElement = document.getElementById('route-info-detail');
