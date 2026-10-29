@@ -76,7 +76,21 @@ class LocalDatabase:
                             database.execute('DELETE FROM likes WHERE station_id = ?', (identifier,))
                 else:
                     self.apply_document(database, operation)
+            self.validate_station_numbers(snapshot)
             database.execute('UPDATE snapshot SET data = ? WHERE id = 1', (json.dumps(snapshot, ensure_ascii=False),))
+
+    @staticmethod
+    def validate_station_numbers(snapshot):
+        if not any('number' in station for station in snapshot['stations']):
+            return
+        seen = set()
+        for station in snapshot['stations']:
+            number = station.get('number', station.get('id'))
+            if type(number) is not int or number < 1 or number > 9007199254740991:
+                raise ValueError('Die sichtbare Stationsnummer muss eine positive ganze Zahl sein.')
+            if number in seen:
+                raise ValueError(f'Die Stationsnummer {number} ist bereits vergeben.')
+            seen.add(number)
 
     @staticmethod
     def rename_station(database, snapshot, old_id, data):

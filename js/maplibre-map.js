@@ -1,8 +1,9 @@
 import { state } from './state.js';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.306';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.306';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.306';
-import { saveData } from './data.js?v=1.4.306';
+import { getStationNumber } from './station-number.js?v=1.4.307';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.307';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.307';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.307';
+import { saveData } from './data.js?v=1.4.307';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -638,7 +639,7 @@ export function refreshMapMarkers() {
         const isVisited = visitedStations.has(String(s.id));
         const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
         const color = (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
-        const idStr = s.id.toString();
+        const idStr = escapeHtml(getStationNumber(s));
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
         const hasRestroom = stationOffersRestroom(s);
@@ -1157,7 +1158,7 @@ function updateOverviewRouteNavigationButton() {
     if (!button || !state.overviewRouteGeometry || !stations.length) return;
     const index = state.overviewRouteNavigationIndex % stations.length;
     const station = state.overviewRouteClosing ? state.overviewRouteOrigin : stations[index];
-    const targetLabel = state.overviewRouteClosing ? 'Zurück zu deinem GPS-Ausgangspunkt' : `Nächste: #${station.id} ${station.name || ''}`;
+    const targetLabel = state.overviewRouteClosing ? 'Zurück zu deinem GPS-Ausgangspunkt' : `Nächste: #${getStationNumber(station)} ${station.name || ''}`;
     const result = `${state.overviewRouteReached} erreicht${state.overviewRouteSkipped ? ` · ${state.overviewRouteSkipped} übersprungen` : ''}`;
     const active = state.overviewRouteNavigationActive;
     void refreshOverviewApproach();

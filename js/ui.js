@@ -1,15 +1,16 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.306';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.306';
-import * as utils from './utils.js?v=1.4.306';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.306';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.306';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.306';
-import { recordAuditEvent } from './audit.js?v=1.4.306';
-import { normalizeImageUrl } from './image-url.js?v=1.4.306';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.306';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.306';
+import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.307';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.307';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.307';
+import * as utils from './utils.js?v=1.4.307';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.307';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.307';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.307';
+import { recordAuditEvent } from './audit.js?v=1.4.307';
+import { normalizeImageUrl } from './image-url.js?v=1.4.307';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.307';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.307';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -93,9 +94,9 @@ export function openRoutePlan() {
     const stations = [...state.stations]
         .filter(hasRoutePlanCoordinates)
         .filter(station => String(station.id || '').trim())
-        .sort((first, second) => Number(first.id) - Number(second.id));
+        .sort(compareStationNumbers);
 
-    list.innerHTML = stations.map(station => `<label class="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-gray-700/60 cursor-pointer active:bg-yellow-50 dark:active:bg-yellow-900/20"><input type="checkbox" data-route-plan-station value="${escapeHtml(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="h-5 w-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"><span class="min-w-0 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">#${escapeHtml(station.id)} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('');
+    list.innerHTML = stations.map(station => `<label class="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-gray-700/60 cursor-pointer active:bg-yellow-50 dark:active:bg-yellow-900/20"><input type="checkbox" data-route-plan-station value="${escapeHtml(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="h-5 w-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"><span class="min-w-0 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">#${escapeHtml(getStationNumber(station))} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('');
     modal.classList.remove('hidden');
     updateRoutePlanSelectionCount(modal);
 
@@ -240,7 +241,7 @@ export function openModal(target) {
         
         // Fix ID Display
         const numEl = document.getElementById('modal-number');
-        if (numEl) numEl.innerText = s.id;
+        if (numEl) numEl.innerText = getStationNumber(s);
         
         // Image
         renderModalStationImage(s);
@@ -851,7 +852,7 @@ export function renderList(stations) {
         if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
         if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !getStationTags(station).includes(currentFilter)) return false;
         const search = currentSearchQuery.toLowerCase();
-        return !search || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
+        return !search || String(getStationNumber(station)) === search.replace(/^#/, '') || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
     }).map(s => ({...s}));
 
     // If we have a user location, calculate distances!
@@ -875,8 +876,8 @@ export function renderList(stations) {
     } else {
         // Default Sort: ID (numeric with string fallback)
         listToRender.sort((a, b) => {
-            const idA = parseInt(a.id);
-            const idB = parseInt(b.id);
+            const idA = parseInt(getStationNumber(a));
+            const idB = parseInt(getStationNumber(b));
             
             if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
             return String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' });
@@ -931,14 +932,14 @@ export function renderList(stations) {
         }
 
         return `
-        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station #${escapeHtml(s.id)} ${escapeHtml(s.name)} öffnen">
+        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station #${escapeHtml(getStationNumber(s))} ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
                 ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
                 <div class="min-w-0 flex-1">
                     <div class="flex justify-between items-start">
                         <h3 class="flex min-w-0 items-baseline gap-2 font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">
-                            <span data-station-number class="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">#${escapeHtml(s.id)}</span>
+                            <span data-station-number class="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">#${escapeHtml(getStationNumber(s))}</span>
                             <span class="min-w-0 break-words">${escapeHtml(s.name)}</span>
                         </h3>
                         <div class="flex flex-col items-end gap-1">
@@ -1166,7 +1167,7 @@ export function editStation(id) {
     window.activeStationId = s.id;
 
     // Populate fields
-    document.getElementById('edit-id').value = s.id;
+    document.getElementById('edit-id').value = getStationNumber(s);
     document.getElementById('edit-name').value = s.name;
     document.getElementById('edit-desc').value = s.desc || '';
     document.getElementById('edit-offer').value = s.offer || '';
@@ -1188,7 +1189,7 @@ export function editStation(id) {
     // Image UI
     updateImageUploadUI(s.image);
 
-    setInlineEditableText('modal-number', s.id, 'Stationsnummer');
+    setInlineEditableText('modal-number', getStationNumber(s), 'Stationsnummer');
     setInlineEditableText('modal-title', s.name, 'Stationsname');
     setInlineEditableText('modal-subtitle', s.desc || '', 'Adresse / Ort hinzufügen');
     setInlineEditableText('modal-desc', s.offer || '', 'Angebot / Werbetext hinzufügen');
@@ -1255,7 +1256,7 @@ export function hasUnsavedStationChanges() {
     if (stationImageUploading || stationSaving) return true;
     const original = editingStationSnapshot;
     const fields = ['modal-number', 'modal-title', 'modal-subtitle', 'modal-desc', 'inline-edit-lat', 'inline-edit-lng', 'inline-edit-link', 'edit-tags'];
-    const values = [original.id, original.name, original.desc, original.offer, original.lat, original.lng, original.link, (original.tags || []).join(', ')];
+    const values = [getStationNumber(original), original.name, original.desc, original.offer, original.lat, original.lng, original.link, (original.tags || []).join(', ')];
     return fields.some((id, index) => {
         const element = document.getElementById(id);
         return String(element?.value ?? editableText(element)).trim() !== String(values[index] ?? '').trim();
@@ -1361,7 +1362,7 @@ export async function saveStationChanges() {
     }
 
     // Validation: Check if ID exists (and is not self)
-    const exists = state.stations.some(x => x.id == newId && x.id != oldId);
+    const exists = state.stations.some(x => getStationNumber(x) == newId && x.id != oldId);
     if (exists) {
         showToast(`Fehler: Die Nummer ${newId} ist bereits vergeben!`, 'error');
         return;
@@ -1422,13 +1423,14 @@ export async function saveStationChanges() {
 
     // Update Local Object
     // If ID changed, we need to handle that carefully
-    const idChanged = (newId != oldId);
+    const idChanged = (newId != getStationNumber(original));
     
     if (idChanged && /^\d+$/.test(String(oldId ?? ''))) {
-        if (!confirm(`Möchtest du die Station wirklich von Nr. ${oldId} in Nr. ${newId} umbenennen?`)) return;
+        if (!confirm(`Möchtest du die Station wirklich von Nr. ${getStationNumber(original)} in Nr. ${newId} umbenennen?`)) return;
     }
 
-    s.id = newId;
+    if (original.number !== undefined) s.number = newId;
+    else s.id = newId;
     s.name = newName;
     s.desc = newDesc;
     s.offer = newOffer;
@@ -1446,7 +1448,7 @@ export async function saveStationChanges() {
     stationSaving = true;
     if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Wird gespeichert…'; }
     try {
-        s.__docId = String(newId);
+        s.__docId = String(original.number !== undefined ? (original.__docId ?? original.id) : newId);
         if (s.__draft) delete s.__draft;
         await saveStationEdit(original, s);
         showToast("Station gespeichert", 'success');
@@ -1455,8 +1457,8 @@ export async function saveStationChanges() {
         }
         
         // Update State references
-        state.activeStationId = newId;
-        window.activeStationId = newId;
+        state.activeStationId = s.id;
+        window.activeStationId = s.id;
 
         // Refresh UI
         renderList(state.stations);
@@ -1773,7 +1775,7 @@ function populateEventStationSelect(selectedId = '') {
     const select = document.getElementById('evt-linked-station');
     if (!select) return;
     select.innerHTML = '<option value="">Keine Station (eigenständiger Programmpunkt)</option>' +
-        state.stations.map(station => `<option value="${escapeHtml(station.id)}">#${escapeHtml(station.id)} · ${escapeHtml(station.name)}</option>`).join('');
+        [...state.stations].sort(compareStationNumbers).map(station => `<option value="${escapeHtml(station.id)}">#${escapeHtml(getStationNumber(station))} · ${escapeHtml(station.name)}</option>`).join('');
     select.value = String(selectedId || '');
 }
 
@@ -2615,7 +2617,7 @@ export function renderTimeline() {
                         </div>` : ''}
                 </div>
                 <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
-                ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(linkedStation.id)} · ${escapeHtml(linkedStation.name)}</span>` : ''}
+                ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(getStationNumber(linkedStation))} · ${escapeHtml(linkedStation.name)}</span>` : ''}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-1 flex-wrap">
                     <i class="ph-fill ph-map-pin"></i>

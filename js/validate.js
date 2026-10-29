@@ -1,3 +1,5 @@
+import { getStationNumber } from './station-number.js?v=1.4.307';
+
 function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0;
 }
@@ -51,14 +53,24 @@ const TAG_MAX_LENGTH = 30;
 export function validateStations(stations) {
     const issues = [];
     const seenIds = new Map();
+    const seenNumbers = new Set();
 
     const list = Array.isArray(stations) ? stations : [];
+    const separateNumbers = list.some(station => station?.number !== undefined);
     list.forEach((s, idx) => {
         const id = s?.id;
         const name = s?.name;
         const idStr = (id === null || id === undefined) ? '' : String(id).trim();
         const label = idStr ? `Station ${idStr}${isNonEmptyString(name) ? ` (${name.trim()})` : ''}` : `Station (ohne id)`;
         const path = `stations[${idx}]`;
+        if (separateNumbers) {
+            const number = s?.number ?? s?.id;
+            if ((typeof number !== 'number' && typeof number !== 'string') || !/^[1-9]\d*$/.test(String(number)) || !Number.isSafeInteger(Number(number))) {
+                issues.push({ severity: 'error', where: path, label, stationId: idStr || null, field: 'number', message: 'Stationsnummer muss eine positive ganze Zahl sein' });
+            } else if (seenNumbers.has(Number(getStationNumber(s)))) {
+                issues.push({ severity: 'error', where: path, label, stationId: idStr || null, field: 'number', message: 'Stationsnummer ist bereits vergeben' });
+            } else seenNumbers.add(Number(getStationNumber(s)));
+        }
         if (!idStr) {
             issues.push({ severity: 'error', where: path, label, stationId: null, stationName: isNonEmptyString(name) ? name.trim() : '', field: 'id', message: 'id fehlt' });
         } else if (!/^\d+$/.test(idStr) || Number(idStr) < 1) {

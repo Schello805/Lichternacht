@@ -1,18 +1,19 @@
 
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.306';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.306';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.306';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.306';
+import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.307';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.307';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.307';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.307';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.307';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.306';
-import { recordAuditEvent } from './audit.js?v=1.4.306';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.306';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.306';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.307';
+import { recordAuditEvent } from './audit.js?v=1.4.307';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.307';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.307';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
-const STATION_TABLE_COLUMNS = ['id', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
+const STATION_TABLE_COLUMNS = ['id', 'number', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
 const EVENT_TABLE_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
@@ -409,15 +410,15 @@ function renderAdminDataTables() {
     `;
     const compareStationValues = (a, b) => {
         if (adminTableSort.field === 'id') {
-            const aNum = Number(a.id);
-            const bNum = Number(b.id);
+            const aNum = Number(getStationNumber(a));
+            const bNum = Number(getStationNumber(b));
             if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
             return String(a.id ?? '').localeCompare(String(b.id ?? ''), 'de', { numeric: true, sensitivity: 'base' });
         }
         return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'de', { numeric: true, sensitivity: 'base' });
     };
     const stations = (state.stations || []).filter(s => matches(
-        s.id,
+        getStationNumber(s),
         s.name,
         s.desc,
         s.offer,
@@ -444,7 +445,7 @@ function renderAdminDataTables() {
 
     const stationRows = stations.map(s => `
         <tr class="border-t border-gray-200 dark:border-gray-700">
-            <td class="py-2 px-3 font-mono font-bold">${escapeHtml(s.id)}</td>
+            <td class="py-2 px-3 font-mono font-bold">${escapeHtml(getStationNumber(s))}</td>
             <td class="py-2 pr-2 font-bold">${escapeHtml(s.name)}</td>
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.desc || '')}</td>
             <td class="py-2 pr-2 text-gray-500 dark:text-gray-300">${escapeHtml(s.offer || '')}</td>
@@ -548,7 +549,7 @@ function renderDefaultRouteStationSelection() {
         .filter(station => String(station.id || '').trim())
         .sort((first, second) => Number(first.id) - Number(second.id));
     container.innerHTML = stations.length
-        ? stations.map(station => `<label class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"><input type="checkbox" name="admin-default-route-station" value="${escapeAttr(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="rounded text-yellow-600 focus:ring-yellow-500"><span class="text-xs text-gray-700 dark:text-gray-200">#${escapeHtml(station.id)} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('')
+        ? stations.sort(compareStationNumbers).map(station => `<label class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"><input type="checkbox" name="admin-default-route-station" value="${escapeAttr(station.id)}" ${selectedIds.has(String(station.id)) ? 'checked' : ''} class="rounded text-yellow-600 focus:ring-yellow-500"><span class="text-xs text-gray-700 dark:text-gray-200">#${escapeHtml(getStationNumber(station))} · ${escapeHtml(station.name || 'Ohne Namen')}</span></label>`).join('')
         : '<p class="text-xs text-gray-500">Noch keine Stationen vorhanden.</p>';
 
     const updateCount = () => {
@@ -1170,7 +1171,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.306';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.307';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1249,8 +1250,8 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
 
 function getStationTableRows() {
     return [...(state.stations || [])].sort((firstStation, secondStation) => {
-        const firstId = Number(firstStation?.id);
-        const secondId = Number(secondStation?.id);
+        const firstId = Number(getStationNumber(firstStation));
+        const secondId = Number(getStationNumber(secondStation));
         const firstHasNumber = Number.isFinite(firstId);
         const secondHasNumber = Number.isFinite(secondId);
         if (firstHasNumber && secondHasNumber) return firstId - secondId;
@@ -1258,7 +1259,7 @@ function getStationTableRows() {
         if (secondHasNumber) return 1;
         return String(firstStation?.id ?? '').localeCompare(String(secondStation?.id ?? ''), 'de');
     }).map(s => ({
-        id: s.id ?? '', name: s.name ?? '', address: s.desc ?? '', offer: s.offer ?? '', link: s.link ?? '',
+        id: s.id ?? '', number: getStationNumber(s), name: s.name ?? '', address: s.desc ?? '', offer: s.offer ?? '', link: s.link ?? '',
         lat: s.lat ?? '', lng: s.lng ?? '', tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
         image: s.image ?? '', likes: s.likes ?? ''
     }));
@@ -1278,7 +1279,7 @@ async function readExcelTable(file, expectedColumns) {
     const worksheet = workbook.worksheets[0];
     if (!worksheet || worksheet.rowCount < 2) return [];
     const headers = worksheet.getRow(1).values.slice(1).map(value => normalizeExcelCellValue(value).trim());
-    const missingColumns = expectedColumns.filter(column => !headers.includes(column));
+    const missingColumns = expectedColumns.filter(column => column !== 'number' && !headers.includes(column));
     if (missingColumns.length) {
         throw new Error(`Falsche oder veraltete Vorlage. Fehlende Spalten: ${missingColumns.join(', ')}`);
     }
@@ -1391,7 +1392,7 @@ async function importRowsGeneric(rows, kind, options = {}) {
     }
     const expectedColumns = kind === 'stations' ? STATION_TABLE_COLUMNS : EVENT_TABLE_COLUMNS;
     const availableColumns = Object.keys(rows[0] || {});
-    const missingColumns = expectedColumns.filter(column => !availableColumns.includes(column));
+    const missingColumns = expectedColumns.filter(column => !(kind === 'stations' && column === 'number') && !availableColumns.includes(column));
     if (missingColumns.length) {
         throw new Error(`${kind === 'stations' ? 'Stationen' : 'Programm'}: fehlende Spalten ${missingColumns.join(', ')}`);
     }
@@ -1415,6 +1416,12 @@ async function importRowsGeneric(rows, kind, options = {}) {
                 tags: normalizeTags(r.tags),
             };
             const image = normalizeImportedUrl(r.image);
+            const previous = state.stations.find(item => String(item.id) === String(station.id));
+            const publicNumber = String(r.number ?? '').trim();
+            if (publicNumber) {
+                if (!/^[1-9]\d*$/.test(publicNumber) || !Number.isSafeInteger(Number(publicNumber))) throw new Error(`Station: number muss eine positive ganze Zahl sein in Zeile ${idx + 2}`);
+                station.number = Number(publicNumber);
+            } else if (previous?.number !== undefined) station.number = previous.number;
             if (image) station.image = image;
             const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
             station.likes = Number.isFinite(likes) ? Math.max(0, likes) : 0;
@@ -1432,6 +1439,10 @@ async function importRowsGeneric(rows, kind, options = {}) {
                 maxId += 1;
                 s.id = maxId;
             }
+        }
+        if (state.config?.stationNumbering || state.stations.some(station => station.number !== undefined)) {
+            let nextNumber = Math.max(0, ...state.stations.map(station => Number(getStationNumber(station)) || 0), ...mapped.map(station => Number(station.number) || 0));
+            for (const station of mapped) if (station.number === undefined) station.number = ++nextNumber;
         }
 
         const issues = validateStations(mapped);
@@ -1720,6 +1731,9 @@ export function handleAdminAdd(type) {
         tags: [],
         __draft: true
     };
+    if (state.config?.stationNumbering || state.stations.some(station => station.number !== undefined)) {
+        newStation.number = Math.max(0, ...state.stations.map(station => Number(getStationNumber(station)) || 0)) + 1;
+    }
     
     state.stations.push(newStation);
     
@@ -1733,7 +1747,7 @@ export function handleAdminAdd(type) {
     if (window.editStation) {
         window.editStation(newId);
     }
-    showToast(`Neue Station (${newId}) erstellt (Entwurf)`, 'info');
+    showToast(`Neue Station (${getStationNumber(newStation)}) erstellt (Entwurf)`, 'info');
 }
 
 export function dumpData() {
@@ -1760,9 +1774,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.306';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.306';
-import { renderList, renderTimeline } from './ui.js?v=1.4.306';
+import { showToast } from './utils.js?v=1.4.307';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.307';
+import { renderList, renderTimeline } from './ui.js?v=1.4.307';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
