@@ -1,4 +1,5 @@
 import json
+import re
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -86,11 +87,15 @@ class LocalDatabase:
         seen = set()
         for station in snapshot['stations']:
             number = station.get('number', station.get('id'))
-            if type(number) is not int or number < 1 or number > 9007199254740991:
-                raise ValueError('Die sichtbare Stationsnummer muss eine positive ganze Zahl sein.')
-            if number in seen:
+            match = re.fullmatch(r'([1-9][0-9]*)([A-Za-z]?)', str(number).strip()) if type(number) in (int, str) else None
+            if not match or int(match[1]) > 9007199254740991:
+                raise ValueError('Die sichtbare Stationsnummer muss eine positive ganze Zahl mit optionalem Buchstaben sein, z. B. 1A.')
+            normalized = str(int(match[1])) + match[2].upper()
+            if normalized in seen:
                 raise ValueError(f'Die Stationsnummer {number} ist bereits vergeben.')
-            seen.add(number)
+            seen.add(normalized)
+            if 'number' in station:
+                station['number'] = normalized if match[2] else int(normalized)
 
     @staticmethod
     def rename_station(database, snapshot, old_id, data):

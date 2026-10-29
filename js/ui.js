@@ -1,16 +1,16 @@
 
 import { state } from './state.js';
-import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.307';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.307';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.307';
-import * as utils from './utils.js?v=1.4.307';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.307';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.307';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.307';
-import { recordAuditEvent } from './audit.js?v=1.4.307';
-import { normalizeImageUrl } from './image-url.js?v=1.4.307';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.307';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.307';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.308';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.308';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.308';
+import * as utils from './utils.js?v=1.4.308';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.308';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.308';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.308';
+import { recordAuditEvent } from './audit.js?v=1.4.308';
+import { normalizeImageUrl } from './image-url.js?v=1.4.308';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.308';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.308';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -852,7 +852,7 @@ export function renderList(stations) {
         if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
         if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !getStationTags(station).includes(currentFilter)) return false;
         const search = currentSearchQuery.toLowerCase();
-        return !search || String(getStationNumber(station)) === search.replace(/^#/, '') || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
+        return !search || String(getStationNumber(station)).toLowerCase() === search.replace(/^#/, '') || [station.name, station.desc, station.offer, station.address].some(value => String(value || '').toLowerCase().includes(search));
     }).map(s => ({...s}));
 
     // If we have a user location, calculate distances!
@@ -875,13 +875,7 @@ export function renderList(stations) {
         listToRender.sort((a, b) => (a._dist || 9999999) - (b._dist || 9999999));
     } else {
         // Default Sort: ID (numeric with string fallback)
-        listToRender.sort((a, b) => {
-            const idA = parseInt(getStationNumber(a));
-            const idB = parseInt(getStationNumber(b));
-            
-            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
-            return String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' });
-        });
+        listToRender.sort(compareStationNumbers);
     }
 
     const visitedStations = getVisitedStationIdSet();
@@ -1350,16 +1344,12 @@ export async function saveStationChanges() {
 
     // Read ID (and ensure it's treated consistently, likely number for stations)
     const idInput = document.getElementById('edit-id').value.trim();
-    if (!/^\d+$/.test(idInput)) {
-        showToast("Stationsnummer darf nur aus Zahlen bestehen", 'error');
+    const newId = normalizeStationNumber(idInput);
+    if (newId === null) {
+        showToast('Stationsnummer: positive ganze Zahl, optional mit einem Buchstaben, z. B. 1A.', 'error');
         return;
     }
-    
-    const newId = parseInt(idInput, 10);
-    if (!Number.isInteger(newId) || newId < 1) {
-        showToast("Stationsnummer muss eine positive ganze Zahl sein", 'error');
-        return;
-    }
+    const separateNumber = original.number !== undefined || typeof newId === 'string';
 
     // Validation: Check if ID exists (and is not self)
     const exists = state.stations.some(x => getStationNumber(x) == newId && x.id != oldId);
@@ -1429,7 +1419,7 @@ export async function saveStationChanges() {
         if (!confirm(`Möchtest du die Station wirklich von Nr. ${getStationNumber(original)} in Nr. ${newId} umbenennen?`)) return;
     }
 
-    if (original.number !== undefined) s.number = newId;
+    if (separateNumber) s.number = newId;
     else s.id = newId;
     s.name = newName;
     s.desc = newDesc;
@@ -1448,7 +1438,7 @@ export async function saveStationChanges() {
     stationSaving = true;
     if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Wird gespeichert…'; }
     try {
-        s.__docId = String(original.number !== undefined ? (original.__docId ?? original.id) : newId);
+        s.__docId = String(separateNumber ? (original.__docId ?? original.id) : newId);
         if (s.__draft) delete s.__draft;
         await saveStationEdit(original, s);
         showToast("Station gespeichert", 'success');
