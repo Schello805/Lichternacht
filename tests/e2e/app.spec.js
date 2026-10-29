@@ -1646,6 +1646,41 @@ test('flyer numbers preserve stable favorites, visits, links, route selections a
     expect(await page.evaluate(() => localStorage.getItem('route_plan_station_ids_v1'))).toBe('["20","26"]');
 });
 
+test('local tour resumes after reload with its original start and can be discarded', async ({ page }) => {
+    await page.route('https://routing.openstreetmap.de/**', route => {
+        const url = route.request().url();
+        const count = url.split('/driving/')[1].split('?')[0].split(';').length;
+        return route.fulfill({ json: url.includes('/table/')
+            ? { code: 'Ok', durations: Array.from({ length: count }, (_, row) => Array.from({ length: count }, (_, column) => Math.abs(row - column) * 60)) }
+            : { code: 'Ok', routes: [{ distance: 150, duration: 120, geometry: { type: 'LineString', coordinates: [[10.54, 49.15], [10.552, 49.158]] } }] } });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.userLocation = { lat: 49.15, lng: 10.54 };
+        window.state.gpsAccuracy = 5;
+        window.state.gpsLastFixAt = Date.now();
+        window.openRoutePlan();
+    });
+    await page.locator('[data-route-plan-none]').click();
+    for (let index = 0; index < 3; index += 1) await page.locator('[data-route-plan-station]').nth(index).check();
+    await page.locator('[data-route-plan-submit]').click();
+    await expect(page.locator('#overview-route-skip-btn')).toBeVisible();
+    await page.locator('#overview-route-skip-btn').click();
+    const target = await page.evaluate(() => window.state.overviewRouteStations[1].id);
+    await page.reload();
+    await expect(page.locator('#saved-tour-dialog')).toBeVisible();
+    await expect(page.locator('#saved-tour-dialog')).toContainText('1 übersprungen');
+    await page.locator('[data-tour-resume]').click();
+    expect(await page.evaluate(() => ({ origin: window.state.overviewRouteOrigin, progress: window.state.overviewRouteNavigationProgress, target: window.state.overviewRouteStations[window.state.overviewRouteNavigationIndex].id }))).toEqual({ origin: { lat: 49.15, lng: 10.54 }, progress: 1, target });
+    await page.locator('#overview-route-skip-btn').click();
+    await page.reload();
+    await expect(page.locator('#saved-tour-dialog')).toContainText('2 übersprungen');
+    await page.locator('[data-tour-cancel]').click();
+    expect(await page.evaluate(() => localStorage.getItem('active_station_tour_v1'))).toBeNull();
+    await page.reload();
+    await expect(page.locator('#saved-tour-dialog')).toHaveCount(0);
+});
+
 test('editing a flyer number never renames the stable station record', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
