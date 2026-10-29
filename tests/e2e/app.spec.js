@@ -1607,6 +1607,35 @@ test('links in station descriptions are clickable and open safely', async ({ pag
     await expect(descriptionLink).toHaveAttribute('rel', 'noopener noreferrer');
 });
 
+test('station list shows one small station number directly left of the name', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const station = window.state.stations[0];
+        station.id = 123;
+        station.name = 'Station mit einem besonders langen Namen für die mobile Ansicht';
+        window.state.stations = [station];
+        window.renderList([station]);
+        window.switchTab('list');
+    });
+    const card = page.locator('#stations-list > button').first();
+    await expect(card.locator('[data-station-number]')).toHaveText('#123');
+    await expect(card.locator('[data-station-number]')).toHaveCount(1);
+    await expect(card).toHaveAttribute('aria-label', /Station #123 /);
+    for (const width of [320, 390, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        const layout = await card.evaluate(element => {
+            const badge = element.querySelector('[data-station-number]').getBoundingClientRect();
+            const name = element.querySelector('h3 > span:last-child').getBoundingClientRect();
+            return { badgeRight: badge.right, nameLeft: name.left, badgeHeight: badge.height, width: element.clientWidth, scrollWidth: element.scrollWidth };
+        });
+        expect(layout.badgeRight).toBeLessThanOrEqual(layout.nameLeft);
+        expect(layout.badgeHeight).toBeLessThanOrEqual(24);
+        expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width);
+    }
+    await page.evaluate(() => window.setThemePreference('dark'));
+    await expect(card.locator('[data-station-number]')).toBeVisible();
+});
+
 test('station list shows the station description', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
