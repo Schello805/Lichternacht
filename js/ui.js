@@ -1,15 +1,15 @@
 
 import { state } from './state.js';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.305';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.305';
-import * as utils from './utils.js?v=1.4.305';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.305';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.305';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.305';
-import { recordAuditEvent } from './audit.js?v=1.4.305';
-import { normalizeImageUrl } from './image-url.js?v=1.4.305';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.305';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.305';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.306';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.306';
+import * as utils from './utils.js?v=1.4.306';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.306';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.306';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.306';
+import { recordAuditEvent } from './audit.js?v=1.4.306';
+import { normalizeImageUrl } from './image-url.js?v=1.4.306';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.306';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.306';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -931,15 +931,17 @@ export function renderList(stations) {
         }
 
         return `
-        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station ${escapeHtml(s.name)} öffnen">
+        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station #${escapeHtml(s.id)} ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
                 ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
                 <div class="min-w-0 flex-1">
                     <div class="flex justify-between items-start">
-                        <h3 class="font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">${escapeHtml(s.name)}</h3>
+                        <h3 class="flex min-w-0 items-baseline gap-2 font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">
+                            <span data-station-number class="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">#${escapeHtml(s.id)}</span>
+                            <span class="min-w-0 break-words">${escapeHtml(s.name)}</span>
+                        </h3>
                         <div class="flex flex-col items-end gap-1">
-                            <span class="text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'} px-1.5 py-0.5 rounded ${isVisited ? 'mr-24' : ''}">#${escapeHtml(s.id)}</span>
                             <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
                         </div>
                     </div>
