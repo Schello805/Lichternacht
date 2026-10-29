@@ -1,4 +1,4 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.306';
+import { stationCoordinates } from './round-trip.js?v=1.4.307';
 
 const BASE = 'https://routing.openstreetmap.de/routed-foot';
 const cache = new Map();

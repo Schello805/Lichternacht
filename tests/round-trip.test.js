@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { buildRoundTrip, stationCoordinates, distanceMeters, hasNavigationFix, canConfirmTarget, targetDistanceLabel, STATION_ARRIVAL_RADIUS_METERS } from '../js/round-trip.js';
+import { getStationNumber } from '../js/station-number.js';
 
 const stations = [{ id: 1, lat: 49, lng: 10 }, { id: 2, lat: 49.001, lng: 10.001 }, { id: 3, lat: 49.002, lng: 10 }];
 const length = route => route.coordinates.slice(1).reduce((total, coordinate, index) => total + distanceMeters(route.coordinates[index], coordinate), 0);
@@ -100,7 +101,7 @@ test('route controls distinguish distance, arrival and expired GPS without advan
         overviewRouteNavigationActive: true, overviewRouteSummary: 'Gesamte Runde: 442 m', overviewRouteReached: 0, overviewRouteSkipped: 0,
         userLocation: { lat: 50, lng: 10 }, gpsAccuracy: 10, gpsLastFixAt: Date.now() };
     let scheduled;
-    const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, refreshOverviewApproach() {},
+    const context = vm.createContext({ state, canConfirmTarget, hasNavigationFix, targetDistanceLabel, getStationNumber, refreshOverviewApproach() {},
         document: { getElementById: id => elements[id] }, window: { clearTimeout() {}, setTimeout(callback) { scheduled = callback; return 1; } } });
     vm.runInContext(source.slice(source.indexOf('function escapeHtml('), source.indexOf('const MAP_STYLES')), context);
     vm.runInContext(source.slice(source.indexOf('function updateOverviewRouteNavigationButton()'), source.indexOf('export function startOverviewNavigation()')), context);

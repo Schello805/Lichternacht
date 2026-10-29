@@ -1607,6 +1607,66 @@ test('links in station descriptions are clickable and open safely', async ({ pag
     await expect(descriptionLink).toHaveAttribute('rel', 'noopener noreferrer');
 });
 
+test('flyer numbers preserve stable favorites, visits, links, route selections and event relationships', async ({ page }) => {
+    await page.goto('/index.html?station=20');
+    await expect(page.locator('#detail-modal')).toBeVisible();
+    await page.evaluate(() => {
+        const imker = window.state.stations.find(station => Number(station.id) === 20);
+        const dance = window.state.stations.find(station => Number(station.id) === 26);
+        imker.number = 26;
+        dance.number = 34;
+        window.state.stations = [dance, imker];
+        window.state.events = [{ id: 'number-test', stationId: 20, time: '17:00', title: 'Flyer-Programm', desc: '', loc: 'Beim Imker' }];
+        window.state.favorites = new Set(['20']);
+        localStorage.setItem('favorites', '["20"]');
+        localStorage.setItem('visited_stations', '["20"]');
+        localStorage.setItem('route_plan_station_ids_v1', '["20","26"]');
+        window.refreshMapMarkers();
+        window.renderTimeline();
+        window.openStation(20);
+    });
+    await expect(page.locator('#modal-number')).toHaveText('26');
+    expect(await page.evaluate(() => window.state.activeStationId)).toBe(20);
+    expect(await page.evaluate(() => window.state.markers.find(marker => Number(marker.id) === 20).marker.getElement().querySelector('.station-pin').textContent)).toBe('26');
+    const visits = await page.evaluate(async () => (await import(`/js/utils.js?v=${window.APP_VERSION}`)).getVisitedStationRecords().map(record => ({ id: record.id, number: record.stationNumber })));
+    expect(visits).toEqual([{ id: '20', number: 26 }]);
+    await page.evaluate(() => { window.switchTab('list'); window.filterList('favorites'); });
+    await expect(page.locator('#stations-list > button')).toHaveCount(1);
+    await expect(page.locator('[data-station-number]')).toHaveText('#26');
+    await page.evaluate(() => { window.filterList('all'); window.filterStations('#26'); });
+    await expect(page.locator('#stations-list > button')).toHaveCount(1);
+    await expect(page.locator('[data-station-number]')).toHaveText('#26');
+    await page.evaluate(() => window.openRoutePlan());
+    await expect(page.locator('[data-route-plan-station][value="20"]')).toBeChecked();
+    await expect(page.locator('[data-route-plan-station][value="20"]').locator('..')).toContainText('#26');
+    await page.evaluate(() => { window.closeModal('route-plan-modal'); window.switchTab('events'); });
+    await expect(page.locator('#timeline-container')).toContainText('Bei Station #26');
+    expect(await page.evaluate(() => window.state.events[0].stationId)).toBe(20);
+    expect(await page.evaluate(() => localStorage.getItem('favorites'))).toBe('["20"]');
+    expect(await page.evaluate(() => localStorage.getItem('route_plan_station_ids_v1'))).toBe('["20","26"]');
+});
+
+test('editing a flyer number never renames the stable station record', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.isAdmin = true;
+        window.state.useLocalStorage = true;
+        const station = window.state.stations.find(item => Number(item.id) === 20);
+        station.number = 26;
+        window.state.stations = [station];
+        window.state.events = [{ id: 'stable-event', stationId: 20, title: 'Programm' }];
+        window.openStation(20);
+        window.editStation(20);
+    });
+    await expect(page.locator('#modal-number')).toHaveText('26');
+    await page.locator('#modal-number').fill('44');
+    page.once('dialog', dialog => dialog.accept());
+    await page.evaluate(() => window.saveStationChanges());
+    await expect(page.locator('#modal-number')).toHaveText('44');
+    expect(await page.evaluate(() => ({ id: window.state.stations[0].id, number: window.state.stations[0].number, event: window.state.events[0].stationId }))).toEqual({ id: 20, number: 44, event: 20 });
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('stations_data'))[0].id)).toBe(20);
+});
+
 test('station list shows one small station number directly left of the name', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {

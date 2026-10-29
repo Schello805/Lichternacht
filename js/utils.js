@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { getStationNumber } from './station-number.js?v=1.4.307';
 
 const VISITED_KEY = 'visited_stations';
 const VISITED_LOG_KEY = 'visited_station_log';
@@ -84,7 +85,7 @@ export function getVisitedStationRecords(stations = state.stations) {
                 checkedAtLabel: formatDateTimeDe(item.checkedAt),
                 station: entry?.station || null,
                 stationName: entry?.station?.name || `Station ${item.id}`,
-                stationNumber: entry?.station?.id ?? item.id,
+                stationNumber: entry?.station ? getStationNumber(entry.station) : item.id,
                 order: entry?.index ?? 99999
             };
         })
