@@ -70,6 +70,9 @@ Danach die App vollständig neu laden. Stichproben:
 
 Nach der Umstellung bearbeitet das Feld „Stationsnummer“ die sichtbare Nummer,
 nicht die interne Kennung. Doppelte Nummern werden serverseitig abgewiesen.
+Ein Buchstabenzusatz wie `1A` ist ebenfalls möglich: Station öffnen, „Bearbeiten“,
+Nummer ändern und speichern. Die Reihenfolge ist `1`, `1A`, `1B`, `2`.
+Das ursprüngliche Umnummerierungsskript dafür nicht erneut ausführen.
 Neue Stationen erhalten eine freie interne Kennung und eine neue sichtbare Nummer.
 
 Tabellenexporte enthalten jetzt `id` (stabile interne Kennung) und `number`

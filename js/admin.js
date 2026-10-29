@@ -1,15 +1,15 @@
 
 import { state } from './state.js';
-import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.307';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.307';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.307';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.307';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.307';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.308';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.308';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.308';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.308';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.308';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.307';
-import { recordAuditEvent } from './audit.js?v=1.4.307';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.307';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.307';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.308';
+import { recordAuditEvent } from './audit.js?v=1.4.308';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.308';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.308';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -410,10 +410,7 @@ function renderAdminDataTables() {
     `;
     const compareStationValues = (a, b) => {
         if (adminTableSort.field === 'id') {
-            const aNum = Number(getStationNumber(a));
-            const bNum = Number(getStationNumber(b));
-            if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
-            return String(a.id ?? '').localeCompare(String(b.id ?? ''), 'de', { numeric: true, sensitivity: 'base' });
+            return compareStationNumbers(a, b);
         }
         return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'de', { numeric: true, sensitivity: 'base' });
     };
@@ -1171,7 +1168,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.307';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.308';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1249,16 +1246,7 @@ async function downloadExcelTable(rows, columns, filename, sheetName) {
 }
 
 function getStationTableRows() {
-    return [...(state.stations || [])].sort((firstStation, secondStation) => {
-        const firstId = Number(getStationNumber(firstStation));
-        const secondId = Number(getStationNumber(secondStation));
-        const firstHasNumber = Number.isFinite(firstId);
-        const secondHasNumber = Number.isFinite(secondId);
-        if (firstHasNumber && secondHasNumber) return firstId - secondId;
-        if (firstHasNumber) return -1;
-        if (secondHasNumber) return 1;
-        return String(firstStation?.id ?? '').localeCompare(String(secondStation?.id ?? ''), 'de');
-    }).map(s => ({
+    return [...(state.stations || [])].sort(compareStationNumbers).map(s => ({
         id: s.id ?? '', number: getStationNumber(s), name: s.name ?? '', address: s.desc ?? '', offer: s.offer ?? '', link: s.link ?? '',
         lat: s.lat ?? '', lng: s.lng ?? '', tags: Array.isArray(s.tags) ? s.tags.join('|') : '',
         image: s.image ?? '', likes: s.likes ?? ''
@@ -1419,8 +1407,9 @@ async function importRowsGeneric(rows, kind, options = {}) {
             const previous = state.stations.find(item => String(item.id) === String(station.id));
             const publicNumber = String(r.number ?? '').trim();
             if (publicNumber) {
-                if (!/^[1-9]\d*$/.test(publicNumber) || !Number.isSafeInteger(Number(publicNumber))) throw new Error(`Station: number muss eine positive ganze Zahl sein in Zeile ${idx + 2}`);
-                station.number = Number(publicNumber);
+                const normalized = normalizeStationNumber(publicNumber);
+                if (normalized === null) throw new Error(`Station: number muss eine positive ganze Zahl mit optionalem Buchstaben sein, z. B. 1A (Zeile ${idx + 2})`);
+                station.number = normalized;
             } else if (previous?.number !== undefined) station.number = previous.number;
             if (image) station.image = image;
             const likes = Number.parseInt((r.likes ?? '').toString().trim(), 10);
@@ -1774,9 +1763,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.307';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.307';
-import { renderList, renderTimeline } from './ui.js?v=1.4.307';
+import { showToast } from './utils.js?v=1.4.308';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.308';
+import { renderList, renderTimeline } from './ui.js?v=1.4.308';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

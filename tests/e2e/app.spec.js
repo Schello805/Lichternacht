@@ -1659,11 +1659,11 @@ test('editing a flyer number never renames the stable station record', async ({ 
         window.editStation(20);
     });
     await expect(page.locator('#modal-number')).toHaveText('26');
-    await page.locator('#modal-number').fill('44');
+    await page.locator('#modal-number').fill('1a');
     page.once('dialog', dialog => dialog.accept());
     await page.evaluate(() => window.saveStationChanges());
-    await expect(page.locator('#modal-number')).toHaveText('44');
-    expect(await page.evaluate(() => ({ id: window.state.stations[0].id, number: window.state.stations[0].number, event: window.state.events[0].stationId }))).toEqual({ id: 20, number: 44, event: 20 });
+    await expect(page.locator('#modal-number')).toHaveText('1A');
+    expect(await page.evaluate(() => ({ id: window.state.stations[0].id, number: window.state.stations[0].number, event: window.state.events[0].stationId }))).toEqual({ id: 20, number: '1A', event: 20 });
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('stations_data'))[0].id)).toBe(20);
 });
 

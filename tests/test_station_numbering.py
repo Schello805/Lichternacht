@@ -38,6 +38,22 @@ class StationNumberingTest(unittest.TestCase):
     def digest(self):
         return hashlib.sha256(self.path.read_bytes()).hexdigest()
 
+    def test_manual_letter_number_preserves_identity_and_references(self):
+        run_numbering(self.path, self.plan, apply=True)
+        before = self.database.backup()
+        self.database.write('set', 'stations', '43', {'number': '1a'}, True)
+        after = self.database.backup()
+        station = next(item for item in after['stations'] if item['id'] == 43)
+        self.assertEqual(station['number'], '1A')
+        self.assertEqual(station.pop('__docId'), '43')
+        station['number'] = 43
+        before.pop('createdAt')
+        after.pop('createdAt')
+        self.assertEqual(before, after)
+        for number in ['1a', '0A', 'A1', '1AA', '1 A', True, 1.5]:
+            with self.assertRaises(ValueError):
+                self.database.write('set', 'stations', '2', {'number': number}, True)
+
     def test_preview_does_not_change_database_or_create_backup(self):
         before = self.digest()
         result = run_numbering(self.path, self.plan)
