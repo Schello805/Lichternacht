@@ -789,7 +789,7 @@ for (const kind of ['parking', 'wc', 'station-wc']) {
         expect(url.searchParams.get('destination')).toBe('49.158,10.552');
         expect(url.searchParams.get('travelmode')).toBe(kind === 'parking' ? 'driving' : 'walking');
         expect(url.searchParams.get('dir_action')).toBe('navigate');
-        await expect(link).toHaveAttribute('target', '_self');
+        await expect(link).toHaveAttribute('target', '_blank');
         await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
         expect(await page.evaluate(() => window.__amenityGpsRequests)).toBe(0);
         await expect(page.locator('#detail-modal')).toBeHidden();

@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.312';
-import { getStationNumber } from './station-number.js?v=1.4.312';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.312';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.312';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.312';
-import { saveData } from './data.js?v=1.4.312';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.313';
+import { getStationNumber } from './station-number.js?v=1.4.313';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.313';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.313';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.313';
+import { saveData } from './data.js?v=1.4.313';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -256,7 +256,7 @@ function bindAmenityNavigation(element, coordinates, kind, options) {
         url.search = new URLSearchParams({ api: '1', destination: `${coordinates.latitude},${coordinates.longitude}`, travelmode: parking ? 'driving' : 'walking' });
         url.searchParams.set('dir_action', 'navigate');
         link.href = url.href;
-        link.target = '_self';
+        link.target = parking ? '_blank' : '_self';
         link.rel = 'noopener noreferrer';
         link.textContent = parking ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren';
         if (!parking) {
