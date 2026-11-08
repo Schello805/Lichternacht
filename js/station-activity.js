@@ -11,7 +11,11 @@ let levels = new Map();
 let levelsAt = 0;
 
 function tokens() {
-    try { return JSON.parse(localStorage.getItem(TOKENS_KEY) || '{}'); } catch { return {}; }
+    try {
+        const records = JSON.parse(localStorage.getItem(TOKENS_KEY) || '{}');
+        if (!records || Array.isArray(records) || typeof records !== 'object') return {};
+        return Object.fromEntries(Object.entries(records).filter(([, record]) => record && typeof record === 'object' && (!record.expiresAt || record.expiresAt > Date.now())));
+    } catch { return {}; }
 }
 
 export function nearestActivityStation(stations, location, accuracy, fixAt, now = Date.now()) {
@@ -93,7 +97,9 @@ async function tick() {
             const key = `${windowConfig.dateKey}:${id}`;
             if (!records[key]) {
                 const bytes = crypto.getRandomValues(new Uint8Array(32));
-                records[key] = { token: [...bytes].map(value => value.toString(16).padStart(2, '0')).join(''), stationId: id, event: windowConfig.dateKey, at: 0 };
+                const [year, month, day] = windowConfig.dateKey.split('-').map(Number);
+                const end = new Date(year, month - 1, day + (windowConfig.endMin < windowConfig.startMin ? 1 : 0), 0, windowConfig.endMin);
+                records[key] = { token: [...bytes].map(value => value.toString(16).padStart(2, '0')).join(''), stationId: id, event: windowConfig.dateKey, at: 0, expiresAt: end.getTime() + 3 * 3600000 + 30 * 86400000 };
                 localStorage.setItem(TOKENS_KEY, JSON.stringify(records));
             }
         }
