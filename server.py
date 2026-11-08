@@ -560,7 +560,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             payload = self._read_json()
             if not isinstance(payload, dict):
                 return self._send_json(400, {'ok': False, 'error': 'Ungültige Daten'})
-            if not is_admin or payload.get('action') == 'like' or payload.get('collection') == 'checkins':
+            if not is_admin or payload.get('action') in ('like', 'stationActivity') or payload.get('collection') == 'checkins':
                 user = self._verified_firebase_user
                 if not user:
                     return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung ungültig'})
@@ -568,7 +568,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     return self._send_json(429, {'ok': False, 'error': 'Zu viele Anfragen'})
                 try:
                     database = LocalDatabase(LOCAL_DATABASE_PATH)
-                    if payload.get('action') == 'like' and payload.get('collection') == 'stations':
+                    if payload.get('action') == 'stationActivity':
+                        checked = database.station_activity(str(user['localId']), payload)
+                        return self._send_json(200, {'ok': True, 'checkedIn': bool(checked)})
+                    elif payload.get('action') == 'like' and payload.get('collection') == 'stations':
                         database.like(str(user['localId']), str(payload.get('id', '')))
                     else:
                         database.visitor_write(str(user['localId']), payload)
@@ -822,6 +825,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 params = urllib.parse.parse_qs(parsed_path.query)
                 collection = (params.get('collection') or [''])[0]
                 identifier = (params.get('id') or [None])[0]
+                if collection == 'stationActivity':
+                    report = (params.get('report') or [''])[0] == 'true'
+                    if report and not self._verify_admin_token():
+                        return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
+                    return self._send_json(200, {'ok': True, 'stations': LocalDatabase(LOCAL_DATABASE_PATH).activity_summary(report)})
                 if collection:
                     public = {'stations', 'events', 'config', 'broadcast', 'globalConfig', 'stats', 'presence'}
                     private = {'checkins', 'auditLogs', 'users', 'reports', 'globalAdmins'}

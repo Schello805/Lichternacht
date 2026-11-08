@@ -1,6 +1,64 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('station activity transmits only station signals after consent and a sustained fresh GPS fix', async ({ page }) => {
+    await page.clock.install();
+    const payloads = [];
+    await page.route('**/api/local-data', route => {
+        const payload = route.request().postDataJSON();
+        payloads.push(payload);
+        return route.fulfill({ json: { ok: true, checkedIn: false } });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const now = new Date();
+        window.state.localBackend = true;
+        window.state.auth = { currentUser: { getIdToken: async () => 'test' } };
+        window.state.downloads.icsDate = `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()} 00:00-23:59`;
+        const station = window.state.stations[0];
+        window.state.userLocation = { lat: Number(station.lat), lng: Number(station.lng) };
+        window.state.gpsAccuracy = 5;
+        window.state.gpsLastFixAt = Date.now();
+        window.openCookieBanner();
+    });
+    await page.clock.runFor(15000);
+    expect(payloads).toHaveLength(0);
+    await page.locator('#station-activity-consent').check();
+    for (let index = 0; index < 3; index += 1) {
+        await page.evaluate(() => { window.state.gpsLastFixAt = Date.now(); });
+        await page.clock.runFor(15000);
+    }
+    await expect.poll(() => payloads.filter(payload => payload.action === 'stationActivity' && payload.present === true).length).toBe(1);
+    const signal = payloads.find(payload => payload.present === true);
+    expect(Object.keys(signal).sort()).toEqual(['action', 'present', 'stationId', 'token']);
+    expect(signal.token).toMatch(/^[a-f0-9]{64}$/);
+    await page.locator('#station-activity-consent').uncheck();
+    await page.clock.runFor(15000);
+    await expect.poll(() => payloads.some(payload => payload.forget === true)).toBe(true);
+});
+
+test('station activity is above the title and missing signals leave no placeholder', async ({ page }) => {
+    let available = true;
+    await page.route('**/api/local-data?collection=stationActivity', route => route.fulfill({ json: { ok: true, stations: available ? [{ stationId: '1', level: 'medium' }] : [] } }));
+    await page.goto('/index.html');
+    await page.evaluate(() => { window.state.localBackend = true; window.openStation(1); });
+    const badge = page.locator('#modal-activity-badge');
+    await expect(badge).toHaveText('🟡 Mittlere Aktivität');
+    await expect(badge).toBeVisible();
+    expect(await badge.evaluate(element => element.getBoundingClientRect().bottom <= document.getElementById('modal-title').getBoundingClientRect().top)).toBe(true);
+    available = false;
+    await page.evaluate(() => window.openStation(1));
+    await expect(badge).toBeHidden();
+    await expect(badge).toHaveText('');
+    expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBeNull();
+    await page.evaluate(() => { window.closeModal(); window.openCookieBanner(); });
+    await expect(page.locator('#station-activity-consent')).not.toBeChecked();
+    await page.locator('#station-activity-consent').check();
+    expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBe('granted');
+    await page.locator('#station-activity-consent').uncheck();
+    expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBe('denied');
+});
+
 test('event calendar downloads one event and hides automatically at the one-hour cutoff', async ({ page }) => {
     await page.clock.install({ time: new Date('2099-11-21T14:29:00Z') });
     await page.clock.pauseAt(new Date('2099-11-21T14:29:59Z'));
@@ -236,6 +294,7 @@ test.beforeEach(async ({ page }) => {
     };
     await page.addInitScript(() => {
         localStorage.setItem('tracking_consent', 'denied');
+        localStorage.setItem('station_activity_notice_v1', 'shown');
         localStorage.setItem('tutorial_seen', 'true');
         localStorage.setItem('mini_tour_seen_v1', 'true');
         localStorage.setItem('visitor_start_card_dismissed_v1', 'true');

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.309';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.310';
 
 const QUEUE_KEY = 'offline_action_queue_v1';
 let flushing = false;
@@ -112,6 +112,7 @@ export async function flushOfflineActions() {
                 await executeAction(action);
                 completedIds.add(action.id);
                 updateCheckinStatus(action, 'synced');
+                if (['checkin', 'undo-checkin'].includes(action.type)) window.dispatchEvent(new Event('station-checkin-synced'));
             } catch (error) {
                 if (error.permanent) {
                     completedIds.add(action.id);

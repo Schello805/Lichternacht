@@ -1,15 +1,16 @@
 
 import { state } from './state.js';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.309';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.309';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.309';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.309';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.309';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.310';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.310';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.310';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.310';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.310';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.310';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.309';
-import { recordAuditEvent } from './audit.js?v=1.4.309';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.309';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.309';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.310';
+import { recordAuditEvent } from './audit.js?v=1.4.310';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.310';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.310';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1168,7 +1169,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.309';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.310';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1763,9 +1764,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.309';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.309';
-import { renderList, renderTimeline } from './ui.js?v=1.4.309';
+import { showToast } from './utils.js?v=1.4.310';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.310';
+import { renderList, renderTimeline } from './ui.js?v=1.4.310';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -2150,7 +2151,7 @@ export async function saveRewardsConfig() {
     }
 }
 
-function buildUsageSummary(checkins) {
+function buildUsageSummary(checkins, activity = []) {
     const stationLookup = new Map((state.stations || []).map(station => [String(station.id), station]));
     const byStation = new Map();
     const byHour = new Map();
@@ -2179,18 +2180,23 @@ function buildUsageSummary(checkins) {
         if (levels[level] !== undefined) levels[level] += 1;
     });
 
+    activity.filter(row => row.visits > 0).forEach(row => {
+        if (!byStation.has(row.stationId)) byStation.set(row.stationId, { stationId: row.stationId, stationName: stationLookup.get(row.stationId)?.name || `Station ${row.stationId}`, count: 0, uniqueVisitors: new Set(), first: '', last: '' });
+    });
+    const activityLookup = new Map(activity.map(row => [row.stationId, row]));
     const stationRows = [...byStation.values()]
         .map(row => ({ ...row, uniqueVisitors: row.uniqueVisitors.size }))
+        .map(row => ({ ...row, visits: activityLookup.get(row.stationId)?.visits ?? 0, checkedInVisits: activityLookup.get(row.stationId)?.checkedIn ?? 0, checkinPercent: activityLookup.get(row.stationId)?.checkinPercent ?? null }))
         .sort((a, b) => b.count - a.count || a.stationName.localeCompare(b.stationName, 'de'));
     const hourlyRows = [...byHour.entries()].map(([hour, count]) => ({ hour, count })).sort((a, b) => a.hour.localeCompare(b.hour));
     const dateRows = [...byDate.entries()].map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
     const totalStations = (state.stations || []).length;
-    const visitedStationIds = new Set(stationRows.map(row => String(row.stationId)));
+    const visitedStationIds = new Set(stationRows.filter(row => row.count > 0).map(row => String(row.stationId)));
     const stationsWithoutCheckins = (state.stations || [])
         .filter(station => !visitedStationIds.has(String(station.id)))
         .map(station => ({ stationId: String(station.id), stationName: station.name || `Station ${station.id}` }));
     const peakHour = hourlyRows.slice().sort((a, b) => b.count - a.count)[0] || null;
-    const topStation = stationRows[0] || null;
+    const topStation = stationRows.find(row => row.count > 0) || null;
     const lowStations = stationRows.filter(row => row.count <= 2);
 
     const lessons = [];
@@ -2205,6 +2211,7 @@ function buildUsageSummary(checkins) {
         totalCheckins: checkins.length,
         uniqueVisitors: uniqueVisitors.size,
         totalStations,
+        stationsWithCheckins: visitedStationIds.size,
         stationRows,
         hourlyRows,
         dateRows,
@@ -2232,6 +2239,7 @@ function renderUsageSummary(summary) {
     `).join('');
     const hours = summary.hourlyRows.map(row => `${escapeHtml(row.hour)}: ${escapeHtml(row.count)}`).join(' · ') || 'Keine Daten';
     const lessons = summary.lessons.map(item => `<li>${escapeHtml(item)}</li>`).join('') || '<li>Noch zu wenig Daten für Lessons Learned.</li>';
+    const activityRows = summary.stationRows.map(row => `<tr class="border-t border-gray-200 dark:border-gray-700"><td class="py-2 pr-2">${escapeHtml(row.stationName)}</td><td class="text-right">${row.visits}</td><td class="text-right">${row.checkedInVisits}</td><td class="text-right">${row.checkinPercent === null ? '–' : `${row.checkinPercent.toLocaleString('de-DE')} %`}</td></tr>`).join('');
 
     el.innerHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -2252,6 +2260,9 @@ function renderUsageSummary(summary) {
             </table>
         </div>
         <div>
+            <div class="font-bold mb-1">Erfasste Stationsbesuche & Check-in-Quote</div>
+            <div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="text-left">Station</th><th class="text-right">Besuche</th><th class="text-right">Davon eingecheckt</th><th class="text-right">Quote</th></tr></thead><tbody>${activityRows || '<tr><td colspan="4">Noch keine Daten</td></tr>'}</tbody></table></div>
+            <p class="text-xs text-gray-500 my-3">Freiwillig teilnehmende Browser, keine vollständige Personenzählung. Einmal je Station und Veranstaltung; gelöschter Browserspeicher kann Doppelzählungen verursachen. Quote = eingecheckte erfasste Browser / erfasste Browser. Check-ins ohne Teilnahme stehen nur in der bisherigen Check-in-Auswertung.</p>
             <div class="font-bold mb-1">Lessons Learned</div>
             <ul class="list-disc pl-5 text-xs text-gray-600 dark:text-gray-300 space-y-1">${lessons}</ul>
         </div>
@@ -2261,7 +2272,7 @@ function renderUsageSummary(summary) {
 function usageSummaryToText(summary) {
     const createdAt = new Date(summary.generatedAt).toLocaleString('de-DE');
     const stationCoverage = summary.totalStations > 0
-        ? Math.round((summary.stationRows.length / summary.totalStations) * 100)
+        ? Math.round((summary.stationsWithCheckins / summary.totalStations) * 100)
         : 0;
     const averageCheckins = summary.uniqueVisitors > 0
         ? (summary.totalCheckins / summary.uniqueVisitors).toFixed(1).replace('.', ',')
@@ -2277,7 +2288,7 @@ function usageSummaryToText(summary) {
     const formatRows = (rows, emptyText) => rows.length ? rows : [`- ${emptyText}`];
     const topStationRows = formatRows(
         summary.stationRows.slice(0, 12).map((row, index) => {
-            return `${String(index + 1).padStart(2, '0')}. #${row.stationId} ${row.stationName} – ${row.count} Check-in${row.count === 1 ? '' : 's'} (${row.uniqueVisitors} Gerät${row.uniqueVisitors === 1 ? '' : 'e'})`;
+            return `${String(index + 1).padStart(2, '0')}. #${row.stationId} ${row.stationName} – ${row.count} Check-in${row.count === 1 ? '' : 's'} (${row.uniqueVisitors} Geräte); ${row.visits} erfasste Browserbesuche, davon ${row.checkedInVisits} eingecheckt, Quote ${row.checkinPercent === null ? '–' : row.checkinPercent + ' %'}`;
         }),
         'Keine Daten vorhanden'
     );
@@ -2306,7 +2317,7 @@ function usageSummaryToText(summary) {
         `• Check-ins gesamt: ${summary.totalCheckins}`,
         `• Aktive Lichter‑Pass Geräte: ${summary.uniqueVisitors}`,
         `• Ø Check-ins pro aktivem Gerät: ${averageCheckins}`,
-        `• Stationen mit Check-ins: ${summary.stationRows.length}/${summary.totalStations} (${stationCoverage} %)`,
+        `• Stationen mit Check-ins: ${summary.stationsWithCheckins}/${summary.totalStations} (${stationCoverage} %)`,
         `• Medaillen erreicht: ${medalLine}`,
         '',
         'Top-Erkenntnisse',
@@ -2337,19 +2348,25 @@ function usageSummaryToText(summary) {
         '',
         'Hinweis: Diese Auswertung ist anonymisiert/pseudonymisiert. Es werden keine Namen, Kontaktdaten oder GPS-Koordinaten aus normalen Check-ins ausgewertet.'
     ];
+    lines.push('', 'Erfasste Browserbesuche & Check-in-Quote (nur freiwillige Teilnehmer):',
+        ...summary.stationRows.map(row => `${row.stationName}: ${row.visits} erfasst, davon ${row.checkedInVisits} eingecheckt; ${row.checkinPercent === null ? 'keine Quote' : row.checkinPercent + ' %'}`),
+        'Keine vollständige Personenzählung; Browserwechsel und gelöschter Speicher können Doppelzählungen verursachen.');
     return lines.join('\n');
 }
 
 function downloadUsageCsv(summary) {
     const rows = [
-        ['stationId', 'stationName', 'checkins', 'uniqueDevices', 'firstCheckin', 'lastCheckin'].join(';'),
+        ['stationId', 'stationName', 'checkins', 'uniqueDevices', 'firstCheckin', 'lastCheckin', 'detectedBrowserVisits', 'checkedInDetectedVisits', 'checkinPercent'].join(';'),
         ...summary.stationRows.map(row => [
             toCsvValue(row.stationId),
             toCsvValue(row.stationName),
             toCsvValue(row.count),
             toCsvValue(row.uniqueVisitors),
             toCsvValue(row.first),
-            toCsvValue(row.last)
+            toCsvValue(row.last),
+            toCsvValue(row.visits),
+            toCsvValue(row.checkedInVisits),
+            toCsvValue(row.checkinPercent ?? '')
         ].join(';'))
     ];
     downloadTextFile('lichterpass-nutzungsanalyse-stationen.csv', `\uFEFF${rows.join('\n')}\n`, 'text/csv;charset=utf-8');
@@ -2370,7 +2387,8 @@ export async function loadUsageAnalytics() {
         const snap = await state.fb.getDocs(colRef);
         const checkins = [];
         snap.forEach(docSnap => checkins.push({ id: docSnap.id, ...docSnap.data() }));
-        state.usageSummary = buildUsageSummary(checkins);
+        const activity = state.localBackend ? await loadStationActivityReport() : [];
+        state.usageSummary = buildUsageSummary(checkins, activity);
         renderUsageSummary(state.usageSummary);
         showToast('Nutzungsanalyse geladen', 'success');
     } catch (e) {
