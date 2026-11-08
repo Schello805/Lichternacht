@@ -1378,6 +1378,7 @@ function initTrackingConsentUi() {
         retryVisitorStartCardSoon();
     };
     const show = () => {
+        localStorage.setItem('station_activity_notice_v1', 'shown');
         document.getElementById('matomo-consent-choice').checked = window.hasTrackingConsent?.() === true;
         document.getElementById('station-activity-consent').checked = localStorage.getItem('station_activity_consent_v1') === 'granted';
         modal.querySelector('details').open = false;

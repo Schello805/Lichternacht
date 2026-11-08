@@ -138,10 +138,6 @@ export function initStationActivity() {
         localStorage.setItem('station_activity_notice_v1', 'shown');
         if (window.getTrackingConsentState?.() != null) window.openCookieBanner?.();
     }
-    const checkbox = document.getElementById('station-activity-consent');
-    if (checkbox) {
-        checkbox.checked = localStorage.getItem(CONSENT_KEY) === 'granted';
-    }
     window.setInterval(tick, 15000);
     document.addEventListener('visibilitychange', () => { candidate = null; void tick(); });
     window.addEventListener('station-checkin-synced', () => {
