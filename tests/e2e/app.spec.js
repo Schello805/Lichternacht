@@ -1,6 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('compact explanations keep route and cookie details collapsed', async ({ page }) => {
+    await page.route('https://fonts.googleapis.com/**', route => route.fulfill({ contentType: 'text/css', body: '' }));
+    await page.goto('/index.html');
+    await page.evaluate(() => window.openRoutePlan());
+    await expect(page.locator('[data-route-plan-help]')).not.toHaveAttribute('open');
+    expect((await page.locator('[data-route-plan-help]').innerText()).length).toBeLessThan(280);
+    await page.evaluate(() => { window.closeModal('route-plan-modal'); window.openCookieBanner(); });
+    await expect(page.locator('#tracking-consent details')).not.toHaveAttribute('open');
+    await expect(page.locator('#tracking-consent-accept')).toHaveText('Alle erlauben');
+    await expect(page.locator('#tracking-consent-decline')).toHaveText('Nur notwendige');
+});
+
 test('station activity transmits only station signals after consent and a sustained fresh GPS fix', async ({ page }) => {
     await page.clock.install();
     const payloads = [];
@@ -273,7 +285,7 @@ test('failed foot routing preserves the plan without drawing air lines or reques
         navigator.geolocation.watchPosition = () => { throw new Error('Unexpected GPS watch'); };
         window.openRoutePlan();
     });
-    await expect(page.locator('#route-plan-modal')).toContainText('Wähle deine Stationen schon jetzt');
+    await expect(page.locator('#route-plan-modal')).toContainText('Stationen wählen – auch ohne GPS');
     await page.locator('[data-route-plan-submit]').click();
     await expect(page.locator('#route-info')).toContainText('Fußweg konnte nicht berechnet werden');
     expect(await page.evaluate(() => window.state.overviewRouteGeometry)).toBeNull();
@@ -758,11 +770,26 @@ for (const kind of ['parking', 'wc', 'station-wc']) {
         const popup = page.locator('.amenity-navigation-popup');
         await expect(popup).toBeVisible();
         const link = popup.getByRole('link', { name: kind === 'parking' ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren' });
+        if (kind !== 'parking') {
+            await expect(link).toHaveAttribute('href', '#');
+            await page.route('https://routing.openstreetmap.de/**', route => route.fulfill({ json: { code: 'Ok', routes: [{ distance: 100, duration: 90, geometry: { type: 'LineString', coordinates: [[10.551, 49.158], [10.552, 49.158]] } }] } }));
+            await page.evaluate(() => {
+                window.state.userLocation = { lat: 49.158, lng: 10.551 };
+                window.state.gpsAccuracy = 5;
+                window.state.gpsLastFixAt = Date.now();
+            });
+            await link.click();
+            await expect(page.locator('#route-info-title')).toHaveText('Fußweg zum WC');
+            await expect.poll(() => page.evaluate(() => Boolean(window.state.routeGeometry))).toBe(true);
+            expect(await page.evaluate(() => window.__amenityGpsRequests)).toBe(0);
+            return;
+        }
         const url = new URL(await link.getAttribute('href'));
         expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/');
         expect(url.searchParams.get('destination')).toBe('49.158,10.552');
         expect(url.searchParams.get('travelmode')).toBe(kind === 'parking' ? 'driving' : 'walking');
-        await expect(link).toHaveAttribute('target', '_blank');
+        expect(url.searchParams.get('dir_action')).toBe('navigate');
+        await expect(link).toHaveAttribute('target', '_self');
         await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
         expect(await page.evaluate(() => window.__amenityGpsRequests)).toBe(0);
         await expect(page.locator('#detail-modal')).toBeHidden();
@@ -2157,7 +2184,7 @@ test('visitor pass hides admin exports', async ({ page }) => {
 test('help explains current favorite, voting and notification controls', async ({ page }) => {
     await page.goto('/help.html');
 
-    await expect(page.getByText('Markiere Stationen mit dem Stern')).toBeVisible();
+    await expect(page.getByText('Mit dem Stern merken')).toBeVisible();
     await expect(page.getByText('Gib einer Station einmalig einen Daumen hoch')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Programmerinnerungen' })).toBeVisible();
 });

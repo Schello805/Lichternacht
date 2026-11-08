@@ -1,13 +1,13 @@
 import { state } from './js/state.js';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.311';
-import { shareStation, showToast } from './js/utils.js?v=1.4.311';
-import * as utils from './js/utils.js?v=1.4.311';
-import { initFirebase } from './js/firebase-init.js?v=1.4.311';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.311';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.311';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.311';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.311';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.311';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.312';
+import { shareStation, showToast } from './js/utils.js?v=1.4.312';
+import * as utils from './js/utils.js?v=1.4.312';
+import { initFirebase } from './js/firebase-init.js?v=1.4.312';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.312';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.312';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.312';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.312';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.312';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -16,12 +16,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.311';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.311';
-import { recordAuditEvent } from './js/audit.js?v=1.4.311';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.311';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.311';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.311';
+} from './js/ui.js?v=1.4.312';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.312';
+import { recordAuditEvent } from './js/audit.js?v=1.4.312';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.312';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.312';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.312';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -31,7 +31,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.311";
+const APP_VERSION = "1.4.312";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -249,7 +249,7 @@ window.updateVisitorStartCard = () => {
     } else if (eventWindow) {
         nextEl.innerHTML = `
             <div class="font-bold text-gray-900 dark:text-white">Dein schneller Einstieg</div>
-            <div class="mt-0.5">Öffne die Karte, suche Stationen oder plane deinen Abend im Programm.</div>
+            <div class="mt-0.5">Stationen entdecken, Programm ansehen, Abend planen.</div>
         `;
     } else {
         nextEl.innerHTML = `
@@ -644,12 +644,12 @@ window.showPassInfo = () => {
                 <div class="mt-4 p-3 rounded-xl border ${isParticipant ? 'border-green-200 bg-green-50 text-green-900' : 'border-blue-200 bg-blue-50 text-blue-900'} text-sm">
                     <div class="font-bold">${isParticipant ? 'Gewinnspiel-Teilnahme ist aktiv' : 'Gewinnspiel-Teilnahme ist freiwillig'}</div>
                     <div class="mt-1">${isParticipant
-                        ? 'Du kannst erreichte Preise anfordern. Deine hinterlegten Kontaktdaten werden dafür verwendet.'
-                        : 'Deine Check-ins zählen weiter. Einen Preis kannst du nur mit Name, E-Mail und akzeptierten Gewinnspielhinweisen erhalten.'}</div>
+                        ? 'Erreichte Preise mit deinen hinterlegten Kontaktdaten anfordern.'
+                        : 'Check-ins zählen auch ohne Teilnahme. Für Preise: Name, E-Mail und Zustimmung zu den Gewinnspielhinweisen.'}</div>
                     ${!isParticipant ? `<button type="button" id="pass-join-raffle" class="mt-3 w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">Am Gewinnspiel teilnehmen</button>` : ''}
                 </div>
             ` : raffleAvailable ? `
-                <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">Nach dem 3. Check-in kannst du freiwillig am Gewinnspiel teilnehmen. Check-ins sind auch ohne Teilnahme möglich.</div>
+                <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">Ab 3 Check-ins optional am Gewinnspiel teilnehmen. Sammeln geht auch ohne Teilnahme.</div>
             ` : ''}
 
             ${bestReached ? `
@@ -945,17 +945,17 @@ window.startMiniTour = (force = false) => {
         {
             elId: 'map-locate-btn',
             title: 'Standort bestimmen',
-            text: 'Einmal antippen, damit du deine Position, Entfernungen und Gehzeiten zu den Stationen siehst.'
+            text: 'Antippen: Standort, Entfernungen und Gehzeiten sehen.'
         },
         {
             elId: 'pass-progress',
             title: 'Lichter‑Pass',
-            text: 'Sammle Stationen direkt vor Ort. Einchecken klappt nur in der Nähe einer Station und braucht keine Anmeldung.'
+            text: 'Vor Ort einchecken und Stationen sammeln – ohne Anmeldung.'
         },
         {
             elId: 'map-overview-route-btn',
             title: 'Rundweg planen',
-            text: 'Plane deinen Abend schon jetzt, auch ohne GPS: Wähle Favoriten oder Stationen aus. Nur das Einchecken ist auf den Veranstaltungszeitraum mit einer Stunde Vorlauf und drei Stunden Nachlauf begrenzt.'
+            text: 'Stationen wählen, ab deinem GPS-Standort starten. Einchecken: 1 Stunde vor Beginn bis 3 Stunden nach Ende.'
         },
         {
             tab: 'list',
@@ -967,7 +967,7 @@ window.startMiniTour = (force = false) => {
             tab: 'events',
             elId: 'nav-events',
             title: 'Programm',
-            text: 'Alle Auftritte und Zeiten auf einen Blick. Mit „Zeigen“ springst du direkt zur Station auf der Karte.'
+            text: 'Auftritte und Zeiten ansehen. „Zeigen“ öffnet den Ort auf der Karte.'
         }
     ];
 
