@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.311';
-import { getStationNumber } from './station-number.js?v=1.4.311';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.311';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.311';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.311';
-import { saveData } from './data.js?v=1.4.311';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.312';
+import { getStationNumber } from './station-number.js?v=1.4.312';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.312';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.312';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.312';
+import { saveData } from './data.js?v=1.4.312';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -37,7 +37,7 @@ function offerSavedTour() {
     dialog.className = 'rounded-2xl p-5 shadow-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-[calc(100%-2rem)] max-w-sm';
     dialog.setAttribute('aria-labelledby', 'saved-tour-title');
     dialog.innerHTML = `<h2 id="saved-tour-title" class="text-xl font-bold mb-2">Tour fortsetzen?</h2>
-        <p class="text-sm mb-2">Deine laufende Tour wurde nur in diesem Browser gespeichert. Der ursprüngliche GPS-Start und dein Fortschritt bleiben erhalten.</p>
+        <p class="text-sm mb-2">Im Browser gespeichert: dein GPS-Start und Tourfortschritt.</p>
         <p class="text-sm mb-4">${tour.reached} erreicht · ${tour.skipped} übersprungen · ${tour.stationIds.length - tour.progress} offen</p>
         <div class="flex gap-3"><button data-tour-cancel class="flex-1 rounded-xl bg-gray-100 dark:bg-gray-700 px-3 py-3 font-bold">Abbrechen</button><button data-tour-resume class="flex-1 rounded-xl bg-yellow-500 text-gray-900 px-3 py-3 font-bold">Fortsetzen</button></div>`;
     dialog.querySelector('[data-tour-cancel]').onclick = dismissSavedTour;
@@ -250,14 +250,23 @@ function bindAmenityNavigation(element, coordinates, kind, options) {
         const heading = document.createElement('h3');
         heading.textContent = options.name ? `${title} · ${options.name}` : title;
         const description = document.createElement('p');
-        description.textContent = parking ? 'Autoroute in Google Maps öffnen.' : 'Fußweg in Google Maps öffnen.';
+        description.textContent = parking ? 'Mit dem Auto · Google Maps' : 'Zu Fuß · direkt auf der Karte';
         const link = document.createElement('a');
         const url = new URL('https://www.google.com/maps/dir/');
         url.search = new URLSearchParams({ api: '1', destination: `${coordinates.latitude},${coordinates.longitude}`, travelmode: parking ? 'driving' : 'walking' });
+        url.searchParams.set('dir_action', 'navigate');
         link.href = url.href;
-        link.target = '_blank';
+        link.target = '_self';
         link.rel = 'noopener noreferrer';
         link.textContent = parking ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren';
+        if (!parking) {
+            link.href = '#';
+            link.addEventListener('click', event => {
+                event.preventDefault();
+                amenityNavigationPopup?.remove();
+                void routeToRestroom(coordinates.latitude, coordinates.longitude);
+            });
+        }
         content.append(heading, description, link);
         amenityNavigationPopup = new maplibregl.Popup({ className: 'amenity-navigation-popup', offset: 24, maxWidth: '280px' })
             .setLngLat([coordinates.longitude, coordinates.latitude])
@@ -1012,6 +1021,27 @@ export async function locateUser(cb, options = {}) {
     setTimeout(startWatch, 1200);
 }
 
+async function routeToRestroom(lat, lng) {
+    if (!hasNavigationFix(state)) {
+        locateUser(() => { if (hasNavigationFix(state)) void routeToRestroom(lat, lng); }, { userInitiated: false, forceCenter: false, requireNavigationFix: true });
+        return;
+    }
+    clearRoute();
+    const requestId = state.overviewRouteRequestId;
+    setRouteInfo('Fußweg zum WC', 'Weg wird berechnet…');
+    try {
+        const route = await fetchFootRoute([[state.userLocation.lng, state.userLocation.lat], [lng, lat]]);
+        if (requestId !== state.overviewRouteRequestId) return;
+        state.routeGeometry = route.geometry;
+        renderRoute(route.geometry);
+        setRouteInfo('Fußweg zum WC', `${formatRouteDistance(route.distance)} · ${formatRouteDuration(route.duration)}`);
+        fitCoordinates(route.geometry.coordinates, 70);
+    } catch {
+        if (requestId !== state.overviewRouteRequestId) return;
+        setRouteInfo('Kein Fußweg verfügbar', 'Bitte erneut versuchen.');
+    }
+}
+
 export function calculateRoute(destLat, destLng) {
     const destination = getValidCoordinates(destLat, destLng);
     if (!destination) {
@@ -1240,7 +1270,7 @@ function updateOverviewRouteNavigationButton() {
         const target = state.overviewRouteCompleted ? 'Tour beendet' : targetLabel;
         const progress = state.overviewRouteCompleted ? result
             : `${state.overviewRouteReached}/${stations.length} erreicht${state.overviewRouteSkipped ? ` · ${state.overviewRouteSkipped} übersprungen` : ''}`;
-        const hint = `${state.overviewRouteMode === 'open' ? 'Der Anweg ist enthalten. Die Strecke endet an der letzten Station.' : 'An- und Rückweg zu deinem gespeicherten GPS-Ausgangspunkt sind enthalten.'} Die Gehzeit enthält keine Aufenthalte. Für die Ankunftsbestätigung sind frisches GPS und höchstens 20 m Abstand nötig.`;
+        const hint = `${state.overviewRouteMode === 'open' ? 'Inklusive Anweg; Ende an der letzten Station.' : 'Inklusive An- und Rückweg zu deinem GPS-Start.'} Gehzeit ohne Aufenthalte. Ankunft bestätigen: frisches GPS und höchstens 20 m Abstand.`;
         const html = `<div class="route-summary-line"><span aria-hidden="true">↔</span> ${escapeHtml(state.overviewRouteSummary)}</div>
             <div class="route-target-line"><span aria-hidden="true">${state.overviewRouteCompleted ? '✓' : '→'}</span> ${escapeHtml(target)}</div>
             ${distanceLabel ? `<div class="route-status-line" title="${escapeHtml(targetDistanceLabel(state, station))}"><span aria-hidden="true">⌖</span> ${escapeHtml(distanceLabel)}</div>` : ''}
