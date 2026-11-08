@@ -1,6 +1,10 @@
 # Freiwillige Stationsstatistik
 
-Separates Opt-in unter Hilfe → Datenschutz & Cookies. Kein zusätzliches GPS,
+Gemeinsames Cookie-Banner unter Hilfe → Datenschutz & Cookies: „Alle erlauben“
+aktiviert Matomo und Stationsstatistik, „Nur notwendige“ lehnt beides ab.
+Unter „Einstellungen“ sind einzelne Zwecke wählbar; Änderungen gelten erst nach
+„Auswahl speichern“. Bestehende reine Matomo-Einwilligungen werden nicht erweitert.
+Kein zusätzliches GPS,
 keine Koordinatenübertragung; vorhandene frische GPS-Messungen werden lokal
 ausgewertet. Nur die nächste Station innerhalb 20 m, mindestens 20 Sekunden
 mit aktualisiertem GPS; Genauigkeit höchstens 30 m. Meldungen höchstens einmal
@@ -11,7 +15,8 @@ und Zuordnung eines serverseitig bestätigten Check-ins. Keine Nutzer-ID wird im
 Statistikdatensatz gespeichert. Authentifizierte Übertragung und technische
 Logs sind deshalb nicht als vollständig anonyme Datenerhebung zu bezeichnen.
 Datenschutzbeauftragten vor Veranstaltungsbetrieb das konkrete Verfahren prüfen
-lassen; GPS-Freigabe oder Matomo-Zustimmung ersetzen das separate Opt-in nicht.
+lassen; GPS-Freigabe oder eine frühere reine Matomo-Zustimmung ersetzen die
+ausdrückliche Auswahl zur Stationsstatistik im gemeinsamen Banner nicht.
 
 Öffentlich werden nur Kategorien veröffentlicht: 3–9 geringe, 10–20 mittlere,
 mehr als 20 hohe Aktivität aus Signalen der letzten fünf Minuten. Unter drei
