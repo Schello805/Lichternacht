@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.310';
-import { getStationNumber } from './station-number.js?v=1.4.310';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.310';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.310';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.310';
-import { saveData } from './data.js?v=1.4.310';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.311';
+import { getStationNumber } from './station-number.js?v=1.4.311';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.311';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.311';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.311';
+import { saveData } from './data.js?v=1.4.311';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {

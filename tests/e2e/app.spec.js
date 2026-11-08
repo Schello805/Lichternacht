@@ -23,7 +23,10 @@ test('station activity transmits only station signals after consent and a sustai
     });
     await page.clock.runFor(15000);
     expect(payloads).toHaveLength(0);
+    await page.locator('#tracking-consent details > summary').click();
     await page.locator('#station-activity-consent').check();
+    expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBeNull();
+    await page.locator('#tracking-consent-save').click();
     for (let index = 0; index < 3; index += 1) {
         await page.evaluate(() => { window.state.gpsLastFixAt = Date.now(); });
         await page.clock.runFor(15000);
@@ -32,7 +35,10 @@ test('station activity transmits only station signals after consent and a sustai
     const signal = payloads.find(payload => payload.present === true);
     expect(Object.keys(signal).sort()).toEqual(['action', 'present', 'stationId', 'token']);
     expect(signal.token).toMatch(/^[a-f0-9]{64}$/);
+    await page.evaluate(() => window.openCookieBanner());
+    await page.locator('#tracking-consent details > summary').click();
     await page.locator('#station-activity-consent').uncheck();
+    await page.locator('#tracking-consent-save').click();
     await page.clock.runFor(15000);
     await expect.poll(() => payloads.some(payload => payload.forget === true)).toBe(true);
 });
@@ -52,11 +58,16 @@ test('station activity is above the title and missing signals leave no placehold
     await expect(badge).toHaveText('');
     expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBeNull();
     await page.evaluate(() => { window.closeModal(); window.openCookieBanner(); });
-    await expect(page.locator('#station-activity-consent')).not.toBeChecked();
-    await page.locator('#station-activity-consent').check();
+    await expect(page.locator('#tracking-consent details')).not.toHaveAttribute('open');
+    await page.locator('#tracking-consent-accept').click();
     expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBe('granted');
-    await page.locator('#station-activity-consent').uncheck();
+    expect(await page.evaluate(() => localStorage.getItem('tracking_consent'))).toBe('granted');
+    await page.reload();
+    await expect(page.locator('#tracking-consent')).toBeHidden();
+    await page.evaluate(() => window.openCookieBanner());
+    await page.locator('#tracking-consent-decline').click();
     expect(await page.evaluate(() => localStorage.getItem('station_activity_consent_v1'))).toBe('denied');
+    expect(await page.evaluate(() => localStorage.getItem('tracking_consent'))).toBe('denied');
 });
 
 test('event calendar downloads one event and hides automatically at the one-hour cutoff', async ({ page }) => {

@@ -1,13 +1,13 @@
 import { state } from './js/state.js';
-import { initStationActivity } from './js/station-activity.js?v=1.4.310';
-import { shareStation, showToast } from './js/utils.js?v=1.4.310';
-import * as utils from './js/utils.js?v=1.4.310';
-import { initFirebase } from './js/firebase-init.js?v=1.4.310';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.310';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.310';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.310';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.310';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.310';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.311';
+import { shareStation, showToast } from './js/utils.js?v=1.4.311';
+import * as utils from './js/utils.js?v=1.4.311';
+import { initFirebase } from './js/firebase-init.js?v=1.4.311';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.311';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.311';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.311';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.311';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.311';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -16,12 +16,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.310';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.310';
-import { recordAuditEvent } from './js/audit.js?v=1.4.310';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.310';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.310';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.310';
+} from './js/ui.js?v=1.4.311';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.311';
+import { recordAuditEvent } from './js/audit.js?v=1.4.311';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.311';
+import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.311';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.311';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -31,7 +31,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.310";
+const APP_VERSION = "1.4.311";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -1377,7 +1377,25 @@ function initTrackingConsentUi() {
         modal.classList.add('hidden');
         retryVisitorStartCardSoon();
     };
-    const show = () => modal.classList.remove('hidden');
+    const show = () => {
+        localStorage.setItem('station_activity_notice_v1', 'shown');
+        document.getElementById('matomo-consent-choice').checked = window.hasTrackingConsent?.() === true;
+        document.getElementById('station-activity-consent').checked = localStorage.getItem('station_activity_consent_v1') === 'granted';
+        modal.querySelector('details').open = false;
+        modal.classList.remove('hidden');
+    };
+    const saveChoices = (matomo, activity) => {
+        const wasTracking = window.hasTrackingConsent?.() === true;
+        window.setTrackingConsent?.(matomo);
+        setStationActivityConsent(activity);
+        hide();
+        if (matomo) startTrackingIfConsented();
+        else if (wasTracking) window.location.reload();
+    };
+    document.getElementById('tracking-consent-save').onclick = () => saveChoices(
+        document.getElementById('matomo-consent-choice').checked,
+        document.getElementById('station-activity-consent').checked
+    );
 
     // Allow opening the cookie banner from other pages/links.
     window.openCookieBanner = show;
@@ -1385,15 +1403,12 @@ function initTrackingConsentUi() {
 
     if (acceptBtn) {
         acceptBtn.onclick = () => {
-            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(true);
-            hide();
-            startTrackingIfConsented();
+            saveChoices(true, true);
         };
     }
     if (declineBtn) {
         declineBtn.onclick = () => {
-            if (typeof window.setTrackingConsent === 'function') window.setTrackingConsent(false);
-            hide();
+            saveChoices(false, false);
         };
     }
     if (closeBtn) closeBtn.onclick = () => hide();

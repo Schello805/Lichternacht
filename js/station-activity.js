@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { stationCoordinates, distanceMeters, STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.310';
-import { getConfiguredEventWindow, isWithinPassCheckinWindowNow, getVisitedStationIdSet } from './utils.js?v=1.4.310';
+import { stationCoordinates, distanceMeters, STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.311';
+import { getConfiguredEventWindow, isWithinPassCheckinWindowNow, getVisitedStationIdSet } from './utils.js?v=1.4.311';
 
 const CONSENT_KEY = 'station_activity_consent_v1';
 const TOKENS_KEY = 'station_activity_tokens_v1';
@@ -122,24 +122,21 @@ async function tick() {
     finally { busy = false; }
 }
 
+export function setStationActivityConsent(granted) {
+    localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
+    if (!granted) {
+        const records = tokens();
+        Object.values(records).forEach(record => { record.forget = true; });
+        localStorage.setItem(TOKENS_KEY, JSON.stringify(records));
+    }
+    candidate = null;
+    void tick();
+}
+
 export function initStationActivity() {
     if (!localStorage.getItem('station_activity_notice_v1')) {
         localStorage.setItem('station_activity_notice_v1', 'shown');
         if (window.getTrackingConsentState?.() != null) window.openCookieBanner?.();
-    }
-    const checkbox = document.getElementById('station-activity-consent');
-    if (checkbox) {
-        checkbox.checked = localStorage.getItem(CONSENT_KEY) === 'granted';
-        checkbox.onchange = () => {
-            localStorage.setItem(CONSENT_KEY, checkbox.checked ? 'granted' : 'denied');
-            if (!checkbox.checked) {
-                const records = tokens();
-                Object.values(records).forEach(record => { record.forget = true; });
-                localStorage.setItem(TOKENS_KEY, JSON.stringify(records));
-            }
-            candidate = null;
-            void tick();
-        };
     }
     window.setInterval(tick, 15000);
     document.addEventListener('visibilitychange', () => { candidate = null; void tick(); });
