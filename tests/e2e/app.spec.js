@@ -285,7 +285,7 @@ test('failed foot routing preserves the plan without drawing air lines or reques
         navigator.geolocation.watchPosition = () => { throw new Error('Unexpected GPS watch'); };
         window.openRoutePlan();
     });
-    await expect(page.locator('#route-plan-modal')).toContainText('Wähle deine Stationen schon jetzt');
+    await expect(page.locator('#route-plan-modal')).toContainText('Stationen wählen – auch ohne GPS');
     await page.locator('[data-route-plan-submit]').click();
     await expect(page.locator('#route-info')).toContainText('Fußweg konnte nicht berechnet werden');
     expect(await page.evaluate(() => window.state.overviewRouteGeometry)).toBeNull();
@@ -2184,7 +2184,7 @@ test('visitor pass hides admin exports', async ({ page }) => {
 test('help explains current favorite, voting and notification controls', async ({ page }) => {
     await page.goto('/help.html');
 
-    await expect(page.getByText('Markiere Stationen mit dem Stern')).toBeVisible();
+    await expect(page.getByText('Mit dem Stern merken')).toBeVisible();
     await expect(page.getByText('Gib einer Station einmalig einen Daumen hoch')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Programmerinnerungen' })).toBeVisible();
 });
