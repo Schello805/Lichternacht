@@ -1,16 +1,17 @@
 
 import { state } from './state.js';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.309';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.309';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.309';
-import * as utils from './utils.js?v=1.4.309';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.309';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.309';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.309';
-import { recordAuditEvent } from './audit.js?v=1.4.309';
-import { normalizeImageUrl } from './image-url.js?v=1.4.309';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.309';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.309';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.310';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.310';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.310';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.310';
+import * as utils from './utils.js?v=1.4.310';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.310';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.310';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.310';
+import { recordAuditEvent } from './audit.js?v=1.4.310';
+import { normalizeImageUrl } from './image-url.js?v=1.4.310';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.310';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.310';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -231,6 +232,8 @@ export function openModal(target) {
             };
         }
         state.activeStationId = s.id;
+        renderStationActivity(s.id);
+        void refreshStationActivity();
         window.activeStationId = s.id; // Wichtig für HTML onclicks
         
         // Populate Modal

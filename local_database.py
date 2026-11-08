@@ -230,6 +230,64 @@ class LocalDatabase:
                 stats['count_' + level] = int(stats.get('count_' + level, 0)) + 1
                 self.apply_document(database, {'action': 'set', 'collection': 'stats', 'id': 'stats', 'data': stats})
 
+    def station_activity(self, user_id, payload):
+        token = payload.get('token', '')
+        if not isinstance(token, str) or not re.fullmatch(r'[a-f0-9]{64}', token):
+            raise ValueError('Ungültige Stationskennung.')
+        with self.connect() as database:
+            database.execute('BEGIN IMMEDIATE')
+            if payload.get('forget') is True:
+                database.execute("DELETE FROM documents WHERE collection='stationActivity' AND id=?", (token,))
+                return
+            snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id=1').fetchone()[0])
+            window = snapshot['config'].get('checkinWindow', {})
+            now = time.time()
+            start, end = float(window.get('startMs', 0)), float(window.get('endMs', 0))
+            if not start <= now * 1000 <= end or start <= 0:
+                raise ValueError('Besuchserfassung ist außerhalb des Veranstaltungszeitraums nicht aktiv.')
+            station_id = str(payload.get('stationId', ''))
+            if not any(str(station.get('id')) == station_id for station in snapshot['stations']):
+                raise ValueError('Station nicht gefunden.')
+            event_key = f'{start:.0f}:{end:.0f}'
+            existing = database.execute("SELECT data FROM documents WHERE collection='stationActivity' AND id=?", (token,)).fetchone()
+            record = json.loads(existing[0]) if existing else None
+            if record and (record['stationId'] != station_id or record['eventKey'] != event_key):
+                raise ValueError('Stationskennung ist bereits vergeben.')
+            if not record and payload.get('present') is not True:
+                return
+            minute = int(now // 60) * 60
+            record = record or {'stationId': station_id, 'eventKey': event_key, 'firstSeen': minute, 'lastSeen': minute, 'expiresAt': end / 1000 + 30 * 86400}
+            if payload.get('present') is True:
+                record['lastSeen'] = minute
+            record['checkedIn'] = bool(database.execute("SELECT 1 FROM documents WHERE collection='checkins' AND id=?", (str(user_id) + '_' + station_id,)).fetchone())
+            database.execute("INSERT OR REPLACE INTO documents VALUES ('stationActivity', ?, ?)", (token, json.dumps(record)))
+            return record['checkedIn']
+
+    def activity_summary(self, report=False):
+        with self.connect() as database:
+            database.execute("DELETE FROM documents WHERE collection='stationActivity' AND CAST(json_extract(data, '$.expiresAt') AS REAL) < ?", (time.time(),))
+            snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id=1').fetchone()[0])
+            window = snapshot['config'].get('checkinWindow', {})
+            start, end = float(window.get('startMs', 0)), float(window.get('endMs', 0))
+            event_key = f'{start:.0f}:{end:.0f}'
+            grouped = {}
+            for row in database.execute("SELECT data FROM documents WHERE collection='stationActivity'"):
+                record = json.loads(row[0])
+                if record['eventKey'] == event_key:
+                    grouped.setdefault(record['stationId'], []).append(record)
+            result = []
+            for station in snapshot['stations']:
+                visits = grouped.get(str(station['id']), [])
+                if report:
+                    count = len(visits)
+                    checked = sum(bool(row.get('checkedIn')) for row in visits)
+                    result.append({'stationId': str(station['id']), 'visits': count, 'checkedIn': checked, 'checkinPercent': round(100 * checked / count, 1) if count else None})
+                elif start <= time.time() * 1000 <= end:
+                    active = sum(time.time() - 300 <= row['lastSeen'] <= time.time() for row in visits)
+                    if active >= 3:
+                        result.append({'stationId': str(station['id']), 'level': 'high' if active > 20 else 'medium' if active >= 10 else 'low'})
+            return result
+
     def undo_checkin(self, user_id, station_id):
         with self.connect() as database:
             database.execute('BEGIN IMMEDIATE')
