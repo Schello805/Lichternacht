@@ -831,8 +831,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                         return self._send_json(403, {'ok': False, 'error': 'Zugriff verweigert'})
                     return self._send_json(200, {'ok': True, 'stations': LocalDatabase(LOCAL_DATABASE_PATH).activity_summary(report)})
                 if collection:
-                    public = {'stations', 'events', 'config', 'broadcast', 'globalConfig', 'stats', 'presence'}
-                    private = {'checkins', 'auditLogs', 'users', 'reports', 'globalAdmins'}
+                    public = {'stations', 'events', 'config', 'broadcast', 'globalConfig', 'stats'}
+                    private = {'checkins', 'auditLogs', 'users', 'reports', 'globalAdmins', 'presence'}
                     if collection not in public | private:
                         return self._send_json(400, {'ok': False, 'error': 'Unbekannte Datensammlung'})
                     if collection == 'presence' and (params.get('count') or [''])[0] == 'true':

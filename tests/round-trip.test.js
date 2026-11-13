@@ -161,7 +161,7 @@ test('clearing a calculation without geometry invalidates late responses and GPS
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, canConfirmTarget, AbortController, dismissSavedTour() {},
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, canConfirmTarget, AbortController, dismissSavedTour() {}, clearSingleRoute() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
         planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
@@ -184,7 +184,7 @@ test('failed foot routing never draws straight lines, including late responses',
     const source = await readFile(new URL('../js/maplibre-map.js', import.meta.url), 'utf8');
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: stations[0], gpsAccuracy: 5, gpsLastFixAt: Date.now() };
     const responses = [];
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {},
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {}, clearSingleRoute() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout }, console: { warn() {} },
         planWalkingTour: () => new Promise(resolve => responses.push(resolve)),
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, updateOverviewRouteButton() {},
@@ -211,7 +211,7 @@ test('GPS is required at start and a cancelled GPS callback cannot start a tour'
     const state = { stations, overviewRouteRequestId: 0, overviewRouteMarkers: [], overviewRouteStations: [], userLocation: null };
     let gpsCallback;
     let routeCalls = 0;
-    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {},
+    const context = vm.createContext({ state, buildRoundTrip, hasNavigationFix, AbortController, dismissSavedTour() {}, clearSingleRoute() {},
         document: { getElementById() { return null; } }, window: { setTimeout, clearTimeout },
         planWalkingTour() { routeCalls += 1; }, locateUser(callback) { gpsCallback = callback; },
         showToast() {}, setRouteInfo() {}, hideRouteInfoIfUnused() {}, setGeoJsonLayer() {}, updateOverviewRouteButton() {},

@@ -172,7 +172,7 @@ class LocalDatabase:
         identifier = str(operation.get('id', ''))
         data = operation.get('data')
         if collection == 'checkins' and operation.get('action') == 'undo-checkin':
-            return self.undo_checkin(user_id, identifier)
+            return self.undo_checkin(user_id, identifier, data.get('activityToken') if isinstance(data, dict) else None)
         if operation.get('action') != 'set' or not isinstance(data, dict):
             raise ValueError('Diese Änderung benötigt Adminrechte.')
         now = datetime.now(timezone.utc)
@@ -203,9 +203,10 @@ class LocalDatabase:
         identifier = user_id + '_' + station_id
         with self.connect() as database:
             database.execute('BEGIN IMMEDIATE')
-            if database.execute("SELECT 1 FROM documents WHERE collection = 'checkins' AND id = ?", (identifier,)).fetchone():
-                return
             snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
+            if database.execute("SELECT 1 FROM documents WHERE collection = 'checkins' AND id = ?", (identifier,)).fetchone():
+                self.sync_activity_checkin(database, snapshot, station_id, payload.get('activityToken'), True)
+                return
             window = snapshot['config'].get('checkinWindow', {})
             now = datetime.now(timezone.utc)
             if not float(window.get('startMs', 0)) <= now.timestamp() * 1000 <= float(window.get('endMs', 0)):
@@ -224,6 +225,7 @@ class LocalDatabase:
                         break
             data = {'type': 'checkin', 'ownerUid': user_id, 'anonymousId': user_id, 'stationId': station_id, 'stationName': station.get('name', ''), 'checkedAt': now.isoformat(), 'receivedAt': now.isoformat(), 'dateKey': local.strftime('%Y-%m-%d'), 'hour': local.hour, 'passCountAfter': count, 'reachedLevel': level, 'source': 'lichterpass', 'appId': snapshot.get('appId')}
             self.apply_document(database, {'action': 'set', 'collection': 'checkins', 'id': identifier, 'data': data})
+            self.sync_activity_checkin(database, snapshot, station_id, payload.get('activityToken'), True)
             stats_row = database.execute("SELECT data FROM documents WHERE collection = 'stats' AND id = 'stats'").fetchone()
             stats = json.loads(stats_row[0]) if stats_row else {}
             if level and not database.execute("SELECT 1 FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ? AND json_extract(data, '$.reachedLevel') = ? AND id != ?", (user_id, level, identifier)).fetchone():
@@ -288,13 +290,30 @@ class LocalDatabase:
                         result.append({'stationId': str(station['id']), 'level': 'high' if active > 20 else 'medium' if active >= 10 else 'low'})
             return result
 
-    def undo_checkin(self, user_id, station_id):
+    @staticmethod
+    def sync_activity_checkin(database, snapshot, station_id, token, checked_in):
+        if not isinstance(token, str) or not re.fullmatch(r'[a-f0-9]{64}', token):
+            return
+        row = database.execute("SELECT data FROM documents WHERE collection='stationActivity' AND id=?", (token,)).fetchone()
+        if not row:
+            return
+        record = json.loads(row[0])
+        window = snapshot['config'].get('checkinWindow', {})
+        event_key = f"{float(window.get('startMs', 0)):.0f}:{float(window.get('endMs', 0)):.0f}"
+        if record['stationId'] != str(station_id) or record['eventKey'] != event_key or record['expiresAt'] < time.time():
+            return
+        record['checkedIn'] = checked_in
+        database.execute("UPDATE documents SET data=? WHERE collection='stationActivity' AND id=?", (json.dumps(record), token))
+
+    def undo_checkin(self, user_id, station_id, activity_token=None):
         with self.connect() as database:
             database.execute('BEGIN IMMEDIATE')
             rows = database.execute("SELECT id, data FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ? ORDER BY json_extract(data, '$.checkedAt'), id", (user_id,)).fetchall()
             previous_levels = {json.loads(encoded).get('reachedLevel') for _, encoded in rows} - {None, ''}
-            database.execute("DELETE FROM documents WHERE collection = 'checkins' AND id = ? AND json_extract(data, '$.ownerUid') = ?", (user_id + '_' + station_id, user_id))
+            removed = database.execute("DELETE FROM documents WHERE collection = 'checkins' AND id = ? AND json_extract(data, '$.ownerUid') = ?", (user_id + '_' + station_id, user_id)).rowcount
             snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
+            if removed:
+                self.sync_activity_checkin(database, snapshot, station_id, activity_token, False)
             total = len(snapshot['stations'])
             thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
             count = 0

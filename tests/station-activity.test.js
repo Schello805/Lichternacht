@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { nearestActivityStation } from '../js/station-activity.js';
+import { state } from '../js/state.js';
+import { installLocalRecords } from '../js/local-records.js';
 
 test('activity uses only the nearest station within 20 meters with fresh accurate GPS', () => {
     const now = Date.now();
@@ -29,4 +31,40 @@ test('analysis keeps detected visits separate from checkins and includes station
     assert.equal(summary.stationRows[1].count, 0);
     assert.equal(summary.stationsWithoutCheckins[0].stationId, '2');
     assert.equal(summary.stationsWithCheckins, 1);
+});
+
+test('local checkins and undo transmit the current station token only while consent remains granted', async () => {
+    const previous = { storage: globalThis.localStorage, fetch: globalThis.fetch, fb: state.fb, auth: state.auth, downloads: state.downloads };
+    const values = new Map([
+        ['station_activity_consent_v1', 'granted'],
+        ['station_activity_tokens_v1', JSON.stringify({ '2026-11-21:43': { token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 } })]
+    ]);
+    const payloads = [];
+    try {
+        globalThis.localStorage = { getItem: key => values.get(key) ?? null };
+        globalThis.fetch = async (_url, options) => {
+            payloads.push(JSON.parse(options.body));
+            return { ok: true, json: async () => ({ ok: true }) };
+        };
+        state.downloads = { icsDate: '21.11.2026 17:00-21:00' };
+        state.auth = { currentUser: { getIdToken: async () => 'local-session' } };
+        state.fb = {};
+        installLocalRecords('test');
+        const reference = { path: 'artifacts/test/public/data/checkins/visitor_43' };
+        await state.fb.setDoc(reference, { stationId: '43' });
+        await state.fb.undoCheckin('43');
+        assert.equal(payloads[0].data.activityToken, 'a'.repeat(64));
+        assert.equal(payloads[1].data.activityToken, 'a'.repeat(64));
+        values.set('station_activity_consent_v1', 'denied');
+        await state.fb.setDoc(reference, { stationId: '43' });
+        await state.fb.undoCheckin('43');
+        assert.equal(payloads[2].data.activityToken, undefined);
+        assert.equal(payloads[3].data.activityToken, null);
+    } finally {
+        globalThis.localStorage = previous.storage;
+        globalThis.fetch = previous.fetch;
+        state.fb = previous.fb;
+        state.auth = previous.auth;
+        state.downloads = previous.downloads;
+    }
 });

@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { stationCoordinates, distanceMeters, STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.313';
-import { getConfiguredEventWindow, isWithinPassCheckinWindowNow, getVisitedStationIdSet } from './utils.js?v=1.4.313';
+import { stationCoordinates, distanceMeters, STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.314';
+import { getConfiguredEventWindow, isWithinPassCheckinWindowNow, getVisitedStationIdSet } from './utils.js?v=1.4.314';
 
 const CONSENT_KEY = 'station_activity_consent_v1';
 const TOKENS_KEY = 'station_activity_tokens_v1';
@@ -45,6 +45,15 @@ async function requestActivity(payload = null, report = false) {
 
 export async function loadStationActivityReport() {
     return (await requestActivity(null, true)).stations;
+}
+
+export function getStationActivityToken(stationId) {
+    try {
+        if (localStorage.getItem(CONSENT_KEY) !== 'granted') return null;
+        const date = getConfiguredEventWindow()?.dateKey;
+        const record = tokens()[`${date}:${String(stationId)}`];
+        return record && !record.forget && /^[a-f0-9]{64}$/.test(record.token) ? record.token : null;
+    } catch { return null; }
 }
 
 export function renderStationActivity(stationId) {

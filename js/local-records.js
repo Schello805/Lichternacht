@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { getStationActivityToken } from './station-activity.js?v=1.4.314';
 
 export function installLocalRecords(appId) {
     const core = { ...state.fb };
@@ -97,13 +98,17 @@ export function installLocalRecords(appId) {
     const operation = (reference, action, data, merge) => ({ ...classify(reference), action, data, merge });
     const write = (reference, action, data, merge) => {
         const target = classify(reference);
+        if (target.collection === 'checkins' && action === 'set') {
+            const token = getStationActivityToken(data?.stationId);
+            if (token) data = { ...data, activityToken: token };
+        }
         if (target.collection === 'stats' && data && Object.values(data).some(value => value?.__localOperation === 'increment')) return Promise.resolve();
         if (target.collection === 'stations' && data && Object.keys(data).length === 1 && data.likes?.__localOperation === 'increment' && data.likes.amount === 1) return request({ ...target, action: 'like' });
         return request(operation(reference, action, data, merge));
     };
     state.fb.setDoc = (reference, data, options) => write(reference, 'set', data, options?.merge === true);
     state.fb.renameStation = (id, data) => request({ action: 'rename', collection: 'stations', id: String(id), data });
-    state.fb.undoCheckin = id => request({ action: 'undo-checkin', collection: 'checkins', id: String(id) });
+    state.fb.undoCheckin = id => request({ action: 'undo-checkin', collection: 'checkins', id: String(id), data: { activityToken: getStationActivityToken(id) } });
     state.fb.updateDoc = (reference, data) => write(reference, 'set', data, true);
     state.fb.deleteDoc = reference => write(reference, 'delete');
     state.fb.addDoc = async (reference, data) => {

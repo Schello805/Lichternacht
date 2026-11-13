@@ -41,6 +41,20 @@ class LocalApiTest(unittest.TestCase):
         self.assertEqual(handler.responses[0][0], 403)
         self.assertFalse(self.database.is_admin('visitor'))
 
+    def test_public_presence_exposes_only_counts_not_browser_identifiers(self):
+        self.database.visitor_write('private-browser-id', {'action': 'set', 'collection': 'presence', 'data': {}})
+        for suffix in ('', '&id=private-browser-id'):
+            handler = self.handler('/api/local-data?collection=presence' + suffix)
+            handler.do_GET()
+            self.assertEqual(handler.responses[0][0], 403)
+        handler = self.handler('/api/local-data?collection=presence&count=true&since=2000-01-01T00:00:00Z')
+        handler.do_GET()
+        self.assertEqual(handler.responses, [(200, {'ok': True, 'count': 1})])
+        handler = self.handler('/api/local-data?collection=presence', user='admin', admin=True)
+        handler.do_GET()
+        self.assertEqual(handler.responses[0][0], 200)
+        self.assertEqual(handler.responses[0][1]['records'][0]['id'], 'private-browser-id')
+
     def test_private_checkins_are_only_readable_by_their_owner(self):
         self.database.write('set', 'checkins', 'owner_1', {'ownerUid': 'owner'})
         for user, expected in [('owner', 200), ('other', 403)]:
