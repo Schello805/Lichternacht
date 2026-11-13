@@ -906,6 +906,79 @@ test('admin can turn a linked program entry into a standalone event', async ({ p
     await expect.poll(() => page.evaluate(() => window.state.events[0].stationId)).toBe('');
 });
 
+for (const linked of [false, true]) test(`program map action selects the event instead of a nearby station (${linked ? 'linked' : 'standalone'})`, async ({ page }) => {
+    await page.goto('/index.html');
+    if (linked) await page.evaluate(() => window.setThemePreference('dark'));
+    await page.evaluate(linked => {
+        window.state.stations = [{ id: 1, name: 'Benachbarte Station', lat: 49.158, lng: 10.552, tags: [] }];
+        window.state.events = [{ id: 'chosen-program', title: 'Gewähltes Programm <Live>', time: '18:30', loc: 'Programmplatz', lat: 49.15805, lng: 10.55205, stationId: linked ? 1 : '', color: 'purple' }];
+        window.refreshMapMarkers();
+        window.openProgramEvent('chosen-program');
+    }, linked);
+    await page.locator('#program-show-map').click();
+    const popup = page.locator('.program-target-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Gewähltes Programm <Live>');
+    await expect(popup).toContainText('18:30 Uhr');
+    if (linked) expect(await popup.locator('.maplibregl-popup-content').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(31, 41, 55)');
+    await expect(page.locator('.program-pin.map-target-highlight[data-event-id="chosen-program"]')).toHaveCount(1);
+    await expect(page.locator('.custom-pin.map-target-highlight, .station-pin.highlight-pin')).toHaveCount(0);
+    await expect(page.locator('#detail-modal')).toBeHidden();
+    await expect(page.locator('#program-event-modal')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Programmdetails', exact: true }).click();
+    await expect(page.locator('#program-event-modal h2')).toHaveText('Gewähltes Programm <Live>');
+    await expect(popup).toHaveCount(0);
+    await page.evaluate(() => { window.calculateRoute = (lat, lng) => { window.__programRouteTarget = { lat, lng }; }; });
+    await page.locator('#program-route').click();
+    await expect.poll(() => page.evaluate(() => window.__programRouteTarget)).toEqual(linked ? { lat: 49.158, lng: 10.552 } : { lat: 49.15805, lng: 10.55205 });
+    await page.evaluate(() => {
+        window.renderTimeline();
+        window.switchTab('events');
+    });
+    await page.locator('#timeline-container').getByRole('button', { name: 'Zeigen', exact: true }).click();
+    await expect(popup).toBeVisible();
+    await expect(page.locator('.program-pin.map-target-highlight[data-event-id="chosen-program"]')).toHaveCount(1);
+    await expect(page.locator('.custom-pin.map-target-highlight, .station-pin.highlight-pin')).toHaveCount(0);
+    await page.evaluate(() => {
+        window.flyToStation(49.158, 10.552, 1);
+        window.flyToProgramEvent('chosen-program');
+    });
+    await expect(popup).toBeVisible();
+    await page.waitForTimeout(1100);
+    await expect(page.locator('.custom-pin.map-target-highlight, .station-pin.highlight-pin')).toHaveCount(0);
+    await page.evaluate(() => window.flyToStation(49.158, 10.552, 1));
+    await expect(popup).toHaveCount(0);
+    await expect(page.locator('.station-pin.highlight-pin')).toHaveCount(1);
+});
+
+test('current and next program map actions keep their event identity', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const currentTime = new Date();
+        const nextTime = new Date(currentTime.getTime() + 90 * 60_000);
+        const formatTime = date => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        window.state.downloads.icsDate = '21.11.2099 00:00-23:59';
+        window.state.stations = [{ id: 1, name: 'Nachbarstation', lat: 49.158, lng: 10.552, tags: [] }];
+        window.state.events = [
+            { id: 'current-program', time: formatTime(currentTime), title: 'Laufendes Programm', lat: 49.15805, lng: 10.55205, stationId: '' },
+            { id: 'next-program', time: formatTime(nextTime), title: 'Nächstes Programm', lat: 49.15806, lng: 10.55206, stationId: '' }
+        ];
+        window.refreshMapMarkers();
+        window.renderTimeline();
+        window.switchTab('events');
+    });
+    await page.locator('#program-current-map').click();
+    await expect(page.locator('.program-target-popup')).toContainText('Laufendes Programm');
+    await page.evaluate(() => window.switchTab('events'));
+    await page.locator('#program-next-map').click();
+    await expect(page.locator('.program-target-popup')).toContainText('Nächstes Programm');
+    await expect(page.locator('.program-pin.map-target-highlight[data-event-id="next-program"]')).toHaveCount(1);
+    await expect(page.locator('.custom-pin.map-target-highlight, .station-pin.highlight-pin')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Programmmarkierung schließen' }).click();
+    await expect(page.locator('.program-pin.map-target-highlight')).toHaveCount(0);
+});
+
 test('standalone program entries use a calendar icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {

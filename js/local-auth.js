@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { initializeLocalBackend } from './local-backend.js?v=1.4.314';
+import { initializeLocalBackend } from './local-backend.js?v=1.4.315';
 
 async function request(action, data = {}) {
     const response = await fetch(`./api/local-auth/${action}`, {

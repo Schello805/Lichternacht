@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.314';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.314';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.314';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.314';
-import * as utils from './utils.js?v=1.4.314';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.314';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation } from './maplibre-map.js?v=1.4.314';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.314';
-import { recordAuditEvent } from './audit.js?v=1.4.314';
-import { normalizeImageUrl } from './image-url.js?v=1.4.314';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.314';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.314';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.315';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.315';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.315';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.315';
+import * as utils from './utils.js?v=1.4.315';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.315';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.315';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.315';
+import { recordAuditEvent } from './audit.js?v=1.4.315';
+import { normalizeImageUrl } from './image-url.js?v=1.4.315';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.315';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.315';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2010,11 +2010,39 @@ export function startStationPicker() {
     console.log("startStationPicker called");
 }
 
+let mapFocusRequest = 0;
+
+function clearMapHighlights() {
+    clearProgramMapTarget();
+    document.querySelectorAll('.highlight-pin, .map-target-highlight').forEach(element => element.classList.remove('highlight-pin', 'map-target-highlight'));
+    state.markers.forEach(item => {
+        const element = item.marker?.getElement?.();
+        if (element) element.style.zIndex = '';
+    });
+}
+
+export function flyToProgramEvent(eventId) {
+    const event = state.events.find(item => String(item.id) === String(eventId));
+    if (!event) return;
+    const location = getEventLocationInfo(event);
+    if (!location.hasCoords) return;
+    const requestId = ++mapFocusRequest;
+    clearMapHighlights();
+    switchTab('map');
+    window.setTimeout(() => {
+        if (requestId !== mapFocusRequest || !state.map) return;
+        state.map.resize();
+        state.map.flyTo({ center: [location.lng, location.lat], zoom: 19, duration: 700 });
+        highlightProgramOnMap(event.id, location.lat, location.lng);
+    }, 300);
+}
+
 export function flyToStation(lat, lng, id = null, zoom = 19) {
     if (!lat || !lng || isNaN(lat) || isNaN(lng) || (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001)) {
         showToast("Keine gültigen Koordinaten", 'error');
         return;
     }
+    const requestId = ++mapFocusRequest;
 
     function findTargetMarker() {
         if (!Array.isArray(state.markers)) return null;
@@ -2034,16 +2062,8 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
             .find(row => row.distance <= 40)?.item || null;
     }
 
-    function clearMapHighlights() {
-        document.querySelectorAll('.highlight-pin').forEach(el => el.classList.remove('highlight-pin'));
-        document.querySelectorAll('.map-target-highlight').forEach(el => el.classList.remove('map-target-highlight'));
-        state.markers.forEach(item => {
-            const element = item.marker?.getElement?.();
-            if (element) element.style.zIndex = '';
-        });
-    }
-
     function applyMapHighlight(attempt = 0) {
+        if (requestId !== mapFocusRequest) return;
         const entry = findTargetMarker();
         if (!entry?.marker) {
             if (attempt < 6) setTimeout(() => applyMapHighlight(attempt + 1), 250);
@@ -2061,6 +2081,7 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
         iconDiv.classList.add('map-target-highlight');
         pinDiv.classList.add('highlight-pin');
         setTimeout(() => {
+            if (requestId !== mapFocusRequest) return;
             iconDiv.classList.remove('map-target-highlight');
             pinDiv.classList.remove('highlight-pin');
             iconDiv.style.zIndex = '';
@@ -2070,6 +2091,7 @@ export function flyToStation(lat, lng, id = null, zoom = 19) {
     switchTab('map');
     // Allow tab switch animation to start
     setTimeout(() => {
+        if (requestId !== mapFocusRequest) return;
         if (state.map) {
             try { state.map.resize(); } catch (e) { }
             state.map.flyTo({ center: [Number(lng), Number(lat)], zoom, duration: 700 });
@@ -2307,7 +2329,7 @@ function getEventLocationInfo(event) {
         : null;
     const lat = parseFloat(linkedStation?.lat ?? event.lat);
     const lng = parseFloat(linkedStation?.lng ?? event.lng);
-    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001);
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && (Math.abs(lat) > 0.0001 || Math.abs(lng) > 0.0001);
     if (!hasCoords) return { hasCoords: false, lat: null, lng: null, stationId: null, distanceText: '' };
 
     let distanceText = '';
@@ -2460,7 +2482,7 @@ export function openProgramEvent(id) {
     document.getElementById('program-show-map')?.addEventListener('click', () => {
         recordAuditEvent('program_map_opened', { eventId: event.id, eventTitle: event.title || '' });
         close();
-        flyToStation(locationInfo.lat, locationInfo.lng, locationInfo.stationId, 19);
+        flyToProgramEvent(event.id);
     });
     document.getElementById('program-route')?.addEventListener('click', () => {
         recordAuditEvent('program_route_opened', { eventId: event.id, eventTitle: event.title || '' });
@@ -2577,8 +2599,7 @@ export function renderTimeline() {
                 `;
             }
 
-            const idArg = locationInfo.stationId ? `, ${JSON.stringify(locationInfo.stationId)}` : '';
-            showMapBtn = `<button onclick='event.stopPropagation(); flyToStation(${locationInfo.lat}, ${locationInfo.lng}${idArg})' class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
+            showMapBtn = `<button onclick="event.stopPropagation(); flyToProgramEvent(${escapeHtml(JSON.stringify(e.id))})" class="ml-2 text-yellow-600 hover:underline font-medium text-xs border border-yellow-200 bg-yellow-50 px-2 py-0.5 rounded hover:bg-yellow-100 dark:bg-gray-700 dark:border-gray-600 dark:text-yellow-500">Zeigen</button>`;
         }
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
@@ -2672,8 +2693,7 @@ export function renderTimeline() {
             const bindMapButton = (buttonId, event) => {
                 const button = document.getElementById(buttonId);
                 if (!button || !event) return;
-                const location = getEventLocationInfo(event);
-                button.addEventListener('click', () => flyToStation(location.lat, location.lng, location.stationId, 19));
+                button.addEventListener('click', () => flyToProgramEvent(event.id));
             };
             bindMapButton('program-current-map', currentActiveEvent);
             bindMapButton('program-next-map', nextEvent);
