@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.314';
-import { getStationNumber } from './station-number.js?v=1.4.314';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.314';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.314';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.314';
-import { saveData } from './data.js?v=1.4.314';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.315';
+import { getStationNumber } from './station-number.js?v=1.4.315';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.315';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.315';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.315';
+import { saveData } from './data.js?v=1.4.315';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -18,6 +18,62 @@ const MAP_STYLES = {
 let recentlyClosedStation = null;
 let recentlyClosedTimer = null;
 let savedTourOffered = false;
+let programMapTarget = null;
+
+export function clearProgramMapTarget() {
+    const target = programMapTarget;
+    programMapTarget = null;
+    if (!target) return;
+    window.clearTimeout(target.timer);
+    target.element.classList.remove('map-target-highlight');
+    target.element.style.zIndex = target.previousZIndex;
+    if (target.temporary) target.marker.remove();
+    target.popup.remove();
+}
+
+export function highlightProgramOnMap(eventId, lat, lng) {
+    clearProgramMapTarget();
+    const event = state.events.find(item => String(item.id) === String(eventId));
+    const coordinates = getValidCoordinates(lat, lng);
+    if (!state.map || !event || !coordinates) return;
+    let marker = state.programMarkers.find(item => item.getElement().dataset.eventId === String(event.id));
+    const temporary = !marker;
+    if (!marker) {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'program-pin';
+        element.dataset.eventId = String(event.id);
+        element.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
+        element.setAttribute('aria-label', `Programmpunkt: ${event.title || 'Details öffnen'}`);
+        element.addEventListener('click', () => window.openProgramEvent?.(event.id));
+        marker = new maplibregl.Marker({ element, anchor: 'center' }).setLngLat([coordinates.longitude, coordinates.latitude]).addTo(state.map);
+    }
+    const element = marker.getElement();
+    const content = document.createElement('section');
+    content.className = 'amenity-navigation';
+    const heading = document.createElement('h3');
+    heading.textContent = event.title || 'Programmpunkt';
+    const time = document.createElement('p');
+    time.textContent = event.time ? `${event.time} Uhr` : '';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mt-2 rounded-lg bg-yellow-500 px-3 py-2 font-bold text-gray-900';
+    button.textContent = 'Programmdetails';
+    button.addEventListener('click', () => {
+        clearProgramMapTarget();
+        window.openProgramEvent?.(event.id);
+    });
+    content.append(heading, time, button);
+    const popup = new maplibregl.Popup({ className: 'amenity-navigation-popup program-target-popup', offset: 24, maxWidth: '280px' })
+        .setLngLat([coordinates.longitude, coordinates.latitude]).setDOMContent(content).addTo(state.map);
+    popup.getElement().querySelector('.maplibregl-popup-close-button')?.setAttribute('aria-label', 'Programmmarkierung schließen');
+    const target = { marker, element, popup, temporary, previousZIndex: element.style.zIndex };
+    programMapTarget = target;
+    element.style.zIndex = '10000';
+    element.classList.add('map-target-highlight');
+    popup.on('close', () => { if (programMapTarget === target) clearProgramMapTarget(); });
+    target.timer = window.setTimeout(clearProgramMapTarget, 8000);
+}
 
 function dismissSavedTour() {
     document.getElementById('saved-tour-dialog')?.remove();
@@ -694,6 +750,7 @@ function restoreMapOverlays() {
 
 export function refreshMapMarkers() {
     if (!state.map) return;
+    clearProgramMapTarget();
     offerSavedTour();
     updateMapEditModeUi();
     clearClusterMarkers();
@@ -792,6 +849,7 @@ export function refreshMapMarkers() {
             const icon = document.createElement('button');
             icon.type = 'button';
             icon.className = 'program-pin';
+            icon.dataset.eventId = String(event.id);
             icon.style.zIndex = '30';
         icon.innerHTML = '<i class="ph ph-calendar-star" aria-hidden="true"></i>';
         icon.title = `Eigenständiges Event: ${event.title || 'Details öffnen'}`;
