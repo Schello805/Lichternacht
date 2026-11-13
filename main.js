@@ -1,13 +1,13 @@
 import { state } from './js/state.js';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.315';
-import { shareStation, showToast } from './js/utils.js?v=1.4.315';
-import * as utils from './js/utils.js?v=1.4.315';
-import { initFirebase } from './js/firebase-init.js?v=1.4.315';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.315';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.315';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.315';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.315';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.315';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.316';
+import { shareStation, showToast } from './js/utils.js?v=1.4.316';
+import * as utils from './js/utils.js?v=1.4.316';
+import { initFirebase } from './js/firebase-init.js?v=1.4.316';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.316';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.316';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.316';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.316';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.316';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -16,12 +16,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, flyToProgramEvent, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.315';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.315';
-import { recordAuditEvent } from './js/audit.js?v=1.4.315';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.315';
-import { initPwaInstall, triggerPwaInstall } from './js/pwa-install.js?v=1.4.315';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.315';
+} from './js/ui.js?v=1.4.316';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.316';
+import { recordAuditEvent } from './js/audit.js?v=1.4.316';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.316';
+import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.316';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.316';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -31,7 +31,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.315";
+const APP_VERSION = "1.4.316";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -194,7 +194,7 @@ function isBlockingVisitorOverlayVisible() {
     const login = document.getElementById('login-modal');
     return (tutorial && !tutorial.classList.contains('hidden')) ||
         (tracking && !tracking.classList.contains('hidden')) ||
-        (login && !login.classList.contains('hidden'));
+        (login && !login.classList.contains('hidden')) || Boolean(document.querySelector('.tour-tooltip'));
 }
 
 function retryVisitorStartCardSoon() {
@@ -931,6 +931,25 @@ function hasCompletedOnboarding() {
     }
 }
 
+function requestOnboardingLocation(onSuccess, onError) {
+    let active = true;
+    const finish = callback => {
+        if (!active) return;
+        active = false;
+        window.clearTimeout(timer);
+        callback();
+    };
+    const timer = window.setTimeout(() => finish(() => onError('Noch kein Standort gefunden. Versuche es draußen erneut oder fahre ohne Standort fort.')), 20000);
+    locateUser(() => finish(onSuccess), {
+        userInitiated: true,
+        forceCenter: true,
+        onError: error => finish(() => onError(error?.code === 1
+            ? 'Standort blockiert. Erlaube ihn in den Website-Einstellungen deines Browsers oder fahre ohne Standort fort.'
+            : 'Standort gerade nicht verfügbar. Du kannst es erneut versuchen oder ohne Standort fortfahren.'))
+    }).catch(() => finish(() => onError('Standort gerade nicht verfügbar. Bitte erneut versuchen.')));
+    return () => { active = false; window.clearTimeout(timer); };
+}
+
 function hideMiniTourPromptEl() {
     const el = document.getElementById('mini-tour-prompt');
     if (!el) return;
@@ -944,9 +963,11 @@ window.startMiniTour = (force = false) => {
 
     const steps = [
         {
+            tab: 'map',
             elId: 'map-locate-btn',
             title: 'Standort bestimmen',
-            text: 'Antippen: Standort, Entfernungen und Gehzeiten sehen.'
+            text: 'Mit Standort siehst du Entfernungen und kannst vor Ort einchecken.',
+            action: 'location'
         },
         {
             elId: 'pass-progress',
@@ -969,6 +990,17 @@ window.startMiniTour = (force = false) => {
             elId: 'nav-events',
             title: 'Programm',
             text: 'Auftritte und Zeiten ansehen. „Zeigen“ öffnet den Ort auf der Karte.'
+        },
+        {
+            elId: 'nav-events',
+            title: 'Hinweise & Installation',
+            text: 'Team-Hinweise erscheinen in der geöffneten App. 15-Minuten-Erinnerungen kannst du im Programm erlauben. Sie benötigen eine geöffnete App – auch nach der Installation.',
+            action: getInstallGuidance().installed ? null : 'install'
+        },
+        {
+            elId: 'theme-preference-btn',
+            title: 'Deine Darstellung',
+            text: 'Oben rechts wählst du Hell, Dunkel (Dark Mode) oder System. „System“ folgt der Einstellung deines Geräts.'
         }
     ];
 
@@ -976,6 +1008,7 @@ window.startMiniTour = (force = false) => {
     let tooltip = null;
     let activeTarget = null;
     let onResize = null;
+    let cancelLocation = null;
 
     const clearTargetHighlight = () => {
         if (activeTarget) {
@@ -985,6 +1018,7 @@ window.startMiniTour = (force = false) => {
     };
 
     const cleanup = () => {
+        cancelLocation?.();
         clearTargetHighlight();
         if (tooltip) tooltip.remove();
         tooltip = null;
@@ -1002,19 +1036,20 @@ window.startMiniTour = (force = false) => {
         setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
         setTourFlag('mini_tour_prompt_dismissed', 'true');
         cleanup();
+        window.dispatchEvent(new Event('lichternacht:onboarding-finished'));
     };
 
     const render = () => {
+        cancelLocation?.();
+        cancelLocation = null;
         const step = steps[idx];
 
         // Switch to required tab first (keeps tour working across sections)
         if (step.tab && window.switchTab) {
             // Only switch if target is currently not available
-            const alreadyThere = document.getElementById(step.elId);
-            if (!alreadyThere) {
+            const view = document.getElementById(`view-${step.tab}`);
+            if (view?.classList.contains('hidden')) {
                 window.switchTab(step.tab);
-                setTimeout(() => render(), 320);
-                return;
             }
         }
 
@@ -1031,6 +1066,8 @@ window.startMiniTour = (force = false) => {
         if (!tooltip) {
             tooltip = document.createElement('div');
             tooltip.className = 'tour-tooltip';
+            tooltip.setAttribute('role', 'dialog');
+            tooltip.setAttribute('aria-label', 'Kurze Einführung');
             document.body.appendChild(tooltip);
         }
 
@@ -1038,6 +1075,8 @@ window.startMiniTour = (force = false) => {
         tooltip.innerHTML = `
             <div class="tour-title">${step.title} <span style="opacity:.75;font-weight:700">(${idx + 1}/${steps.length})</span></div>
             <div class="tour-text">${step.text}</div>
+            <div class="tour-status text-xs" role="status"></div>
+            ${step.action ? `<button class="tour-btn primary mt-2" type="button" id="tour-action">${step.action === 'location' ? 'Standort aktivieren' : 'App installieren · So geht’s'}</button>` : ''}
             <div class="tour-actions">
                 <button class="tour-btn" type="button" id="tour-skip">Überspringen</button>
                 <button class="tour-btn primary" type="button" id="tour-next">${isLast ? 'Fertig' : 'Weiter'}</button>
@@ -1045,6 +1084,23 @@ window.startMiniTour = (force = false) => {
         `;
 
         tooltip.querySelector('#tour-skip').onclick = finish;
+        tooltip.querySelector('#tour-action')?.addEventListener('click', event => {
+            if (step.action === 'install') {
+                window.triggerPwaInstall();
+                return;
+            }
+            const button = event.currentTarget;
+            button.disabled = true;
+            button.textContent = 'Standort wird gesucht …';
+            cancelLocation = requestOnboardingLocation(() => {
+                button.textContent = 'Standort aktiv';
+                tooltip.querySelector('.tour-status').textContent = 'Du kannst jetzt weitergehen.';
+            }, message => {
+                button.disabled = false;
+                button.textContent = 'Erneut versuchen';
+                tooltip.querySelector('.tour-status').textContent = message;
+            });
+        });
         tooltip.querySelector('#tour-next').onclick = () => {
             if (isLast) finish();
             else {
@@ -1310,11 +1366,37 @@ window.addNewTag = window.addNewTag; // Already on window from ui.js, but for co
 // Let's just ensuring it's not overridden or lost.
 
 
+let cancelOnboardingLocation = null;
+
 window.completeOnboarding = (action = 'dismiss') => {
+    cancelOnboardingLocation?.();
+    cancelOnboardingLocation = null;
+    const gpsButton = document.getElementById('onboarding-gps-enable');
+    const gpsStatus = document.getElementById('onboarding-gps-status');
+    gpsButton.disabled = false;
+    gpsButton.removeAttribute('aria-busy');
+    gpsButton.querySelector('span').textContent = 'Standort aktivieren';
+    gpsButton.querySelector('i').className = 'ph-fill ph-crosshair';
+    gpsStatus.textContent = '';
+    if (action === 'location') {
+        gpsButton.disabled = true;
+        gpsButton.setAttribute('aria-busy', 'true');
+        gpsButton.querySelector('span').textContent = 'Standort wird gesucht …';
+        gpsButton.querySelector('i').className = 'ph ph-spinner animate-spin';
+        cancelOnboardingLocation = requestOnboardingLocation(() => window.completeOnboarding('located'), message => {
+            gpsButton.disabled = false;
+            gpsButton.removeAttribute('aria-busy');
+            gpsButton.querySelector('span').textContent = 'Erneut versuchen';
+            gpsButton.querySelector('i').className = 'ph-fill ph-crosshair';
+            gpsStatus.textContent = message;
+        });
+        return;
+    }
     document.getElementById('tutorial-modal')?.classList.add('hidden');
     setPersistentFlag('onboarding_completed_v2', 'true');
     setPersistentFlag('tutorial_seen', 'true');
     setPersistentFlag('onboarding_dismissed', 'true');
+    window.dismissVisitorStartCard();
 
     if (action !== 'tour') {
         setTourFlag('mini_tour_prompt_dismissed_v1', 'true');
@@ -1323,11 +1405,13 @@ window.completeOnboarding = (action = 'dismiss') => {
 
     retryVisitorStartCardSoon();
 
-    if (action === 'location') {
+    if (action === 'located') {
         switchTab('map');
-        locateUser(null, { userInitiated: true });
-    } else if (action === 'tour') {
+    }
+    if (action === 'tour') {
         window.setTimeout(() => window.startMiniTour?.(true), 0);
+    } else {
+        window.dispatchEvent(new Event('lichternacht:onboarding-finished'));
     }
 };
 
@@ -1379,6 +1463,11 @@ function initTrackingConsentUi() {
         retryVisitorStartCardSoon();
     };
     const show = () => {
+        const tutorial = document.getElementById('tutorial-modal');
+        if (!hasCompletedOnboarding() || (tutorial && !tutorial.classList.contains('hidden')) || document.querySelector('.tour-tooltip')) {
+            window.addEventListener('lichternacht:onboarding-finished', show, { once: true });
+            return;
+        }
         localStorage.setItem('station_activity_notice_v1', 'shown');
         document.getElementById('matomo-consent-choice').checked = window.hasTrackingConsent?.() === true;
         document.getElementById('station-activity-consent').checked = localStorage.getItem('station_activity_consent_v1') === 'granted';
@@ -1584,7 +1673,27 @@ const initializeApp = async () => {
     // Tutorial Check
     if (!hasCompletedOnboarding()) {
         document.getElementById('tutorial-modal').classList.remove('hidden');
+        document.getElementById('onboarding-gps-enable').focus();
     }
+    document.addEventListener('keydown', event => {
+        const tutorial = document.getElementById('tutorial-modal');
+        if (tutorial.classList.contains('hidden')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            window.closeTutorial();
+        } else if (event.key === 'Tab') {
+            const buttons = [...tutorial.querySelectorAll('button:not(:disabled)')];
+            const first = buttons[0];
+            const last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    });
 
     // Init Firebase
     window.__appStartupPhase = 'authentication';
@@ -1847,6 +1956,7 @@ function checkUpcomingEvents() {
 }
 
 function updateProgramNotificationButton() {
+    document.getElementById('program-install-hint')?.classList.toggle('hidden', getInstallGuidance().installed);
     const button = document.getElementById('program-notification-opt-in');
     if (!button) return;
     const canAsk = 'Notification' in window && Notification.permission === 'default';

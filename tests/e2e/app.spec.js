@@ -1031,9 +1031,9 @@ test('new visitors get a concise onboarding with useful first actions', async ({
 
     await expect(page.locator('#tutorial-modal')).toBeVisible();
     await expect(page.locator('#tutorial-modal')).toContainText('Stationen sammeln');
-    await expect(page.locator('#tutorial-modal')).toContainText('Dark Mode');
-    await expect(page.getByRole('button', { name: /GPS aktivieren/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Ohne Standort fortfahren' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Standort aktivieren', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ohne Standort entdecken' })).toBeVisible();
+    expect((await page.locator('#tutorial-modal').innerText()).length).toBeLessThan(450);
     await page.getByRole('button', { name: /Kurze Tour ansehen/ }).click();
     await expect(page.locator('.tour-tooltip')).toBeVisible();
     await expect(page.locator('.tour-tooltip')).toContainText('Standort bestimmen');
@@ -1046,11 +1046,118 @@ test('completed onboarding stays dismissed after reloading the app', async ({ pa
         localStorage.removeItem('onboarding_dismissed');
     });
     await page.goto('/index.html');
-    await page.getByRole('button', { name: 'Ohne Standort fortfahren' }).click();
+    await page.getByRole('button', { name: 'Ohne Standort entdecken' }).click();
     await expect(page.locator('#tutorial-modal')).toBeHidden();
 
     await page.reload();
     await expect(page.locator('#tutorial-modal')).toBeHidden();
+});
+
+test('onboarding waits for GPS and does not show a second welcome', async ({ page }) => {
+    await page.addInitScript(() => {
+        ['tutorial_seen', 'onboarding_completed_v2', 'onboarding_dismissed', 'tracking_consent'].forEach(key => localStorage.removeItem(key));
+        window.__gpsCalls = 0;
+        navigator.geolocation.getCurrentPosition = success => { window.__gpsCalls += 1; window.__gpsSuccess = success; };
+        navigator.geolocation.watchPosition = () => 1;
+    });
+    await page.goto('/index.html');
+    await expect(page.locator('#tracking-consent')).toBeHidden();
+    await page.locator('#onboarding-gps-enable').click();
+    await expect(page.locator('#onboarding-gps-enable')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#tutorial-modal')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('onboarding_completed_v2'))).toBeNull();
+    await page.evaluate(() => window.__gpsSuccess({ coords: { latitude: 49.158, longitude: 10.552, accuracy: 5 }, timestamp: Date.now() }));
+    await expect(page.locator('#tutorial-modal')).toBeHidden();
+    await expect(page.locator('#tracking-consent')).toBeVisible();
+    await page.locator('#tracking-consent-decline').click();
+    await page.waitForTimeout(1100);
+    await expect(page.locator('#visitor-start-card')).toBeHidden();
+    expect(await page.evaluate(() => window.__gpsCalls)).toBe(1);
+});
+
+test('blocked onboarding GPS offers retry or discovery without completing prematurely', async ({ page }) => {
+    await page.addInitScript(() => {
+        ['tutorial_seen', 'onboarding_completed_v2', 'onboarding_dismissed'].forEach(key => localStorage.removeItem(key));
+        navigator.geolocation.getCurrentPosition = (_success, error) => error({ code: 1 });
+        navigator.geolocation.watchPosition = () => 1;
+    });
+    await page.goto('/index.html');
+    await page.locator('#onboarding-gps-enable').click();
+    await expect(page.locator('#onboarding-gps-status')).toContainText('Standort blockiert');
+    await expect(page.locator('#onboarding-gps-enable')).toBeEnabled();
+    expect(await page.evaluate(() => localStorage.getItem('onboarding_completed_v2'))).toBeNull();
+    await page.getByRole('button', { name: 'Ohne Standort entdecken' }).click();
+    await expect(page.locator('#tutorial-modal')).toBeHidden();
+});
+
+test('guided onboarding explains installation and finishes with all theme options', async ({ page }) => {
+    await page.addInitScript(() => {
+        ['tutorial_seen', 'onboarding_completed_v2', 'onboarding_dismissed', 'tracking_consent'].forEach(key => localStorage.removeItem(key));
+        Object.defineProperty(navigator, 'userAgent', { value: 'iPhone' });
+    });
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'Kurze Tour ansehen' }).click();
+    await expect(page.locator('#tour-action')).toHaveText('Standort aktivieren');
+    for (let step = 0; step < 5; step += 1) await page.locator('#tour-next').click();
+    await expect(page.locator('#tracking-consent')).toBeHidden();
+    await expect(page.locator('.tour-tooltip')).toContainText('geöffnete App');
+    await page.locator('#tour-action').click();
+    await expect(page.locator('#install-help-dialog')).toBeVisible();
+    await expect(page.locator('#install-help-text')).toContainText('Teilen');
+    await expect(page.locator('#install-help-text')).toContainText('Zum Home-Bildschirm');
+    await page.getByRole('button', { name: 'Verstanden', exact: true }).click();
+    await page.locator('#tour-next').click();
+    await expect(page.locator('.tour-tooltip')).toContainText('Hell, Dunkel (Dark Mode) oder System');
+    await expect(page.locator('#theme-preference-btn')).toHaveClass(/tour-target-pulse/);
+    await page.locator('#tour-next').click();
+    await expect(page.locator('.tour-tooltip')).toHaveCount(0);
+    await expect(page.locator('#tracking-consent')).toBeVisible();
+});
+
+test('installed apps do not get another installation invitation in the tour', async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
+    await page.goto('/index.html');
+    await page.evaluate(() => window.startMiniTour(true));
+    for (let step = 0; step < 5; step += 1) await page.locator('#tour-next').click();
+    await expect(page.locator('.tour-tooltip')).toContainText('Hinweise & Installation');
+    await expect(page.locator('#tour-action')).toHaveCount(0);
+    await page.evaluate(() => window.switchTab('events'));
+    await expect(page.locator('#program-install-hint')).toBeHidden();
+});
+
+test('onboarding GPS timeout is recoverable and a late fix does not interrupt discovery', async ({ page }) => {
+    await page.clock.install();
+    await page.addInitScript(() => {
+        ['tutorial_seen', 'onboarding_completed_v2', 'onboarding_dismissed'].forEach(key => localStorage.removeItem(key));
+        navigator.geolocation.getCurrentPosition = success => { window.__gpsSuccess = success; };
+        navigator.geolocation.watchPosition = () => 1;
+    });
+    await page.goto('/index.html');
+    await page.locator('#onboarding-gps-enable').click();
+    await page.clock.runFor(20001);
+    await expect(page.locator('#onboarding-gps-status')).toContainText('Noch kein Standort');
+    await expect(page.locator('#onboarding-gps-enable')).toBeEnabled();
+    await page.getByRole('button', { name: 'Ohne Standort entdecken' }).click();
+    await page.evaluate(() => window.switchTab('events'));
+    await page.evaluate(() => window.__gpsSuccess({ coords: { latitude: 49.158, longitude: 10.552, accuracy: 5 }, timestamp: Date.now() }));
+    await expect(page.locator('#view-events')).toBeVisible();
+    await expect(page.locator('#tutorial-modal')).toBeHidden();
+});
+
+test('installation is requested only on explicit action and uses the browser prompt when available', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.__installPrompts = 0;
+        const event = new Event('beforeinstallprompt', { cancelable: true });
+        event.prompt = () => { window.__installPrompts += 1; };
+        event.userChoice = Promise.resolve({ outcome: 'accepted' });
+        window.dispatchEvent(event);
+        window.switchTab('events');
+    });
+    expect(await page.evaluate(() => window.__installPrompts)).toBe(0);
+    await page.locator('#program-install-hint').click();
+    expect(await page.evaluate(() => window.__installPrompts)).toBe(1);
+    await expect(page.locator('#install-help-dialog')).toHaveCount(0);
 });
 
 test('mobile station modal shows its image and subtle website link', async ({ page }) => {
