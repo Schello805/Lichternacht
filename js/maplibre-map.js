@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.315';
-import { getStationNumber } from './station-number.js?v=1.4.315';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.315';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.315';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.315';
-import { saveData } from './data.js?v=1.4.315';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.316';
+import { getStationNumber } from './station-number.js?v=1.4.316';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.316';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.316';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.316';
+import { saveData } from './data.js?v=1.4.316';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -918,6 +918,7 @@ export async function locateUser(cb, options = {}) {
     if (!navigator.geolocation) {
         showToast('GPS nicht verfügbar (Browser)', 'error');
         setGpsUiStatus('error');
+        options.onError?.({ code: 2 });
         return;
     }
 
@@ -1001,6 +1002,7 @@ export async function locateUser(cb, options = {}) {
             localStorage.removeItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY);
         }
         setGpsUiStatus(denied ? 'denied' : 'error');
+        options.onError?.(err);
         if (shouldShowGpsErrorToast(err)) {
             const message = denied
                 ? 'Standortzugriff ist blockiert. Öffne die angezeigte Anleitung, um ihn wieder freizugeben.'
@@ -1008,7 +1010,7 @@ export async function locateUser(cb, options = {}) {
             console.warn('GPS Error', err);
             showToast(message, 'error');
         }
-        if (denied && startedFromUserGesture) showLocationPermissionHelp();
+        if (denied && startedFromUserGesture && !options.onError) showLocationPermissionHelp();
     };
 
     const startRelaxedFallback = () => {

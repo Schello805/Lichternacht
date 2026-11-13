@@ -1,7 +1,32 @@
 let deferredPrompt = null;
 
-function isStandalone() {
+export function isStandalone() {
     return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+export function getInstallGuidance() {
+    if (isStandalone()) return { installed: true, text: 'Die App ist bereits installiert.' };
+    const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return {
+        installed: false,
+        text: isAppleMobile
+            ? 'Im Browser auf Teilen tippen, „Zum Home-Bildschirm“ wählen und die App über das neue Symbol öffnen.'
+            : 'Im Browser-Menü „App installieren“ oder „Zum Startbildschirm hinzufügen“ wählen.'
+    };
+}
+
+function showInstallGuidance() {
+    let dialog = document.getElementById('install-help-dialog');
+    if (!dialog) {
+        dialog = document.createElement('dialog');
+        dialog.id = 'install-help-dialog';
+        dialog.className = 'rounded-2xl p-5 max-w-sm w-[calc(100%-2rem)] bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow-xl';
+        dialog.setAttribute('aria-labelledby', 'install-help-title');
+        dialog.innerHTML = '<h2 id="install-help-title" class="font-bold text-lg mb-2">App installieren</h2><p id="install-help-text" class="text-sm leading-relaxed"></p><p class="mt-3 text-xs text-gray-500 dark:text-gray-300">Erinnerungen funktionieren aktuell nur bei geöffneter App. Die Installation allein aktiviert keine Hintergrundbenachrichtigungen.</p><form method="dialog" class="mt-4"><button class="rounded-lg bg-yellow-500 px-4 py-2 font-bold text-gray-900">Verstanden</button></form>';
+        document.body.appendChild(dialog);
+    }
+    dialog.querySelector('#install-help-text').textContent = getInstallGuidance().text;
+    if (!dialog.open) dialog.showModal();
 }
 
 function updateAvailabilityStatus() {
@@ -59,7 +84,7 @@ export function initPwaInstall(showToast) {
 
 export async function triggerPwaInstall(showToast) {
     if (!deferredPrompt) {
-        showToast('Installation ist in diesem Browser gerade nicht verfügbar. Nutze ggf. "Zum Home-Bildschirm" im Browser-Menü.', 'info');
+        showInstallGuidance();
         return;
     }
     try {
