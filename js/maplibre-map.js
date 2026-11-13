@@ -1,10 +1,10 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.313';
-import { getStationNumber } from './station-number.js?v=1.4.313';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.313';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.313';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.313';
-import { saveData } from './data.js?v=1.4.313';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.314';
+import { getStationNumber } from './station-number.js?v=1.4.314';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.314';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.314';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.314';
+import { saveData } from './data.js?v=1.4.314';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -1021,64 +1021,12 @@ export async function locateUser(cb, options = {}) {
     setTimeout(startWatch, 1200);
 }
 
-async function routeToRestroom(lat, lng) {
-    if (!hasNavigationFix(state)) {
-        locateUser(() => { if (hasNavigationFix(state)) void routeToRestroom(lat, lng); }, { userInitiated: false, forceCenter: false, requireNavigationFix: true });
-        return;
-    }
-    clearRoute();
-    const requestId = state.overviewRouteRequestId;
-    setRouteInfo('Fußweg zum WC', 'Weg wird berechnet…');
-    try {
-        const route = await fetchFootRoute([[state.userLocation.lng, state.userLocation.lat], [lng, lat]]);
-        if (requestId !== state.overviewRouteRequestId) return;
-        state.routeGeometry = route.geometry;
-        renderRoute(route.geometry);
-        setRouteInfo('Fußweg zum WC', `${formatRouteDistance(route.distance)} · ${formatRouteDuration(route.duration)}`);
-        fitCoordinates(route.geometry.coordinates, 70);
-    } catch {
-        if (requestId !== state.overviewRouteRequestId) return;
-        setRouteInfo('Kein Fußweg verfügbar', 'Bitte erneut versuchen.');
-    }
-}
-
-export function calculateRoute(destLat, destLng) {
-    const destination = getValidCoordinates(destLat, destLng);
-    if (!destination) {
-        showToast('Für diese Station ist keine gültige Kartenposition hinterlegt.', 'error');
-        return;
-    }
-    if (!state.userLocation) {
-        showToast("GPS wird benötigt – Standort wird aktiviert...", 'info');
-        locateUser(() => calculateRoute(destLat, destLng));
-        return;
-    }
-    clearOverviewRoute();
-    showToast("Route wird berechnet...", 'info');
-    const start = `${state.userLocation.lng},${state.userLocation.lat}`;
-    const end = `${destination.longitude},${destination.latitude}`;
-    fetch(`https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`)
-        .then(response => {
-            if (!response.ok) throw new Error('Routing-Dienst nicht erreichbar');
-            return response.json();
-        })
-        .then(result => {
-            const geometry = result.routes?.[0]?.geometry;
-            if (!geometry) throw new Error('Keine Route gefunden');
-            state.routeGeometry = geometry;
-            renderRoute(geometry);
-            hideRouteInfo();
-            fitCoordinates(geometry.coordinates, 70);
-        })
-        .catch(error => {
-            console.error('Route calculation failed', error);
-            showToast('Route konnte nicht berechnet werden.', 'error');
-        });
-}
-
-export function clearRoute() {
+function clearSingleRoute() {
+    state.routeRequestId = (state.routeRequestId || 0) + 1;
+    state.routeController?.abort();
+    state.routeController = null;
+    state.routeTarget = null;
     state.routeGeometry = null;
-    clearOverviewRoute();
     if (!state.map) return;
     try {
         if (state.map.getLayer(ROUTE_LAYER_ID)) state.map.removeLayer(ROUTE_LAYER_ID);
@@ -1086,6 +1034,87 @@ export function clearRoute() {
     } catch (error) {
         console.warn('Route could not be cleared', error);
     }
+}
+
+function setSingleRouteInfo(title, detail) {
+    setRouteInfo(title, detail);
+    const close = document.getElementById('route-close-btn');
+    const label = state.overviewRoutePaused ? 'Umweg schließen und Tour fortsetzen' : 'Route schließen';
+    close?.setAttribute('aria-label', label);
+    close?.setAttribute('title', label);
+    if (!state.overviewRoutePaused) return;
+    const button = document.getElementById('overview-route-navigation-btn');
+    if (button) {
+        button.textContent = 'Tour fortsetzen';
+        button.setAttribute('aria-label', 'Tour fortsetzen');
+        button.disabled = false;
+        button.classList.remove('hidden');
+    }
+}
+
+async function routeToRestroom(lat, lng) {
+    return startWalkingRoute(lat, lng, 'Fußweg zum WC');
+}
+
+async function startWalkingRoute(destLat, destLng, title) {
+    const destination = getValidCoordinates(destLat, destLng);
+    if (!destination) {
+        showToast('Für diese Station ist keine gültige Kartenposition hinterlegt.', 'error');
+        return;
+    }
+    clearSingleRoute();
+    state.overviewRouteRequestId += 1;
+    if (state.overviewRouteCalculating) {
+        state.overviewRouteController?.abort();
+        state.overviewRouteCalculating = false;
+    }
+    if (state.overviewRouteGeometry && state.overviewRouteNavigationActive) {
+        state.overviewRoutePaused = true;
+        clearOverviewApproach();
+        if (state.overviewRouteUiTimer) window.clearTimeout(state.overviewRouteUiTimer);
+        saveTour(localStorage, state);
+    }
+    state.routeTarget = { ...destination, title };
+    const requestId = state.routeRequestId;
+    const calculate = async () => {
+        if (requestId !== state.routeRequestId || !hasNavigationFix(state)) return;
+        const controller = new AbortController();
+        state.routeController = controller;
+        setSingleRouteInfo(title, 'Weg wird berechnet…');
+        try {
+            const route = await fetchFootRoute([[state.userLocation.lng, state.userLocation.lat], [destination.longitude, destination.latitude]], controller.signal);
+            if (controller.signal.aborted || requestId !== state.routeRequestId) return;
+            state.routeGeometry = route.geometry;
+            renderRoute(route.geometry);
+            setSingleRouteInfo(title, `${formatRouteDistance(route.distance)} · ${formatRouteDuration(route.duration)}`);
+            fitCoordinates(route.geometry.coordinates, 70);
+        } catch {
+            if (controller.signal.aborted || requestId !== state.routeRequestId) return;
+            setSingleRouteInfo('Kein Fußweg verfügbar', 'Bitte erneut versuchen.');
+        }
+    };
+    if (!hasNavigationFix(state)) {
+        setSingleRouteInfo(title, 'GPS wird aktualisiert…');
+        locateUser(calculate, { userInitiated: false, forceCenter: false, requireNavigationFix: true });
+        return;
+    }
+    await calculate();
+}
+
+export async function calculateRoute(destLat, destLng) {
+    return startWalkingRoute(destLat, destLng, 'Fußweg zur Station');
+}
+
+export function clearRoute() {
+    const resumeTour = state.overviewRoutePaused && state.overviewRouteGeometry;
+    clearSingleRoute();
+    if (resumeTour) {
+        state.overviewRoutePaused = false;
+        setRouteInfo(`${state.overviewRouteMode === 'open' ? 'Stationentour' : 'Rundweg'} · ${state.overviewRouteStations.length} Stationen`, state.overviewRouteSummary);
+        updateOverviewRouteNavigationButton();
+        return;
+    }
+    clearOverviewRoute();
     hideRouteInfoIfUnused();
 }
 
@@ -1154,6 +1183,8 @@ function formatRouteDuration(durationSeconds) {
 }
 
 function clearOverviewRoute() {
+    clearSingleRoute();
+    state.overviewRoutePaused = false;
     dismissSavedTour();
     state.overviewRouteStartMarker?.remove();
     state.overviewRouteStartMarker = null;
@@ -1214,7 +1245,7 @@ function clearOverviewApproach() {
 }
 
 async function refreshOverviewApproach() {
-    if (!state.overviewRouteNavigationActive) {
+    if (!state.overviewRouteNavigationActive || state.overviewRoutePaused) {
         if (state.overviewApproach) clearOverviewApproach();
         return;
     }
@@ -1248,6 +1279,9 @@ async function refreshOverviewApproach() {
 
 function updateOverviewRouteNavigationButton() {
     saveTour(localStorage, state);
+    if (state.overviewRoutePaused) return;
+    document.getElementById('route-close-btn')?.setAttribute('aria-label', 'Tour beenden');
+    document.getElementById('route-close-btn')?.setAttribute('title', 'Tour beenden');
     const button = document.getElementById('overview-route-navigation-btn');
     const skipButton = document.getElementById('overview-route-skip-btn');
     const detailElement = document.getElementById('route-info-detail');
@@ -1296,6 +1330,10 @@ function updateOverviewRouteNavigationButton() {
 }
 
 export function startOverviewNavigation() {
+    if (state.overviewRoutePaused) {
+        clearRoute();
+        return;
+    }
     if (state.overviewRouteEstimated || state.overviewRouteCalculating || state.overviewRouteCompleted) return;
     if (state.overviewRouteNavigationActive) {
         const target = state.overviewRouteClosing ? state.overviewRouteOrigin : state.overviewRouteStations[state.overviewRouteNavigationIndex];
@@ -1316,7 +1354,7 @@ export function startOverviewNavigation() {
 
 function advanceOverviewNavigation(skipped = false) {
     const stations = state.overviewRouteStations || [];
-    if (!state.overviewRouteNavigationActive || !stations.length) return;
+    if (!state.overviewRouteNavigationActive || state.overviewRoutePaused || !stations.length) return;
     if (state.overviewRouteClosing) {
         state.overviewRouteNavigationActive = false;
         state.overviewRouteCompleted = true;

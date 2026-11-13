@@ -12,7 +12,10 @@ pro Minute und Station, nur bei sichtbarer App und im Check-in-Zeitfenster.
 
 Zufällige 256-Bit-Kennungen je Station/Veranstaltung erlauben Näherungszählung
 und Zuordnung eines serverseitig bestätigten Check-ins. Keine Nutzer-ID wird im
-Statistikdatensatz gespeichert. Authentifizierte Übertragung und technische
+Statistikdatensatz gespeichert. Bei Check-in und Rücknahme wird die vorhandene
+Stationskennung im selben Schreibvorgang für die Quote verwendet, aber nicht
+zusätzlich im Check-in-Datensatz gespeichert. Eine weitere GPS-Meldung ist dafür
+nicht erforderlich. Authentifizierte Übertragung und technische
 Logs sind deshalb nicht als vollständig anonyme Datenerhebung zu bezeichnen.
 Datenschutzbeauftragten vor Veranstaltungsbetrieb das konkrete Verfahren prüfen
 lassen; GPS-Freigabe oder eine frühere reine Matomo-Zustimmung ersetzen die
