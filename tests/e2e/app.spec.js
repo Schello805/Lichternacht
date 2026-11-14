@@ -1670,6 +1670,8 @@ test('moving an admin station marker saves its new coordinates', async ({ page }
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#admin-panel')).toBeVisible();
+    await page.locator('#admin-panel').getByRole('button', { name: 'Zur App', exact: true }).click();
     await page.locator('#map-edit-mode-btn').click();
 
     await page.evaluate(() => {
