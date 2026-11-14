@@ -1,222 +1,118 @@
-# Lichternacht Bechhofen - PWA
+# Lichternacht Bechhofen – PWA
 
-Eine progressive Web App (PWA) für die Lichternacht Bechhofen.
-Entwickelt mit Vanilla JavaScript, Firebase und TailwindCSS.
+Web-App für Stationen, Programmpunkte, Fußwege und den Lichter-Pass.
+Frontend: Vanilla JavaScript, TailwindCSS und MapLibre. Produktiver Daten- und
+Anmeldemodus: Python-API mit SQLite und Local Auth auf dem eigenen Server.
 
-## ✨ Features
+## Aktueller Betrieb
 
-*   **Offline-First (PWA):** Funktioniert dank Service Worker und Caching auch bei schlechtem Netz komplett offline.
-*   **Interaktive Karte:** MapLibre-Vektorkarte mit Standort-Tracking und Routing.
-*   **Gamification:** Lichter-Pass, Check-Ins, Likes und Favoriten.
-*   **Onboarding:** Mini-Tour (Kurze Tour) für neue Nutzer; kann über die Hilfe („Tour erneut anzeigen“) erneut gestartet werden.
+- App-Daten seit v1.4.297, Anmeldung seit v1.4.299 lokal; Einzelheiten:
+  [LOCAL_DATABASE.md](LOCAL_DATABASE.md) und [AUTH_MIGRATION.md](AUTH_MIGRATION.md).
+- Apache liefert HTML, JavaScript, CSS, Schriften und Downloads direkt aus.
+  Nur `/api/` wird an den auf Loopback gebundenen Python-Dienst weitergeleitet.
+- Die App prüft die lokale Anmeldung vor dem Laden alter Firebase-Anbindungen.
+  Firebase-Dateien sind Migrations-/Kompatibilitätscode, keine Anweisung zum Rückwechsel.
+- **Alte `firestore.rules` nicht veröffentlichen und bestehende lokale
+  systemd-Drop-ins nicht abschalten.** Ein Rückwechsel braucht einen geprüften Datenabgleich.
+- Im lokalen Modus werden Änderungen regelmäßig über die API aktualisiert,
+  nicht über Firestore-Realtime.
+- Eine erfolgreiche CI ist kein Nachweis für Produktionskapazität oder externe Dienstverfügbarkeit.
 
-## Betrieb (Server)
+## Funktionen und Grenzen
 
-### Bug melden → E-Mail
+- Stationen, Programmpunkte, WC/Parkplätze und Admin-Bearbeitung.
+- Favoriten, Check-ins, freiwillige Statistik und Lichter-Pass.
+- Check-in-Fenster: eine Stunde vor Beginn bis drei Stunden nach Ende.
+  Maßgeblich ist der konfigurierte Veranstaltungszeitraum und die Serverprüfung.
+- Fußwege ab GPS-Standort, offene Tour oder Rundweg; siehe [ROUTING.md](ROUTING.md).
+- Offline bleiben bereits zwischengespeicherte Inhalte verfügbar. Kartenausschnitte,
+  neue Routen, Feedback und Synchronisation benötigen eine Verbindung.
+- Programmerinnerungen benötigen eine geöffnete App. Die Installation allein
+  aktiviert keine Hintergrund-Pushzustellung.
+- Bilder/PDFs unter `downloads/`; Schriften Lato/Cinzel lokal unter `vendor/fonts/`.
+- Feedback über `POST /api/bug-report`, SMTP-Zugangsdaten ausschließlich auf dem Server.
 
-Die App sendet Bugreports an `POST /api/bug-report` (Apache Proxy → `server.py`), damit Nutzer (auch anonym) Feedback senden können, ohne Firestore-Probleme.
+## Serverkonfiguration
 
-- Setup-Anleitung: `SERVER_EMAIL_SETUP.md`
-- `.env` Vorlage: `.env.example`
+Aktivierung und Datenbankpfade liegen in der bestehenden Produktionsinstallation
+in systemd-Drop-ins. `deploy.sh` aktiviert diese nicht neu und darf sie nicht ersetzen.
+Für eine neue Installation erst die Anleitungen für Datenbank, Anmeldung und
+[Apache/SMTP](SERVER_EMAIL_SETUP.md) durcharbeiten; bloßes Klonen reicht nicht.
 
-### Fehler-Monitoring
+Wichtige Einstellungen:
 
-JavaScript-Fehler werden zusätzlich an `POST /api/client-error` gesendet und serverseitig in `logs/client-errors.log` protokolliert.
-Das Protokoll enthält keine IP-Adresse, keinen User-Agent, keine Kontaktangaben, keine Check-ins und keine Standortdaten. Potenzielle E-Mail-Adressen, Koordinaten und sensible URL-Parameter werden serverseitig entfernt.
-Der Ordner `logs/` ist absichtlich ignoriert und gehört nicht ins Git-Repo.
+- `LOCAL_DATABASE_ENABLED=true`, `LOCAL_DATABASE_PATH`: vorhandene App-Datenbank.
+- `LOCAL_AUTH_ENABLED=true`, `LOCAL_AUTH_PATH`: separate Auth-Datenbank unter `.private`.
+- `LOCAL_AUTH_ORIGIN`: exakte öffentliche HTTPS-Origin; keine fremden Origins zulassen.
+- `BIND_HOST=127.0.0.1`: API nicht unmittelbar öffentlich exponieren.
+- SMTP in geschützten Servereinstellungen; keine Passwörter in `config.js`.
+- `TRUST_PROXY_HEADERS` nur mit nachweislich bereinigten Proxy-Headern aktivieren.
 
-### Event-Datum / Zeitfenster
+Im lokalen Produktivmodus ist kein Firebase-Schlüssel für den Login erforderlich.
+Die optionale öffentliche `config.js` kann die App-ID enthalten; sie ist **kein**
+Speicherort für SMTP-, Datenbank- oder Admin-Zugangsdaten.
+Admin-Konten verwaltet die lokale Anmeldung. Wiederherstellung/Bootstrap erfolgt
+über die in `AUTH_MIGRATION.md` dokumentierte Terminal-CLI, nicht durch alte Firestore-Einträge.
 
-Im Admin unter **„Downloads & ICS“** kann das Event-Datum optional mit Zeitfenster gesetzt werden:
+## Releases und Server-Update
 
-- Beispiel: `22.11.2026 17:00-23:00`
-- Wirkung: „Live/Demnächst“ + Lichter‑Pass Check-ins nur innerhalb dieses Fensters.
-*   **Live-Updates:** Änderungen an Stationen/Events sind sofort bei allen Nutzern sichtbar (Firestore Realtime).
-*   **Admin-Tools:** Integriertes CMS zum Bearbeiten von Stationen, Events und Push-Nachrichten (Broadcast).
-*   **Datensicherung:** Im Admin-Bereich kann eine JSON-Sicherung der öffentlichen Veranstaltungsdaten und App-Einstellungen heruntergeladen und bei Bedarf vollständig wiederhergestellt werden. Bilder und PDFs bleiben als Server-Dateien erhalten; Codestände werden über GitHub-Releases gesichert.
-*   **Systemstatus:** Geschütztes Admin-Dashboard für Serverlast, RAM, freien Speicher, Laufzeit, Bildspeicher, aktive Besucher und Admin-Konten.
-*   **Performance:** Automatische Bild-Komprimierung beim Upload und optimiertes Caching.
-*   **Stations- und Programmbilder:** Quadratisch zugeschnittene, komprimierte WebP-Dateien liegen unter `downloads/stations/` beziehungsweise `downloads/events/` auf dem eigenen Server; Firestore speichert nur die URL.
-*   **Karte:** MapLibre GL rendert Vektorkarten von OpenFreeMap ohne projektspezifischen API-Key. Die MapLibre-Laufzeit liegt lokal unter `vendor/maplibre/`.
-*   **Feedback:** Integriertes Bug-Reporting per E-Mail.
+Änderungen gehen über Pull Request, Versionsabgleich, `npm run verify` und
+erfolgreiche GitHub-CI nach `main`. Danach wird ein passender Release-Tag erstellt.
+Der Betreiber aktualisiert den Server selbst:
 
-## 📂 Projektstruktur
-
-```
-/
-├── index.html          # Hauptseite (App Shell)
-├── main.js             # Einstiegspunkt (Main Entry)
-├── service-worker.js   # Service Worker (Offline-Fähigkeit & Caching)
-├── manifest.json       # PWA Konfiguration (Name, Icons, Farben)
-├── firestore.rules     # Sicherheitsregeln für die Datenbank
-├── deploy.sh           # Deployment-Skript für den Server
-├── server-htaccess     # Apache Config (wird zu .htaccess auf dem Server)
-├── js/
-│   ├── admin.js        # Admin-Funktionen (Import/Export, Login)
-│   ├── auth.js         # Authentifizierung (Login, Logout, Listener)
-│   ├── data.js         # Daten-Management & Seed-Daten
-│   ├── firebase-init.js# Firebase Initialisierung
-│   ├── gamification.js # Lichter-Pass, Levels, Likes
-│   ├── maplibre-map.js # MapLibre-Vektorkarte & Logik
-│   ├── state.js        # Globaler State (Store)
-│   ├── ui.js           # UI-Rendering & Interaktionen
-│   └── utils.js        # Hilfsfunktionen
-└── icons/              # App Icons
-```
-
-## 🚀 Deployment (Server)
-
-Die App ist für einen **Apache Webserver** optimiert.
-
-### Erst-Installation
-1.  Repository auf den Server klonen: `git clone https://github.com/Schello805/Lichternacht.git .`
-2.  Deployment-Skript ausführbar machen: `chmod +x deploy.sh`
-3.  Einmalig ausführen: `./deploy.sh`
-
-### Updates einspielen
-Den neuesten freigegebenen GitHub-Release auf dem Server aktivieren:
-
-```bash
+```sh
+cd /var/www/html/Lichternacht
 ./deploy.sh
 ```
 
-Das Skript erledigt folgendes:
-1.  Holt ausschließlich den neuesten Release-Tag und prüft, dass er vorhanden ist.
-2.  Wechselt den Server auf genau diesen Stand (kein automatisches `main`-Update).
-3.  Kopiert `server-htaccess` zu `.htaccess` (Damit Caching-Regeln stimmen und Nextcloud nicht stört).
+Optional: `./deploy.sh vX.Y.Z` für einen **vorher geprüften, mit dem aktuellen
+Datenbank-/Auth-Modus kompatiblen** Release. Das Skript holt Tags, wählt den
+neuesten Versions-Tag, setzt den Codestand, kopiert die Apache-Vorlage und startet
+den API-Dienst neu. Es prüft selbst keine CI-Ergebnisse.
+Nicht unkontrolliert auf einen Stand vor der lokalen Migration zurücksetzen.
 
-### Sicher veröffentlichen
+## Sicherung und Wiederherstellung
 
-1. Änderungen kommen über einen Pull Request nach `main`.
-2. GitHub Actions muss vollständig grün sein.
-3. Erst dann wird ein Release-Tag wie `v1.4.270` erstellt.
-4. Auf dem Server wird der neueste freigegebene Tag mit `./deploy.sh` aktiviert.
+- Öffentliche Veranstaltungsdaten und Dateien sowie lokale Dokumente/Likes können
+  im Adminbereich als Komplett-JSON gesichert werden.
+- Dieses JSON ist vertraulich, aber **keine vollständige Systemsicherung**:
+  Auth-Passworthashes, Sitzungen und SMTP-Geheimnisse gehören nicht hinein.
+- Restore lokaler Komplettsicherungen: geprüftes Importskript in eine neue
+  Datenbank, nicht der alte Browser-Import.
+- Die geschützte Serversicherung umfasst zusätzlich Auth-Datenbank, Uploads und
+  Betriebskonfiguration. Sitzungen/Resetlinks werden bewusst nicht wiederbelebt.
+- Auch eine externe Sicherung des LXC/Backups vorhalten. Eine Datei auf demselben
+  Server schützt nicht vor dessen Verlust.
+- Vorgehen: [LOCAL_DATABASE.md](LOCAL_DATABASE.md), [AUTH_MIGRATION.md](AUTH_MIGRATION.md).
 
-Bei Problemen lässt sich sofort auf einen vorherigen Release zurückgehen, zum Beispiel:
+## Entwicklung und Prüfungen
 
-```bash
-./deploy.sh v1.4.269
+```sh
+npm ci
+npm run version:sync
+npm run verify
+npm run test:e2e
 ```
 
-Ein konkreter Tag kann auch bewusst ausgerollt werden, etwa `./deploy.sh v1.4.270`.
+CSS: `npm run watch` oder `npm run build`; Ausgabe `dist/output.css`.
+Der Python-Server dient lokal auch statische Dateien aus, produktiv übernimmt das Apache.
+Geschützte Dateien und Logs nicht ins Web ausliefern; siehe [SECURITY.md](SECURITY.md).
+Begrenzter, ausschließlich lokaler Lasttest: [LOAD_TEST.md](LOAD_TEST.md).
 
-**Wichtig:** Die Datei `.htaccess` sollte lokal nicht existieren (oder ignoriert werden), da sie oft Probleme mit Sync-Clients (Nextcloud) verursacht. Wir nutzen daher `server-htaccess` als Vorlage.
+## Projektübersicht
 
-## 🛠 Entwicklung & Build
+- `index.html`, `main.js`, `js/ui.js`: Oberfläche und Interaktionen.
+- `js/maplibre-map.js`, `js/foot-routing.js`: Karte und externer Fußwegdienst.
+- `server.py`, `local_database.py`, `local_auth.py`: API, Daten, Anmeldung.
+- `server-htaccess`, `server/apache/`: Apache-Vorlagen.
+- `service-worker.js`: Caching; `sw.js`: bewusste Abmeldung historischer Worker.
+- `vendor/`: lokale Laufzeiten, Schriften und zugehörige Lizenzen.
+- `tests/`: JavaScript-, Python- und Browserprüfungen.
 
-Das Projekt nutzt **TailwindCSS** für das Styling. Um CSS-Änderungen zu machen, musst du das CSS neu bauen:
+## Fehlersuche
 
-1.  **Abhängigkeiten installieren:**
-    ```bash
-    npm install
-    ```
-
-2.  **CSS Bauen (Watch Mode für Entwicklung):**
-    ```bash
-    npm run watch
-
-3.  **Prüfung vor Push/Deployment:**
-    ```bash
-    npm run verify
-    ```
-
-    Das prüft den Tailwind-Build, JavaScript-Syntax und automatisierte Tests.
-
-## ✅ Produktionsreife Checks
-
-- **CI:** GitHub Actions läuft bei jedem Push/Pull Request auf `main`.
-- **E2E:** Playwright prüft Besucher-Stationsdetails und Admin-Direktzugriff.
-- **Admin-Daten:** CSV-Import prüft Pflichtfelder und verhindert fehlerhafte Cloud-Imports. Bei Stationen heißt `address` Adresse/Ort, `offer` ist der sichtbare Angebotstext.
-- **Stationen:** Werbetext max. 250 Zeichen, maximal 5 Tags, ein Bild pro Station.
-- **Updates:** Service Worker übernimmt neue Versionen schneller; Nutzer erhalten einen „Neu laden“-Hinweis.
-- **Security:** Siehe `SECURITY.md` für Firestore-/SMTP-/DSGVO-Checkliste.
-    ```
-
-3.  **CSS für Produktion bauen:**
-    ```bash
-    npm run build
-    ```
-
-Die generierte Datei liegt unter `dist/output.css`.
-
-## 🛠 Daten aktualisieren (Jährlicher Workflow)
-
-Um die App für ein neues Jahr fit zu machen:
-
-1.  **Planungs-Modus aktivieren:**
-    *   Gehe ins Admin-Panel -> "App Titel & Untertitel".
-    *   Aktiviere "🚧 Planungs-Modus aktiv".
-    *   Dies zeigt Besuchern ein Banner, dass die Daten noch nicht aktuell sind.
-
-2.  **Daten bearbeiten:**
-    *   Logge dich als Admin ein.
-    *   Lösche alte Events/Stationen und lege neue an.
-    *   Änderungen sind sofort live.
-
-3.  **Backup erstellen (Seed-Daten):**
-    *   Gehe ins Admin-Panel.
-    *   Klicke auf **"Download data.js"**.
-    *   Ersetze damit die Datei `js/data.js` im Projektordner und lade es zu GitHub hoch.
-    *   *Dies dient als Backup, falls die App offline genutzt wird.*
-
-4.  **Likes zurücksetzen (Optional):**
-    *   Im Admin-Panel unter "App Titel & Untertitel" kannst du alle Likes (Daumen-hoch-Stimmen) auf 0 setzen.
-
-5.  **Planungs-Modus beenden:**
-    *   Sobald alles fertig ist, deaktiviere den Planungs-Modus wieder.
-
-## ⚙️ Konfiguration
-
-Die App benötigt eine Konfigurationsdatei `config.js` im Hauptverzeichnis (dort wo auch `index.html` liegt). Diese Datei enthält sensible Daten (API Keys) und wird **nicht** mit Git übertragen (sie steht in `.gitignore`).
-
-### 1. `config.js` erstellen
-Erstelle lokal oder auf dem Server eine Datei `config.js` mit folgendem Inhalt:
-
-```javascript
-const __firebase_config = JSON.stringify({
-    apiKey: "DEIN_API_KEY",
-    authDomain: "dein-projekt.firebaseapp.com",
-    projectId: "dein-projekt",
-    storageBucket: "dein-projekt.firebasestorage.app",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef...",
-    measurementId: "G-XYZ..."
-});
-
-const __app_id = "lichternacht-2025";
-```
-
-Adminrechte werden nicht anhand einer fest codierten E-Mail vergeben. Der erste globale Admin
-muss nach dem Anlegen des Auth-Nutzers einmalig als Dokument unter
-`globalAdmins/<AUTH_UID>` eingetragen werden. Weitere App-Admins liegen unter
-`artifacts/<APP_ID>/public/data/users/<AUTH_UID>`.
-
-### 2. Upload auf den Server
-Lade diese Datei manuell (per FTP/SFTP) auf deinen Server.
-
-**Wichtig:** Ohne diese Datei funktioniert der Login und der Zugriff auf die Datenbank nicht!
-
-### 3. Firebase Setup
-Stelle sicher, dass in der Firebase Console:
-*   **Authentication:** "Email/Password" und "Anonymous" aktiviert sind.
-*   **Firestore:** Die Datenbank erstellt ist.
-*   **Rules:** Die Regeln aus `firestore.rules` veröffentlicht sind.
-*   **Server-API:** `ADMIN_EMAILS` enthält die erlaubten Admin-E-Mail-Adressen; ohne die Variable bleiben geschützte Server-Endpunkte gesperrt. Setze `TRUST_PROXY_HEADERS=true` nur, wenn Apache den Header `X-Forwarded-For` selbst setzt und fremde Werte verwirft.
-
-## 📦 Tech Stack
-
-- **Frontend:** HTML5, Vanilla JS, TailwindCSS (Local Build)
-- **Backend:** Firebase (Firestore, Auth)
-- **Maps:** MapLibre GL JS, OpenFreeMap & OpenStreetMap
-- **Icons:** Phosphor Icons
-- **PWA:** Workbox (Service Worker)
-
-## 🆘 Notfall-Hilfe
-
-*   **App lädt nicht?** Cache leeren oder `service-worker.js` unregisteren.
-*   **Keine Daten?** Prüfe die Browser-Konsole (F12) auf rote Fehler.
-*   **Login geht nicht?** Prüfe in der Firebase Console, ob "Email/Password" und "Anonymous" aktiviert sind.
-
-## 📲 Installation (PWA)
-
-Die Installation wird im Willkommens-Dialog über einen einzelnen Button **„App installieren“** angeboten. In Browsern ohne Install-Prompt (z.B. Safari) nutzt man stattdessen die System-Funktion „Zum Home-Bildschirm“.
+Zuerst Release-Version, Browser-Konsole und geschützte Server-/Dienstlogs prüfen.
+Bei Daten-/Login-Problemen lokale API, systemd-Einstellungen und Datenbankpfade
+prüfen – nicht Firebase neu aktivieren. Feedback-/Resetmail-Probleme anhand der
+SMTP-Testmail eingrenzen. Vor dem Löschen von Website-Daten daran denken:
+Favoriten, Tourplanung und nicht synchronisierte Besuche können verloren gehen.

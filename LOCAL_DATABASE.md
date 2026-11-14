@@ -1,6 +1,6 @@
-# Vorbereitung einer Server-Datenbank
+# Lokale Datenbank – Betrieb und Migrationsgeschichte
 
-## Workflow-Korrekturen (vorbereitet, noch nicht veröffentlicht)
+## Aktueller Workflow
 
 - Stationsnummern werden mit einer einzigen Transaktion geändert. Verknüpfte
   Programmpunkte, Check-in-Datensätze und Like-Sperren werden mitgeführt;
@@ -77,15 +77,23 @@ einfaches Abschalten des Drop-ins erfolgen. Neue SQLite-Schreibzugriffe müssen
 zuvor vollständig gesichert und rückübertragen werden. Alte Clients müssen
 die Seite neu laden, damit sie die lokale API auswählen.
 
-Feedback wird ab `v1.4.298` pro verifizierter Firebase-Identität begrenzt
+Feedback wird seit `v1.4.298` pro verifizierter Identität begrenzt
 (auch anonyme Nutzer), zusätzlich mit einer gemeinsamen Obergrenze für den
-Mailversand. Dadurch teilen normale Besucher nicht länger das niedrige Limit
+Mailversand. Seit v1.4.299 stammt diese Identität aus Local Auth, nicht aus Firebase.
+Dadurch teilen normale Besucher nicht länger das niedrige Limit
 des Apache-Proxyanschlusses. Unangemeldete Altclients bleiben konservativ nach
 Verbindungsadresse begrenzt. `TRUST_PROXY_HEADERS` bleibt deaktiviert: Der
 vorgeschaltete Proxy bereitete gefälschte Client-IP-Header im Test nicht sicher
 auf. Diese Header dürfen deshalb nicht ungeprüft für Limits verwendet werden.
 
-Der erste Schritt ist eine isolierte SQLite-Datenbank aus einer vorhandenen
+## Historischer Migrationsablauf (kein aktueller Einrichtungsauftrag)
+
+Die folgenden Abschnitte beschreiben die vorbereitete und anschließend
+abgeschlossene Umstellung. Aussagen zur noch aktiven Firebase-Anmeldung beziehen
+sich nur auf diese Zwischenphase. Für den heutigen Betrieb gelten die lokale
+Anmeldung oben und `AUTH_MIGRATION.md`; Firebase nicht erneut aktivieren.
+
+Der erste Schritt war eine isolierte SQLite-Datenbank aus einer vorhandenen
 Komplettsicherung. Stationen, Events, Einstellungen und eingebettete Dateien
 werden erhalten und durch einen vollständigen Rückvergleich geprüft.
 
