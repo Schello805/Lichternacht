@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.319';
-import { loadData } from './data.js?v=1.4.319';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.319';
-import { renderTimeline } from './ui.js?v=1.4.319';
+import { showToast } from './utils.js?v=1.4.320';
+import { loadData } from './data.js?v=1.4.320';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.320';
+import { renderTimeline } from './ui.js?v=1.4.320';
 
 function setLoginError(message = '') {
     const errorElement = document.getElementById('login-error');
@@ -91,6 +91,7 @@ export async function logoutAdmin() {
         showToast('Abgemeldet', 'info');
     } catch (e) {
         console.error(e);
+        showToast('Abmelden fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.', 'error');
     }
 }
 

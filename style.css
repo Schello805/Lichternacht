@@ -444,6 +444,17 @@ h3,
     cursor: move;
 }
 
+.admin-panel-open #admin-bar {
+    display: none;
+}
+
+.admin-toolbar-actions > button {
+    min-height: 44px;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .admin-badge {
     display: none;
 }
