@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.317';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.317';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.317';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.317';
-import * as utils from './utils.js?v=1.4.317';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.317';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.317';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.317';
-import { recordAuditEvent } from './audit.js?v=1.4.317';
-import { normalizeImageUrl } from './image-url.js?v=1.4.317';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.317';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.317';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.318';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.318';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.318';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.318';
+import * as utils from './utils.js?v=1.4.318';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.318';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.318';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.318';
+import { recordAuditEvent } from './audit.js?v=1.4.318';
+import { normalizeImageUrl } from './image-url.js?v=1.4.318';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.318';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.318';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2563,7 +2563,8 @@ export function renderTimeline() {
     let currentActiveEvent = null; // Store currently running event for header
     let hasSetScrollTarget = false; // Ensure we only scroll to the FIRST relevant event
 
-    container.innerHTML = sorted.map((e, index) => {
+    const programGroups = new Map();
+    sorted.forEach(e => {
         const eventStatus = getProgramStatus(e, statusContext);
         const eventTimeVal = eventStatus.eventTimeVal;
         const isCurrent = eventStatus.key === 'live';
@@ -2578,10 +2579,6 @@ export function renderTimeline() {
         if (isEventWindowNow && !currentActiveEvent && isCurrent) {
             currentActiveEvent = e;
         }
-
-        const colorClass = e.color === 'yellow' ? 'bg-yellow-500' : 
-                          e.color === 'red' ? 'bg-red-500' : 
-                          e.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500';
 
         let distInfo = '';
         let showMapBtn = '';
@@ -2603,34 +2600,34 @@ export function renderTimeline() {
         }
 
         // Scroll Target Logic: The first "Current" or "Next" event gets the ID
-        let scrollId = '';
+        const timeKey = Number.isFinite(eventTimeVal) ? String(eventTimeVal) : String(e.time || '');
+        if (!programGroups.has(timeKey)) {
+            programGroups.set(timeKey, { time: e.time, cards: [], isCurrent: false, scrollTarget: false });
+        }
+        const group = programGroups.get(timeKey);
+        group.isCurrent = group.isCurrent || isCurrent;
         if (hasConfiguredEventDate && isEventDay && !hasSetScrollTarget && (isCurrent || (!isPast && eventTimeVal > currentTimeVal))) {
-            scrollId = 'id="timeline-scroll-target"';
+            group.scrollTarget = true;
             hasSetScrollTarget = true;
         }
 
-        return `
-        <div ${scrollId} class="relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500">
-            <div class="absolute -left-[19px] w-[2px] timeline-line ${index === 0 ? 'top-4' : 'top-0'} bottom-0"></div>
-            <div class="absolute -left-[27px] bg-white border-2 border-gray-300 rounded-full w-4 h-4 mt-1.5 ${isCurrent ? 'border-yellow-500 scale-125 ring-4 ring-yellow-100' : ''}">
-                <div class="w-2 h-2 rounded-full ${colorClass} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-            </div>
-            <div onclick='openProgramEvent(${JSON.stringify(e.id)})' class="bg-white p-3 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
+        group.cards.push(`
+        <div class="relative ${isPast ? 'opacity-50 grayscale' : ''} transition-all duration-500" data-program-card>
+            <div onclick="openProgramEvent(${escapeHtml(JSON.stringify(e.id))})" class="bg-white p-3 rounded-lg shadow-sm border-l-4 ${e.color === 'yellow' ? 'border-yellow-400' : 'border-gray-300'} dark:bg-gray-800 dark:border-gray-700 cursor-pointer active:scale-[0.99] transition-transform">
                 <div class="flex items-start gap-2">
                 ${normalizeStationImage(e.image) ? `<img src="${escapeHtml(normalizeStationImage(e.image))}" alt="Bild zu ${escapeHtml(e.title)}" class="aspect-square w-14 shrink-0 rounded-lg object-cover sm:w-16">` : ''}
                 <div class="min-w-0 flex-1">
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-lg ${isCurrent ? 'text-yellow-600' : ''}">${escapeHtml(e.time)} Uhr</span>
                         <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${eventStatus.className}">${escapeHtml(eventStatus.label)}</span>
                     </div>
                     ${state.isAdmin ? `
                         <div class="flex gap-2">
-                            <button onclick='event.stopPropagation(); editEvent(${JSON.stringify(e.id)})' class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
-                            <button onclick='event.stopPropagation(); deleteEvent(${JSON.stringify(e.id)})' class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
+                            <button onclick="event.stopPropagation(); editEvent(${escapeHtml(JSON.stringify(e.id))})" class="text-gray-300 hover:text-blue-500"><i class="ph ph-pencil-simple"></i></button>
+                            <button onclick="event.stopPropagation(); deleteEvent(${escapeHtml(JSON.stringify(e.id))})" class="text-gray-300 hover:text-red-500"><i class="ph ph-trash"></i></button>
                         </div>` : ''}
                 </div>
-                <h4 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h4>
+                <h5 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h5>
                 ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(getStationNumber(linkedStation))} · ${escapeHtml(linkedStation.name)}</span>` : ''}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-1 flex-wrap">
@@ -2644,8 +2641,19 @@ export function renderTimeline() {
                 </div>
             </div>
         </div>
-        `;
-    }).join('');
+        `);
+    });
+    container.innerHTML = [...programGroups.values()].map((group, index) => `
+        <section class="relative" data-program-time="${escapeHtml(group.time)}" aria-labelledby="program-time-${index}" ${group.scrollTarget ? 'id="timeline-scroll-target"' : ''}>
+            <div class="absolute -left-[19px] top-4 bottom-0 w-[2px] timeline-line" aria-hidden="true"></div>
+            <div class="absolute -left-[26px] top-1.5 h-4 w-4 rounded-full border-2 ${group.isCurrent ? 'border-yellow-500 bg-yellow-400' : 'border-gray-300 bg-white dark:bg-gray-700'}" aria-hidden="true"></div>
+            <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h4 id="program-time-${index}" class="font-bold text-lg text-gray-900 dark:text-white">${escapeHtml(group.time)} Uhr</h4>
+                ${group.cards.length > 1 ? `<span class="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">${group.cards.length} Programmpunkte · gleicher Beginn</span>` : ''}
+            </div>
+            <div class="space-y-2">${group.cards.join('')}</div>
+        </section>
+    `).join('');
 
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
