@@ -541,6 +541,29 @@ test('visitor can open a station detail modal from the station list', async ({ p
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+for (const width of [320, 390]) test(`admin controls and logout fit a narrow phone (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 740 });
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#admin-panel')).toBeVisible();
+    await expect(page.locator('#admin-bar')).toBeHidden();
+    await expect(page.locator('#admin-panel').getByRole('button', { name: 'Abmelden', exact: true })).toBeInViewport();
+    await page.locator('#admin-panel').getByRole('button', { name: 'Zur App', exact: true }).click();
+    await expect(page.locator('#admin-bar')).toBeVisible();
+    const buttons = await page.locator('#admin-bar button').evaluateAll(elements => elements.map(element => {
+        const box = element.getBoundingClientRect();
+        return { left: box.left, right: box.right, height: box.height };
+    }));
+    expect(buttons).toHaveLength(5);
+    expect(buttons.every(box => box.left >= 0 && box.right <= width && box.height >= 44)).toBe(true);
+    await page.locator('#admin-bar').getByRole('button', { name: 'Abmelden', exact: true }).click();
+    await expect(page.locator('#admin-bar')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.state.isAdmin)).toBe(false);
+    await expect(page.locator('body')).not.toHaveClass(/admin-panel-open/);
+});
+
 test('station edit modal stays above navigation and can scroll on a short landscape viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1180, height: 520 });
     await page.goto('/admin/');
@@ -846,6 +869,8 @@ test('admin must explicitly enable marker movement', async ({ page }) => {
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#admin-panel')).toBeVisible();
+    await page.locator('#admin-panel').getByRole('button', { name: 'Zur App', exact: true }).click();
     await page.evaluate(() => {
         window.state.config.standaloneRestrooms = [{ id: 'wc-drag', lat: 49.159, lng: 10.552 }];
         window.state.config.standaloneParking = [{ id: 'parking-drag', lat: 49.1591, lng: 10.5521 }];
@@ -1647,6 +1672,8 @@ test('moving an admin station marker saves its new coordinates', async ({ page }
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#admin-panel')).toBeVisible();
+    await page.locator('#admin-panel').getByRole('button', { name: 'Zur App', exact: true }).click();
     await page.locator('#map-edit-mode-btn').click();
 
     await page.evaluate(() => {
