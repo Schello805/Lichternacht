@@ -869,6 +869,8 @@ test('admin must explicitly enable marker movement', async ({ page }) => {
     await page.locator('#admin-email').fill('local@example.test');
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.locator('#admin-panel')).toBeVisible();
+    await page.locator('#admin-panel').getByRole('button', { name: 'Zur App', exact: true }).click();
     await page.evaluate(() => {
         window.state.config.standaloneRestrooms = [{ id: 'wc-drag', lat: 49.159, lng: 10.552 }];
         window.state.config.standaloneParking = [{ id: 'parking-drag', lat: 49.1591, lng: 10.5521 }];
