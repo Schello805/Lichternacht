@@ -1203,7 +1203,9 @@ for (const height of [650, 844]) test(`station modal stays compact and fully ins
         window.openStation(station.id);
     }, height === 650);
     await expect(page.locator('#modal-image-container img')).toBeVisible();
-    await page.waitForTimeout(450);
+    await page.locator('#modal-content').evaluate(async element => {
+        await Promise.all(element.getAnimations().map(animation => animation.finished));
+    });
     const layout = await page.evaluate(() => {
         const content = document.getElementById('modal-content');
         const box = content.getBoundingClientRect();
