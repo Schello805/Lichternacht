@@ -979,6 +979,43 @@ test('current and next program map actions keep their event identity', async ({ 
     await expect(page.locator('.program-pin.map-target-highlight')).toHaveCount(0);
 });
 
+for (const dark of [false, true]) test(`program groups simultaneous starts under one time heading (${dark ? 'dark' : 'light'})`, async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(useDark => {
+        window.setThemePreference(useDark ? 'dark' : 'light');
+        const createEvent = (id, time, title) => ({ id, time, title, loc: 'Marktplatz', desc: 'Informationen zum Angebot', lat: 49.158, lng: 10.552, stationId: '' });
+        window.state.events = [
+            createEvent('late', '19:00', 'Abschluss'),
+            createEvent('parallel-one', '17:30', 'Konzert'),
+            createEvent('early', '17:00', 'Eröffnung'),
+            createEvent("parallel'two", '17:30', 'Lesung <Live>')
+        ];
+        window.renderTimeline();
+        window.switchTab('events');
+    }, dark);
+    await expect(page.getByRole('heading', { name: 'Programmpunkte', exact: true })).toBeVisible();
+    const groups = page.locator('#timeline-container [data-program-time]');
+    expect(await groups.evaluateAll(elements => elements.map(element => element.dataset.programTime))).toEqual(['17:00', '17:30', '19:00']);
+    const parallel = page.locator('[data-program-time="17:30"]');
+    await expect(parallel.locator('[data-program-card]')).toHaveCount(2);
+    await expect(parallel.getByRole('heading', { name: '17:30 Uhr', exact: true })).toHaveCount(1);
+    await expect(parallel).toContainText('2 Programmpunkte · gleicher Beginn');
+    await expect(parallel).toContainText('Konzert');
+    await expect(parallel).toContainText('Lesung <Live>');
+    await expect(groups.first()).not.toContainText('gleicher Beginn');
+    const boxes = await parallel.locator('[data-program-card]').evaluateAll(elements => elements.map(element => {
+        const box = element.getBoundingClientRect();
+        return { top: box.top, bottom: box.bottom, right: box.right };
+    }));
+    expect(boxes[1].top).toBeGreaterThan(boxes[0].bottom);
+    expect(boxes.every(box => box.right <= page.viewportSize().width)).toBe(true);
+    await parallel.getByRole('heading', { name: 'Lesung <Live>', exact: true }).click();
+    await expect(page.locator('#program-event-modal')).toContainText('Lesung <Live>');
+    await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
+    await parallel.locator('[data-program-card]').last().getByRole('button', { name: 'Zeigen', exact: true }).click();
+    await expect(page.locator('.program-target-popup')).toContainText('Lesung <Live>');
+});
+
 test('standalone program entries use a calendar icon on the map', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(() => {
