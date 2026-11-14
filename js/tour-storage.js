@@ -1,4 +1,4 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.319';
+import { stationCoordinates } from './round-trip.js?v=1.4.320';
 
 export const TOUR_STORAGE_KEY = 'active_station_tour_v1';
 

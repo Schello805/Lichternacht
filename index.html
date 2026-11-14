@@ -118,10 +118,10 @@
     </script>
 
     <!-- Tailwind CSS (Static) -->
-<link href="./dist/output.css?v=1.4.319" rel="stylesheet">
+<link href="./dist/output.css?v=1.4.320" rel="stylesheet">
 
     <!-- MapLibre GL (Vektorkarte) -->
-    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.319" />
+    <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=1.4.320" />
 
     <style>
         /* CRITICAL: Hide Scrollbars for horizontal scrolling areas */
@@ -135,7 +135,7 @@
     </style>
 
     <!-- Google Fonts -->
-    <link href="vendor/fonts/fonts.css?v=1.4.319" rel="stylesheet">
+    <link href="vendor/fonts/fonts.css?v=1.4.320" rel="stylesheet">
 
     <!-- Phosphor Icons -->
     <script src="vendor/phosphor/phosphor.js"></script>
@@ -143,7 +143,7 @@
     <!-- ==========================================
        CSS STYLES
        ========================================== -->
-    <link rel="stylesheet" href="style.css?v=1.4.319">
+    <link rel="stylesheet" href="style.css?v=1.4.320">
     <style>
         /* Cache-safe map controls: overrides legacy GPS status styles from older app versions. */
         #map-locate-btn,
@@ -306,16 +306,19 @@
         <div id="admin-panel"
             class="hidden admin-panel flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-900 dark:text-white p-3 sm:p-5">
             <div class="max-w-5xl mx-auto pb-24">
-            <div class="flex items-start justify-between gap-3 mb-4">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
                     <h3 class="font-bold text-xl mb-1 brand-font">Admin Konsole</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Verwalte hier Daten, Downloads und Nachrichten.</p>
                     <p class="mt-1 text-xs font-semibold text-gray-500 dark:text-gray-400"><i class="ph ph-tag"></i> Release <span id="admin-release-version">–</span></p>
                 </div>
-                <button type="button" onclick="window.closeAdminPage()"
+                <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="logoutAdmin()" aria-label="Abmelden" class="min-h-[44px] shrink-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"><i class="ph ph-sign-out" aria-hidden="true"></i> Abmelden</button>
+                <button type="button" onclick="window.closeAdminPage()" aria-label="Zur App"
                     class="shrink-0 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700">
                     <i class="ph ph-arrow-left"></i> Zur App
                 </button>
+                </div>
             </div>
 
             <section class="mb-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900 dark:bg-blue-950/30" aria-labelledby="system-status-title">
@@ -903,10 +906,10 @@
 
         <!-- Admin Bar (Logged in) -->
         <div id="admin-bar"
-            class="hidden bg-yellow-500 text-black px-4 py-2 text-xs font-bold flex justify-between items-center z-50 shadow-md">
+            class="hidden bg-yellow-500 text-black px-3 py-2 text-xs font-bold flex flex-wrap justify-between items-center gap-2 shrink-0 z-50 shadow-md">
             <span id="admin-mode-label">🔧 ADMIN</span>
-            <span id="admin-map-edit-hint" class="text-[10px] text-black/70 uppercase tracking-wide">Marker geschützt</span>
-            <div class="flex gap-2">
+            <span id="admin-map-edit-hint" class="min-w-0 flex-1 text-[10px] text-black/70 uppercase tracking-wide">Marker geschützt</span>
+            <div class="admin-toolbar-actions grid grid-cols-3 sm:flex gap-2 w-full sm:w-auto">
                 <button id="map-edit-mode-btn" type="button" onclick="toggleMapEditMode()" aria-pressed="false"
                     class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800" title="Verschiebemodus aktivieren"><i
                         class="ph ph-arrows-out-cardinal"></i> Verschieben</button>
@@ -916,7 +919,7 @@
                         class="ph ph-calendar-plus"></i> Programm</button>
                 <button onclick="toggleAdminPanel()" class="bg-black text-white px-2 py-1 rounded hover:bg-gray-800"><i
                         class="ph ph-toolbox"></i> Adminseite</button>
-                <button onclick="logoutAdmin()" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40">Exit</button>
+                <button onclick="logoutAdmin()" aria-label="Abmelden" class="bg-black/20 px-2 py-1 rounded hover:bg-black/40"><i class="ph ph-sign-out" aria-hidden="true"></i> Abmelden</button>
             </div>
         </div>
 
@@ -1575,7 +1578,7 @@
                     }
                 });
 
-                navigator.serviceWorker.register('./service-worker.js?v=1.4.319', {
+                navigator.serviceWorker.register('./service-worker.js?v=1.4.320', {
                     scope: './',
                     updateViaCache: 'none'
                 }).then(reg => {
@@ -1606,7 +1609,7 @@
         <p>Die App konnte nicht vollständig geladen werden. Bitte prüfe deine Verbindung und lade die Seite erneut.</p>
         <button type="button" onclick="location.reload()" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white">Erneut laden</button>
     </div>
-    <script type="module" src="main.js?v=1.4.319" onerror="document.getElementById('app-load-error').classList.remove('hidden')"></script>
+    <script type="module" src="main.js?v=1.4.320" onerror="document.getElementById('app-load-error').classList.remove('hidden')"></script>
 </body>
 
 </html>

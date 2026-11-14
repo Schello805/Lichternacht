@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { getStationActivityToken } from './station-activity.js?v=1.4.319';
+import { getStationActivityToken } from './station-activity.js?v=1.4.320';
 
 export function installLocalRecords(appId) {
     const core = { ...state.fb };
