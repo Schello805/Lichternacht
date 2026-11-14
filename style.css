@@ -334,7 +334,7 @@ h3,
 }
 
 @media (max-width: 639px) {
-    #modal-image-container img { height: 10rem !important; }
+    #modal-image-container img { height: 7rem !important; }
     #floating-status.is-non-map { display: none; }
     #floating-status {
         bottom: calc(7.25rem + env(safe-area-inset-bottom));
@@ -407,17 +407,11 @@ h3,
 }
 
 #modal-content {
-    max-height: calc(100vh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    max-height: 100% !important;
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-}
-
-@supports (height: 100dvh) {
-    #modal-content {
-        max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
-    }
 }
 
 @keyframes favorite-feedback {

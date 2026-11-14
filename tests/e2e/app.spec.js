@@ -1190,6 +1190,42 @@ test('long station names do not overlap rating actions', async ({ page }) => {
     expect(boxes.titleRight).toBeLessThanOrEqual(boxes.actionsLeft);
 });
 
+for (const height of [650, 844]) test(`station modal stays compact and fully inside the mobile viewport (${height}px)`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height });
+    await page.goto('/index.html');
+    await page.evaluate(shortViewport => {
+        const station = window.state.stations[0];
+        station.name = 'Accentra GmbH & Co KG – Accentra Outlet';
+        station.desc = 'Pestalozzistr. 11';
+        station.offer = 'Verkauf mit Tombola für Schule, Heizpilzausstellung, heißer Hugo, Wasser, Bier, Chilli con Carne/Chilli sin Carne'.repeat(shortViewport ? 8 : 1);
+        station.image = '/icon.png';
+        station.link = 'https://example.com';
+        window.openStation(station.id);
+    }, height === 650);
+    await expect(page.locator('#modal-image-container img')).toBeVisible();
+    await page.waitForTimeout(450);
+    const layout = await page.evaluate(() => {
+        const content = document.getElementById('modal-content');
+        const box = content.getBoundingClientRect();
+        return {
+            top: box.top, bottom: box.bottom, height: box.height,
+            navigationTop: document.getElementById('bottom-nav').getBoundingClientRect().top,
+            imageHeight: document.querySelector('#modal-image-container img').getBoundingClientRect().height,
+            titleSize: parseFloat(getComputedStyle(document.getElementById('modal-title')).fontSize),
+            touchHeights: ['checkin-btn', 'btn-internal-route', 'btn-route', 'modal-fav-btn', 'modal-like-btn'].map(id => document.getElementById(id).getBoundingClientRect().height)
+        };
+    });
+    expect(layout.top).toBeGreaterThanOrEqual(0);
+    expect(layout.bottom).toBeLessThanOrEqual(layout.navigationTop);
+    expect(layout.imageHeight).toBe(112);
+    expect(layout.titleSize).toBeLessThanOrEqual(18);
+    expect(layout.touchHeights.every(value => value >= 44)).toBe(true);
+    if (height === 844) expect(layout.height).toBeLessThan(700);
+    await page.locator('#btn-route').scrollIntoViewIfNeeded();
+    await expect(page.locator('#btn-route')).toBeInViewport();
+    await expect(page.locator('#bottom-nav')).toBeVisible();
+});
+
 test('station modal supports swipe-down and favorite vibration feedback', async ({ page }) => {
     await page.addInitScript(() => {
         window.__vibrationCalls = [];
