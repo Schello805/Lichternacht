@@ -1,9 +1,9 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.318';
+const CACHE_NAME = 'lichternacht-v1.4.319';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
-const FONT_CACHE = 'google-fonts';
+const FONT_CACHE = 'local-fonts-v1';
 const MAP_CACHE = 'map-tiles';
 
 function isFirebaseOrGoogleApi(url) {
@@ -58,10 +58,10 @@ if (workbox) {
     );
 
     workbox.routing.registerRoute(
-        ({ url }) => url.origin === 'https://fonts.googleapis.com' ||
-            url.origin === 'https://fonts.gstatic.com',
-        new workbox.strategies.StaleWhileRevalidate({
+        ({ request, url }) => url.origin === self.location.origin && request.destination === 'font',
+        new workbox.strategies.CacheFirst({
             cacheName: FONT_CACHE,
+            plugins: [new workbox.expiration.ExpirationPlugin({ maxEntries: 16, maxAgeSeconds: 30 * 24 * 60 * 60 })],
         })
     );
 

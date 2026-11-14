@@ -1,68 +1,79 @@
 # Sicherheit & Betrieb
 
-Diese App ist eine private PWA mit Firebase/Firestore und einem kleinen Server-Endpunkt für Feedback-Mails.
+## Maßgeblicher Modus
 
-## Sicherheitsniveau
+Die Produktion verwendet App-SQLite und eine separate Local-Auth-SQLite.
+Firebase bleibt als historische Kompatibilitätsanbindung im Code, ist aber
+im aktivierten lokalen Modus nicht der Produktions-Daten- oder Anmeldedienst.
 
-Die Besucheroberfläche darf öffentliche Veranstaltungsdaten lesen. Schreibzugriffe
-für Check-ins, Anwesenheit und Auswertungen sind auf authentifizierte (auch anonyme)
-Firebase-Sitzungen sowie ein enges Datenschema begrenzt. Das ersetzt keinen Schutz
-gegen automatisierte Zugriffe: Vor dem Event Firebase App Check aktivieren.
+**Nicht die alte `firestore.rules` veröffentlichen.** Die damalige Schreibsperre
+für alte Clients muss erhalten bleiben. Firebase App Check ist keine Absicherung
+der lokalen API und keine Voraussetzung für diesen Betriebsmodus.
+Migrationsgeschichte: [LOCAL_DATABASE.md](LOCAL_DATABASE.md),
+[AUTH_MIGRATION.md](AUTH_MIGRATION.md).
 
-## Vor jedem produktiven Einsatz prüfen
+## Vor einem Einsatz prüfen
 
-- `firestore.rules` deployen und im Firebase-Regel-Simulator testen.
-- **Firebase App Check:** Für die Web-App aktivieren, den reCAPTCHA-Enterprise-Schlüssel
-  hinterlegen und nach einem kurzen Beobachtungszeitraum die Durchsetzung für
-  Firestore und Authentication einschalten.
-- Admin-Nutzer nur gezielt in `artifacts/{appId}/public/data/users` anlegen.
-- `.env` niemals committen; SMTP-Zugangsdaten nur auf dem Server speichern.
-- Prüfen, dass `.env`, `.private/`, `.git/`, `logs/` sowie Server- und
-  Deployment-Dateien öffentlich mindestens mit `403` oder `404` antworten.
-- Admin- und SMTP-Passwörter nur im Passwortmanager ablegen und bei einer möglichen
-  Klartextweitergabe sofort ändern.
-- `logs/client-errors.log` regelmäßig prüfen und nicht veröffentlichen.
-- Apache nur per HTTPS bereitstellen; die Header aus `server-htaccess` aktivieren.
-- `TRUST_PROXY_HEADERS=true` nur setzen, wenn der Proxy `X-Forwarded-For` zuverlässig
-  selbst befüllt. Andernfalls bleibt der Schutz absichtlich serverweit konservativ.
-- Matomo/Tracking nur über Consent aktivieren und Datenschutzhinweise aktuell halten.
-- Nach jedem Deployment prüfen: App-Version, Service Worker Update, Admin-Datencheck.
+- Apache/HTTPS als öffentlicher Einstieg; statische Dateien direkt ausliefern,
+  ausschließlich `/api/` an den auf Loopback gebundenen API-Dienst weitergeben.
+- Aktive Proxy-Konfiguration mit den Vorlagen vergleichen. Die Vorlage allein
+  beweist nicht, welche Konfiguration der produktive Apache tatsächlich nutzt.
+- Python `http.server` ist kein allgemein empfohlener Produktionsserver.
+  Der bestehende API-Betrieb hinter Apache benötigt Überwachung und einen
+  realistischen Kapazitätstest; Backlog 128 ist keine Kapazitätsgarantie.
+- Daten- und Auth-Datenbanken getrennt, geschützt und mit minimal erforderlichen
+  Dateirechten betreiben. Private Backups, `.env`, `.private/`, `.git/`, Logs
+  und Server-/Deployment-Dateien dürfen öffentlich nur 403/404 liefern.
+- `LOCAL_AUTH_ORIGIN` exakt setzen. Sichere HttpOnly-/SameSite-Cookies,
+  unautorisierte Schreibzugriffe und Origin-Abweisung nach einem Update prüfen.
+- Admin-Konten gezielt vergeben. Keine Zugangsdaten in Chat, Git oder Browserkonfiguration.
+- SMTP-/Admin-Passwörter bei möglicher Offenlegung ändern; Geheimnisse nur auf dem Server.
+- `TRUST_PROXY_HEADERS` nur mit nachweislich überschriebenem/bereinigtem
+  `X-Forwarded-For` aktivieren. Ungeprüfte Werte erlauben das Umgehen von Limits.
+- Geschützte Logs und freien Speicher überwachen; Fehlerprotokolle nicht öffentlich teilen.
+- Backup **und Wiederherstellung** testen; zusätzliche Kopie außerhalb des LXC vorhalten.
+- Optionale Analyse/Stationsstatistik nur mit Einwilligung. Schriften werden
+  lokal ausgeliefert; Karten, Routing und freiwillige Analyse bleiben getrennte
+  externe Dienste mit eigenen Datenflüssen.
+- Routing-Kapazität und Nutzungsbedingungen separat prüfen; Browser-Caches
+  sichern keine gemeinsame Kapazität für viele Besucher zu. Siehe [ROUTING.md](ROUTING.md).
 
-## GitHub Checks
+## Check-ins und Aussagegrenzen
 
-Bei Push/Pull Request läuft `.github/workflows/ci.yml`:
+Der lokale Server erzwingt Zeitfenster und eindeutige Nutzer-/Stationspaare,
+schützt fremde Datensätze und berechnet zentrale Fortschritte/Zähler.
+Normale Check-ins sind von einer Stunde vor Beginn bis drei Stunden nach Ende
+möglich. Neue Offline-Einträge müssen noch innerhalb des Fensters beim Server
+ankommen; nicht übertragbare Einträge können lokal sichtbar bleiben.
+Rücknahmen gehören dem ursprünglichen Besitzer und sind auch später zulässig.
 
-- `npm ci`
-- `npm run verify`
-- Tailwind-Build
-- JavaScript-Syntaxcheck
-- Node-Tests für Validierung und Zeitfenster
-- Playwright-E2E für Stationsdetails und Admin-Datencheck
+GPS, Browserzustand und zufällige Besucherkennungen sind kein manipulationssicherer
+Anwesenheits- oder Personennachweis. Auch API-Authentifizierung beweist keinen
+physischen Standort. Besuchszahlen beschreiben teilnehmende Browser/Signale,
+nicht eine vollständige Personenzählung. Verbindliche Preisentscheidungen
+benötigen einen entsprechend geprüften Betreiberprozess.
 
-## Kritische manuelle Tests
+## Prüfungen und Betrieb
 
-### Check-in-Regeln ab v1.4.288
+`npm run verify` prüft Versionen, Build, Syntax, Python- und JavaScript-Tests.
+GitHub-CI führt zusätzlich Playwright für Smartphone und Desktop aus.
+Der lokale Kapazitätstest ist in [LOAD_TEST.md](LOAD_TEST.md) beschrieben.
+Diese Prüfungen ersetzen weder einen unabhängigen Sicherheitsaudit noch einen
+Lasttest der tatsächlichen Apache-/LXC-/Netzwerkumgebung.
 
-Vor dem Veröffentlichen der neuen `firestore.rules` im Adminbereich den
-Veranstaltungszeitraum unter Downloads erneut speichern. Dabei werden die
-Grenzen `checkinWindow.startMs` und `checkinWindow.endMs` in der geschützten
-Konfiguration gespeichert (eine Stunde vorher bis drei Stunden nachher).
-Ohne diese Werte verweigern die Regeln Check-in-Schreibzugriffe.
+Nach einem Deployment manuell prüfen:
 
-Die neuen Regeln binden jeden Check-in an die Firebase-UID, eine bestehende
-Station und einen eindeutigen Dokumentpfad. Die Serverzeit entscheidet über
-das Zeitfenster. Wiederholungen erzeugen keine zusätzlichen Datensätze.
-Offline-Einträge können nur innerhalb des Zeitfensters synchronisiert werden.
-Alte Clients müssen für die neue Dokumentstruktur aktualisiert werden.
+1. Version und Service-Worker-Update; alte Worker werden über `sw.js` abgemeldet.
+2. Besucher: Station/Programm, Route, Check-in und Offline-Synchronisation.
+3. Admin: Login, Bearbeiten, Import/Export und Backup-Zugriff.
+4. Datenschutz: Ablehnung funktioniert, optionale Erfassung bleibt aus.
+5. Nicht angemeldet: private Sammlungen, Admin-API und Backups bleiben gesperrt.
+6. SMTP-Testmail und Feedback; Clientfehler ohne sensible Inhalte protokolliert.
 
-Dies schützt die zentrale Check-in-Auswertung, beweist aber keinen Aufenthalt:
-GPS und der lokale Pass-/Preisfortschritt sind weiter clientseitig und
-manipulierbar. Eine verbindliche Preisberechtigung benötigt einen Serverprozess,
-der die gespeicherten Check-ins auswertet. Auch App Check beweist keinen Standort.
+## Änderungen nach der Veranstaltung
 
-- Besucher: Station öffnen, Route starten, Lichter-Pass Check-in.
-- Admin: Datencheck öffnen, Station bearbeiten, CSV exportieren/importieren.
-- Offline: App einmal laden, Netzwerk trennen, Karte/Liste öffnen.
-- Update: Nach Deployment Update-Hinweis testen und neu laden.
-- Sicherheit: Nach dem Rules-Deploy einen anonymen Check-in, einen Like und einen
-  Admin-Import testen; unautorisierte Firestore-Schreibversuche müssen abgelehnt werden.
+Große UI-/Admin-/Serverdateien schrittweise zerlegen und Inline-Handler abbauen.
+Den Python-HTTP-Unterbau geplant durch einen geeigneten Produktions-Stack
+ersetzen, statt kurz vor dem Event einen ungetesteten Komplettumbau auszurollen.
+
+Referenz: https://docs.python.org/3/library/http.server.html#module-http.server

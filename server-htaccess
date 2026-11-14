@@ -4,6 +4,7 @@
 # The application directory is also the document root. Keep operational
 # files, logs and repository metadata from ever being served by Apache.
 Options -Indexes
+AddType font/woff2 .woff2
 
 <If "%{REQUEST_URI} =~ m#(?i)(?:/\.[^/]*|/(?:logs|node_modules|scripts|server|tests)(?:/|$))#">
   Require all denied
@@ -33,6 +34,7 @@ Options -Indexes
   ExpiresByType image/png "access plus 1 month"
   ExpiresByType image/webp "access plus 1 month"
   ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 month"
   
   # CSS, JavaScript: 1 year (we use cache busting via SW or filenames if needed, but safe default)
   # BUT: sw.js MUST NOT BE CACHED!
@@ -53,7 +55,7 @@ Options -Indexes
   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
 
   # Cache everything else aggressively
-  <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|webp|js|css|swf)$">
+  <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|webp|js|css|swf|woff2)$">
     Header set Cache-Control "max-age=31536000, public"
   </FilesMatch>
 

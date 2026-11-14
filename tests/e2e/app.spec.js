@@ -13,6 +13,29 @@ test('compact explanations keep route and cookie details collapsed', async ({ pa
     await expect(page.locator('#tracking-consent-decline')).toHaveText('Nur notwendige');
 });
 
+test('text fonts load locally with umlauts and do not contact Google Fonts', async ({ page }) => {
+    const externalFonts = [];
+    page.on('request', request => {
+        if (/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(request.url())) externalFonts.push(request.url());
+    });
+    await page.goto('/index.html');
+    const fonts = await page.evaluate(async () => {
+        const faces = await Promise.all([
+            document.fonts.load('400 16px Lato', 'Grüße €'),
+            document.fonts.load('700 16px Lato', 'ÄÖÜ ß'),
+            document.fonts.load('300 16px Lato', 'Lichternacht'),
+            document.fonts.load('700 20px Cinzel', 'Bechhofen'),
+            document.fonts.load('400 20px Cinzel', 'ŁČ')
+        ]);
+        return faces.map(group => group.length > 0 && group.every(face => face.status === 'loaded'));
+    });
+    expect(fonts).toEqual([true, true, true, true, true]);
+    expect(externalFonts).toEqual([]);
+    await page.goto('/datenschutz.html', { waitUntil: 'commit' });
+    await expect(page.getByText('Für die Schriftdarstellung werden keine Verbindungen zu Google Fonts aufgebaut.', { exact: false })).toBeVisible();
+    expect(externalFonts).toEqual([]);
+});
+
 test('station activity transmits only station signals after consent and a sustained fresh GPS fix', async ({ page }) => {
     await page.clock.install();
     const payloads = [];

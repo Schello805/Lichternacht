@@ -45,3 +45,35 @@ Der externe Dienst ist weiterhin eine Verfügbarkeitsabhängigkeit. Für garanti
 Kapazität wäre ein eigener oder vertraglich abgesicherter Fußwegdienst nötig.
 Aktuelle Sperrungen und private Zugänge hängen von der Qualität der Kartendaten ab.
 Ein GPS-Praxistest vor Ort, insbesondere auf iOS, bleibt erforderlich.
+
+## Kapazitätsprüfung vor der Lichternacht (14.11.2026)
+
+Die veröffentlichte Nutzungsregel des Betreibers nennt maximal eine Anfrage pro
+Sekunde und untersagt intensive Nutzung. Sie enthält keine Zusicherung für
+unsere Veranstaltung und keine eindeutig erklärte Ausnahme für viele Besucher
+hinter einer gemeinsamen Mobilfunk-IP. Quelle:
+https://routing.openstreetmap.de/about.html
+
+Die vorhandene Drosselung und der Cache gelten pro Browser. Sie sind keine
+projektweite Kapazitätsreservierung. Matrix, Gesamtroute und Zielroute können
+beim Tourstart mehrere Anfragen erzeugen. Ein rein zentraler Proxy wäre keine
+automatische Lösung: Er würde die Anfragen auf eine gemeinsame Absender-IP
+konzentrieren und dieselben Nutzungsbedingungen nicht umgehen dürfen.
+
+In dieser Überarbeitung bleiben Routing-Endpunkt und Routenlogik unverändert.
+Der lokale API-Lasttest belastet diesen Dienst ausdrücklich nicht. Ohne eine
+Zusage des Betreibers darf das Routing daher nicht als lastgesichert bezeichnet
+werden. Für eine Anfrage an `fossgis-routing-server@openstreetmap.de` vorbereiten:
+
+- Veranstaltung am 21.11.2026, erwartete gleichzeitige routende Browser und Dauer.
+- Verwendete Endpunkte: `routed-foot/table/v1/driving` und `routed-foot/route/v1/driving`.
+- Tourstart benötigt mehrere Abfragen; Zielweg-Aktualisierung höchstens alle
+  20 Sekunden nach mindestens 10 Metern Bewegung, zusätzlicher Browser-Cache.
+- Um ausdrückliche Einschätzung/Zusage für diese Nutzung und die gemeinsame
+  Mobilfunk-IP-Situation bitten; keine Freigabe unterstellen.
+
+Eine solche Anfrage wurde hier nicht versendet. Ohne passende Zusage wären
+ein eigener vorberechneter Fußwegdienst oder ein Anbieter mit zugesicherter
+Kapazität getrennt zu planen, einschließlich Profil, Matrix-API, CORS,
+Datenschutzhinweisen und Praxistest. Kein ungeprüfter Wechsel auf ein Auto-Profil
+und kein stiller Wechsel zu einem anderen Anbieter.
