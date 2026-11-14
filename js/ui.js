@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.316';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.316';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.316';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.316';
-import * as utils from './utils.js?v=1.4.316';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.316';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.316';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.316';
-import { recordAuditEvent } from './audit.js?v=1.4.316';
-import { normalizeImageUrl } from './image-url.js?v=1.4.316';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.316';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.316';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.317';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.317';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.317';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.317';
+import * as utils from './utils.js?v=1.4.317';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.317';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.317';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.317';
+import { recordAuditEvent } from './audit.js?v=1.4.317';
+import { normalizeImageUrl } from './image-url.js?v=1.4.317';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.317';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.317';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -199,7 +199,7 @@ function renderModalStationImage(station, isEditing = false) {
         </button>`;
 
     imageContainer.innerHTML = stationImage
-        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" loading="eager" fetchpriority="high" decoding="async" class="h-48 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
+        ? `<img src="${escapeHtml(stationImage)}" alt="Bild von ${escapeHtml(station.name)}" loading="eager" fetchpriority="high" decoding="async" class="h-36 w-full rounded-t-2xl bg-gray-100 object-contain dark:bg-gray-900">${isEditing ? imageChangeButton : ''}`
         : `<button type="button" onclick="document.getElementById('image-upload').click()" class="flex h-36 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-gray-900 dark:text-blue-200" aria-label="Bild auswählen"><i class="ph ph-camera text-2xl"></i><span>Bild auswählen</span></button>`;
     imageContainer.classList.remove('hidden');
 }
