@@ -2637,3 +2637,35 @@ test('system metrics are protected and visible only in admin UI', async ({ reque
     await expect(page.locator('#admin-system-metrics')).toBeVisible();
     await expect(page.locator('#admin-release-version')).toHaveText(/v\d+\.\d+\.\d+/);
 });
+
+test('admin can view and export a twelve-hour resource history without inventing missing data', async ({ request, page }) => {
+    expect((await request.get('/api/system-metrics/history')).status()).toBe(403);
+    let empty = false;
+    await page.route('**/api/system-metrics/history?*', route => {
+        const start = Number(new URL(route.request().url()).searchParams.get('start'));
+        return route.fulfill({ json: { ok: true, start, end: start + 43200000, samples: empty ? [] : [0, 30000, 3600000, 3630000].map((offset, index) => ({
+            timestamp: start + offset, cpuPercent: [10, 80, 20, 30][index], memoryPercent: 50 + index,
+            memoryUsed: 500000000, memoryTotal: 1000000000, cpuSource: 'cgroup', memorySource: 'cgroup'
+        })) } });
+    });
+    await page.goto('/admin/');
+    await page.locator('#admin-email').fill('local@example.test');
+    await page.locator('#admin-pass').fill('test-password');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.evaluate(() => { window.state.auth = { currentUser: { getIdToken: async () => 'test' } }; });
+    await page.getByText('CPU & RAM · 12-Stunden-Verlauf', { exact: true }).click();
+    await expect(page.locator('#metrics-history-chart svg')).toBeVisible();
+    await expect(page.locator('#metrics-history-summary')).toContainText('80.0 %');
+    await expect(page.locator('#metrics-history-chart polyline')).toHaveCount(4);
+    const downloadReady = page.waitForEvent('download');
+    await page.locator('#metrics-history-export').click();
+    const download = await downloadReady;
+    const csv = await readFile(await download.path(), 'utf8');
+    expect(csv).toContain('Zeit (UTC)');
+    expect(csv).toContain('cgroup');
+    expect(csv).toContain('80');
+    empty = true;
+    await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
+    await expect(page.locator('#metrics-history-chart')).toContainText('Keine Messwerte');
+    await expect(page.locator('#metrics-history-export')).toBeDisabled();
+});

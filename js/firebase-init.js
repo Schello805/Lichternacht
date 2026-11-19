@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { initializeLocalBackend } from './local-backend.js?v=1.4.320';
-import { initializeLocalAuth } from './local-auth.js?v=1.4.320';
+import { initializeLocalBackend } from './local-backend.js?v=1.4.321';
+import { initializeLocalAuth } from './local-auth.js?v=1.4.321';
 
 export async function initFirebase() {
     try {
