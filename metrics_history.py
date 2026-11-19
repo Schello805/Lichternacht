@@ -8,7 +8,7 @@ import time
 
 INTERVAL = 30
 RETENTION = 30 * 86400
-WINDOW = 12 * 3600
+WINDOW = 3 * 3600
 
 
 class ResourceSampler:
@@ -94,14 +94,14 @@ class MetricsHistory:
 
     def read(self, start):
         import json
-        if not math.isfinite(start) or start < 0 or start > 253402257599:
+        if not math.isfinite(start) or start < 0 or start > 253402300799 - WINDOW:
             raise ValueError('Invalid start')
         if not self.path.exists():
             return []
         database = self.connect()
         try:
             return [{'timestamp': timestamp * 1000, **json.loads(data)} for timestamp, data in database.execute(
-                'SELECT timestamp, data FROM samples WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp LIMIT 1440', (start, start + WINDOW))]
+                'SELECT timestamp, data FROM samples WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp LIMIT ?', (start, start + WINDOW, WINDOW // INTERVAL))]
         finally:
             database.close()
 

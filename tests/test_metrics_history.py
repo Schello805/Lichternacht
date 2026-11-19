@@ -35,6 +35,15 @@ class MetricsHistoryTest(unittest.TestCase):
         self.assertEqual(self.history.read(1800000000), [])
         self.assertFalse(self.path.exists())
 
+    def test_three_hour_views_preserve_the_entire_recording(self):
+        start = 1800000000
+        for hour in range(12):
+            self.history.record({'cpuPercent': hour}, start + hour * 3600)
+        self.assertEqual(WINDOW, 10800)
+        for block in range(4):
+            rows = self.history.read(start + block * WINDOW)
+            self.assertEqual([row['cpuPercent'] for row in rows], list(range(block * 3, block * 3 + 3)))
+
     def test_existing_application_database_and_public_path_are_rejected(self):
         self.path.parent.mkdir()
         with sqlite3.connect(self.path) as database:
@@ -104,6 +113,7 @@ class MetricsHistoryTest(unittest.TestCase):
         with patch.object(server, 'METRICS_HISTORY_PATH', str(self.path)):
             handler.do_GET()
             self.assertEqual(handler.responses[-1][1]['samples'], [])
+            self.assertEqual(handler.responses[-1][1]['end'] - handler.responses[-1][1]['start'], 10800000)
             handler.path = '/api/system-metrics/history?start=nan'
             handler.do_GET()
             self.assertEqual(handler.responses[-1][0], 400)

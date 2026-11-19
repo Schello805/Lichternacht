@@ -27,8 +27,8 @@ export function metricsChart(history) {
             : `<polyline points="${segment.map(point => point.join(',')).join(' ')}" stroke="${color}" fill="none" stroke-width="2"/>`).join('');
     };
     const grid = [0, 50, 100].map(value => `<line x1="${left}" x2="700" y1="${top + (100 - value) / 100 * plotHeight}" y2="${top + (100 - value) / 100 * plotHeight}" stroke="currentColor" opacity="0.15"/><text x="5" y="${top + (100 - value) / 100 * plotHeight + 4}" fill="currentColor" font-size="11">${value}%</text>`).join('');
-    const ticks = [0, 3, 6, 9, 12].map(hour => `<text x="${left + hour / 12 * plotWidth}" y="230" text-anchor="middle" fill="currentColor" font-size="11">${new Date(start + hour * 3600000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>`).join('');
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="CPU- und RAM-Auslastung über zwölf Stunden" class="w-full min-w-[520px]">${grid}${ticks}${paths('cpuPercent', '#d97706')}${paths('memoryPercent', '#2563eb')}</svg>`;
+    const ticks = [0, 1, 2, 3].map(hour => `<text x="${left + hour / 3 * plotWidth}" y="230" text-anchor="middle" fill="currentColor" font-size="11">${new Date(start + hour * 3600000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>`).join('');
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="CPU- und RAM-Auslastung über drei Stunden" class="w-full min-w-[520px]">${grid}${ticks}${paths('cpuPercent', '#d97706')}${paths('memoryPercent', '#2563eb')}</svg>`;
 }
 
 export function historySummary(samples) {
