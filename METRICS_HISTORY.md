@@ -28,18 +28,21 @@ Historische Werte vor dieser Aktivierung lassen sich nicht nachträglich erzeuge
 
 ## Auswertung
 
-Im Adminbereich unter Systemstatus „CPU & RAM · 12-Stunden-Verlauf“ öffnen.
-Standard: letzte zwölf Stunden. Frei wählbarer Beginn in der Browser-Zeitzone;
-„Veranstaltung“: zwei Stunden vor dem konfigurierten Beginn bis zehn Stunden
-danach. Nach der Veranstaltung bleibt dieser Zeitraum bis zur Bereinigung abrufbar.
+Im Adminbereich unter Systemstatus „CPU & RAM · 3-Stunden-Verlauf“ öffnen.
+Seit v1.4.322 umfasst jede Ansicht genau drei Stunden. Frei wählbarer Beginn in
+der Browser-Zeitzone; „Veranstaltungsbeginn“ wählt die ersten drei Stunden ab
+dem konfigurierten Start. „3 Stunden zurück/weiter“ blättert durch die komplette
+Aufzeichnung, auch über Mitternacht. Daten anderer Fenster bleiben gespeichert.
+Nach der Veranstaltung bleibt die Aufzeichnung bis zur Bereinigung abrufbar.
 
 Diagramm mit Prozentachse, CPU-Mittel/Maximum und RAM-Maximum. Auf schmalen Geräten
 ist das Diagramm horizontal scrollbar. CSV speichert UTC-Zeitstempel sowie
 Prozentwerte, RAM-Bytes und Messquellen. Es ist kein Gesamtsystem-Backup.
 
 `GET /api/system-metrics/history?start=<Unix-Millisekunden>` ist ausschließlich
-für Admins zugänglich. Der Zeitraum ist fest auf zwölf Stunden begrenzt, maximal
-1440 Messpunkte. Messdatei und Modul sind durch die Apache-/Python-Regeln geschützt.
+für Admins zugänglich. Der Zeitraum ist fest auf drei Stunden begrenzt, maximal
+360 Messpunkte. Diagramm, Kennzahlen und CSV beziehen sich jeweils auf dieses
+Fenster. Messdatei und Modul sind durch die Apache-/Python-Regeln geschützt.
 
 ## Betrieb
 

@@ -23,7 +23,7 @@ from email.utils import formataddr
 from http.cookies import SimpleCookie, CookieError
 from local_database import LocalDatabase
 from local_auth import LocalAuth
-from metrics_history import MetricsHistory, MetricsRecorder
+from metrics_history import MetricsHistory, MetricsRecorder, WINDOW
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -916,9 +916,9 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung erforderlich'})
             try:
                 parameters = urllib.parse.parse_qs(parsed_path.query)
-                start = float(parameters.get('start', [str((time.time() - 12 * 3600) * 1000)])[0]) / 1000
+                start = float(parameters.get('start', [str((time.time() - WINDOW) * 1000)])[0]) / 1000
                 samples = MetricsHistory(METRICS_HISTORY_PATH).read(start)
-                return self._send_json(200, {'ok': True, 'start': start * 1000, 'end': (start + 12 * 3600) * 1000, 'intervalSeconds': 30, 'retentionDays': 30, 'samples': samples})
+                return self._send_json(200, {'ok': True, 'start': start * 1000, 'end': (start + WINDOW) * 1000, 'intervalSeconds': 30, 'retentionDays': 30, 'samples': samples})
             except (ValueError, OverflowError):
                 return self._send_json(400, {'ok': False, 'error': 'Ungültiger Zeitraum'})
             except Exception:

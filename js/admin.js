@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { metricsChart, historySummary } from './metrics-history.js?v=1.4.321';
-import { loadStationActivityReport } from './station-activity.js?v=1.4.321';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.321';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.321';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.321';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.321';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.321';
+import { metricsChart, historySummary } from './metrics-history.js?v=1.4.322';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.322';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.322';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.322';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.322';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.322';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.322';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.321';
-import { recordAuditEvent } from './audit.js?v=1.4.321';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.321';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.321';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.322';
+import { recordAuditEvent } from './audit.js?v=1.4.322';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.322';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.322';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -32,15 +32,20 @@ export async function loadSystemMetricsHistory(mode = '') {
     if (!input.value || mode === 'recent' || mode === 'event') {
         const eventWindow = parseEventWindowConfig(state.downloads?.icsDate);
         if (mode === 'event' && !eventWindow) { showToast('Veranstaltungszeit ist noch nicht festgelegt.', 'error'); return; }
-        let start = new Date(Date.now() - 12 * 3600000);
+        let start = new Date(Date.now() - 3 * 3600000);
         if (mode === 'event' && eventWindow) {
             start = new Date(`${eventWindow.dateKey}T00:00:00`);
-            start.setMinutes(eventWindow.startMin - 120);
+            start.setMinutes(eventWindow.startMin);
         }
         input.value = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
     }
-    const start = new Date(input.value).getTime();
+    let start = new Date(input.value).getTime();
     if (!Number.isFinite(start)) { showToast('Bitte einen gültigen Beginn wählen.', 'error'); return; }
+    if (mode === 'previous' || mode === 'next') {
+        start += (mode === 'previous' ? -1 : 1) * 3 * 3600000;
+        const date = new Date(start);
+        input.value = new Date(start - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+    }
     const request = ++historyRequest;
     resourceHistory = null;
     download.disabled = true;
@@ -1231,7 +1236,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.321';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.322';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1826,9 +1831,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.321';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.321';
-import { renderList, renderTimeline } from './ui.js?v=1.4.321';
+import { showToast } from './utils.js?v=1.4.322';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.322';
+import { renderList, renderTimeline } from './ui.js?v=1.4.322';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

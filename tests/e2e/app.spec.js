@@ -2638,12 +2638,14 @@ test('system metrics are protected and visible only in admin UI', async ({ reque
     await expect(page.locator('#admin-release-version')).toHaveText(/v\d+\.\d+\.\d+/);
 });
 
-test('admin can view and export a twelve-hour resource history without inventing missing data', async ({ request, page }) => {
+test('admin can browse and export three-hour resource windows without inventing missing data', async ({ request, page }) => {
     expect((await request.get('/api/system-metrics/history')).status()).toBe(403);
     let empty = false;
+    const starts = [];
     await page.route('**/api/system-metrics/history?*', route => {
         const start = Number(new URL(route.request().url()).searchParams.get('start'));
-        return route.fulfill({ json: { ok: true, start, end: start + 43200000, samples: empty ? [] : [0, 30000, 3600000, 3630000].map((offset, index) => ({
+        starts.push(start);
+        return route.fulfill({ json: { ok: true, start, end: start + 10800000, samples: empty ? [] : [0, 30000, 3600000, 3630000].map((offset, index) => ({
             timestamp: start + offset, cpuPercent: [10, 80, 20, 30][index], memoryPercent: 50 + index,
             memoryUsed: 500000000, memoryTotal: 1000000000, cpuSource: 'cgroup', memorySource: 'cgroup'
         })) } });
@@ -2653,10 +2655,18 @@ test('admin can view and export a twelve-hour resource history without inventing
     await page.locator('#admin-pass').fill('test-password');
     await page.getByRole('button', { name: 'Login' }).click();
     await page.evaluate(() => { window.state.auth = { currentUser: { getIdToken: async () => 'test' } }; });
-    await page.getByText('CPU & RAM · 12-Stunden-Verlauf', { exact: true }).click();
+    await page.getByText('CPU & RAM · 3-Stunden-Verlauf', { exact: true }).click();
     await expect(page.locator('#metrics-history-chart svg')).toBeVisible();
     await expect(page.locator('#metrics-history-summary')).toContainText('80.0 %');
     await expect(page.locator('#metrics-history-chart polyline')).toHaveCount(4);
+    await page.getByRole('button', { name: '3 Stunden weiter', exact: true }).click();
+    await expect.poll(() => starts.length).toBe(2);
+    expect(starts[1] - starts[0]).toBe(10800000);
+    await expect(page.locator('#metrics-history-chart svg')).toBeVisible();
+    await page.getByRole('button', { name: '3 Stunden zurück', exact: true }).click();
+    await expect.poll(() => starts.length).toBe(3);
+    expect(starts[2]).toBe(starts[0]);
+    await expect(page.locator('#metrics-history-chart svg')).toBeVisible();
     const downloadReady = page.waitForEvent('download');
     await page.locator('#metrics-history-export').click();
     const download = await downloadReady;

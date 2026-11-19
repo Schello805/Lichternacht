@@ -113,7 +113,7 @@ Begrenzter, ausschließlich lokaler Lasttest: [LOAD_TEST.md](LOAD_TEST.md).
 
 CPU-/RAM-Verlauf: [METRICS_HISTORY.md](METRICS_HISTORY.md). Die serverseitige
 Aufzeichnung läuft nach dem Update ohne geöffnete App, alle 30 Sekunden mit
-30 Tagen Aufbewahrung; im Adminbereich als 12-Stunden-Diagramm und CSV abrufbar.
+30 Tagen Aufbewahrung; im Adminbereich in 3-Stunden-Fenstern mit CSV-Export abrufbar.
 
 Zuerst Release-Version, Browser-Konsole und geschützte Server-/Dienstlogs prüfen.
 Bei Daten-/Login-Problemen lokale API, systemd-Einstellungen und Datenbankpfade
