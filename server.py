@@ -23,6 +23,7 @@ from email.utils import formataddr
 from http.cookies import SimpleCookie, CookieError
 from local_database import LocalDatabase
 from local_auth import LocalAuth
+from metrics_history import MetricsHistory, MetricsRecorder
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -83,6 +84,7 @@ load_dotenv()
 LOCAL_DATABASE_ENABLED = os.environ.get('LOCAL_DATABASE_ENABLED', '').lower() == 'true'
 LOCAL_DATABASE_PATH = os.environ.get('LOCAL_DATABASE_PATH', os.path.join(PRIVATE_DIR, 'local.sqlite3'))
 LOCAL_AUTH_ENABLED = os.environ.get('LOCAL_AUTH_ENABLED', '').lower() == 'true'
+METRICS_HISTORY_PATH = os.environ.get('METRICS_HISTORY_PATH', os.path.join(PRIVATE_DIR, 'system-metrics.sqlite3'))
 LOCAL_AUTH_PATH = os.environ.get('LOCAL_AUTH_PATH', os.path.join(PRIVATE_DIR, 'local-auth.sqlite3'))
 LOCAL_AUTH_ORIGIN = os.environ.get('LOCAL_AUTH_ORIGIN', 'https://lichternacht-bechhofen.de').rstrip('/')
 AUTH_COOKIE = '__Host-lichternacht_session'
@@ -867,7 +869,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         protected_paths = {'logs', 'node_modules', 'scripts', 'server', 'tests'}
         protected_files = {
             '/server.py', '/deploy.sh', '/firebase.json', '/firestore.rules',
-            '/package.json', '/package-lock.json', '/playwright.config.js',
+            '/package.json', '/package-lock.json', '/playwright.config.js', '/metrics_history.py',
             '/tailwind.config.js', '/server-htaccess', '/local_database.py', '/local_auth.py'
         }
 
@@ -909,6 +911,18 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(csv_data)
             return
+        if parsed_path.path == '/api/system-metrics/history':
+            if not self._verify_admin_token():
+                return self._send_json(403, {'ok': False, 'error': 'Admin-Anmeldung erforderlich'})
+            try:
+                parameters = urllib.parse.parse_qs(parsed_path.query)
+                start = float(parameters.get('start', [str((time.time() - 12 * 3600) * 1000)])[0]) / 1000
+                samples = MetricsHistory(METRICS_HISTORY_PATH).read(start)
+                return self._send_json(200, {'ok': True, 'start': start * 1000, 'end': (start + 12 * 3600) * 1000, 'intervalSeconds': 30, 'retentionDays': 30, 'samples': samples})
+            except (ValueError, OverflowError):
+                return self._send_json(400, {'ok': False, 'error': 'Ungültiger Zeitraum'})
+            except Exception:
+                return self._send_json(503, {'ok': False, 'error': 'Systemverlauf konnte nicht gelesen werden'})
         if self.path.split('?', 1)[0] == '/api/system-metrics':
             if not self._verify_admin_token():
                 self._send_json(403, {"ok": False, "error": "Admin-Anmeldung ungültig"})
@@ -932,4 +946,15 @@ if __name__ == '__main__':
     print(f"Server läuft auf http://{HOST}:{PORT}")
     print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
     with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
-        httpd.serve_forever()
+        recorder = None
+        try:
+            candidate = MetricsRecorder(MetricsHistory(METRICS_HISTORY_PATH))
+            candidate.start()
+            recorder = candidate
+        except Exception:
+            print('Systemverlauf: Aufzeichnung konnte nicht gestartet werden.', flush=True)
+        try:
+            httpd.serve_forever()
+        finally:
+            if recorder:
+                recorder.stop()

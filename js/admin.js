@@ -1,16 +1,17 @@
 
 import { state } from './state.js';
-import { loadStationActivityReport } from './station-activity.js?v=1.4.320';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.320';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.320';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.320';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.320';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.320';
+import { metricsChart, historySummary } from './metrics-history.js?v=1.4.321';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.321';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.321';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.321';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.321';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.321';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.321';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.320';
-import { recordAuditEvent } from './audit.js?v=1.4.320';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.320';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.320';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.321';
+import { recordAuditEvent } from './audit.js?v=1.4.321';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.321';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.321';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -19,6 +20,65 @@ const EVENT_TABLE_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'imag
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
+let resourceHistory = null;
+let historyRequest = 0;
+
+export async function loadSystemMetricsHistory(mode = '') {
+    const input = document.getElementById('metrics-history-start');
+    const display = document.getElementById('metrics-history-chart');
+    const summary = document.getElementById('metrics-history-summary');
+    const download = document.getElementById('metrics-history-export');
+    if (!state.isAdmin || !input || !display) return;
+    if (!input.value || mode === 'recent' || mode === 'event') {
+        const eventWindow = parseEventWindowConfig(state.downloads?.icsDate);
+        if (mode === 'event' && !eventWindow) { showToast('Veranstaltungszeit ist noch nicht festgelegt.', 'error'); return; }
+        let start = new Date(Date.now() - 12 * 3600000);
+        if (mode === 'event' && eventWindow) {
+            start = new Date(`${eventWindow.dateKey}T00:00:00`);
+            start.setMinutes(eventWindow.startMin - 120);
+        }
+        input.value = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+    }
+    const start = new Date(input.value).getTime();
+    if (!Number.isFinite(start)) { showToast('Bitte einen gültigen Beginn wählen.', 'error'); return; }
+    const request = ++historyRequest;
+    resourceHistory = null;
+    download.disabled = true;
+    display.textContent = 'Verlauf wird geladen …';
+    display.setAttribute('aria-busy', 'true');
+    summary.textContent = '';
+    try {
+        const token = await state.auth.currentUser.getIdToken();
+        const response = await fetch(`./api/system-metrics/history?start=${start}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
+        const history = await response.json();
+        if (!response.ok || !history.ok || !Array.isArray(history.samples)) throw new Error(history.error || 'Verlauf nicht verfügbar');
+        if (request !== historyRequest || !state.isAdmin) return;
+        resourceHistory = history;
+        if (!history.samples.length) { display.textContent = 'Keine Messwerte in diesem Zeitraum. Die Aufzeichnung beginnt erst nach dem Server-Update.'; return; }
+        display.innerHTML = metricsChart(history);
+        const result = historySummary(history.samples);
+        const percent = value => value === null ? '–' : `${value.toFixed(1)} %`;
+        summary.textContent = `CPU: Maximum ${percent(result.cpuMax)} · Mittel ${percent(result.cpuAverage)} | RAM: Maximum ${percent(result.memoryMax)} (${formatBytes(result.memoryBytesMax)}) · ${history.samples.length} Messpunkte`;
+        download.disabled = false;
+    } catch (error) {
+        if (request === historyRequest) display.textContent = `Verlauf konnte nicht geladen werden: ${error.message}`;
+    } finally {
+        if (request === historyRequest) display.removeAttribute('aria-busy');
+    }
+}
+
+export function exportSystemMetricsHistory() {
+    if (!state.isAdmin || !resourceHistory?.samples?.length) return;
+    const rows = [['Zeit (UTC)', 'CPU (%)', 'RAM (%)', 'RAM belegt (Bytes)', 'RAM gesamt (Bytes)', 'CPU Quelle', 'RAM Quelle'],
+        ...resourceHistory.samples.map(sample => [new Date(sample.timestamp).toISOString(), sample.cpuPercent ?? '', sample.memoryPercent ?? '', sample.memoryUsed ?? '', sample.memoryTotal ?? '', sample.cpuSource, sample.memorySource])];
+    const blob = new Blob(['\uFEFF' + rows.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'lichternacht-systemverlauf.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 let auditLogEntries = [];
 let audienceMetricsCache = null;
 let audienceMetricsSavedAt = 0;
@@ -1171,7 +1231,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.320';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.321';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1766,9 +1826,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.320';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.320';
-import { renderList, renderTimeline } from './ui.js?v=1.4.320';
+import { showToast } from './utils.js?v=1.4.321';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.321';
+import { renderList, renderTimeline } from './ui.js?v=1.4.321';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

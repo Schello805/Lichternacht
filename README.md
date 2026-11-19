@@ -111,6 +111,10 @@ Begrenzter, ausschließlich lokaler Lasttest: [LOAD_TEST.md](LOAD_TEST.md).
 
 ## Fehlersuche
 
+CPU-/RAM-Verlauf: [METRICS_HISTORY.md](METRICS_HISTORY.md). Die serverseitige
+Aufzeichnung läuft nach dem Update ohne geöffnete App, alle 30 Sekunden mit
+30 Tagen Aufbewahrung; im Adminbereich als 12-Stunden-Diagramm und CSV abrufbar.
+
 Zuerst Release-Version, Browser-Konsole und geschützte Server-/Dienstlogs prüfen.
 Bei Daten-/Login-Problemen lokale API, systemd-Einstellungen und Datenbankpfade
 prüfen – nicht Firebase neu aktivieren. Feedback-/Resetmail-Probleme anhand der

@@ -10,7 +10,7 @@ AddType font/woff2 .woff2
   Require all denied
 </If>
 
-<FilesMatch "^(?:server\.py|local_database\.py|local_auth\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
+<FilesMatch "^(?:server\.py|local_database\.py|local_auth\.py|metrics_history\.py|deploy\.sh|firebase\.json|firestore\.rules|package(?:-lock)?\.json|playwright\.config\.js|tailwind\.config\.js|server-htaccess)$">
   Require all denied
 </FilesMatch>
 
