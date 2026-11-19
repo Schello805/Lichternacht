@@ -37,7 +37,7 @@ export async function loadSystemMetricsHistory(mode = '') {
             start = new Date(`${eventWindow.dateKey}T00:00:00`);
             start.setMinutes(eventWindow.startMin - 120);
         }
-        input.value = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        input.value = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
     }
     const start = new Date(input.value).getTime();
     if (!Number.isFinite(start)) { showToast('Bitte einen gültigen Beginn wählen.', 'error'); return; }

@@ -340,7 +340,7 @@
                     <p class="my-2 text-xs text-gray-500 dark:text-gray-300">Alle 30 Sekunden serverseitig, 30 Tage gespeichert – auch ohne geöffnete App.</p>
                     <details class="mb-3 text-xs text-gray-500 dark:text-gray-300"><summary class="cursor-pointer">Hinweise zur Messung</summary><p>CPU: Intervallmittel, kurze Spitzen können fehlen. Lücken bleiben sichtbar. Bevorzugt werden Container-Cgroups gemessen, sonst /proc der Dienstumgebung. Dessen Abgrenzung zum Host hängt von der Containerkonfiguration ab. Cgroup-RAM enthält auch Cache und kann von der Live-Anzeige abweichen. „Veranstaltung“ beginnt zwei Stunden vor dem konfigurierten Beginn und zeigt zwölf Stunden.</p></details>
                     <div class="flex flex-wrap items-end gap-2">
-                        <label class="min-w-0 text-xs">Beginn (Browser-Zeitzone)<input id="metrics-history-start" type="datetime-local" class="block max-w-full rounded border p-2 bg-white dark:bg-gray-800 dark:border-gray-600"></label>
+                        <label class="min-w-0 text-xs">Beginn (Browser-Zeitzone)<input id="metrics-history-start" type="datetime-local" step="1" class="block max-w-full rounded border p-2 bg-white dark:bg-gray-800 dark:border-gray-600"></label>
                         <button type="button" onclick="loadSystemMetricsHistory()" class="min-h-[44px] rounded bg-blue-600 px-3 py-2 text-xs font-bold text-white">Anzeigen</button>
                         <button type="button" onclick="loadSystemMetricsHistory('recent')" class="min-h-[44px] rounded border px-3 py-2 text-xs">Letzte 12 Stunden</button>
                         <button type="button" onclick="loadSystemMetricsHistory('event')" class="min-h-[44px] rounded border px-3 py-2 text-xs">Veranstaltung</button>
