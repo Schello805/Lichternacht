@@ -1,7 +1,8 @@
 import { state } from './state.js';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.332';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.332';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.332';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.333';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.333';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.333';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.333';
 import {
     showToast,
     getDistance,
@@ -10,11 +11,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.332';
-import * as utils from './utils.js?v=1.4.332';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.332';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.332';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.332';
+} from './utils.js?v=1.4.333';
+import * as utils from './utils.js?v=1.4.333';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.333';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.333';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.333';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -740,16 +741,27 @@ export function initPresence() {
     setInterval(updateUserCount, 60 * 1000);
 }
 
+const updateProximityDwell = createProximityDwell();
+let proximityTimer = null;
+
 export function checkProximity(lat, lng) {
+    if (proximityTimer !== null) window.clearTimeout(proximityTimer);
+    proximityTimer = null;
     // Hide smart check-in outside the configured event day to avoid unfair early check-ins.
     if (!isPassActiveToday()) {
+        updateProximityDwell({ id: null });
         const btn = document.getElementById('smart-action-btn');
         if (btn) btn.classList.add('hidden');
         state.smartActionStationId = null;
         return;
     }
     // Only check if we have stations
-    if (!state.stations || state.stations.length === 0) return;
+    if (!state.stations || state.stations.length === 0) {
+        updateProximityDwell({ id: null });
+        document.getElementById('smart-action-btn')?.classList.add('hidden');
+        state.smartActionStationId = null;
+        return;
+    }
 
     // Get visited stations
     const visitedStations = getVisitedStationIdSet();
@@ -777,7 +789,20 @@ export function checkProximity(lat, lng) {
     const btn = document.getElementById('smart-action-btn');
     if (!btn) return;
 
-    if (candidates.length > 0 && nearest && minDist <= DETECT_RADIUS) {
+    const dwell = updateProximityDwell({
+        id: candidates.length > 0 && nearest && minDist <= DETECT_RADIUS ? nearest.id : null,
+        accuracy: state.gpsAccuracy,
+        fixAt: state.gpsLastFixAt,
+        visible: document.visibilityState !== 'hidden'
+    });
+    if (dwell.monitoring) {
+        proximityTimer = window.setTimeout(() => {
+            const location = state.userLocation;
+            checkProximity(location?.lat, location?.lng);
+        }, 1000);
+    }
+
+    if (dwell.ready && nearest) {
         // Show Smart Button
         state.smartActionStationId = nearest.id;
         const extraCount = candidates.length - 1;
