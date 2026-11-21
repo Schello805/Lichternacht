@@ -1,18 +1,18 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.334';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.334';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.334';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.334';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.334';
-import * as utils from './utils.js?v=1.4.334';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.334';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.334';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.334';
-import { recordAuditEvent } from './audit.js?v=1.4.334';
-import { normalizeImageUrl } from './image-url.js?v=1.4.334';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.334';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.334';
+import { isStationCancelled } from './station-status.js?v=1.4.335';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.335';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.335';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.335';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.335';
+import * as utils from './utils.js?v=1.4.335';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.335';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.335';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.335';
+import { recordAuditEvent } from './audit.js?v=1.4.335';
+import { normalizeImageUrl } from './image-url.js?v=1.4.335';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.335';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.335';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -460,6 +460,7 @@ export function switchTab(tab) {
             if (state.map) state.map.resize();
         }, 50);
     }
+    if (tab === 'events') renderTimeline();
 }
 
 // Alias for backward compatibility
@@ -2394,7 +2395,12 @@ function getProgramStatus(event, context) {
     if (diff > 0) {
         return { key: diff <= 30 ? 'soon' : 'upcoming', label: formatCountdown(diff), className: diff <= 30 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', isPast: false, eventTimeVal };
     }
-    if (context.isEventDay && context.currentTimeVal <= eventTimeVal + 45) {
+    const nextSlot = state.events.reduce((next, item) => {
+        const [nextHour, nextMinute] = String(item.time || '').split(':').map(Number);
+        const start = nextHour * 60 + nextMinute;
+        return start > eventTimeVal ? Math.min(next, start) : next;
+    }, Infinity);
+    if (context.isEventDay && context.currentTimeVal <= eventTimeVal + 45 && context.currentTimeVal < nextSlot) {
         return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
     }
     return { key: 'past', label: 'Vorbei', className: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300', isPast: true, eventTimeVal };
@@ -2438,7 +2444,7 @@ export function openProgramEvent(id) {
                 <div>
                     <div class="flex items-center gap-2 mb-2">
                         <span class="text-sm font-extrabold px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">${escapeHtml(event.time)} Uhr</span>
-                        <span class="text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}">${escapeHtml(status.label)}</span>
+                        <span data-program-status-event="${escapeHtml(event.id)}" class="text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}">${escapeHtml(status.label)}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <h2 class="text-xl font-extrabold brand-font leading-tight">${escapeHtml(event.title)}</h2>
@@ -2546,7 +2552,27 @@ function renderFlyerDownloads() {
     `;
 }
 
+let programOverviewTimer = null;
+let programStatusTimer = null;
+
+export function updateProgramOverview() {
+    if (programOverviewTimer !== null) window.clearTimeout(programOverviewTimer);
+    programOverviewTimer = null;
+    const event = getCalendarEventWindow(state.downloads?.icsDate);
+    const now = Date.now();
+    document.getElementById('program-spotlight')?.classList.toggle('hidden', Boolean(event && now >= event.start));
+    if (event && now < event.start) {
+        programOverviewTimer = window.setTimeout(updateProgramOverview, Math.min(event.start - now, 86400000));
+    }
+}
+
 export function renderTimeline() {
+    updateProgramOverview();
+    if (programStatusTimer !== null) window.clearTimeout(programStatusTimer);
+    programStatusTimer = window.setTimeout(() => {
+        programStatusTimer = null;
+        if (!document.getElementById('view-events')?.classList.contains('hidden')) renderTimeline();
+    }, 60000 - Date.now() % 60000);
     const container = document.getElementById('timeline-container');
     if (!container) return;
     renderFlyerDownloads();
@@ -2574,6 +2600,15 @@ export function renderTimeline() {
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
     const statusContext = { configuredWindow, hasConfiguredEventDate, isEventDay, currentTimeVal };
+    const openStatus = document.querySelector('[data-program-status-event]');
+    if (openStatus) {
+        const openEvent = state.events.find(event => String(event.id) === openStatus.dataset.programStatusEvent);
+        if (openEvent) {
+            const status = getProgramStatus(openEvent, statusContext);
+            openStatus.textContent = status.label;
+            openStatus.className = `text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}`;
+        }
+    }
 
     let nextEvent = null;
     let currentActiveEvent = null; // Store currently running event for header
