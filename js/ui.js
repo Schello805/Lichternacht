@@ -1,17 +1,18 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.325';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.325';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.325';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.325';
-import * as utils from './utils.js?v=1.4.325';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.325';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.325';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.325';
-import { recordAuditEvent } from './audit.js?v=1.4.325';
-import { normalizeImageUrl } from './image-url.js?v=1.4.325';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.325';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.325';
+import { isStationCancelled } from './station-status.js?v=1.4.326';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.326';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.326';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.326';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.326';
+import * as utils from './utils.js?v=1.4.326';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.326';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.326';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.326';
+import { recordAuditEvent } from './audit.js?v=1.4.326';
+import { normalizeImageUrl } from './image-url.js?v=1.4.326';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.326';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.326';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -53,6 +54,7 @@ function animateStationModal(stationId, reverse = false) {
 const ROUTE_PLAN_STORAGE_KEY = 'route_plan_station_ids_v1';
 
 function hasRoutePlanCoordinates(station) {
+    if (isStationCancelled(station)) return false;
     return [station.lat, station.lng].every(value => value != null && typeof value !== 'boolean' && String(value).trim() !== '' && Number.isFinite(Number(value)))
         && Math.abs(Number(station.lat)) <= 90 && Math.abs(Number(station.lng)) <= 180;
 }
@@ -238,9 +240,13 @@ export function openModal(target) {
         
         // Populate Modal
         document.getElementById('modal-title').innerText = s.name;
+        document.getElementById('modal-title').classList.toggle('line-through', isStationCancelled(s));
+        const cancellation = document.getElementById('modal-cancellation');
+        cancellation.classList.toggle('hidden', !isStationCancelled(s));
+        cancellation.textContent = isStationCancelled(s) ? `Heute abgesagt${s.cancellationReason ? ` · ${s.cancellationReason}` : ''}` : '';
         document.getElementById('modal-subtitle').innerText = s.desc || '';
         document.getElementById('modal-desc').innerHTML = linkifyDescription(s.offer || s.desc || 'Keine Beschreibung verfügbar.');
-        document.getElementById('modal-wc-badge')?.classList.toggle('hidden', !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
+        document.getElementById('modal-wc-badge')?.classList.toggle('hidden', isStationCancelled(s) || !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
         
         // Fix ID Display
         const numEl = document.getElementById('modal-number');
@@ -253,6 +259,11 @@ export function openModal(target) {
         const btnRoute = document.getElementById('btn-internal-route');
         const btnMaps = document.getElementById('btn-route');
         const btnLink = document.getElementById('modal-link-btn');
+        [btnRoute, btnMaps].forEach(button => {
+            if (!button) return;
+            button.disabled = isStationCancelled(s);
+            button.classList.toggle('opacity-50', isStationCancelled(s));
+        });
         
         if (btnRoute) {
             btnRoute.onclick = () => {
@@ -937,7 +948,7 @@ export function renderList(stations) {
                     <div class="flex justify-between items-start">
                         <h3 class="flex min-w-0 items-baseline gap-2 font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">
                             <span data-station-number class="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">#${escapeHtml(getStationNumber(s))}</span>
-                            <span class="min-w-0 break-words">${escapeHtml(s.name)}</span>
+                            <span class="min-w-0 break-words ${isStationCancelled(s) ? 'line-through text-gray-500 dark:text-gray-400' : ''}">${escapeHtml(s.name)}</span>
                         </h3>
                         <div class="flex flex-col items-end gap-1">
                             <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>
@@ -946,7 +957,7 @@ export function renderList(stations) {
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(s.desc || '')}</p>
                     ${s.offer ? `<p class="mt-2 line-clamp-2 text-sm leading-relaxed text-gray-700 dark:text-gray-200">${escapeHtml(s.offer)}</p>` : ''}
                     <div class="mt-2 flex gap-1.5 flex-wrap">
-                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ph ph-map-pin"></i> Station</span>
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ph ph-map-pin"></i> ${isStationCancelled(s) ? 'Heute abgesagt' : 'Station'}</span>
                         ${hasProgram ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-calendar-star"></i> Mit Programm</span>' : ''}
                         ${isFavorite ? '<span class="text-[10px] font-bold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700"><i class="ph-fill ph-star"></i> Favorit</span>' : ''}
                     </div>
@@ -1175,6 +1186,11 @@ export function editStation(id) {
     document.getElementById('inline-edit-lat').value = s.lat ?? '';
     document.getElementById('inline-edit-lng').value = s.lng ?? '';
     document.getElementById('inline-edit-link').value = s.link || '';
+    document.getElementById('inline-edit-cancelled').checked = isStationCancelled(s);
+    document.getElementById('inline-edit-cancellation-reason').value = s.cancellationReason || '';
+    const linkedEvents = state.events.filter(event => String(event.stationId || '') === String(s.id));
+    document.getElementById('inline-edit-cancellation-program').textContent = linkedEvents.length
+        ? `${linkedEvents.length} verknüpfte Programmpunkte bleiben aktiv. Bitte separat prüfen.` : '';
     // Init Tag Picker
     renderTagPicker();
     document.getElementById('edit-tags').oninput = () => renderTagPicker();
@@ -1257,7 +1273,9 @@ export function hasUnsavedStationChanges() {
     return fields.some((id, index) => {
         const element = document.getElementById(id);
         return String(element?.value ?? editableText(element)).trim() !== String(values[index] ?? '').trim();
-    }) || editingStation.image !== original.image;
+    }) || editingStation.image !== original.image
+        || document.getElementById('inline-edit-cancelled').checked !== isStationCancelled(original)
+        || document.getElementById('inline-edit-cancellation-reason').value.trim() !== String(original.cancellationReason || '').trim();
 }
 
 function leaveStationEdit(discardConfirmed = false) {
@@ -1431,6 +1449,8 @@ export async function saveStationChanges() {
     s.lat = newLat;
     s.lng = newLng;
     s.tags = newTags;
+    s.cancelled = document.getElementById('inline-edit-cancelled').checked;
+    s.cancellationReason = document.getElementById('inline-edit-cancellation-reason').value.trim().slice(0, 160);
 
     const stationHints = [];
     if (!String(newDesc || '').trim()) stationHints.push('Adresse/Ort fehlt');
@@ -1457,6 +1477,7 @@ export async function saveStationChanges() {
         renderList(state.stations);
         renderFilterBar();
         if (window.refreshMapMarkers) window.refreshMapMarkers(); 
+        if (window.updatePassProgress) window.updatePassProgress();
         
         // Go back to view mode (with new ID)
         editingStation = null;

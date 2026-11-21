@@ -8,6 +8,15 @@ import { getStationNumber } from '../js/station-number.js';
 const stations = [{ id: 1, lat: 49, lng: 10 }, { id: 2, lat: 49.001, lng: 10.001 }, { id: 3, lat: 49.002, lng: 10 }];
 const length = route => route.coordinates.slice(1).reduce((total, coordinate, index) => total + distanceMeters(route.coordinates[index], coordinate), 0);
 
+test('cancelled stations are excluded from open and round tours without changing IDs', () => {
+    const source = stations.map(station => ({ ...station, cancelled: station.id === 2 }));
+    for (const mode of ['open', 'round']) {
+        const route = buildRoundTrip(source, ['1', '2', '3'], 20000, mode);
+        assert.deepEqual(route.stations.map(station => station.id).sort(), [1, 3]);
+    }
+    assert.equal(source[1].id, 2);
+});
+
 test('arrival uses the shared 20 meter radius, not the previous 25 or 65 meters', () => {
     assert.equal(STATION_ARRIVAL_RADIUS_METERS, 20);
     const now = 100000;

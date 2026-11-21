@@ -476,6 +476,45 @@ test('map initialization failure does not block stations and program', async ({ 
     await expect(page.locator('#view-events')).toBeVisible();
 });
 
+test('admin can cancel and reactivate a station in its editor while keeping its identity', async ({ page }) => {
+    await page.goto('/index.html');
+    const total = await page.evaluate(() => {
+        window.state.isAdmin = true;
+        window.state.useLocalStorage = true;
+        window.state.events = [{ id: 'linked', stationId: 1, title: 'Konzert', time: '18:00' }];
+        window.openStation(1);
+        window.editStation(1);
+        return window.state.stations.length;
+    });
+    await expect(page.locator('#inline-edit-cancellation-program')).toContainText('1 verknüpfte Programmpunkte bleiben aktiv');
+    await page.getByLabel('Station abgesagt', { exact: true }).check();
+    await page.getByLabel('Grund (optional)', { exact: true }).fill('Krankheit <b>heute</b>');
+    await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect(page.locator('#modal-cancellation')).toHaveText('Heute abgesagt · Krankheit <b>heute</b>');
+    await expect(page.locator('#modal-cancellation b')).toHaveCount(0);
+    await expect(page.locator('#modal-title')).toHaveClass(/line-through/);
+    await expect(page.locator('#checkin-btn')).toBeDisabled();
+    await expect(page.locator('#btn-internal-route')).toBeDisabled();
+    await expect(page.locator('.cancelled-pin')).toHaveCount(1);
+    await expect(page.locator('#pass-progress')).toContainText(`0/${total - 1}`);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('stations_data')).find(station => String(station.id) === '1'));
+    expect(saved.cancelled).toBe(true);
+    expect(saved.cancellationReason).toBe('Krankheit <b>heute</b>');
+    expect(await page.evaluate(() => window.state.events[0].stationId)).toBe(1);
+    await page.evaluate(() => { window.closeModal(); window.switchTab('list'); });
+    await expect(page.locator('#view-list')).toContainText('Heute abgesagt');
+    await page.evaluate(() => window.openRoutePlan());
+    await expect(page.locator('[data-route-plan-station][value="1"]')).toHaveCount(0);
+    await page.evaluate(() => { window.closeModal('route-plan-modal'); window.openStation(1); window.editStation(1); });
+    await page.getByLabel('Station abgesagt', { exact: true }).uncheck();
+    await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect(page.locator('#modal-cancellation')).toBeHidden();
+    await expect(page.locator('#modal-title')).not.toHaveClass(/line-through/);
+    await expect(page.locator('#checkin-btn')).toBeEnabled();
+    await expect(page.locator('.cancelled-pin')).toHaveCount(0);
+    await expect(page.locator('#pass-progress')).toContainText(`0/${total}`);
+});
+
 test('invalid saved favorites do not interrupt app startup', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('favorites', '{invalid'));
     await page.goto('/index.html');

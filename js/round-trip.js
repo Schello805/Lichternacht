@@ -1,3 +1,5 @@
+import { isStationCancelled } from './station-status.js?v=1.4.326';
+
 export const STATION_ARRIVAL_RADIUS_METERS = 20;
 
 export function stationCoordinates(station) {
@@ -17,7 +19,7 @@ export function distanceMeters(start, end) {
 
 export function buildRoundTrip(stations, stationIds = null, maxChecks = 20000, mode = 'round', origin = null) {
     const selected = Array.isArray(stationIds) ? new Set(stationIds.map(String)) : null;
-    const remaining = stations.filter(station => stationCoordinates(station) && (!selected || selected.has(String(station.id))))
+    const remaining = stations.filter(station => !isStationCancelled(station) && stationCoordinates(station) && (!selected || selected.has(String(station.id))))
         .map(station => ({ station, coordinates: stationCoordinates(station) }))
         .sort((first, second) => String(first.station.id).localeCompare(String(second.station.id), undefined, { numeric: true }));
     if (remaining.length < 2) return { coordinates: [], stations: [] };

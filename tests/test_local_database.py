@@ -98,6 +98,25 @@ class LocalDatabaseTest(unittest.TestCase):
         self.assertEqual(records[0]['data']['ownerUid'], 'visitor')
         self.assertEqual(self.database.records('stats')[0]['data']['count_diamond'], 1)
 
+    def test_cancelled_station_cannot_receive_new_checkins_and_reactivation_works(self):
+        self.database.write('set', 'config', 'config', {'checkinWindow': {'startMs': 0, 'endMs': (time.time() + 60) * 1000}}, True)
+        self.database.write('set', 'stations', '1', {'cancelled': True, 'cancellationReason': 'Krankheit'}, True)
+        with self.assertRaisesRegex(ValueError, 'abgesagt'):
+            self.database.checkin('visitor', {'stationId': '1'})
+        self.assertEqual(self.database.records('checkins'), [])
+        self.assertEqual(self.database.backup()['stations'][0]['cancellationReason'], 'Krankheit')
+        self.database.write('set', 'stations', '1', {'cancelled': False}, True)
+        self.database.checkin('visitor', {'stationId': '1'})
+        self.database.write('set', 'stations', '1', {'cancelled': True}, True)
+        self.database.checkin('visitor', {'stationId': '1'})
+        self.assertEqual(len(self.database.records('checkins')), 1)
+
+    def test_cancelled_stations_do_not_raise_reward_thresholds(self):
+        self.database.write('set', 'config', 'config', {'checkinWindow': {'startMs': 0, 'endMs': (time.time() + 60) * 1000}}, True)
+        self.database.write('set', 'stations', '2', {'id': 2, 'name': 'Absage', 'cancelled': True})
+        self.database.checkin('visitor', {'stationId': '1'})
+        self.assertEqual(self.database.records('checkins')[0]['data']['reachedLevel'], 'diamond')
+
     def test_checkin_outside_window_and_nonexistent_station_are_rejected(self):
         with self.assertRaises(ValueError):
             self.database.checkin('visitor', {'stationId': '1'})
