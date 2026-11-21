@@ -1322,28 +1322,38 @@ for (const linked of [false, true]) test(`program map action selects the event i
 });
 
 test('live program slot ends exactly when the next distinct slot starts', async ({ page }) => {
-    await page.clock.install({ time: new Date('2099-11-21T16:59:58Z') });
-    await page.clock.pauseAt(new Date('2099-11-21T16:59:59Z'));
+    await page.clock.install({ time: new Date('2099-11-21T17:50:59Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T17:51:00Z'));
     await page.goto('/index.html');
     await page.evaluate(() => {
         const now = new Date();
         const time = date => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        const start = new Date(now);
+        start.setMinutes(0, 0, 0);
+        const next = new Date(start.getTime() + 60 * 60000);
+        window.__nextSlotTimestamp = next.getTime();
         window.state.downloads.icsDate = '21.11.2099 17:00-21:00';
         window.state.events = [
-            { id: 'opening', time: time(new Date(now.getTime() - 30 * 60000)), title: 'Eröffnung', loc: 'Kirche' },
-            { id: 'market', time: time(new Date(now.getTime() + 1000)), title: 'Marktgeschehen', loc: 'Marktplatz' },
-            { id: 'band', time: time(new Date(now.getTime() + 1000)), title: 'Big Band', loc: 'Pinselmuseum' }
+            { id: 'opening', time: time(start), title: 'Eröffnung', loc: 'Kirche' },
+            { id: 'earlier-band', time: time(start), title: 'Frühe Band', loc: 'Marktplatz' },
+            { id: 'market', time: time(next), title: 'Marktgeschehen', loc: 'Marktplatz' },
+            { id: 'band', time: time(next), title: 'Big Band', loc: 'Pinselmuseum' }
         ];
         window.switchTab('events');
     });
     const opening = page.locator('[data-program-card]').filter({ has: page.getByRole('heading', { name: 'Eröffnung', exact: true }) });
     await expect(opening.getByText('Live', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-program-card]').getByText('Live', { exact: true })).toHaveCount(2);
     await opening.getByRole('heading', { name: 'Eröffnung', exact: true }).click();
+    await expect(page.locator('[data-program-status-event="opening"]')).toHaveText('Live');
+    await page.clock.setSystemTime(await page.evaluate(() => window.__nextSlotTimestamp - 1000));
+    await page.evaluate(() => window.renderTimeline());
     await expect(page.locator('[data-program-status-event="opening"]')).toHaveText('Live');
     await page.clock.runFor(1000);
     await expect(page.locator('[data-program-status-event="opening"]')).toHaveText('Vorbei');
     await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
     await expect(opening.getByText('Vorbei', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-program-card]').getByText('Vorbei', { exact: true })).toHaveCount(2);
     await expect(page.locator('[data-program-card]').getByText('Live', { exact: true })).toHaveCount(2);
     await page.getByRole('heading', { name: 'Big Band', exact: true }).click();
     await expect(page.locator('[data-program-status-event="band"]')).toHaveText('Live');
@@ -1364,7 +1374,9 @@ test('program stays live before and after the main event window on the event day
     for (const [hour, minute, day, status, title] of [
         [16, 30, 21, 'Live', 'Eröffnung'],
         [16, 59, 21, 'Live', 'Eröffnung'],
-        [17, 16, 21, 'Vorbei', 'Eröffnung'],
+        [17, 16, 21, 'Live', 'Eröffnung'],
+        [20, 59, 21, 'Live', 'Eröffnung'],
+        [21, 0, 21, 'Vorbei', 'Eröffnung'],
         [21, 0, 21, 'Live', 'Flammenartist (2. Show)'],
         [21, 1, 21, 'Live', 'After Show Party'],
         [21, 30, 21, 'Live', 'After Show Party SK Danceworld'],
@@ -1376,7 +1388,7 @@ test('program stays live before and after the main event window on the event day
         await page.evaluate(() => { window.renderTimeline(); window.switchTab('events'); });
         const card = page.locator('[data-program-card]').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
         await expect(card.getByText(status, { exact: true })).toBeVisible();
-        if (status === 'Live') await expect(page.locator('#current-event-display')).toContainText('Jetzt');
+        if (await page.locator('[data-program-card]').getByText('Live', { exact: true }).count()) await expect(page.locator('#current-event-display')).toContainText('Jetzt');
         else await expect(page.locator('#current-event-display')).not.toContainText('Jetzt');
         await card.getByRole('heading', { name: title, exact: true }).click();
         await expect(page.locator('#program-event-modal').getByText(status, { exact: true })).toBeVisible();
