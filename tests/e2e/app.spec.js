@@ -13,6 +13,41 @@ test('compact explanations keep route and cookie details collapsed', async ({ pa
     await expect(page.locator('#tracking-consent-decline')).toHaveText('Nur notwendige');
 });
 
+test('mobile header is opaque and keeps its title away from the top edge', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/index.html');
+    for (const theme of ['light', 'dark']) {
+        await page.evaluate(value => window.setThemePreference(value), theme);
+        const header = await page.locator('#main-header').evaluate(element => {
+            const style = getComputedStyle(element);
+            const title = document.getElementById('app-title');
+            return { position: style.position, filter: style.filter, backdrop: style.backdropFilter,
+                background: style.backgroundColor, padding: parseFloat(style.paddingTop),
+                titleGap: title.getBoundingClientRect().top - element.getBoundingClientRect().top,
+                titleFilter: getComputedStyle(title).filter };
+        });
+        expect(header.position).toBe('sticky');
+        expect(header.filter).toBe('none');
+        expect(header.backdrop).toBe('none');
+        expect(header.titleFilter).toBe('none');
+        expect(header.background).toBe(theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(255, 255, 255)');
+        expect(header.padding).toBeGreaterThanOrEqual(20);
+        expect(header.titleGap).toBeGreaterThanOrEqual(20);
+    }
+    await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute('content', 'default');
+});
+
+test('help keeps local-data explanation compact and links to the full privacy details', async ({ page }) => {
+    await page.goto('/help.html');
+    const section = page.getByRole('heading', { name: 'Deine Daten auf dem Gerät', exact: true }).locator('..');
+    await expect(section).toContainText('Deine Favoriten, Einstellungen und dein Tourplan bleiben lokal bei dir.');
+    expect((await section.innerText()).length).toBeLessThan(160);
+    await section.getByRole('link', { name: 'Mehr im Datenschutz', exact: true }).click();
+    await expect(page).toHaveURL(/datenschutz\.html#lokale-daten$/);
+    await expect(page.locator('#lokale-daten')).toContainText('Cookies & Website-Daten');
+    await expect(page.locator('#lokale-daten')).toContainText('sämtliche App-Daten ausschließlich');
+});
+
 test('text fonts load locally with umlauts and do not contact Google Fonts', async ({ page }) => {
     const externalFonts = [];
     page.on('request', request => {
