@@ -170,6 +170,48 @@ test('program spotlight stays compact on small screens without losing its action
     await expect(page.locator('#program-event-modal')).toContainText('Eröffnung');
 });
 
+test('program overview disappears exactly at event start while reminders and program remain available', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T15:59:58Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T15:59:59Z'));
+    await page.addInitScript(() => {
+        window.__notificationRequests = 0;
+        window.Notification = class {
+            static permission = 'default';
+            static async requestPermission() {
+                window.__notificationRequests++;
+                this.permission = 'granted';
+                return 'granted';
+            }
+        };
+    });
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.downloads = { ...window.state.downloads, icsDate: '21.11.2099 17:00-21:00', flyer1: '/downloads/flyers/test.pdf' };
+        window.state.events = [{ id: 'opening', time: '17:00', title: 'Eröffnung', loc: 'Marktplatz' }];
+        window.renderTimeline();
+        window.switchTab('events');
+    });
+    await expect(page.locator('#program-spotlight')).toBeVisible();
+    await page.clock.runFor(1000);
+    await expect(page.locator('#program-spotlight')).toBeHidden();
+    await expect(page.locator('#program-install-hint')).toBeHidden();
+    await expect(page.locator('#program-flyer-downloads')).toBeVisible();
+    await expect(page.locator('[data-program-card]')).toContainText('Eröffnung');
+    await expect(page.locator('[data-program-card]')).toBeVisible();
+    const reminders = page.locator('#program-notification-opt-in');
+    await expect(reminders).toBeVisible();
+    await reminders.click();
+    expect(await page.evaluate(() => window.__notificationRequests)).toBe(1);
+    await expect(reminders).toBeHidden();
+    await page.evaluate(() => { window.state.events = []; window.renderTimeline(); });
+    await expect(page.locator('#program-spotlight')).toBeHidden();
+    await page.clock.setFixedTime(new Date('2099-11-22T12:00:00Z'));
+    await page.evaluate(() => window.updateProgramOverview());
+    await expect(page.locator('#program-spotlight')).toBeHidden();
+    await page.evaluate(() => { window.state.downloads.icsDate = '23.11.2099 17:00-21:00'; window.renderTimeline(); });
+    await expect(page.locator('#program-spotlight')).toBeVisible();
+});
+
 test('event calendar downloads one event and hides automatically at the one-hour cutoff', async ({ page }) => {
     await page.clock.install({ time: new Date('2099-11-21T14:59:00Z') });
     await page.clock.pauseAt(new Date('2099-11-21T14:59:59Z'));
@@ -1270,6 +1312,34 @@ for (const linked of [false, true]) test(`program map action selects the event i
     await expect(page.locator('.station-pin.highlight-pin')).toHaveCount(1);
 });
 
+test('live program slot ends exactly when the next distinct slot starts', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T16:59:58Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T16:59:59Z'));
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const now = new Date();
+        const time = date => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        window.state.downloads.icsDate = '21.11.2099 17:00-21:00';
+        window.state.events = [
+            { id: 'opening', time: time(new Date(now.getTime() - 30 * 60000)), title: 'Eröffnung', loc: 'Kirche' },
+            { id: 'market', time: time(new Date(now.getTime() + 1000)), title: 'Marktgeschehen', loc: 'Marktplatz' },
+            { id: 'band', time: time(new Date(now.getTime() + 1000)), title: 'Big Band', loc: 'Pinselmuseum' }
+        ];
+        window.switchTab('events');
+    });
+    const opening = page.locator('[data-program-card]').filter({ has: page.getByRole('heading', { name: 'Eröffnung', exact: true }) });
+    await expect(opening.getByText('Live', { exact: true })).toBeVisible();
+    await opening.getByRole('heading', { name: 'Eröffnung', exact: true }).click();
+    await expect(page.locator('[data-program-status-event="opening"]')).toHaveText('Live');
+    await page.clock.runFor(1000);
+    await expect(page.locator('[data-program-status-event="opening"]')).toHaveText('Vorbei');
+    await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
+    await expect(opening.getByText('Vorbei', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-program-card]').getByText('Live', { exact: true })).toHaveCount(2);
+    await page.getByRole('heading', { name: 'Big Band', exact: true }).click();
+    await expect(page.locator('[data-program-status-event="band"]')).toHaveText('Live');
+});
+
 test('program stays live before and after the main event window on the event day', async ({ page }) => {
     await page.clock.install();
     await page.goto('/index.html');
@@ -1312,7 +1382,7 @@ test('current and next program map actions keep their event identity', async ({ 
         const currentTime = new Date();
         const nextTime = new Date(currentTime.getTime() + 90 * 60_000);
         const formatTime = date => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-        window.state.downloads.icsDate = '21.11.2099 00:00-23:59';
+        window.state.downloads.icsDate = '21.11.2099 22:00-23:59';
         window.state.stations = [{ id: 1, name: 'Nachbarstation', lat: 49.158, lng: 10.552, tags: [] }];
         window.state.events = [
             { id: 'current-program', time: formatTime(currentTime), title: 'Laufendes Programm', lat: 49.15805, lng: 10.55205, stationId: '' },
