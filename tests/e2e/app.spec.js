@@ -619,10 +619,27 @@ test('undo check-in sends a server reversal without checking in again', async ({
         };
         window.openStation(1);
     });
+    await expect(page.locator('#checkin-success')).toBeVisible();
+    await expect(page.locator('#checkin-success-label')).toHaveText('Besucht');
+    await expect(page.locator('#checkin-btn')).toBeHidden();
+    await expect(page.locator('#checkin-hint')).toBeHidden();
+    await expect(page.locator('#checkin-success')).toHaveCSS('box-shadow', 'none');
+    expect((await page.locator('#checkin-success').boundingBox()).height).toBeLessThan(50);
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.getByRole('button', { name: 'Check-in rückgängig', exact: true }).click();
+    expect(await page.evaluate(() => window.__undoCalls)).toEqual([]);
+    await expect(page.locator('#checkin-success')).toBeVisible();
+    page.once('dialog', dialog => {
+        expect(dialog.message()).toContain('wirklich rückgängig');
+        return dialog.accept();
+    });
     await page.getByRole('button', { name: 'Check-in rückgängig', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.__undoCalls)).toEqual(['1']);
     expect(await page.evaluate(() => window.__checkinCalls)).toBe(0);
     await expect(page.locator('#checkin-btn')).toContainText('Einchecken');
+    await expect(page.locator('#checkin-btn')).toBeVisible();
+    await expect(page.locator('#checkin-hint')).toBeVisible();
+    await expect(page.locator('#checkin-success')).toBeHidden();
 });
 
 test('station image removal stays in the draft until saved', async ({ page }) => {
