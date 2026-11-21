@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.326';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.326';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.326';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.327';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.327';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.327';
 import {
     showToast,
     getDistance,
@@ -10,11 +10,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.326';
-import * as utils from './utils.js?v=1.4.326';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.326';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.326';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.326';
+} from './utils.js?v=1.4.327';
+import * as utils from './utils.js?v=1.4.327';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.327';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.327';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.327';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;

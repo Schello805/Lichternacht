@@ -515,6 +515,45 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await expect(page.locator('#pass-progress')).toContainText(`0/${total}`);
 });
 
+test('cancelled station cards are fully grey and excluded from every station filter', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.stations = [
+            { id: 1, name: 'Abgesagtes Angebot', desc: 'Marktplatz', tags: ['food'], cancelled: true, lat: 49.158, lng: 10.552, image: '/icon.png' },
+            { id: 2, name: 'Aktives Angebot', desc: 'Marktplatz', tags: ['food'], lat: 49.159, lng: 10.553 }
+        ];
+        window.state.userLocation = { lat: 49.158, lng: 10.552 };
+        window.state.favorites = new Set([1, 2]);
+        localStorage.setItem('visited_stations', JSON.stringify([1, 2]));
+        window.filterList('all');
+        window.switchTab('list');
+    });
+    const cancelled = page.locator('#stations-list [data-station-cancelled="true"]');
+    for (const theme of ['light', 'dark']) {
+        await page.evaluate(value => window.setThemePreference(value), theme);
+        await expect(cancelled).toContainText('Heute abgesagt');
+        const styles = await cancelled.evaluate(element => ({ filter: getComputedStyle(element).filter, background: getComputedStyle(element).backgroundColor }));
+        expect(styles.filter).toContain('grayscale(1)');
+        expect(styles.background).toBe(theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)');
+        await expect(cancelled.locator('img')).toHaveCSS('opacity', '0.6');
+    }
+    await page.evaluate(() => window.filterStations('Abgesagtes'));
+    await expect(cancelled).toBeVisible();
+    await cancelled.click();
+    await expect(page.locator('#modal-cancellation')).toContainText('Heute abgesagt');
+    await page.evaluate(() => window.closeModal());
+    for (const filter of ['food', 'proximity', 'favorites', 'visited']) {
+        await page.evaluate(value => window.filterList(value), filter);
+        await expect(cancelled).toHaveCount(0);
+        await expect(page.locator('#stations-list')).toContainText('Aktives Angebot');
+        await page.evaluate(() => window.filterStations('Abgesagtes'));
+        await expect(page.locator('#stations-list')).toContainText('Keine passenden Stationen');
+    }
+    await page.evaluate(() => window.resetStationFilters());
+    await expect(cancelled).toBeVisible();
+    await expect(page.locator('#stations-list > button')).toHaveCount(2);
+});
+
 test('invalid saved favorites do not interrupt app startup', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('favorites', '{invalid'));
     await page.goto('/index.html');
