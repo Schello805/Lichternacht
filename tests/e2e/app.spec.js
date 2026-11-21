@@ -2142,6 +2142,101 @@ test('startup and tab changes do not trigger a new GPS permission prompt', async
     await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(0);
 });
 
+test('saved GPS activation resumes with Safari prompt permission after reload and reopening a tab', async ({ page, context }) => {
+    await context.route('**/config.js*', route => route.fulfill({ contentType: 'application/javascript', body: `var __firebase_config = '{"apiKey":""}'; var __app_id = 'e2e-test';` }));
+    await context.addInitScript(() => {
+        localStorage.setItem('gps_auto_resume_v1', 'true');
+        const generation = Number(localStorage.getItem('gps-generation') || 0) + 1;
+        localStorage.setItem('gps-generation', String(generation));
+        window.__gpsRequests = 0;
+        Object.defineProperty(navigator, 'webdriver', { configurable: true, value: false });
+        Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: async () => ({ state: 'prompt' }) } });
+        const fix = () => ({ coords: { latitude: 49.157 + generation * 0.001, longitude: 10.548, accuracy: 5 }, timestamp: Date.now() });
+        Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+            getCurrentPosition(success) { window.__gpsRequests++; success(fix()); },
+            watchPosition(success) { success(fix()); return 1; },
+            clearWatch() {}
+        } });
+    });
+    await page.goto('/index.html');
+    await expect.poll(() => page.evaluate(() => window.state.gpsStatus)).toBe('connected');
+    const first = await page.evaluate(() => window.state.userLocation.lat);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.state.userLocation?.lat)).toBeGreaterThan(first);
+    expect(await page.evaluate(() => window.__gpsRequests)).toBe(1);
+    const second = await page.evaluate(() => window.state.userLocation.lat);
+    await page.close();
+    const reopened = await context.newPage();
+    await reopened.goto('/index.html');
+    await reopened.waitForFunction(() => window.__appReady === true);
+    await expect.poll(() => reopened.evaluate(() => window.state.userLocation?.lat)).toBeGreaterThan(second);
+    expect(await reopened.evaluate(() => window.__gpsRequests)).toBe(1);
+});
+
+test('GPS restarts after background and page-cache return without accepting old watch callbacks', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T17:00:01Z'));
+    await page.addInitScript(() => {
+        localStorage.setItem('gps_auto_resume_v1', 'true');
+        window.__gpsRequests = 0;
+        window.__gpsClears = 0;
+        window.__locationVisible = true;
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__locationVisible ? 'visible' : 'hidden' });
+        Object.defineProperty(navigator, 'webdriver', { configurable: true, value: false });
+        Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: async () => ({ state: 'granted' }) } });
+        Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+            getCurrentPosition(success) {
+                window.__gpsRequests++;
+                success({ coords: { latitude: 49.157 + window.__gpsRequests * 0.001, longitude: 10.548, accuracy: 5 }, timestamp: Date.now() });
+            },
+            watchPosition(success) { window.__watchCallback = success; return window.__gpsRequests; },
+            clearWatch() { window.__gpsClears++; }
+        } });
+    });
+    await page.goto('/index.html');
+    await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(1);
+    await page.evaluate(() => {
+        window.state.map.stop();
+        window.__oldWatch = window.__watchCallback;
+        window.__locationVisible = false;
+        document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(await page.evaluate(() => window.state.watchId)).toBe(null);
+    await page.clock.runFor(1000);
+    await page.evaluate(() => {
+        window.__locationVisible = true;
+        document.dispatchEvent(new Event('visibilitychange'));
+        window.dispatchEvent(new Event('focus'));
+        window.dispatchEvent(new Event('pageshow'));
+    });
+    await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(2);
+    await page.evaluate(() => window.__oldWatch({ coords: { latitude: 48, longitude: 11, accuracy: 5 }, timestamp: Date.now() }));
+    expect(await page.evaluate(() => window.state.userLocation.lat)).toBeCloseTo(49.159, 8);
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    await page.clock.runFor(1000);
+    await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+    await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(3);
+    expect(await page.evaluate(() => window.__gpsClears)).toBe(2);
+});
+
+test('denied GPS permission is never automatically requested again', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.setItem('gps_auto_resume_v1', 'true');
+        window.__gpsRequests = 0;
+        Object.defineProperty(navigator, 'webdriver', { configurable: true, value: false });
+        Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: async () => ({ state: 'denied' }) } });
+        Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+            getCurrentPosition() { window.__gpsRequests++; },
+            watchPosition() { window.__gpsRequests++; return 1; },
+            clearWatch() {}
+        } });
+    });
+    await page.goto('/index.html');
+    expect(await page.evaluate(() => window.__gpsRequests)).toBe(0);
+    await page.evaluate(() => { window.dispatchEvent(new Event('focus')); window.dispatchEvent(new Event('pageshow')); });
+    expect(await page.evaluate(() => window.__gpsRequests)).toBe(0);
+});
+
 test('previously activated GPS resumes on Safari-like browsers without Permissions API', async ({ page }) => {
     await page.addInitScript(() => {
         window.__gpsRequests = 0;

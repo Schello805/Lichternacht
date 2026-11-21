@@ -1,6 +1,6 @@
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.337';
+const CACHE_NAME = 'lichternacht-v1.4.338';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
 const FONT_CACHE = 'local-fonts-v1';
