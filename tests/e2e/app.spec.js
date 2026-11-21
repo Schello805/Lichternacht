@@ -490,7 +490,7 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await page.getByLabel('Station abgesagt', { exact: true }).check();
     await page.getByLabel('Grund (optional)', { exact: true }).fill('Krankheit <b>heute</b>');
     await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
-    await expect(page.locator('#modal-cancellation')).toHaveText('Heute abgesagt · Krankheit <b>heute</b>');
+    await expect(page.locator('#modal-cancellation')).toHaveText('Krankheit <b>heute</b>');
     await expect(page.locator('#modal-cancellation b')).toHaveCount(0);
     await expect(page.locator('#modal-title')).toHaveCSS('text-decoration-line', 'none');
     await expect(page.locator('#checkin-btn')).toBeDisabled();
@@ -566,7 +566,8 @@ test('cancelled station cards are fully grey and excluded from every station fil
     await page.evaluate(() => window.filterStations('Abgesagtes'));
     await expect(cancelled).toBeVisible();
     await cancelled.click();
-    await expect(page.locator('#modal-cancellation')).toContainText('Heute abgesagt');
+    await expect(page.locator('#modal-cancellation')).toBeHidden();
+    await expect(page.locator('#modal-content')).toHaveClass(/is-station-cancelled/);
     await page.evaluate(() => window.closeModal());
     for (const filter of ['food', 'proximity', 'favorites', 'visited']) {
         await page.evaluate(value => window.filterList(value), filter);
