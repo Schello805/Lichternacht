@@ -601,6 +601,49 @@ test('failed app module download offers an explicit reload action', async ({ pag
     await expect(page.getByRole('button', { name: 'Erneut laden', exact: true })).toBeVisible();
 });
 
+test('automatic station proposal requires ten seconds of stable accurate GPS', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T17:00:01Z'));
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        const now = new Date();
+        window.state.downloads.icsDate = `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()} 00:00-23:59`;
+        window.state.stations = [
+            { id: 1, name: 'Erste Station', lat: 49.158, lng: 10.552 },
+            { id: 2, name: 'Zweite Station', lat: 49.168, lng: 10.562 }
+        ];
+        window.__proximityFix = (id, accuracy = 5) => {
+            const station = window.state.stations.find(item => item.id === id);
+            window.state.userLocation = { lat: station.lat, lng: station.lng };
+            window.state.gpsAccuracy = accuracy;
+            window.state.gpsLastFixAt = Date.now();
+            window.checkProximity(station.lat, station.lng);
+        };
+        window.__proximityFix(1);
+    });
+    const proposal = page.locator('#smart-action-btn');
+    await expect(proposal).toBeHidden();
+    await page.clock.runFor(6000);
+    await expect(proposal).toBeHidden();
+    await page.evaluate(() => window.__proximityFix(1));
+    await page.clock.runFor(3000);
+    await page.evaluate(() => window.__proximityFix(2));
+    for (const delay of [3000, 3000, 3000]) {
+        await page.clock.runFor(delay);
+        await page.evaluate(() => window.__proximityFix(2));
+        await expect(proposal).toBeHidden();
+    }
+    await page.clock.runFor(999);
+    await expect(proposal).toBeHidden();
+    await page.clock.runFor(1);
+    await expect(proposal).toBeVisible();
+    await expect(proposal).toContainText('Zweite Station');
+    expect(await page.evaluate(() => window.state.smartActionStationId)).toBe(2);
+    await page.evaluate(() => window.__proximityFix(2, 100));
+    await expect(proposal).toBeHidden();
+    expect(await page.evaluate(() => window.state.smartActionStationId)).toBe(null);
+});
+
 test('undo check-in sends a server reversal without checking in again', async ({ page }) => {
     await page.goto('/index.html');
     await page.evaluate(async () => {
