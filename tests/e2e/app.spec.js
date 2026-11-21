@@ -602,7 +602,8 @@ test('failed app module download offers an explicit reload action', async ({ pag
 });
 
 test('automatic station proposal requires ten seconds of stable accurate GPS', async ({ page }) => {
-    await page.clock.install();
+    await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T17:00:01Z'));
     await page.goto('/index.html');
     await page.evaluate(() => {
         const now = new Date();
