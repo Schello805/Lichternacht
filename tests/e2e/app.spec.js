@@ -1034,6 +1034,41 @@ for (const linked of [false, true]) test(`program map action selects the event i
     await expect(page.locator('.station-pin.highlight-pin')).toHaveCount(1);
 });
 
+test('program stays live before and after the main event window on the event day', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+        window.state.downloads.icsDate = '21.11.2099 17:00-21:00';
+        window.state.events = [
+            { id: 'opening', time: '16:30', title: 'Eröffnung', loc: 'Kirche' },
+            { id: 'fire', time: '21:00', title: 'Flammenartist (2. Show)', loc: 'Marktplatz' },
+            { id: 'party', time: '21:00', title: 'After Show Party', loc: 'Marktplatz' },
+            { id: 'dance', time: '21:00', title: 'After Show Party SK Danceworld', loc: 'Marktplatz' }
+        ];
+    });
+    for (const [hour, minute, day, status, title] of [
+        [16, 30, 21, 'Live', 'Eröffnung'],
+        [16, 59, 21, 'Live', 'Eröffnung'],
+        [17, 16, 21, 'Vorbei', 'Eröffnung'],
+        [21, 0, 21, 'Live', 'Flammenartist (2. Show)'],
+        [21, 1, 21, 'Live', 'After Show Party'],
+        [21, 30, 21, 'Live', 'After Show Party SK Danceworld'],
+        [21, 46, 21, 'Vorbei', 'After Show Party'],
+        [16, 30, 22, 'Geplant', 'Eröffnung']
+    ]) {
+        const timestamp = await page.evaluate(({ hour, minute, day }) => new Date(2099, 10, day, hour, minute).getTime(), { hour, minute, day });
+        await page.clock.setFixedTime(timestamp);
+        await page.evaluate(() => { window.renderTimeline(); window.switchTab('events'); });
+        const card = page.locator('[data-program-card]').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
+        await expect(card.getByText(status, { exact: true })).toBeVisible();
+        if (status === 'Live') await expect(page.locator('#current-event-display')).toContainText('Jetzt');
+        else await expect(page.locator('#current-event-display')).not.toContainText('Jetzt');
+        await card.getByRole('heading', { name: title, exact: true }).click();
+        await expect(page.locator('#program-event-modal').getByText(status, { exact: true })).toBeVisible();
+        await page.getByRole('button', { name: 'Programmpunkt schließen' }).click();
+    }
+});
+
 test('current and next program map actions keep their event identity', async ({ page }) => {
     await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
     await page.goto('/index.html');
