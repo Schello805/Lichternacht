@@ -214,13 +214,16 @@ class LocalDatabase:
             station = next((item for item in snapshot['stations'] if str(item.get('id')) == station_id), None)
             if not station:
                 raise ValueError('Station nicht gefunden.')
+            if station.get('cancelled') is True:
+                raise ValueError('Diese Station ist abgesagt. Einchecken ist nicht möglich.')
             count = database.execute("SELECT count(*) FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ?", (user_id,)).fetchone()[0] + 1
             local = now.astimezone(ZoneInfo('Europe/Berlin'))
             thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
-            level = 'diamond' if count == len(snapshot['stations']) else ''
+            total = sum(station.get('cancelled') is not True for station in snapshot['stations'])
+            level = 'diamond' if total and count >= total else ''
             if not level:
                 for candidate, fallback in [('gold', 95), ('silver', 90), ('bronze', 80)]:
-                    if count >= max(1, int(len(snapshot['stations']) * float(thresholds.get(candidate, fallback)) / 100)):
+                    if count >= max(1, int(total * float(thresholds.get(candidate, fallback)) / 100)):
                         level = candidate
                         break
             data = {'type': 'checkin', 'ownerUid': user_id, 'anonymousId': user_id, 'stationId': station_id, 'stationName': station.get('name', ''), 'checkedAt': now.isoformat(), 'receivedAt': now.isoformat(), 'dateKey': local.strftime('%Y-%m-%d'), 'hour': local.hour, 'passCountAfter': count, 'reachedLevel': level, 'source': 'lichterpass', 'appId': snapshot.get('appId')}
@@ -314,7 +317,7 @@ class LocalDatabase:
             snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
             if removed:
                 self.sync_activity_checkin(database, snapshot, station_id, activity_token, False)
-            total = len(snapshot['stations'])
+            total = sum(station.get('cancelled') is not True for station in snapshot['stations'])
             thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
             count = 0
             levels = set()
@@ -323,7 +326,7 @@ class LocalDatabase:
                     continue
                 count += 1
                 data = json.loads(encoded)
-                level = 'diamond' if count == total and total else ''
+                level = 'diamond' if count >= total and total else ''
                 if not level:
                     for candidate, fallback in [('gold', 95), ('silver', 90), ('bronze', 80)]:
                         if total and count >= max(1, int(total * float(thresholds.get(candidate, fallback)) / 100)):

@@ -1,10 +1,11 @@
 import { state } from './state.js';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.325';
-import { getStationNumber } from './station-number.js?v=1.4.325';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.325';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.325';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.325';
-import { saveData } from './data.js?v=1.4.325';
+import { isStationCancelled } from './station-status.js?v=1.4.326';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.326';
+import { getStationNumber } from './station-number.js?v=1.4.326';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.326';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.326';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.326';
+import { saveData } from './data.js?v=1.4.326';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -85,7 +86,9 @@ function offerSavedTour() {
     savedTourOffered = true;
     const tour = readSavedTour(localStorage, state.stations);
     if (!tour) {
+        const hadSavedTour = Boolean(localStorage.getItem(TOUR_STORAGE_KEY));
         dismissSavedTour();
+        if (hadSavedTour) showToast('Die gespeicherte Tour ist nicht mehr aktuell. Bitte ohne abgesagte Stationen neu planen.', 'info');
         return;
     }
     const dialog = document.createElement('dialog');
@@ -253,7 +256,7 @@ function getValidCoordinates(lat, lng) {
 }
 
 function stationOffersRestroom(station) {
-    return Array.isArray(station?.tags)
+    return !isStationCancelled(station) && Array.isArray(station?.tags)
         && station.tags.some(tag => String(tag).trim().toLowerCase() === 'wc');
 }
 
@@ -750,6 +753,10 @@ function restoreMapOverlays() {
 
 export function refreshMapMarkers() {
     if (!state.map) return;
+    if ((state.overviewRouteStations || []).some(station => isStationCancelled(state.stations.find(item => String(item.id) === String(station.id))))) {
+        clearRoute();
+        showToast('Eine Station wurde abgesagt. Bitte die Tour ohne diese Station neu starten.', 'info');
+    }
     clearProgramMapTarget();
     offerSavedTour();
     updateMapEditModeUi();
@@ -769,15 +776,16 @@ export function refreshMapMarkers() {
         const isActive = state.activeStationId != null && String(state.activeStationId) === String(s.id);
         const isVisited = visitedStations.has(String(s.id));
         const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
-        const color = (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
+        const color = isStationCancelled(s) ? '#6b7280' : (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
         const idStr = escapeHtml(getStationNumber(s));
         const fontSize = idStr.length > 3 ? '10px' : '14px';
-        const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''}`.trim();
-        const hasRestroom = stationOffersRestroom(s);
+        const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''} ${isStationCancelled(s) ? 'cancelled-pin line-through' : ''}`.trim();
+        const hasRestroom = !isStationCancelled(s) && stationOffersRestroom(s);
         const hasProgram = state.events.some(event => String(event.stationId || '') === String(s.id));
         
         const icon = document.createElement('div');
         icon.className = 'custom-pin';
+        if (isStationCancelled(s)) icon.setAttribute('aria-label', `Station ${getStationNumber(s)} · Heute abgesagt`);
         if (recentlyClosedStation?.id === String(s.id) && Date.now() < recentlyClosedStation.until) {
             icon.classList.add('recently-opened-station');
         }

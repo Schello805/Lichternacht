@@ -1,4 +1,5 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.325';
+import { stationCoordinates } from './round-trip.js?v=1.4.326';
+import { isStationCancelled } from './station-status.js?v=1.4.326';
 
 const BASE = 'https://routing.openstreetmap.de/routed-foot';
 const cache = new Map();
@@ -102,6 +103,8 @@ export async function fetchFootRoute(coordinates, signal) {
 }
 
 export async function planWalkingTour(stations, mode, origin, signal) {
+    stations = stations.filter(station => !isStationCancelled(station));
+    if (stations.length < 2) throw new Error('Bitte mindestens zwei verfügbare Stationen auswählen.');
     const points = stations.map(stationCoordinates);
     const matrixPoints = origin ? [...points, origin] : points;
     const table = await request(`table/v1/driving/${coordinatePath(matrixPoints)}?annotations=duration`, signal);

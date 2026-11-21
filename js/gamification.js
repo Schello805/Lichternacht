@@ -1,6 +1,7 @@
 import { state } from './state.js';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.325';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.325';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.326';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.326';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.326';
 import {
     showToast,
     getDistance,
@@ -9,11 +10,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.325';
-import * as utils from './utils.js?v=1.4.325';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.325';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.325';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.325';
+} from './utils.js?v=1.4.326';
+import * as utils from './utils.js?v=1.4.326';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.326';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.326';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.326';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -202,7 +203,7 @@ function showRewardModal(level, prizeText) {
             close();
             if (typeof window.openPrizeClaimModal === 'function') {
                 const visitedStations = getVisitedStationIdSet();
-                const total = Array.isArray(state.stations) ? state.stations.length : 0;
+                const total = countAvailableStations(state.stations);
                 window.openPrizeClaimModal(levelLabel, prizeText, visitedStations.size, total);
             } else {
                 showToast('Bitte öffne den Lichter‑Pass, um den Preis anzufordern.', 'info');
@@ -270,7 +271,7 @@ export function undoCheckIn(id) {
     }
     removeStationVisited(id);
     const count = getVisitedStationIdSet().size;
-    const total = state.stations.length;
+    const total = countAvailableStations(state.stations);
     const rewards = getRewardConfig();
     for (const level of ['bronze', 'silver', 'gold']) {
         if (count < percentToCount(rewards.thresholdsPercent[level], total)) localStorage.removeItem(`reached_${level}`);
@@ -416,6 +417,11 @@ export function updateModalFavBtn(id) {
 }
 
 export async function checkIn(id) {
+    if (isStationCancelled(state.stations.find(station => String(station.id) === String(id)))) {
+        updateCheckInBtn(id);
+        showToast('Diese Station ist abgesagt. Einchecken ist nicht möglich.', 'info');
+        return;
+    }
     if (!isPassActiveToday()) {
         showToast(getPassInactiveMessage(), 'info');
         return;
@@ -490,10 +496,10 @@ export async function checkIn(id) {
     }
 
     let newLevel = null;
-    if (count === state.stations.length && count > 0) newLevel = 'diamond';
+    if (count >= countAvailableStations(state.stations) && countAvailableStations(state.stations) > 0) newLevel = 'diamond';
     else {
         const cfg = getRewardConfig();
-        const total = Array.isArray(state.stations) ? state.stations.length : 0;
+        const total = countAvailableStations(state.stations);
         const goldCount = percentToCount(cfg.thresholdsPercent.gold, total);
         const silverCount = percentToCount(cfg.thresholdsPercent.silver, total);
         const bronzeCount = percentToCount(cfg.thresholdsPercent.bronze, total);
@@ -545,7 +551,7 @@ export async function checkIn(id) {
     recordAuditEvent('station_checked_in', { stationId: id, stationName: s.name || '', count, level: newLevel || '' });
 
     updateCheckInBtn(id);
-    const totalStations = Array.isArray(state.stations) ? state.stations.length : 0;
+    const totalStations = countAvailableStations(state.stations);
     const rewardProgressText = getNextRewardProgressText(count, totalStations);
     showToast(`${s.name || 'Station'} gespeichert! ${rewardProgressText || '🏆'}`, 'success');
     vibrateFeedback([35, 35, 60]);
@@ -625,6 +631,12 @@ export function updateCheckInBtn(id) {
         btn.disabled = false;
         btn.classList.add('bg-green-50', 'border', 'border-green-200');
         btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
+    } else if (isStationCancelled(state.stations.find(station => String(station.id) === String(id)))) {
+        btn.dataset.status = 'cancelled';
+        btn.textContent = 'Heute abgesagt';
+        btn.disabled = true;
+        btn.classList.remove('bg-green-50', 'border', 'border-green-200');
+        btn.classList.add('bg-gray-900', 'text-white');
     } else {
         btn.innerHTML = `<i class="ph ph-map-pin text-xl mr-2"></i><span>Einchecken</span>`;
         btn.disabled = false;
@@ -639,7 +651,7 @@ if (typeof window.addEventListener === 'function') window.addEventListener('lich
 
 export function updatePassProgress() {
     const count = getVisitedStationRecords().length;
-    const total = Array.isArray(state.stations) ? state.stations.length : 0;
+    const total = countAvailableStations(state.stations);
     const el = document.getElementById('pass-progress');
     if (el) {
         el.innerHTML = `<i class="ph-fill ph-trophy"></i><span class="font-bold">Sammeln ${count}/${total}</span>`;
@@ -750,6 +762,7 @@ export function checkProximity(lat, lng) {
     const candidates = [];
 
     state.stations.forEach(s => {
+        if (isStationCancelled(s)) return;
         if (visitedStations.has(String(s.id))) return; // Skip visited
 
         const dist = getDistance(lat, lng, s.lat, s.lng);

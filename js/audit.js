@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.325';
-import { queueOfflineAction } from './offline-sync.js?v=1.4.325';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.326';
+import { queueOfflineAction } from './offline-sync.js?v=1.4.326';
 
 const VISITOR_ID_KEY = 'anonymous_audit_id_v1';
 const ALLOWED_DETAIL_KEYS = new Set(['stationId', 'stationName', 'eventId', 'eventTitle', 'action', 'count', 'level', 'itemType']);

@@ -12,6 +12,13 @@ function fixture() {
     return { storage, state };
 }
 
+test('a saved geometry is not resumed when a station has since been cancelled', () => {
+    const { storage, state } = fixture();
+    saveTour(storage, state);
+    assert.equal(readSavedTour(storage, stations.map(station => ({ ...station, cancelled: station.id === 43 }))), null);
+    assert.ok(readSavedTour(storage, stations));
+});
+
 test('local tour roundtrip preserves stable IDs, original start, order and skipped progress', () => {
     const { storage, state } = fixture();
     assert.equal(saveTour(storage, state), true);

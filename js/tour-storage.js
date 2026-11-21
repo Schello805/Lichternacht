@@ -1,4 +1,5 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.325';
+import { stationCoordinates } from './round-trip.js?v=1.4.326';
+import { isStationCancelled } from './station-status.js?v=1.4.326';
 
 export const TOUR_STORAGE_KEY = 'active_station_tour_v1';
 
@@ -7,7 +8,7 @@ export function readSavedTour(storage, stations) {
         const tour = JSON.parse(storage.getItem(TOUR_STORAGE_KEY));
         if (!tour || tour.version !== 1 || !['round', 'open'].includes(tour.mode)) return null;
         if (!Array.isArray(tour.stationIds) || tour.stationIds.length < 2 || new Set(tour.stationIds).size !== tour.stationIds.length) return null;
-        const available = new Map(stations.map(station => [String(station.id), station]));
+        const available = new Map(stations.filter(station => !isStationCancelled(station)).map(station => [String(station.id), station]));
         if (!tour.stationIds.every(id => typeof id === 'string' && stationCoordinates(available.get(id)))) return null;
         if (!stationCoordinates(tour.origin) || !Number.isInteger(tour.progress) || tour.progress < 0 || tour.progress > tour.stationIds.length) return null;
         if (![tour.reached, tour.skipped].every(value => Number.isInteger(value) && value >= 0) || tour.reached + tour.skipped !== tour.progress) return null;
