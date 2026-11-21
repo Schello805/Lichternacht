@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { metricsChart, historySummary } from './metrics-history.js?v=1.4.338';
-import { loadStationActivityReport } from './station-activity.js?v=1.4.338';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.338';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.338';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.338';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.338';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.338';
+import { metricsChart, historySummary } from './metrics-history.js?v=1.4.339';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.339';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.339';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.339';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.339';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.339';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.339';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.338';
-import { recordAuditEvent } from './audit.js?v=1.4.338';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.338';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.338';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.339';
+import { recordAuditEvent } from './audit.js?v=1.4.339';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.339';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.339';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -1236,7 +1236,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.338';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.339';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1833,9 +1833,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.338';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.338';
-import { renderList, renderTimeline } from './ui.js?v=1.4.338';
+import { showToast } from './utils.js?v=1.4.339';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.339';
+import { renderList, renderTimeline } from './ui.js?v=1.4.339';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

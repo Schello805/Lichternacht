@@ -1,4 +1,4 @@
-import { distanceMeters, stationCoordinates } from './round-trip.js?v=1.4.338';
+import { distanceMeters, stationCoordinates } from './round-trip.js?v=1.4.339';
 
 export function shouldMoveGpsMarker(previous, current) {
     const next = stationCoordinates(current);
