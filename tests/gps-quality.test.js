@@ -1,9 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { shouldAcceptGpsPosition } from '../js/gps-quality.js';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from '../js/gps-quality.js';
 
 const fix = (timestamp, accuracy = 5, latitude = 49.158) => ({ timestamp, coords: { latitude, longitude: 10.552, accuracy } });
 const previous = { userLocation: { lat: 49.158, lng: 10.552 }, gpsLastFixAt: 10000, gpsAccuracy: 5 };
+
+test('marker ignores jitter below five metres but follows accumulated slow movement', () => {
+    const point = metres => ({ lat: metres / 6371000 * 180 / Math.PI, lng: 0 });
+    let displayed = point(0);
+    for (const metres of [1, -2, 3, 4.99]) assert.equal(shouldMoveGpsMarker(displayed, point(metres)), false);
+    assert.equal(shouldMoveGpsMarker(displayed, point(5.01)), true);
+    for (const metres of [2, 4, 6, 8, 10, 12]) {
+        if (shouldMoveGpsMarker(displayed, point(metres))) displayed = point(metres);
+    }
+    assert.deepEqual(displayed, point(12));
+    assert.equal(shouldMoveGpsMarker(null, point(0)), true);
+    assert.equal(shouldMoveGpsMarker(displayed, { lat: NaN, lng: 0 }), false);
+});
 
 test('older, duplicate and inaccurate fixes cannot overwrite a fresh accurate location', () => {
     assert.equal(shouldAcceptGpsPosition(fix(9000), previous, 11000), false);

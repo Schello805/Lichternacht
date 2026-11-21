@@ -674,6 +674,15 @@ test('iPhone GPS keeps good fixes instead of jumping to cached or degraded posit
     expect(await page.evaluate(() => window.state.gpsLastFixAt)).toBe(goodTimestamp);
     expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.552, 49.158]);
     await page.clock.runFor(1000);
+    await page.evaluate(() => window.__watchGps({ coords: { latitude: 49.15802, longitude: 10.552, accuracy: 5 }, timestamp: Date.now() }));
+    expect(await page.evaluate(() => window.state.userLocation)).toEqual({ lat: 49.15802, lng: 10.552 });
+    expect(await page.evaluate(() => window.state.gpsLastFixAt)).toBeGreaterThan(goodTimestamp);
+    expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.552, 49.158]);
+    await page.clock.runFor(1000);
+    await page.evaluate(() => window.__watchGps({ coords: { latitude: 49.15804, longitude: 10.552, accuracy: 5 }, timestamp: Date.now() }));
+    expect(await page.evaluate(() => window.state.userLocation)).toEqual({ lat: 49.15804, lng: 10.552 });
+    expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.552, 49.158]);
+    await page.clock.runFor(1000);
     await page.evaluate(() => window.__watchGps({ coords: { latitude: 49.1581, longitude: 10.5521, accuracy: 5 }, timestamp: Date.now() }));
     expect(await page.evaluate(() => window.state.userLocation)).toEqual({ lat: 49.1581, lng: 10.5521 });
     expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.5521, 49.1581]);

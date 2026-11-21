@@ -1,3 +1,12 @@
+import { distanceMeters, stationCoordinates } from './round-trip.js?v=1.4.336';
+
+export function shouldMoveGpsMarker(previous, current) {
+    const next = stationCoordinates(current);
+    if (!next) return false;
+    const displayed = stationCoordinates(previous);
+    return !displayed || distanceMeters(displayed, next) >= 5;
+}
+
 export function shouldAcceptGpsPosition(position, previous, now = Date.now()) {
     const latitude = position?.coords?.latitude;
     const longitude = position?.coords?.longitude;
