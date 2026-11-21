@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.331';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.331';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.331';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.332';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.332';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.332';
 import {
     showToast,
     getDistance,
@@ -10,11 +10,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.331';
-import * as utils from './utils.js?v=1.4.331';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.331';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.331';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.331';
+} from './utils.js?v=1.4.332';
+import * as utils from './utils.js?v=1.4.332';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.332';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.332';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.332';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -265,6 +265,7 @@ export function undoCheckIn(id) {
         showToast('Rücknahme ist nur mit der lokalen Datenbank verfügbar.', 'info');
         return;
     }
+    if (!window.confirm('Check-in wirklich rückgängig machen? Der Besuch wird aus deinem Lichter-Pass entfernt.')) return;
     if (state.localBackend || localStorage.getItem('local_backend_enabled') === 'true') {
         queueOfflineAction('undo-checkin', { stationId: String(id) });
         flushOfflineActions();
@@ -610,32 +611,25 @@ export function updateCheckInBtn(id) {
 
     const visitedStations = getVisitedStationIdSet();
     const cancelled = isStationCancelled(state.stations.find(station => String(station.id) === String(id)));
-    const hideCheckin = cancelled && !visitedStations.has(String(id));
+    const visited = visitedStations.has(String(id));
+    const hideCheckin = cancelled || visited;
     btn.classList.toggle('hidden', hideCheckin);
     btn.classList.toggle('flex', !hideCheckin);
-    document.getElementById('checkin-hint')?.classList.toggle('hidden', cancelled);
-    btn.dataset.status = visitedStations.has(String(id)) ? 'success' : 'idle';
+    document.getElementById('checkin-hint')?.classList.toggle('hidden', cancelled || visited);
+    const success = document.getElementById('checkin-success');
+    success?.classList.toggle('hidden', !visited);
+    success?.classList.toggle('flex', visited);
+    const undoButton = document.getElementById('checkin-undo');
+    if (undoButton) undoButton.onclick = () => undoCheckIn(id);
+    btn.dataset.status = visited ? 'success' : 'idle';
     btn.classList.remove('bg-gray-700', 'bg-red-50', 'text-red-700', 'border-red-200');
 
-    if (visitedStations.has(String(id))) {
+    if (visited) {
         const sync = getCheckinSyncStatus(id);
         const label = sync?.status === 'pending' ? 'Besucht · Übertragung ausstehend'
-            : sync?.status === 'rejected' ? 'Besucht · nur auf diesem Gerät' : 'Erfolgreich besucht';
-        btn.innerHTML = `
-            <div class="flex items-center justify-between w-full">
-                <div class="flex items-center">
-                    <i class="ph-fill ph-check-circle text-green-500 text-xl mr-2"></i>
-                    <span class="text-green-600 font-bold">${label}</span>
-                </div>
-                <button type="button" onclick="event.stopPropagation(); window.undoCheckIn(${JSON.stringify(id)})" aria-label="Check-in rückgängig" title="Rückgängig"
-                    class="ml-3 w-9 h-9 rounded-full border border-red-200 bg-white text-red-600 flex items-center justify-center shadow-sm hover:bg-red-50 hover:border-red-300 hover:shadow active:scale-95 transition">
-                    <i class="ph-bold ph-x text-lg"></i>
-                </button>
-            </div>
-        `;
-        btn.disabled = false;
-        btn.classList.add('bg-green-50', 'border', 'border-green-200');
-        btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
+            : sync?.status === 'rejected' ? 'Besucht · nur auf diesem Gerät' : 'Besucht';
+        const successLabel = document.getElementById('checkin-success-label');
+        if (successLabel) successLabel.textContent = label;
     } else if (cancelled) {
         btn.dataset.status = 'cancelled';
         btn.textContent = 'Einchecken';
