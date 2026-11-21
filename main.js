@@ -1,13 +1,13 @@
 import { state } from './js/state.js';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.323';
-import { shareStation, showToast } from './js/utils.js?v=1.4.323';
-import * as utils from './js/utils.js?v=1.4.323';
-import { initFirebase } from './js/firebase-init.js?v=1.4.323';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.323';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.323';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.323';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.323';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.323';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.324';
+import { shareStation, showToast } from './js/utils.js?v=1.4.324';
+import * as utils from './js/utils.js?v=1.4.324';
+import { initFirebase } from './js/firebase-init.js?v=1.4.324';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.324';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.324';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.324';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.324';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.324';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -16,12 +16,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, flyToProgramEvent, closePlanningBanner, openRoutePlan
-} from './js/ui.js?v=1.4.323';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.323';
-import { recordAuditEvent } from './js/audit.js?v=1.4.323';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.323';
-import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.323';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.323';
+} from './js/ui.js?v=1.4.324';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.324';
+import { recordAuditEvent } from './js/audit.js?v=1.4.324';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.324';
+import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.324';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.324';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -31,7 +31,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.323";
+const APP_VERSION = "1.4.324";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -476,16 +476,7 @@ window.maybeAskPassParticipation = () => {
 
 function isEventEndReminderDue(now = new Date()) {
     const eventWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
-    if (!eventWindow || !eventWindow.dateKey) return false;
-    const todayKey = getLocalDateKey(now);
-    if (todayKey !== eventWindow.dateKey) return false;
-
-    const currentMin = (now.getHours() * 60) + now.getMinutes();
-    const fallbackEndMin = 22 * 60;
-    const endMin = (eventWindow.startMin === 0 && eventWindow.endMin === (24 * 60 - 1))
-        ? fallbackEndMin
-        : eventWindow.endMin;
-    return currentMin >= endMin;
+    return utils.isEventEndReminderDue(eventWindow, now);
 }
 
 function remindPrizeClaimAfterEvent() {

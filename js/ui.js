@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.323';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.323';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.323';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.323';
-import * as utils from './utils.js?v=1.4.323';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.323';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.323';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.323';
-import { recordAuditEvent } from './audit.js?v=1.4.323';
-import { normalizeImageUrl } from './image-url.js?v=1.4.323';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.323';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.323';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.324';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.324';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.324';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.324';
+import * as utils from './utils.js?v=1.4.324';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.324';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.324';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.324';
+import { recordAuditEvent } from './audit.js?v=1.4.324';
+import { normalizeImageUrl } from './image-url.js?v=1.4.324';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.324';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.324';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2371,7 +2371,7 @@ function getProgramStatus(event, context) {
     if (diff > 0) {
         return { key: diff <= 30 ? 'soon' : 'upcoming', label: formatCountdown(diff), className: diff <= 30 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', isPast: false, eventTimeVal };
     }
-    if (context.isEventWindowNow && context.currentTimeVal <= eventTimeVal + 45) {
+    if (context.isEventDay && context.currentTimeVal <= eventTimeVal + 45) {
         return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
     }
     return { key: 'past', label: 'Vorbei', className: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300', isPast: true, eventTimeVal };
@@ -2394,7 +2394,6 @@ export function openProgramEvent(id) {
         configuredWindow,
         hasConfiguredEventDate: !!configuredWindow,
         isEventDay: !!configuredWindow && todayKey === configuredWindow.dateKey,
-        isEventWindowNow: !!configuredWindow && (typeof utils.isWithinEventWindowNow === 'function' ? utils.isWithinEventWindowNow(configuredWindow, now) : todayKey === configuredWindow.dateKey),
         currentTimeVal: now.getHours() * 60 + now.getMinutes()
     };
     const status = getProgramStatus(event, context);
@@ -2534,7 +2533,6 @@ export function renderTimeline() {
         return;
     }
 
-    // If an event date/time window is configured, show "live/next" only within that window.
     // Use module namespace access so older cached versions don't hard-crash on missing exports.
     const configuredWindow = (typeof utils.getConfiguredEventWindow === 'function')
         ? utils.getConfiguredEventWindow()
@@ -2543,11 +2541,6 @@ export function renderTimeline() {
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const hasConfiguredEventDate = !!configuredWindow;
     const isEventDay = hasConfiguredEventDate && todayKey === configuredWindow.dateKey;
-    const isEventWindowNow = hasConfiguredEventDate
-        ? (typeof utils.isWithinEventWindowNow === 'function')
-            ? utils.isWithinEventWindowNow(configuredWindow, now)
-            : todayKey === configuredWindow.dateKey
-        : false;
 
     // Sort by time
     const sorted = [...state.events].sort((a, b) => {
@@ -2557,7 +2550,7 @@ export function renderTimeline() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
-    const statusContext = { configuredWindow, hasConfiguredEventDate, isEventDay, isEventWindowNow, currentTimeVal };
+    const statusContext = { configuredWindow, hasConfiguredEventDate, isEventDay, currentTimeVal };
 
     let nextEvent = null;
     let currentActiveEvent = null; // Store currently running event for header
@@ -2576,7 +2569,7 @@ export function renderTimeline() {
         }
 
         // Find Current Event (first one that is active)
-        if (isEventWindowNow && !currentActiveEvent && isCurrent) {
+        if (isEventDay && !currentActiveEvent && isCurrent) {
             currentActiveEvent = e;
         }
 
@@ -2658,12 +2651,11 @@ export function renderTimeline() {
     // Update Header Widget
     const headerDisplay = document.getElementById('current-event-display');
     if (headerDisplay) {
-        const isAfterEventWindow = configuredWindow && isEventDay && !isEventWindowNow && currentTimeVal > configuredWindow.endMin;
         if (!configuredWindow) {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Event-Datum fehlt – kein Live-Status.</p>`;
             return;
         }
-        if (configuredWindow && (!isEventDay || isAfterEventWindow)) {
+        if (configuredWindow && !isEventDay) {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${utils.formatEventWindowDe(configuredWindow)}.</p>`;
             return;
         }

@@ -1,4 +1,4 @@
-import * as utils from './utils.js?v=1.4.323';
+import * as utils from './utils.js?v=1.4.324';
 
 function eventWindowDate(dateKey, minutes, addDay = false) {
     const [year, month, day] = String(dateKey || '').split('-').map(Number);
@@ -31,12 +31,15 @@ export function updateHeaderCountdown(now = new Date()) {
     const start = eventWindowDate(eventWindow.dateKey, eventWindow.startMin);
     const crossesMidnight = eventWindow.endMin < eventWindow.startMin;
     const end = eventWindowDate(eventWindow.dateKey, eventWindow.endMin, crossesMidnight);
+    const displayEnd = utils.getEventDisplayEnd(eventWindow);
     if (!start || !end) return;
 
     if (now < start) {
         element.textContent = formatRemainingTime(start.getTime() - now.getTime());
     } else if (now <= end) {
         element.textContent = `● Lichternacht läuft · bis ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')} Uhr`;
+    } else if (displayEnd && now < displayEnd) {
+        element.textContent = 'Lichternacht · der Abend klingt aus';
     } else {
         element.textContent = 'Lichternacht beendet · Danke fürs Mitmachen!';
     }

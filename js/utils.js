@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { getStationNumber } from './station-number.js?v=1.4.323';
+import { getStationNumber } from './station-number.js?v=1.4.324';
 
 const VISITED_KEY = 'visited_stations';
 const VISITED_LOG_KEY = 'visited_station_log';
@@ -219,6 +219,16 @@ export function formatEventWindowDe(windowConfig) {
 export function isWithinEventWindowNow(windowConfig, now = new Date()) {
     const bounds = getEventWindowBounds(windowConfig);
     return !!bounds && now >= bounds.start && now <= bounds.end;
+}
+
+export function getEventDisplayEnd(windowConfig) {
+    const bounds = getEventWindowBounds(windowConfig);
+    return bounds ? new Date(bounds.end.getTime() + 30 * 60000) : null;
+}
+
+export function isEventEndReminderDue(windowConfig, now = new Date()) {
+    const end = getEventDisplayEnd(windowConfig);
+    return !!end && now >= end && now.toDateString() === end.toDateString();
 }
 
 export function isWithinPassCheckinWindowNow(windowConfig, now = new Date()) {
