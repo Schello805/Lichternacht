@@ -492,10 +492,12 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect(page.locator('#modal-cancellation')).toHaveText('Heute abgesagt · Krankheit <b>heute</b>');
     await expect(page.locator('#modal-cancellation b')).toHaveCount(0);
-    await expect(page.locator('#modal-title')).toHaveClass(/line-through/);
+    await expect(page.locator('#modal-title')).toHaveCSS('text-decoration-line', 'none');
     await expect(page.locator('#checkin-btn')).toBeDisabled();
     await expect(page.locator('#btn-internal-route')).toBeDisabled();
     await expect(page.locator('.cancelled-pin')).toHaveCount(1);
+    await expect(page.locator('.cancelled-pin')).toHaveCSS('background-color', 'rgb(209, 213, 219)');
+    await expect(page.locator('.cancelled-pin')).toHaveCSS('color', 'rgb(71, 85, 105)');
     await expect(page.locator('#pass-progress')).toContainText(`0/${total - 1}`);
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('stations_data')).find(station => String(station.id) === '1'));
     expect(saved.cancelled).toBe(true);
@@ -533,6 +535,7 @@ test('cancelled station cards are fully grey and excluded from every station fil
     for (const theme of ['light', 'dark']) {
         await page.evaluate(value => window.setThemePreference(value), theme);
         await expect(cancelled).toContainText('Heute abgesagt');
+        await expect(cancelled.locator('h3 span').last()).toHaveCSS('text-decoration-line', 'none');
         const styles = await cancelled.evaluate(element => ({ filter: getComputedStyle(element.firstElementChild).filter, background: getComputedStyle(element).backgroundColor }));
         expect(styles.filter).toContain('grayscale(1)');
         expect(styles.background).toBe(theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)');
