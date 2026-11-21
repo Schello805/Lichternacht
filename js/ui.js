@@ -1,17 +1,17 @@
 
 import { state } from './state.js';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.324';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.324';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.324';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.324';
-import * as utils from './utils.js?v=1.4.324';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.324';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.324';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.324';
-import { recordAuditEvent } from './audit.js?v=1.4.324';
-import { normalizeImageUrl } from './image-url.js?v=1.4.324';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.324';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.324';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.325';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.325';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.325';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.325';
+import * as utils from './utils.js?v=1.4.325';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.325';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.325';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.325';
+import { recordAuditEvent } from './audit.js?v=1.4.325';
+import { normalizeImageUrl } from './image-url.js?v=1.4.325';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.325';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.325';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2664,23 +2664,23 @@ export function renderTimeline() {
             const eventMinutes = getProgramStatus(event, statusContext).eventTimeVal;
             const minutesUntil = Math.max(1, eventMinutes - currentTimeVal);
             const isLive = type === 'current';
-            const label = isLive ? 'Jetzt' : `Als Nächstes · in ${minutesUntil} Min.`;
+            const label = isLive ? 'Jetzt' : `Nächste · ${formatCountdown(minutesUntil)}`;
             const buttonId = isLive ? 'program-current-map' : 'program-next-map';
             return `
-                <div class="rounded-xl border ${isLive ? 'border-red-300 bg-red-500/20' : 'border-white/25 bg-white/10'} p-3">
-                    <div class="flex items-start gap-3">
-                        <div class="${isLive ? 'bg-red-500 animate-pulse' : 'bg-white/20'} rounded-lg px-2 py-1.5 text-center min-w-[58px]">
+                <div class="rounded-lg border ${isLive ? 'border-red-300 bg-red-500/20' : 'border-white/25 bg-white/10'} p-2">
+                    <div class="flex items-start gap-2">
+                        <div class="${isLive ? 'bg-red-500 animate-pulse' : 'bg-white/20'} rounded-lg px-2 py-1.5 text-center min-w-[48px]">
                             <span class="block text-[10px] font-extrabold uppercase">${isLive ? 'Live' : escapeHtml(event.time)}</span>
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-xs ${isLive ? 'text-red-100' : 'text-white/80'} uppercase font-extrabold tracking-wide">${label}</p>
-                            <p class="font-extrabold text-white leading-tight">${escapeHtml(event.title)}</p>
-                            <p class="mt-0.5 text-xs text-white/85 truncate"><i class="ph-fill ph-map-pin"></i> ${escapeHtml(event.loc || 'Ort nicht angegeben')}</p>
+                            <p class="text-[10px] leading-tight ${isLive ? 'text-red-100' : 'text-white/80'} font-bold">${label}</p>
+                            <p class="text-sm font-extrabold text-white leading-tight">${escapeHtml(event.title)}</p>
+                            <p class="text-[11px] leading-snug text-white/85 truncate"><i class="ph-fill ph-map-pin"></i> ${escapeHtml(event.loc || 'Ort nicht angegeben')}</p>
                         </div>
                     </div>
-                    <div class="mt-2 grid ${location.hasCoords ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
-                        <button type="button" data-program-event="${escapeHtml(event.id)}" class="rounded-lg bg-white/15 px-2 py-2 text-xs font-bold text-white border border-white/20">Details</button>
-                        ${location.hasCoords ? `<button type="button" id="${buttonId}" class="rounded-lg bg-white px-2 py-2 text-xs font-extrabold text-gray-900"><i class="ph-fill ph-map-pin"></i> Auf Karte zeigen</button>` : ''}
+                    <div class="mt-1.5 grid ${location.hasCoords ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+                        <button type="button" data-program-event="${escapeHtml(event.id)}" class="min-h-9 rounded-lg bg-white/15 px-2 py-1.5 text-xs font-bold text-white border border-white/20">Details</button>
+                        ${location.hasCoords ? `<button type="button" id="${buttonId}" class="min-h-9 rounded-lg bg-white px-2 py-1.5 text-xs font-extrabold text-gray-900"><i class="ph-fill ph-map-pin"></i> Auf Karte zeigen</button>` : ''}
                     </div>
                 </div>`;
         };

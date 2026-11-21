@@ -140,12 +140,42 @@ test('station activity is above the title and missing signals leave no placehold
     expect(await page.evaluate(() => localStorage.getItem('tracking_consent'))).toBe('denied');
 });
 
+test('program spotlight stays compact on small screens without losing its actions', async ({ page }) => {
+    await page.clock.install();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/index.html');
+    const timestamp = await page.evaluate(() => new Date(2099, 10, 21, 9, 30).getTime());
+    await page.clock.setFixedTime(timestamp);
+    await page.evaluate(() => {
+        window.state.downloads.icsDate = '21.11.2099 17:00-21:00';
+        window.state.events = [{ id: 'compact-opening', time: '16:30', title: 'Eröffnung', loc: 'Johanniskirche', lat: 49.158, lng: 10.552 }];
+        window.renderTimeline();
+        window.updateCalendarButtons();
+        window.switchTab('events');
+        document.getElementById('program-install-hint').classList.remove('hidden');
+    });
+    for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        const block = page.locator('#program-spotlight');
+        await expect(block).toContainText('Nächste · in 7 Std.');
+        await expect(block).not.toContainText('420 Min.');
+        await expect(block.getByRole('button', { name: 'Details', exact: true })).toBeVisible();
+        await expect(page.locator('#program-next-map')).toBeVisible();
+        await expect(block.getByRole('button', { name: 'Im Kalender speichern' })).toBeVisible();
+        const box = await block.boundingBox();
+        expect(box.height).toBeLessThanOrEqual(240);
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
+    }
+    await page.locator('#program-spotlight').getByRole('button', { name: 'Details', exact: true }).click();
+    await expect(page.locator('#program-event-modal')).toContainText('Eröffnung');
+});
+
 test('event calendar downloads one event and hides automatically at the one-hour cutoff', async ({ page }) => {
-    await page.clock.install({ time: new Date('2099-11-21T14:29:00Z') });
-    await page.clock.pauseAt(new Date('2099-11-21T14:29:59Z'));
+    await page.clock.install({ time: new Date('2099-11-21T14:59:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T14:59:59Z'));
     await page.goto('/index.html');
     await page.evaluate(() => {
-        window.state.downloads.icsDate = '21.11.2099 16:30-21:00';
+        window.state.downloads.icsDate = '21.11.2099 17:00-21:00';
         window.state.events = [];
         window.updateCalendarButtons();
         window.switchTab('events');
@@ -159,7 +189,7 @@ test('event calendar downloads one event and hides automatically at the one-hour
     expect(download.suggestedFilename()).toBe('lichternacht.ics');
     const content = await readFile(await download.path(), 'utf8');
     expect(content.match(/BEGIN:VEVENT/g)).toHaveLength(1);
-    expect(content).toContain('DTSTART:20991121T153000Z');
+    expect(content).toContain('DTSTART:20991121T160000Z');
     expect(content).toContain('DTEND:20991121T200000Z');
     await page.clock.runFor(1000);
     for (const button of await buttons.all()) await expect(button).toHaveClass(/hidden/);
