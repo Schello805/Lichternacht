@@ -1,7 +1,7 @@
 import { state } from './state.js';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.330';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.330';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.330';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.331';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.331';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.331';
 import {
     showToast,
     getDistance,
@@ -10,11 +10,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.330';
-import * as utils from './utils.js?v=1.4.330';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.330';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.330';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.330';
+} from './utils.js?v=1.4.331';
+import * as utils from './utils.js?v=1.4.331';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.331';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.331';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.331';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -609,6 +609,11 @@ export function updateCheckInBtn(id) {
     if (!btn) return;
 
     const visitedStations = getVisitedStationIdSet();
+    const cancelled = isStationCancelled(state.stations.find(station => String(station.id) === String(id)));
+    const hideCheckin = cancelled && !visitedStations.has(String(id));
+    btn.classList.toggle('hidden', hideCheckin);
+    btn.classList.toggle('flex', !hideCheckin);
+    document.getElementById('checkin-hint')?.classList.toggle('hidden', cancelled);
     btn.dataset.status = visitedStations.has(String(id)) ? 'success' : 'idle';
     btn.classList.remove('bg-gray-700', 'bg-red-50', 'text-red-700', 'border-red-200');
 
@@ -631,9 +636,9 @@ export function updateCheckInBtn(id) {
         btn.disabled = false;
         btn.classList.add('bg-green-50', 'border', 'border-green-200');
         btn.classList.remove('bg-gray-900', 'text-white', 'hover:bg-black', 'shadow-md');
-    } else if (isStationCancelled(state.stations.find(station => String(station.id) === String(id)))) {
+    } else if (cancelled) {
         btn.dataset.status = 'cancelled';
-        btn.textContent = 'Heute abgesagt';
+        btn.textContent = 'Einchecken';
         btn.disabled = true;
         btn.classList.remove('bg-green-50', 'border', 'border-green-200');
         btn.classList.add('bg-gray-900', 'text-white');
