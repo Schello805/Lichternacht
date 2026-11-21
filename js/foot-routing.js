@@ -1,5 +1,5 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.333';
-import { isStationCancelled } from './station-status.js?v=1.4.333';
+import { stationCoordinates } from './round-trip.js?v=1.4.334';
+import { isStationCancelled } from './station-status.js?v=1.4.334';
 
 const BASE = 'https://routing.openstreetmap.de/routed-foot';
 const cache = new Map();
