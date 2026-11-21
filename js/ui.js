@@ -1,18 +1,18 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.329';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.329';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.329';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.329';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.329';
-import * as utils from './utils.js?v=1.4.329';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.329';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.329';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.329';
-import { recordAuditEvent } from './audit.js?v=1.4.329';
-import { normalizeImageUrl } from './image-url.js?v=1.4.329';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.329';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.329';
+import { isStationCancelled } from './station-status.js?v=1.4.330';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.330';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.330';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.330';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.330';
+import * as utils from './utils.js?v=1.4.330';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.330';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.330';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.330';
+import { recordAuditEvent } from './audit.js?v=1.4.330';
+import { normalizeImageUrl } from './image-url.js?v=1.4.330';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.330';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.330';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -242,8 +242,9 @@ export function openModal(target) {
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-content').classList.toggle('is-station-cancelled', isStationCancelled(s));
         const cancellation = document.getElementById('modal-cancellation');
-        cancellation.classList.toggle('hidden', !isStationCancelled(s));
-        cancellation.textContent = isStationCancelled(s) ? `Heute abgesagt${s.cancellationReason ? ` · ${s.cancellationReason}` : ''}` : '';
+        const cancellationReason = isStationCancelled(s) ? String(s.cancellationReason || '').trim() : '';
+        cancellation.classList.toggle('hidden', !cancellationReason);
+        cancellation.textContent = cancellationReason;
         document.getElementById('modal-subtitle').innerText = s.desc || '';
         document.getElementById('modal-desc').innerHTML = linkifyDescription(s.offer || s.desc || 'Keine Beschreibung verfügbar.');
         document.getElementById('modal-wc-badge')?.classList.toggle('hidden', isStationCancelled(s) || !(s.tags || []).some(tag => String(tag).trim().toLowerCase() === 'wc'));
