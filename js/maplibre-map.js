@@ -1,12 +1,12 @@
 import { state } from './state.js';
-import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.338';
-import { isStationCancelled } from './station-status.js?v=1.4.338';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.338';
-import { getStationNumber } from './station-number.js?v=1.4.338';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.338';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.338';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.338';
-import { saveData } from './data.js?v=1.4.338';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.339';
+import { isStationCancelled } from './station-status.js?v=1.4.339';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.339';
+import { getStationNumber } from './station-number.js?v=1.4.339';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.339';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.339';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.339';
+import { saveData } from './data.js?v=1.4.339';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -159,6 +159,7 @@ const SATELLITE_STYLE = {
             type: 'raster',
             tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
             tileSize: 256,
+            maxzoom: 18,
             attribution: 'Tiles © Esri'
         }
     },
@@ -171,6 +172,7 @@ const FALLBACK_RASTER_STYLE = {
             type: 'raster',
             tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
+            maxzoom: 18,
             attribution: '© OpenStreetMap-Mitwirkende'
         }
     },
@@ -650,7 +652,7 @@ export function initMap() {
             style: getMapStyle(document.documentElement.classList.contains('dark')),
             center: [10.552, 49.158],
             zoom: 16,
-            maxZoom: 18,
+            maxZoom: 20,
             attributionControl: false
         });
         state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');

@@ -1761,6 +1761,23 @@ test('vector map renders stations without an API-key warning', async ({ page }) 
     await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('OpenStreetMap');
 });
 
+test('map permits two closer zoom levels and keeps them across layer changes', async ({ page }) => {
+    await page.goto('/index.html');
+    expect(await page.evaluate(() => window.state.map.getZoom())).toBe(16);
+    expect(await page.evaluate(() => window.state.map.getMaxZoom())).toBe(20);
+    await page.evaluate(() => window.state.map.jumpTo({ center: [10.552, 49.158], zoom: 22 }));
+    expect(await page.evaluate(() => window.state.map.getZoom())).toBe(20);
+    await page.locator('#map-layer-btn').click();
+    await expect.poll(() => page.evaluate(() => window.state.map.getStyle()?.sources?.['esri-world-imagery']?.maxzoom)).toBe(18);
+    expect(await page.evaluate(() => window.state.map.getZoom())).toBe(20);
+    expect(await page.evaluate(() => window.state.map.getMaxZoom())).toBe(20);
+    await page.locator('#map-layer-btn').click();
+    expect(await page.evaluate(() => window.state.map.getZoom())).toBe(20);
+    await page.evaluate(() => window.setThemePreference('dark'));
+    expect(await page.evaluate(() => window.state.map.getMaxZoom())).toBe(20);
+    expect(await page.evaluate(() => window.state.map.getZoom())).toBe(20);
+});
+
 test('map layer control toggles satellite view without an API key', async ({ page }) => {
     await page.goto('/index.html');
     const layerButton = page.locator('#map-layer-btn');

@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { createProximityDwell } from './proximity-dwell.js?v=1.4.338';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.338';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.338';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.338';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.339';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.339';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.339';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.339';
 import {
     showToast,
     getDistance,
@@ -11,11 +11,11 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.338';
-import * as utils from './utils.js?v=1.4.338';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.338';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.338';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.338';
+} from './utils.js?v=1.4.339';
+import * as utils from './utils.js?v=1.4.339';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.339';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.339';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.339';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
