@@ -1,18 +1,18 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.326';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.326';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.326';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.326';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.326';
-import * as utils from './utils.js?v=1.4.326';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.326';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.326';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.326';
-import { recordAuditEvent } from './audit.js?v=1.4.326';
-import { normalizeImageUrl } from './image-url.js?v=1.4.326';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.326';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.326';
+import { isStationCancelled } from './station-status.js?v=1.4.327';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.327';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.327';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.327';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.327';
+import * as utils from './utils.js?v=1.4.327';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.327';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.327';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.327';
+import { recordAuditEvent } from './audit.js?v=1.4.327';
+import { normalizeImageUrl } from './image-url.js?v=1.4.327';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.327';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.327';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -862,6 +862,7 @@ export function renderList(stations) {
     
     // Create a copy to avoid mutating the original if we sort, and add dist property safely
     let listToRender = stations.filter(station => {
+        if (currentFilter !== 'all' && isStationCancelled(station)) return false;
         if (currentFilter === 'favorites' && !state.favorites.has(station.id) && !state.favorites.has(String(station.id))) return false;
         if (currentFilter === 'visited' && !getVisitedStationIdSet().has(String(station.id))) return false;
         if (!['all', 'proximity', 'favorites', 'visited'].includes(currentFilter) && !getStationTags(station).includes(currentFilter)) return false;
@@ -940,10 +941,10 @@ export function renderList(stations) {
         }
 
         return `
-        <button type="button" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station #${escapeHtml(getStationNumber(s))} ${escapeHtml(s.name)} öffnen">
+        <button type="button" data-station-cancelled="${isStationCancelled(s)}" data-station-lat="${escapeHtml(s.lat)}" data-station-lng="${escapeHtml(s.lng)}" class="w-full text-left ${isStationCancelled(s) ? 'grayscale bg-gray-100 dark:!bg-gray-900' : 'bg-white dark:bg-gray-800'} p-3 sm:p-4 rounded-lg shadow mb-3 relative overflow-hidden ${isVisited ? 'ring-2 ring-green-400' : isFavorite ? 'ring-2 ring-yellow-300' : ''}" onclick="openStation('${s.id}')" aria-label="Station #${escapeHtml(getStationNumber(s))} ${escapeHtml(s.name)} öffnen">
             ${isVisited ? `<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg shadow-sm z-10 flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> BESUCHT</div>` : ''}
             <div class="flex items-start gap-3">
-                ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0">` : ''}
+                ${stationImage ? `<img src="${escapeHtml(stationImage)}" alt="" loading="lazy" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700 flex-shrink-0 ${isStationCancelled(s) ? 'opacity-60' : ''}">` : ''}
                 <div class="min-w-0 flex-1">
                     <div class="flex justify-between items-start">
                         <h3 class="flex min-w-0 items-baseline gap-2 font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">
