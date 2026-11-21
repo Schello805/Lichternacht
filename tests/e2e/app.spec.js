@@ -494,6 +494,9 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await expect(page.locator('#modal-cancellation b')).toHaveCount(0);
     await expect(page.locator('#modal-title')).toHaveCSS('text-decoration-line', 'none');
     await expect(page.locator('#checkin-btn')).toBeDisabled();
+    await expect(page.locator('#checkin-btn')).toBeHidden();
+    await expect(page.locator('#checkin-hint')).toBeHidden();
+    await expect(page.locator('#modal-content')).not.toContainText('Heute abgesagt');
     await expect(page.locator('#btn-internal-route')).toBeDisabled();
     await expect(page.locator('.cancelled-pin')).toHaveCount(1);
     await expect(page.locator('.cancelled-pin')).toHaveCSS('background-color', 'rgb(209, 213, 219)');
@@ -514,6 +517,8 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await expect(page.locator('#modal-content')).not.toHaveClass(/is-station-cancelled/);
     await expect(page.locator('#modal-title')).not.toHaveClass(/line-through/);
     await expect(page.locator('#checkin-btn')).toBeEnabled();
+    await expect(page.locator('#checkin-btn')).toBeVisible();
+    await expect(page.locator('#checkin-hint')).toBeVisible();
     await expect(page.locator('.cancelled-pin')).toHaveCount(0);
     await expect(page.locator('#pass-progress')).toContainText(`0/${total}`);
 });
