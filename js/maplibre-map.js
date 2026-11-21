@@ -1,12 +1,12 @@
 import { state } from './state.js';
-import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.337';
-import { isStationCancelled } from './station-status.js?v=1.4.337';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.337';
-import { getStationNumber } from './station-number.js?v=1.4.337';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.337';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.337';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.337';
-import { saveData } from './data.js?v=1.4.337';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.338';
+import { isStationCancelled } from './station-status.js?v=1.4.338';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.338';
+import { getStationNumber } from './station-number.js?v=1.4.338';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.338';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.338';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.338';
+import { saveData } from './data.js?v=1.4.338';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -190,6 +190,8 @@ let lastGpsErrorToastAt = 0;
 let lastGpsErrorSignature = '';
 let timeoutRetryToastShown = false;
 let gpsFallbackTimer = null;
+let gpsResumePending = false;
+let gpsRequestStartedAt = 0;
 let proximityCleanupToken = 0;
 let usingFallbackStyle = false;
 let mapFallbackTimer = null;
@@ -894,22 +896,47 @@ export function refreshMapMarkers() {
     refreshStandaloneParkingMarkers();
 }
 
+export function pauseLocationTracking() {
+    state.gpsRequestToken += 1;
+    clearGpsWatch();
+    if (gpsFallbackTimer) clearTimeout(gpsFallbackTimer);
+    gpsFallbackTimer = null;
+    gpsRequestStartedAt = 0;
+    if (state.gpsStatus !== 'idle') setGpsUiStatus('idle');
+}
+
 export async function resumeGrantedLocation() {
-    if (!navigator.geolocation || navigator.webdriver || state.userLocation) return false;
+    if (!navigator.geolocation || navigator.webdriver || document.visibilityState === 'hidden' || gpsResumePending) return false;
     const wasActivated = localStorage.getItem(GPS_AUTO_RESUME_STORAGE_KEY) === 'true' ||
         localStorage.getItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY) === 'true';
     if (!wasActivated) return false;
 
-    let permission = null;
+    const now = Date.now();
+    const fresh = state.userLocation && Number.isFinite(state.gpsLastFixAt) && now >= state.gpsLastFixAt && now - state.gpsLastFixAt <= 15000;
+    if (fresh && state.watchId != null && state.gpsStatus === 'connected') return false;
+    if (state.gpsStatus === 'searching' && now >= gpsRequestStartedAt && now - gpsRequestStartedAt < 15000) return false;
+    const requestToken = state.gpsRequestToken;
+    gpsResumePending = true;
     try {
-        permission = navigator.permissions?.query
-            ? await navigator.permissions.query({ name: 'geolocation' })
-            : null;
-    } catch (error) { }
-    if (permission?.state && permission.state !== 'granted') return false;
-
-    await locateUser(() => {}, { userInitiated: false, forceCenter: false });
-    return true;
+        let permission = null;
+        try {
+            permission = navigator.permissions?.query
+                ? await navigator.permissions.query({ name: 'geolocation' })
+                : null;
+        } catch (error) { }
+        if (document.visibilityState === 'hidden' || requestToken !== state.gpsRequestToken) return false;
+        if (permission?.state === 'denied') {
+            setGpsUiStatus('denied');
+            return false;
+        }
+        await locateUser(() => {}, { userInitiated: false, forceCenter: false });
+        return true;
+    } finally {
+        gpsResumePending = false;
+        if (requestToken !== state.gpsRequestToken && state.gpsStatus === 'idle' && document.visibilityState !== 'hidden') {
+            window.setTimeout(() => resumeGrantedLocation(), 0);
+        }
+    }
 }
 
 export async function locateUser(cb, options = {}) {
@@ -930,6 +957,7 @@ export async function locateUser(cb, options = {}) {
     const startedFromUserGesture = options.userInitiated === true ||
         (options.userInitiated !== false && navigator.userActivation?.isActive === true);
     const requestToken = ++state.gpsRequestToken;
+    gpsRequestStartedAt = Date.now();
     const geolocationStrategy = getGeolocationStrategy();
 
     if (startedFromUserGesture) {
