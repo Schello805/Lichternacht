@@ -1,12 +1,12 @@
 import { state } from './state.js';
-import { shouldAcceptGpsPosition } from './gps-quality.js?v=1.4.335';
-import { isStationCancelled } from './station-status.js?v=1.4.335';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.335';
-import { getStationNumber } from './station-number.js?v=1.4.335';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.335';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.335';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.335';
-import { saveData } from './data.js?v=1.4.335';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.336';
+import { isStationCancelled } from './station-status.js?v=1.4.336';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.336';
+import { getStationNumber } from './station-number.js?v=1.4.336';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.336';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.336';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.336';
+import { saveData } from './data.js?v=1.4.336';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -977,7 +977,10 @@ export async function locateUser(cb, options = {}) {
         }
 
         if (state.userMarker) {
-            state.userMarker.setLngLat([userLng, userLat]);
+            const displayed = state.userMarker.getLngLat();
+            if (shouldMoveGpsMarker({ lat: displayed.lat, lng: displayed.lng }, state.userLocation)) {
+                state.userMarker.setLngLat([userLng, userLat]);
+            }
             updateUserMarkerHeading();
         } else if (state.map) {
             state.userMarker = new maplibregl.Marker({ element: getUserMarkerIcon(), anchor: 'center' })
