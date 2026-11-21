@@ -1,18 +1,18 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.336';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.336';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.336';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.336';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.336';
-import * as utils from './utils.js?v=1.4.336';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.336';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.336';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.336';
-import { recordAuditEvent } from './audit.js?v=1.4.336';
-import { normalizeImageUrl } from './image-url.js?v=1.4.336';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.336';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.336';
+import { isStationCancelled } from './station-status.js?v=1.4.337';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.337';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.337';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.337';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.337';
+import * as utils from './utils.js?v=1.4.337';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.337';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.337';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.337';
+import { recordAuditEvent } from './audit.js?v=1.4.337';
+import { normalizeImageUrl } from './image-url.js?v=1.4.337';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.337';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.337';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -2400,7 +2400,10 @@ function getProgramStatus(event, context) {
         const start = nextHour * 60 + nextMinute;
         return start > eventTimeVal ? Math.min(next, start) : next;
     }, Infinity);
-    if (context.isEventDay && context.currentTimeVal <= eventTimeVal + 45 && context.currentTimeVal < nextSlot) {
+    const withinLiveSlot = Number.isFinite(nextSlot)
+        ? context.currentTimeVal < nextSlot
+        : context.currentTimeVal <= eventTimeVal + 45;
+    if (context.isEventDay && withinLiveSlot) {
         return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
     }
     return { key: 'past', label: 'Vorbei', className: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300', isPast: true, eventTimeVal };

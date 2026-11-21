@@ -1,12 +1,12 @@
 import { state } from './state.js';
-import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.336';
-import { isStationCancelled } from './station-status.js?v=1.4.336';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.336';
-import { getStationNumber } from './station-number.js?v=1.4.336';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.336';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.336';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.336';
-import { saveData } from './data.js?v=1.4.336';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.337';
+import { isStationCancelled } from './station-status.js?v=1.4.337';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.337';
+import { getStationNumber } from './station-number.js?v=1.4.337';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.337';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.337';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.337';
+import { saveData } from './data.js?v=1.4.337';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
