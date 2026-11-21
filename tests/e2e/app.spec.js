@@ -601,6 +601,42 @@ test('failed app module download offers an explicit reload action', async ({ pag
     await expect(page.getByRole('button', { name: 'Erneut laden', exact: true })).toBeVisible();
 });
 
+test('iPhone GPS keeps good fixes instead of jumping to cached or degraded positions', async ({ page }) => {
+    await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2099-11-21T17:00:01Z'));
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'userAgent', { configurable: true, value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1' });
+        navigator.geolocation.getCurrentPosition = (success, failure, options) => { window.__initialGps = success; window.__initialGpsOptions = options; };
+        navigator.geolocation.watchPosition = (success, failure, options) => { window.__watchGps = success; window.__watchGpsOptions = options; return 1; };
+        navigator.geolocation.clearWatch = () => {};
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.userLocation = null;
+        window.state.gpsLastFixAt = null;
+        window.state.hasLocatedUser = true;
+        await window.locateUser(() => {}, { userInitiated: false, forceCenter: false });
+        window.__initialGps({ coords: { latitude: 48, longitude: 11, accuracy: 500 }, timestamp: Date.now() - 60000 });
+    });
+    expect(await page.evaluate(() => window.state.userLocation)).toBe(null);
+    expect(await page.evaluate(() => window.__initialGpsOptions)).toMatchObject({ enableHighAccuracy: true, maximumAge: 0 });
+    expect(await page.evaluate(() => window.__watchGpsOptions)).toMatchObject({ enableHighAccuracy: true, maximumAge: 1000 });
+    await page.evaluate(() => window.__watchGps({ coords: { latitude: 49.158, longitude: 10.552, accuracy: 5 }, timestamp: Date.now() }));
+    const goodTimestamp = await page.evaluate(() => window.state.gpsLastFixAt);
+    await page.clock.runFor(1000);
+    await page.evaluate(timestamp => {
+        window.__watchGps({ coords: { latitude: 48, longitude: 11, accuracy: 5 }, timestamp: timestamp - 1 });
+        window.__watchGps({ coords: { latitude: 48, longitude: 11, accuracy: 500 }, timestamp: Date.now() });
+    }, goodTimestamp);
+    expect(await page.evaluate(() => window.state.userLocation)).toEqual({ lat: 49.158, lng: 10.552 });
+    expect(await page.evaluate(() => window.state.gpsLastFixAt)).toBe(goodTimestamp);
+    expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.552, 49.158]);
+    await page.clock.runFor(1000);
+    await page.evaluate(() => window.__watchGps({ coords: { latitude: 49.1581, longitude: 10.5521, accuracy: 5 }, timestamp: Date.now() }));
+    expect(await page.evaluate(() => window.state.userLocation)).toEqual({ lat: 49.1581, lng: 10.5521 });
+    expect(await page.evaluate(() => window.state.userMarker.getLngLat().toArray())).toEqual([10.5521, 49.1581]);
+});
+
 test('automatic station proposal requires ten seconds of stable accurate GPS', async ({ page }) => {
     await page.clock.install({ time: new Date('2099-11-21T17:00:00Z') });
     await page.clock.pauseAt(new Date('2099-11-21T17:00:01Z'));

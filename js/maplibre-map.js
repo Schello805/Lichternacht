@@ -1,11 +1,12 @@
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.333';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.333';
-import { getStationNumber } from './station-number.js?v=1.4.333';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.333';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.333';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.333';
-import { saveData } from './data.js?v=1.4.333';
+import { shouldAcceptGpsPosition } from './gps-quality.js?v=1.4.334';
+import { isStationCancelled } from './station-status.js?v=1.4.334';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.334';
+import { getStationNumber } from './station-number.js?v=1.4.334';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.334';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.334';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.334';
+import { saveData } from './data.js?v=1.4.334';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -614,11 +615,6 @@ function clearGpsWatch() {
     state.watchId = null;
 }
 
-function isValidPosition(position) {
-    return Number.isFinite(Number(position?.coords?.latitude))
-        && Number.isFinite(Number(position?.coords?.longitude));
-}
-
 function getGeolocationStrategy() {
     const userAgent = navigator.userAgent || '';
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
@@ -627,19 +623,19 @@ function getGeolocationStrategy() {
     return {
         isMobileDevice,
         initial: {
-            enableHighAccuracy: false,
+            enableHighAccuracy: isMobileDevice,
             timeout: isMobileDevice ? 15000 : 30000,
-            maximumAge: isMobileDevice ? 120000 : 300000
+            maximumAge: isMobileDevice ? 0 : 300000
         },
         watch: {
             enableHighAccuracy: isMobileDevice,
             timeout: isMobileDevice ? 30000 : 60000,
-            maximumAge: isMobileDevice ? 10000 : 60000
+            maximumAge: isMobileDevice ? 1000 : 60000
         },
         fallback: {
             enableHighAccuracy: false,
             timeout: isMobileDevice ? 30000 : 60000,
-            maximumAge: isMobileDevice ? 120000 : 600000
+            maximumAge: isMobileDevice ? 1000 : 600000
         }
     };
 }
@@ -955,7 +951,7 @@ export async function locateUser(cb, options = {}) {
     setGpsUiStatus('searching');
 
     const applyPosition = (pos) => {
-        if (context.requestToken !== state.gpsRequestToken || !isValidPosition(pos)) return;
+        if (context.requestToken !== state.gpsRequestToken || !shouldAcceptGpsPosition(pos, state)) return;
         context.hasFix = true;
         context.denied = false;
         setGpsUiStatus('connected');
