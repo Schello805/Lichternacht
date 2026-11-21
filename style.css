@@ -997,3 +997,39 @@ h3,
 }
 .team-message-dialog button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 .dark .team-message-dialog { background: #1f2937; color: #f9fafb; border-color: #374151; }
+
+#stations-list > [data-station-cancelled="true"] > *,
+#modal-content.is-station-cancelled > * {
+    filter: grayscale(1);
+}
+
+#stations-list > [data-station-cancelled="true"]::after,
+#modal-content.is-station-cancelled::after {
+    content: "ABGESAGT";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 30;
+    transform: translate(-50%, -50%) rotate(-14deg);
+    pointer-events: none;
+    color: #dc2626;
+    background: rgba(255, 255, 255, 0.88);
+    border: 3px solid currentColor;
+    border-radius: 6px;
+    padding: 0.2em 0.5em;
+    font-size: clamp(1.25rem, 5vw, 2rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.dark #stations-list > [data-station-cancelled="true"]::after,
+.dark #modal-content.is-station-cancelled::after {
+    color: #f87171;
+    background: rgba(17, 24, 39, 0.88);
+}
+
+#modal-content.is-station-cancelled.is-inline-station-editing::after {
+    display: none;
+}

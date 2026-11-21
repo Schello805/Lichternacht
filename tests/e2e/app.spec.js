@@ -509,6 +509,7 @@ test('admin can cancel and reactivate a station in its editor while keeping its 
     await page.getByLabel('Station abgesagt', { exact: true }).uncheck();
     await page.locator('#modal-inline-edit-actions').getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect(page.locator('#modal-cancellation')).toBeHidden();
+    await expect(page.locator('#modal-content')).not.toHaveClass(/is-station-cancelled/);
     await expect(page.locator('#modal-title')).not.toHaveClass(/line-through/);
     await expect(page.locator('#checkin-btn')).toBeEnabled();
     await expect(page.locator('.cancelled-pin')).toHaveCount(0);
@@ -532,10 +533,32 @@ test('cancelled station cards are fully grey and excluded from every station fil
     for (const theme of ['light', 'dark']) {
         await page.evaluate(value => window.setThemePreference(value), theme);
         await expect(cancelled).toContainText('Heute abgesagt');
-        const styles = await cancelled.evaluate(element => ({ filter: getComputedStyle(element).filter, background: getComputedStyle(element).backgroundColor }));
+        const styles = await cancelled.evaluate(element => ({ filter: getComputedStyle(element.firstElementChild).filter, background: getComputedStyle(element).backgroundColor }));
         expect(styles.filter).toContain('grayscale(1)');
         expect(styles.background).toBe(theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)');
         await expect(cancelled.locator('img')).toHaveCSS('opacity', '0.6');
+        const stamp = await cancelled.evaluate(element => {
+            const style = getComputedStyle(element, '::after');
+            return { content: style.content, color: style.color, pointerEvents: style.pointerEvents, transform: style.transform, filter: style.filter };
+        });
+        expect(stamp.content).toBe('"ABGESAGT"');
+        expect(stamp.color).toBe(theme === 'dark' ? 'rgb(248, 113, 113)' : 'rgb(220, 38, 38)');
+        expect(stamp.pointerEvents).toBe('none');
+        expect(stamp.transform).not.toBe('none');
+        expect(stamp.filter).toBe('none');
+        await cancelled.click();
+        await expect(page.locator('#modal-content')).toHaveClass(/is-station-cancelled/);
+        const detail = await page.locator('#modal-content').evaluate(element => ({
+            filter: getComputedStyle(document.getElementById('modal-image-container')).filter,
+            stamp: getComputedStyle(element, '::after').content,
+            color: getComputedStyle(element, '::after').color,
+            pointerEvents: getComputedStyle(element, '::after').pointerEvents
+        }));
+        expect(detail.filter).toContain('grayscale(1)');
+        expect(detail.stamp).toBe('"ABGESAGT"');
+        expect(detail.color).toBe(stamp.color);
+        expect(detail.pointerEvents).toBe('none');
+        await page.evaluate(() => window.closeModal());
     }
     await page.evaluate(() => window.filterStations('Abgesagtes'));
     await expect(cancelled).toBeVisible();
