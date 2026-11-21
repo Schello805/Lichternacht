@@ -1,18 +1,18 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.328';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.328';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.328';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.328';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.328';
-import * as utils from './utils.js?v=1.4.328';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.328';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.328';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.328';
-import { recordAuditEvent } from './audit.js?v=1.4.328';
-import { normalizeImageUrl } from './image-url.js?v=1.4.328';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.328';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.328';
+import { isStationCancelled } from './station-status.js?v=1.4.329';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.329';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.329';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.329';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.329';
+import * as utils from './utils.js?v=1.4.329';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.329';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.329';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.329';
+import { recordAuditEvent } from './audit.js?v=1.4.329';
+import { normalizeImageUrl } from './image-url.js?v=1.4.329';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.329';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.329';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -241,7 +241,6 @@ export function openModal(target) {
         // Populate Modal
         document.getElementById('modal-title').innerText = s.name;
         document.getElementById('modal-content').classList.toggle('is-station-cancelled', isStationCancelled(s));
-        document.getElementById('modal-title').classList.toggle('line-through', isStationCancelled(s));
         const cancellation = document.getElementById('modal-cancellation');
         cancellation.classList.toggle('hidden', !isStationCancelled(s));
         cancellation.textContent = isStationCancelled(s) ? `Heute abgesagt${s.cancellationReason ? ` · ${s.cancellationReason}` : ''}` : '';
@@ -950,7 +949,7 @@ export function renderList(stations) {
                     <div class="flex justify-between items-start">
                         <h3 class="flex min-w-0 items-baseline gap-2 font-bold text-base sm:text-lg leading-snug pr-2 ${isVisited ? 'text-green-700 dark:text-green-400' : ''}">
                             <span data-station-number class="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-bold ${isVisited ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">#${escapeHtml(getStationNumber(s))}</span>
-                            <span class="min-w-0 break-words ${isStationCancelled(s) ? 'line-through text-gray-500 dark:text-gray-400' : ''}">${escapeHtml(s.name)}</span>
+                            <span class="min-w-0 break-words ${isStationCancelled(s) ? 'text-gray-500 dark:text-gray-400' : ''}">${escapeHtml(s.name)}</span>
                         </h3>
                         <div class="flex flex-col items-end gap-1">
                             <span class="text-xs ${likeCount > 0 ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-1 ${isVisited ? 'mr-24' : ''}"><i class="ph-fill ph-thumbs-up text-orange-500"></i> ${likeCount}</span>

@@ -1,11 +1,11 @@
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.328';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.328';
-import { getStationNumber } from './station-number.js?v=1.4.328';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.328';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.328';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.328';
-import { saveData } from './data.js?v=1.4.328';
+import { isStationCancelled } from './station-status.js?v=1.4.329';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.329';
+import { getStationNumber } from './station-number.js?v=1.4.329';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.329';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.329';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.329';
+import { saveData } from './data.js?v=1.4.329';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -776,7 +776,8 @@ export function refreshMapMarkers() {
         const isActive = state.activeStationId != null && String(state.activeStationId) === String(s.id);
         const isVisited = visitedStations.has(String(s.id));
         const isLastChecked = lastChecked != null && lastChecked.toString() === s.id.toString();
-        const color = isStationCancelled(s) ? '#6b7280' : (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
+        const color = isStationCancelled(s) ? '#d1d5db' : (isActive || isLastChecked) ? '#1d4ed8' : '#f59e0b';
+        const textColor = isStationCancelled(s) ? '#475569' : '#fff';
         const idStr = escapeHtml(getStationNumber(s));
         const fontSize = idStr.length > 3 ? '10px' : '14px';
         const extraClasses = `${isVisited ? 'visited-pin' : ''} ${isLastChecked ? 'checked-pin' : ''} ${isStationCancelled(s) ? 'cancelled-pin line-through' : ''}`.trim();
@@ -789,7 +790,7 @@ export function refreshMapMarkers() {
         if (recentlyClosedStation?.id === String(s.id) && Date.now() < recentlyClosedStation.until) {
             icon.classList.add('recently-opened-station');
         }
-        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<button type="button" class="station-wc-badge" title="WC vorhanden" aria-label="Zum WC navigieren">WC<span class="sr-only"> vorhanden</span></button>' : ''}</div>`;
+        icon.innerHTML = `<div class="station-pin-wrap"><div class="station-pin ${extraClasses}" style="background-color: ${color}; color: ${textColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-family: sans-serif; font-size: ${fontSize}; overflow: hidden;">${idStr}</div>${hasRestroom ? '<button type="button" class="station-wc-badge" title="WC vorhanden" aria-label="Zum WC navigieren">WC<span class="sr-only"> vorhanden</span></button>' : ''}</div>`;
         if (hasRestroom) bindAmenityNavigation(icon.querySelector('.station-wc-badge'), coordinates, 'wc', { id: s.id, station: true, name: s.name });
         
         if (hasProgram) {
