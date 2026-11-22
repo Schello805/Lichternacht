@@ -2440,7 +2440,7 @@ test('GPS restarts after background and page-cache return without accepting old 
         Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
             getCurrentPosition(success) {
                 window.__gpsRequests++;
-                success({ coords: { latitude: 49.157 + window.__gpsRequests * 0.001, longitude: 10.548, accuracy: 5 }, timestamp: Date.now() });
+                success({ coords: { latitude: 49.157 + window.__gpsRequests * 0.0001, longitude: 10.548, accuracy: 5 }, timestamp: Date.now() });
             },
             watchPosition(success) { window.__watchCallback = success; return window.__gpsRequests; },
             clearWatch() { window.__gpsClears++; }
@@ -2464,7 +2464,7 @@ test('GPS restarts after background and page-cache return without accepting old 
     });
     await expect.poll(() => page.evaluate(() => window.__gpsRequests)).toBe(2);
     await page.evaluate(() => window.__oldWatch({ coords: { latitude: 48, longitude: 11, accuracy: 5 }, timestamp: Date.now() }));
-    expect(await page.evaluate(() => window.state.userLocation.lat)).toBeCloseTo(49.159, 8);
+    expect(await page.evaluate(() => window.state.userLocation.lat)).toBeCloseTo(49.1572, 8);
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     await page.clock.runFor(1000);
     await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
