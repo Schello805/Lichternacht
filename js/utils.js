@@ -1,5 +1,6 @@
 import { state } from './state.js';
-import { getStationNumber } from './station-number.js?v=1.4.339';
+import { isStationCancelled } from './station-status.js?v=1.4.340';
+import { getStationNumber } from './station-number.js?v=1.4.340';
 
 const VISITED_KEY = 'visited_stations';
 const VISITED_LOG_KEY = 'visited_station_log';
@@ -95,6 +96,10 @@ export function getVisitedStationRecords(stations = state.stations) {
             if (!a.checkedAt && b.checkedAt) return -1;
             return a.order - b.order;
         });
+}
+
+export function getPassVisitedStationRecords(stations = state.stations) {
+    return getVisitedStationRecords(stations).filter(record => record.station && !isStationCancelled(record.station));
 }
 
 export function getVisitedStationIdSet() {

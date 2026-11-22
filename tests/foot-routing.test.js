@@ -35,12 +35,13 @@ test('closed GPS tour returns to frozen GPS point, open tour omits that return',
             : { code: 'Ok', routes: [{ distance: 50, duration: 40, geometry: { type: 'LineString', coordinates: [[15, 49], [15.001, 49]] } }] } };
     };
     try {
-        const stations = [{ id: 1, lng: 15.001, lat: 49 }, { id: 2, lng: 15.002, lat: 49 }];
+        const stations = [{ id: 1, lng: 15.001, lat: 49 }, { id: 2, lng: 15.002, lat: 49 }, { id: 3, lng: 15.003, lat: 49, cancelled: true }];
         await planWalkingTour(stations, 'round', origin);
         const closed = paths.at(-1).split('/driving/')[1].split('?')[0].split(';');
         assert.deepEqual(closed, ['15,49', '15.001,49', '15.002,49', '15,49']);
         await planWalkingTour(stations, 'open', origin);
         assert.deepEqual(paths.at(-1).split('/driving/')[1].split('?')[0].split(';'), closed.slice(0, -1));
+        assert.ok(paths.every(path => !path.includes('15.003')));
     } finally { globalThis.fetch = originalFetch; }
 });
 

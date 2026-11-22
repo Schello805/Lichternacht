@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { installLocalRecords } from './local-records.js?v=1.4.339';
+import { installLocalRecords } from './local-records.js?v=1.4.340';
 
 export async function initializeLocalBackend() {
     let snapshot;

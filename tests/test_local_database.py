@@ -117,6 +117,28 @@ class LocalDatabaseTest(unittest.TestCase):
         self.database.checkin('visitor', {'stationId': '1'})
         self.assertEqual(self.database.records('checkins')[0]['data']['reachedLevel'], 'diamond')
 
+    def test_historical_cancelled_checkins_do_not_count_towards_pass_or_undo_totals(self):
+        self.database.write('set', 'config', 'config', {'checkinWindow': {'startMs': 0, 'endMs': (time.time() + 60) * 1000}}, True)
+        self.database.checkin('visitor', {'stationId': '1'})
+        for identifier in [2, 3]:
+            self.database.write('set', 'stations', str(identifier), {'id': identifier, 'name': 'Aktiv'})
+        self.database.write('set', 'stations', '1', {'cancelled': True}, True)
+        self.database.checkin('visitor', {'stationId': '2'})
+        records = {row['data']['stationId']: row['data'] for row in self.database.records('checkins')}
+        self.assertEqual(records['2']['passCountAfter'], 1)
+        self.assertNotEqual(records['2']['reachedLevel'], 'diamond')
+        self.database.checkin('visitor', {'stationId': '3'})
+        self.database.undo_checkin('visitor', '2')
+        records = {row['data']['stationId']: row['data'] for row in self.database.records('checkins')}
+        self.assertIn('1', records)
+        self.assertEqual(records['1']['reachedLevel'], '')
+        self.assertEqual(records['3']['passCountAfter'], 1)
+        self.assertNotEqual(records['3']['reachedLevel'], 'diamond')
+        self.database.write('set', 'stations', '1', {'cancelled': False}, True)
+        self.database.checkin('visitor', {'stationId': '2'})
+        records = {row['data']['stationId']: row['data'] for row in self.database.records('checkins')}
+        self.assertEqual(records['2']['passCountAfter'], 3)
+
     def test_checkin_outside_window_and_nonexistent_station_are_rejected(self):
         with self.assertRaises(ValueError):
             self.database.checkin('visitor', {'stationId': '1'})

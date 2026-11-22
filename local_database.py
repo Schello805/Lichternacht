@@ -216,10 +216,12 @@ class LocalDatabase:
                 raise ValueError('Station nicht gefunden.')
             if station.get('cancelled') is True:
                 raise ValueError('Diese Station ist abgesagt. Einchecken ist nicht möglich.')
-            count = database.execute("SELECT count(*) FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ?", (user_id,)).fetchone()[0] + 1
+            available_ids = {str(item.get('id')) for item in snapshot['stations'] if item.get('cancelled') is not True}
+            visited_ids = {str(row[0]) for row in database.execute("SELECT json_extract(data, '$.stationId') FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ?", (user_id,))}
+            count = len(visited_ids & available_ids) + 1
             local = now.astimezone(ZoneInfo('Europe/Berlin'))
             thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
-            total = sum(station.get('cancelled') is not True for station in snapshot['stations'])
+            total = len(available_ids)
             level = 'diamond' if total and count >= total else ''
             if not level:
                 for candidate, fallback in [('gold', 95), ('silver', 90), ('bronze', 80)]:
@@ -317,17 +319,22 @@ class LocalDatabase:
             snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
             if removed:
                 self.sync_activity_checkin(database, snapshot, station_id, activity_token, False)
-            total = sum(station.get('cancelled') is not True for station in snapshot['stations'])
+            available_ids = {str(item.get('id')) for item in snapshot['stations'] if item.get('cancelled') is not True}
+            total = len(available_ids)
             thresholds = snapshot['config'].get('rewards', {}).get('thresholds', {})
             count = 0
+            counted_ids = set()
             levels = set()
             for identifier, encoded in rows:
                 if identifier == user_id + '_' + station_id:
                     continue
-                count += 1
                 data = json.loads(encoded)
-                level = 'diamond' if count >= total and total else ''
-                if not level:
+                active = str(data.get('stationId')) in available_ids
+                if active:
+                    counted_ids.add(str(data.get('stationId')))
+                    count = len(counted_ids)
+                level = 'diamond' if active and count >= total and total else ''
+                if active and not level:
                     for candidate, fallback in [('gold', 95), ('silver', 90), ('bronze', 80)]:
                         if total and count >= max(1, int(total * float(thresholds.get(candidate, fallback)) / 100)):
                             level = candidate

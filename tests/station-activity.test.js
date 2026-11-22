@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { nearestActivityStation } from '../js/station-activity.js';
 import { state } from '../js/state.js';
 import { installLocalRecords } from '../js/local-records.js';
+import { isStationCancelled } from '../js/station-status.js';
 
 test('activity uses only the nearest station within 20 meters with fresh accurate GPS', () => {
     const now = Date.now();
@@ -19,7 +20,7 @@ test('activity uses only the nearest station within 20 meters with fresh accurat
 
 test('analysis keeps detected visits separate from checkins and includes stations without checkins', async () => {
     const source = await readFile(new URL('../js/admin.js', import.meta.url), 'utf8');
-    const context = vm.createContext({ state: { stations: [{ id: 1, name: 'Erste' }, { id: 2, name: 'Zweite' }] } });
+    const context = vm.createContext({ isStationCancelled, state: { stations: [{ id: 1, name: 'Erste' }, { id: 2, name: 'Zweite' }] } });
     vm.runInContext(source.slice(source.indexOf('function buildUsageSummary('), source.indexOf('function renderUsageSummary(')), context);
     const summary = context.buildUsageSummary([{ stationId: '1', anonymousId: 'checkin-only' }], [
         { stationId: '1', visits: 80, checkedIn: 32, checkinPercent: 40 },
@@ -31,6 +32,23 @@ test('analysis keeps detected visits separate from checkins and includes station
     assert.equal(summary.stationRows[1].count, 0);
     assert.equal(summary.stationsWithoutCheckins[0].stationId, '2');
     assert.equal(summary.stationsWithCheckins, 1);
+});
+
+test('analysis excludes cancelled stations and historical checkins without changing raw records', async () => {
+    const source = await readFile(new URL('../js/admin.js', import.meta.url), 'utf8');
+    const context = vm.createContext({ isStationCancelled, state: { stations: [{ id: 1 }, { id: 2 }, { id: 3, cancelled: true }] } });
+    vm.runInContext(source.slice(source.indexOf('function buildUsageSummary('), source.indexOf('function renderUsageSummary(')), context);
+    const records = [{ stationId: '1', anonymousId: 'one' }, { stationId: '3', anonymousId: 'cancelled-only', reachedLevel: 'gold' }];
+    const summary = context.buildUsageSummary(records, [{ stationId: '2', visits: 4 }, { stationId: '3', visits: 100 }]);
+    assert.equal(summary.totalStations, 2);
+    assert.equal(summary.totalCheckins, 1);
+    assert.equal(summary.uniqueVisitors, 1);
+    assert.equal(summary.stationsWithCheckins, 1);
+    assert.equal(summary.levels.gold, 0);
+    assert.equal(summary.stationRows.some(row => row.stationId === '3'), false);
+    assert.equal(summary.stationsWithoutCheckins.length, 1);
+    assert.equal(summary.stationsWithoutCheckins[0].stationId, '2');
+    assert.equal(records.length, 2);
 });
 
 test('local checkins and undo transmit the current station token only while consent remains granted', async () => {
