@@ -1,3 +1,5 @@
+import { formatSample, stationSummaryLine, DIAGNOSTIC_LABELS } from './usage-analytics.js?v=1.4.341';
+
 const APP_URL = 'https://lichternacht-bechhofen.de/';
 const APP_NAME = 'Lichternacht Bechhofen';
 const GAME_RULES_URL = `${APP_URL}gewinnspiel.html`;
@@ -175,48 +177,27 @@ export function buildPrizeClaimEmailHtml({ claimId, level, prizeText, visited, t
 }
 
 export function buildUsageSummaryEmailHtml(summary) {
-    const stationCoverage = summary.totalStations > 0
-        ? Math.round((summary.stationRows.length / summary.totalStations) * 100)
-        : 0;
-    const averageCheckins = summary.uniqueVisitors > 0
-        ? (summary.totalCheckins / summary.uniqueVisitors).toFixed(1).replace('.', ',')
-        : '0';
-    const peakHour = summary.hourlyRows.slice().sort((a, b) => b.count - a.count)[0] || null;
-    const topStation = summary.stationRows[0] || null;
-    const topStations = summary.stationRows.slice(0, 12).map((row, index) => {
-        return `${index + 1}. #${row.stationId} ${row.stationName} – ${row.count} Check-ins (${row.uniqueVisitors} Geräte)`;
-    });
-    const hours = summary.hourlyRows.map(row => `${row.hour}: ${row.count} Check-ins`);
-    const unused = summary.stationsWithoutCheckins.map(row => `#${row.stationId} ${row.stationName}`);
-
     return renderShell({
-        title: 'Anonymisierte Nutzungsanalyse',
-        intro: 'Zusammenfassung der Lichter‑Pass Nutzung für deine Nachbereitung.',
+        title: 'Nutzungsanalyse',
+        intro: summary.scopeLabel || 'Veranstaltungsrückblick',
         sections: [
-            {
-                title: 'Kurzüberblick',
-                body: renderDefinitionList([
-                    { label: 'Check-ins', value: summary.totalCheckins },
-                    { label: 'Aktive Geräte', value: summary.uniqueVisitors },
-                    { label: 'Ø pro Gerät', value: averageCheckins },
-                    { label: 'Stationen genutzt', value: `${summary.stationRows.length}/${summary.totalStations} (${stationCoverage} %)` },
-                    { label: 'Medaillen', value: `Bronze ${summary.levels.bronze} · Silber ${summary.levels.silver} · Gold ${summary.levels.gold} · Diamant ${summary.levels.diamond}` }
-                ])
-            },
-            {
-                title: 'Top-Erkenntnisse',
-                body: renderList([
-                    `Stärkste Station: ${topStation ? `#${topStation.stationId} ${topStation.stationName} (${topStation.count})` : 'noch keine Daten'}`,
-                    `Stärkste Uhrzeit: ${peakHour ? `${peakHour.hour} (${peakHour.count})` : 'noch keine Daten'}`,
-                    `Stationen ohne Check-ins: ${summary.stationsWithoutCheckins.length}`
-                ])
-            },
-            { title: 'Check-ins nach Uhrzeit', body: renderList(hours) },
-            { title: 'Stationen nach Check-ins', body: renderList(topStations) },
-            { title: 'Stationen ohne Check-ins', body: renderList(unused, 'Keine') },
-            { title: 'Lessons Learned', body: renderList(summary.lessons, 'Noch zu wenig Daten für belastbare Erkenntnisse') }
+            { title: 'Bestätigte Check-ins', body: renderDefinitionList([
+                { label: 'Check-ins', value: summary.totalCheckins },
+                { label: 'Geräte mit Check-in', value: summary.uniqueVisitors },
+                { label: 'Stationen mit Check-ins', value: summary.stationsWithCheckins + '/' + summary.totalStations },
+                { label: 'Ø zugeordnete Check-ins pro Gerät', value: summary.averageCheckins == null ? '–' : summary.averageCheckins.toLocaleString('de-DE', { maximumFractionDigits: 1 }) },
+                { label: 'Medaillenmeldungen (je Gerät/Stufe)', value: `Bronze ${summary.levels.bronze} · Silber ${summary.levels.silver} · Gold ${summary.levels.gold} · Diamant ${summary.levels.diamond}` }
+            ]) },
+            { title: 'Freiwillige Standorterfassung – getrennte Datengruppe', body: renderList([summary.cohort.available ? formatSample(summary.cohort.checkedIn, summary.cohort.visits) + ' Browser-Stationsbesuche mit Check-in. Keine Anzahl unterschiedlicher Personen.' : 'Quelle derzeit nicht verfügbar.']) },
+            { title: 'Zeitverlauf (Europe/Berlin)', body: renderList(summary.timelineRows.map(row => row.date + ' ' + row.time + ': ' + row.count + ' Check-ins'), 'Keine zeitlich zuordenbaren Daten.') },
+            { title: 'Stationen', body: renderList(summary.stationRows.map(row => stationSummaryLine(row, summary.cohort.available))) },
+            { title: 'Freiwillige Diagnose', body: renderList([
+                summary.diagnostics.available ? summary.diagnostics.attempts + ' erfasste Versuche. Nur Daten ab Aktivierung, keine rückwirkende Fehleranalyse.' : 'Diagnosequelle derzeit nicht verfügbar.',
+                ...Object.entries(summary.diagnostics.outcomes).map(([stage, amount]) => DIAGNOSTIC_LABELS[stage] + ': ' + amount)
+            ]) },
+            { title: 'Einordnung', body: renderList(summary.lessons) }
         ],
         cta: renderButton(APP_URL, 'Web-App öffnen'),
-        footerNote: 'Diese Auswertung ist anonymisiert/pseudonymisiert. Normale Check-ins enthalten keine Namen, Kontaktdaten oder GPS-Koordinaten.'
+        footerNote: 'Keine vollständige Besucherzählung. Ohne abgesagte Stationen. Keine Namen, Kontaktdaten oder GPS-Koordinaten in dieser Auswertung.'
     });
 }

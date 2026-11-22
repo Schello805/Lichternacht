@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.340';
-import { getStationNumber } from './station-number.js?v=1.4.340';
+import { isStationCancelled } from './station-status.js?v=1.4.341';
+import { getStationNumber } from './station-number.js?v=1.4.341';
 
 const VISITED_KEY = 'visited_stations';
 const VISITED_LOG_KEY = 'visited_station_log';

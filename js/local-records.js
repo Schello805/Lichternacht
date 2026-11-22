@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { getStationActivityToken } from './station-activity.js?v=1.4.340';
+import { getStationActivityToken } from './station-activity.js?v=1.4.341';
 
 export function installLocalRecords(appId) {
     const core = { ...state.fb };
@@ -10,7 +10,7 @@ export function installLocalRecords(appId) {
         if (path === 'global/stats') return { collection: 'stats', id: 'stats' };
         if (path.startsWith('globalAdmins/')) return { collection: 'globalAdmins', id: path.slice(13) };
         for (const name of ['config', 'broadcast']) if (path === base + name) return { collection: name, id: name };
-        for (const name of ['stations', 'events', 'checkins', 'auditLogs', 'presence', 'users', 'reports']) {
+        for (const name of ['stations', 'events', 'checkins', 'checkinDiagnostics', 'auditLogs', 'presence', 'users', 'reports']) {
             const prefix = base + (name === 'reports' ? '' : 'data/') + name;
             if (path === prefix) return { collection: name };
             if (path.startsWith(prefix + '/') && !path.slice(prefix.length + 1).includes('/')) return { collection: name, id: path.slice(prefix.length + 1) };

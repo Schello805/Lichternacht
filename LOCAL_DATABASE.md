@@ -21,6 +21,42 @@
   Datenbank, nicht über den alten Browser-Import. Vollständige System-Restores
   benötigen die geschützte Serversicherung inklusive Auth-Datenbank.
 
+## Auswertungs-Dashboard seit v1.4.341
+
+Unter „Admin → Auswertungs-Dashboard → Dashboard laden“ stehen bestätigte
+Check-ins, Browser-/Anmeldekennungen, Stationsabdeckung und ein Zeitverlauf in
+30-Minuten-Blöcken (Europe/Berlin). Der Zeitraum ist das konfigurierte
+Check-in-Fenster: eine Stunde vor bis drei Stunden nach dem Veranstaltungstermin.
+Abgesagte Stationen und doppelte Check-ins je Kennung/Station werden nicht
+gezählt; Rohdaten werden nicht verändert. Fehlende Geräte- oder Zeitzuordnungen
+werden als Datenlücke gekennzeichnet. Daten ohne verwertbaren Zeitstempel werden
+nicht im Zeitdiagramm erfunden.
+
+Freiwillige Stationsbesuche sind eine getrennte Teilstichprobe, keine
+Besucherzählung. Die Quote bezieht sich ausschließlich auf diese Datengruppe.
+Unter zehn Browser-Stationsbesuchen steht nur „x von y · geringe Datenbasis“.
+Das Dashboard und die Zusammenfassungsmail haben jeweils nur eine Stationstabelle;
+der CSV-Export enthält alle teilnehmenden Stationen samt Stichprobengröße.
+Nicht verfügbare Quellen werden nicht als null Besuche dargestellt.
+
+Die optionale Check-in-Diagnose ist ein eigener, standardmäßig ausgeschalteter
+Zweck im vorhandenen Datenschutzbanner. Frühere Zustimmungen schalten sie nicht
+ein. `checkinDiagnostics` enthält je zufälliger 256-Bit-Versuchskennung nur Station,
+Veranstaltung, Schritte, letzten Status, Serverzeit und Ablaufdatum. Keine
+Koordinaten, GPS-Genauigkeitswerte oder Nutzerkennung werden darin gespeichert.
+Sie misst nur freiwillig diagnostizierte Versuche, nicht alle Nutzer. Für die
+vergangene Veranstaltung können Fehlergründe nicht nachträglich rekonstruiert
+werden. Der authentifizierte POST ist beschränkt und validiert, GET ist nur für
+Admins erlaubt. Generisches Schreiben auf diese Sammlung ist nicht erlaubt.
+
+Lokale Diagnosemeldungen werden zusammengefasst, bei Netzfehlern wiederholt und
+beim Widerruf einschließlich etwaiger laufender Übertragungen zur Löschung
+vorgemerkt. Die Löschung folgt bei der nächsten Verbindung. Reguläre Bereinigung
+erfolgt 30 Tage nach Ende des Check-in-Fensters beim nächsten Diagnosezugriff,
+Berichtsabruf oder JSON-Backup. Unabgelaufene Diagnosen sind im vertraulichen
+JSON-Backup enthalten und werden vom bestehenden Server-Importer wiederhergestellt.
+Ältere externe Sicherungen unterliegen weiter deren Sicherungszyklus.
+
 ## Lokale Anmeldung aktiv seit v1.4.299
 
 Am 24.10.2026 wurde zusätzlich Firebase Authentication durch die lokale

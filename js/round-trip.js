@@ -1,4 +1,4 @@
-import { isStationCancelled } from './station-status.js?v=1.4.340';
+import { isStationCancelled } from './station-status.js?v=1.4.341';
 
 export const STATION_ARRIVAL_RADIUS_METERS = 20;
 

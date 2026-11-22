@@ -32,6 +32,7 @@ class LocalDatabase:
     def backup(self):
         with self.connect() as database:
             database.execute('BEGIN')
+            self.purge_diagnostics(database)
             snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id = 1').fetchone()[0])
             documents = {}
             for collection, identifier, data in database.execute('SELECT collection, id, data FROM documents'):
@@ -152,6 +153,8 @@ class LocalDatabase:
             rows = [('config', snapshot['config'])] if collection == 'config' else [(str(item.get('__docId', item.get('id'))), item) for item in snapshot[collection]]
         else:
             with self.connect() as database:
+                if collection == 'checkinDiagnostics':
+                    self.purge_diagnostics(database)
                 query = 'SELECT id, data FROM documents WHERE collection = ?'
                 parameters = (collection,)
                 if identifier is not None:
@@ -236,6 +239,47 @@ class LocalDatabase:
             if level and not database.execute("SELECT 1 FROM documents WHERE collection = 'checkins' AND json_extract(data, '$.ownerUid') = ? AND json_extract(data, '$.reachedLevel') = ? AND id != ?", (user_id, level, identifier)).fetchone():
                 stats['count_' + level] = int(stats.get('count_' + level, 0)) + 1
                 self.apply_document(database, {'action': 'set', 'collection': 'stats', 'id': 'stats', 'data': stats})
+
+    @staticmethod
+    def purge_diagnostics(database):
+        database.execute("DELETE FROM documents WHERE collection='checkinDiagnostics' AND CAST(json_extract(data, '$.expiresAt') AS REAL) <= ?", (time.time(),))
+
+    def checkin_diagnostic(self, payload):
+        allowed = {'action', 'token', 'stationId', 'eventKey', 'stage', 'stages', 'forget'}
+        stages = {'attempt', 'gps_missing', 'gps_stale', 'gps_inaccurate', 'gps_ready', 'station_detected', 'outside_window', 'too_far', 'cancelled', 'local_saved', 'synced', 'sync_retry', 'sync_rejected'}
+        token = payload.get('token', '')
+        if not set(payload).issubset(allowed) or not isinstance(token, str) or not re.fullmatch(r'[a-f0-9]{64}', token):
+            raise ValueError('Ungültige Diagnosekennung oder Datenfelder.')
+        with self.connect() as database:
+            database.execute('BEGIN IMMEDIATE')
+            self.purge_diagnostics(database)
+            if payload.get('forget') is True:
+                database.execute("DELETE FROM documents WHERE collection='checkinDiagnostics' AND id=?", (token,))
+                return
+            stage, observed = payload.get('stage'), payload.get('stages')
+            if not isinstance(stage, str) or stage not in stages or not isinstance(observed, list) or not 1 <= len(observed) <= len(stages) or any(not isinstance(item, str) or item not in stages for item in observed) or stage not in observed or 'attempt' not in observed:
+                raise ValueError('Ungültige Diagnoseschritte.')
+            snapshot = json.loads(database.execute('SELECT data FROM snapshot WHERE id=1').fetchone()[0])
+            window = snapshot['config'].get('checkinWindow', {})
+            start, end = float(window.get('startMs', 0)), float(window.get('endMs', 0))
+            now = time.time()
+            if not 0 < start < end < float('inf') or now >= end / 1000 + 30 * 86400:
+                raise ValueError('Diagnosezeitraum ist abgelaufen.')
+            station_id = str(payload.get('stationId', ''))
+            if not any(str(station.get('id')) == station_id for station in snapshot['stations']):
+                raise ValueError('Station nicht gefunden.')
+            event_key = f'{start:.0f}:{end:.0f}'
+            if payload.get('eventKey') != event_key:
+                raise ValueError('Diagnose gehört zu einer anderen Veranstaltung.')
+            previous = database.execute("SELECT data FROM documents WHERE collection='checkinDiagnostics' AND id=?", (token,)).fetchone()
+            record = json.loads(previous[0]) if previous else None
+            if record and (record['stationId'] != station_id or record['eventKey'] != event_key):
+                raise ValueError('Diagnosekennung ist bereits vergeben.')
+            record = record or {'stationId': station_id, 'eventKey': event_key, 'createdAt': datetime.now(timezone.utc).isoformat(), 'expiresAt': end / 1000 + 30 * 86400, 'stages': []}
+            record['stages'] = sorted(set(record['stages']) | set(observed))
+            if record.get('stage') != 'synced':
+                record['stage'] = stage
+            database.execute("INSERT OR REPLACE INTO documents VALUES ('checkinDiagnostics', ?, ?)", (token, json.dumps(record)))
 
     def station_activity(self, user_id, payload):
         token = payload.get('token', '')

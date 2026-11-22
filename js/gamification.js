@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { createProximityDwell } from './proximity-dwell.js?v=1.4.340';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.340';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.340';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.340';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.341';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.341';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.341';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.341';
 import {
     showToast,
     getDistance,
@@ -11,11 +11,12 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.340';
-import * as utils from './utils.js?v=1.4.340';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.340';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.340';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.340';
+} from './utils.js?v=1.4.341';
+import * as utils from './utils.js?v=1.4.341';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.341';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.341';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.341';
+import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.341';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -42,7 +43,7 @@ function getAnonymousAnalyticsId() {
     return getAnonymousAuditId();
 }
 
-async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') {
+async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '', diagnosticToken = null) {
     const now = new Date();
     const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const payload = {
@@ -59,7 +60,7 @@ async function recordAnonymousCheckIn(station, visitedCount, reachedLevel = '') 
         appId: state.appId || 'unknown'
     };
     if (state.localBackend) {
-        queueOfflineAction('checkin', payload);
+        queueOfflineAction('checkin', payload, { diagnosticToken });
         await flushOfflineActions();
         return;
     }
@@ -418,13 +419,16 @@ export function updateModalFavBtn(id) {
     btn.innerHTML = `<i class="ph ${isFav ? 'ph-fill ph-star text-yellow-500' : 'ph-star text-gray-400'} text-2xl"></i>`;
 }
 
-export async function checkIn(id) {
+export async function checkIn(id, diagnosticToken = null) {
+    if (!getVisitedStationIdSet().has(String(id))) diagnosticToken = recordCheckinDiagnostic('attempt', id, diagnosticToken);
     if (isStationCancelled(state.stations.find(station => String(station.id) === String(id)))) {
+        recordCheckinDiagnostic('cancelled', id, diagnosticToken);
         updateCheckInBtn(id);
         showToast('Diese Station ist abgesagt. Einchecken ist nicht möglich.', 'info');
         return;
     }
     if (!isPassActiveToday()) {
+        recordCheckinDiagnostic('outside_window', id, diagnosticToken);
         showToast(getPassInactiveMessage(), 'info');
         return;
     }
@@ -438,16 +442,17 @@ export async function checkIn(id) {
     }
 
     if (localStorage.getItem('gps_checkin_hint_seen_v1') !== 'true') {
-        showGpsCheckInHint(() => checkIn(id));
+        showGpsCheckInHint(() => checkIn(id, diagnosticToken));
         return;
     }
 
     if (!state.userLocation) {
+        recordCheckinDiagnostic('gps_missing', id, diagnosticToken);
         // Auto-locate
         if (window.locateUser) {
             setCheckInButtonState(id, 'searching');
             showToast('Standort wird angefragt… bitte GPS erlauben.', 'info');
-            window.locateUser(() => checkIn(id));
+            window.locateUser(() => checkIn(id, diagnosticToken));
         } else {
             showToast("Bitte erst Standort aktivieren!", 'error');
         }
@@ -456,25 +461,29 @@ export async function checkIn(id) {
 
     const gpsAgeMs = Date.now() - Number(state.gpsLastFixAt || 0);
     if (!state.gpsLastFixAt || gpsAgeMs > 60000) {
+        recordCheckinDiagnostic('gps_stale', id, diagnosticToken);
         setCheckInButtonState(id, 'searching');
         showToast('Der Standort ist nicht mehr aktuell – GPS wird neu bestimmt.', 'info');
-        if (window.locateUser) window.locateUser(() => checkIn(id));
+        if (window.locateUser) window.locateUser(() => checkIn(id, diagnosticToken));
         return;
     }
 
     if (Number.isFinite(Number(state.gpsAccuracy)) && Number(state.gpsAccuracy) > 75) {
+        recordCheckinDiagnostic('gps_inaccurate', id, diagnosticToken);
         showToast(`GPS noch zu ungenau (±${Math.round(Number(state.gpsAccuracy))} m). Bitte kurz warten und erneut versuchen.`, 'info');
         return;
     }
 
     const s = state.stations.find(x => x.id == id);
     if (!s) return;
+    recordCheckinDiagnostic('gps_ready', id, diagnosticToken);
 
     // Calc distance
     const dist = getDistance(state.userLocation.lat, state.userLocation.lng, s.lat, s.lng);
     const ALLOWED_RADIUS = STATION_ARRIVAL_RADIUS_METERS;
 
     if (dist > ALLOWED_RADIUS) {
+        recordCheckinDiagnostic('too_far', id, diagnosticToken);
         setCheckInButtonState(id, 'too-far', Math.round(dist));
         showToast(`Noch zu weit weg: ca. ${dist.toFixed(0)} m entfernt (max. ${ALLOWED_RADIUS} m).`, 'error');
         
@@ -483,7 +492,9 @@ export async function checkIn(id) {
         return;
     }
 
+    recordCheckinDiagnostic('station_detected', id, diagnosticToken);
     markStationVisited(id);
+    recordCheckinDiagnostic('local_saved', id, diagnosticToken);
     const updatedVisitedStations = getPassVisitedStationRecords();
 
     state.lastCheckedStationId = id;
@@ -549,7 +560,7 @@ export async function checkIn(id) {
         }
     }
 
-    recordAnonymousCheckIn(s, count, newLevel || '');
+    recordAnonymousCheckIn(s, count, newLevel || '', diagnosticToken);
     recordAuditEvent('station_checked_in', { stationId: id, stationName: s.name || '', count, level: newLevel || '' });
 
     updateCheckInBtn(id);
