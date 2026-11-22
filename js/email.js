@@ -1,4 +1,4 @@
-import { formatSample, stationSummaryLine, DIAGNOSTIC_LABELS } from './usage-analytics.js?v=1.4.341';
+import { formatSample, stationSummaryLine, DIAGNOSTIC_LABELS } from './usage-analytics.js?v=1.4.342';
 
 const APP_URL = 'https://lichternacht-bechhofen.de/';
 const APP_NAME = 'Lichternacht Bechhofen';

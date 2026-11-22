@@ -10,6 +10,12 @@ test('automatic suggestion waits ten seconds with repeated fresh fixes for the s
     assert.equal(update(sample(11000), 11000).ready, true);
 });
 
+test('manual suggestion may appear on its timer while the latest advancing fix is still fresh', () => {
+    const update = createProximityDwell();
+    for (const now of [1000, 4000, 7000, 10000]) update(sample(now), now);
+    assert.equal(update(sample(10000), 11000).ready, true);
+});
+
 test('a single cached fix, inaccurate location, missing accuracy and future fixes never trigger a suggestion', () => {
     for (const invalid of [sample(1000), sample(11000, 1, 21), sample(11000, 1, null), sample(12000)]) {
         const update = createProximityDwell();
@@ -29,4 +35,29 @@ test('station changes, leaving the radius, backgrounding and GPS gaps restart th
     const update = createProximityDwell();
     update(sample(1000), 1000);
     assert.equal(update(sample(11000), 11000).ready, false);
+});
+
+test('automatic dwell is strictly longer than two minutes and requires an advancing fix', () => {
+    const update = createProximityDwell({ durationMs: 120000, strictlyLonger: true });
+    for (let now = 1000; now <= 121000; now += 1000) {
+        assert.equal(update(sample(now), now).ready, false);
+    }
+    assert.equal(update(sample(121000), 122000).ready, false);
+    assert.equal(update(sample(122000), 122000).ready, true);
+    assert.equal(update(sample(122000), 122001).ready, false);
+});
+
+test('wall-clock gaps, backwards time and stale replays restart continuous coverage', () => {
+    for (const discontinuity of [
+        { fixAt: 105000, now: 110001 },
+        { fixAt: 110001, now: 110001 },
+        { fixAt: 99000, now: 99000 }
+    ]) {
+        const update = createProximityDwell({ durationMs: 120000, strictlyLonger: true });
+        for (let now = 1000; now <= 105000; now += 1000) update(sample(now), now);
+        assert.equal(update(sample(discontinuity.fixAt), discontinuity.now).ready, false);
+        for (let now = 111000; now <= 125000; now += 1000) {
+            assert.equal(update(sample(now), now).ready, false);
+        }
+    }
 });

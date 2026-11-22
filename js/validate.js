@@ -1,4 +1,5 @@
-import { normalizeStationNumber } from './station-number.js?v=1.4.341';
+import { normalizeStationNumber } from './station-number.js?v=1.4.342';
+import { isValidEventDurationMinutes } from './event-duration.js?v=1.4.342';
 
 function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -168,6 +169,9 @@ export function validateEvents(events, stations = []) {
         const id = e?.id;
         const idStr = (id === null || id === undefined) ? '' : String(id).trim();
         const label = idStr ? `Event ${idStr}${isNonEmptyString(e?.title) ? ` (${String(e.title).trim()})` : ''}` : `Event (ohne id)`;
+        if (!isValidEventDurationMinutes(e?.durationMinutes)) {
+            issues.push({ severity: 'error', where: path, label, eventId: idStr || null, field: 'durationMinutes', message: 'Dauer muss eine ganze Zahl von 1 bis 1440 Minuten sein' });
+        }
         if (!idStr) {
             issues.push({ severity: 'error', where: path, label, eventId: null, field: 'id', message: 'id fehlt' });
         } else {

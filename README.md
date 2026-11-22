@@ -89,6 +89,9 @@ Nicht unkontrolliert auf einen Stand vor der lokalen Migration zurücksetzen.
 
 ```sh
 npm ci
+python3 -m venv .private/test-venv
+source .private/test-venv/bin/activate
+python -m pip install -r requirements-push.txt
 npm run version:sync
 npm run verify
 npm run test:e2e

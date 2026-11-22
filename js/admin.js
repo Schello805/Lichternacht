@@ -1,25 +1,25 @@
 
 import { state } from './state.js';
-import { buildUsageSummary as buildAnalysis, renderUsageDashboard, usageSummaryToText } from './usage-analytics.js?v=1.4.341';
-import { getCalendarEventWindow } from './event-calendar.js?v=1.4.341';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.341';
-import { metricsChart, historySummary } from './metrics-history.js?v=1.4.341';
-import { loadStationActivityReport } from './station-activity.js?v=1.4.341';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.341';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.341';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.341';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.341';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.341';
+import { buildUsageSummary as buildAnalysis, renderUsageDashboard, usageSummaryToText } from './usage-analytics.js?v=1.4.342';
+import { getCalendarEventWindow } from './event-calendar.js?v=1.4.342';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.342';
+import { metricsChart, historySummary } from './metrics-history.js?v=1.4.342';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.342';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.342';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.342';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.342';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.342';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.342';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.341';
-import { recordAuditEvent } from './audit.js?v=1.4.341';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.341';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.341';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.342';
+import { recordAuditEvent } from './audit.js?v=1.4.342';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.342';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.342';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
 const STATION_TABLE_COLUMNS = ['id', 'number', 'name', 'address', 'offer', 'link', 'lat', 'lng', 'tags', 'image', 'likes'];
-const EVENT_TABLE_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color'];
+const EVENT_TABLE_COLUMNS = ['id', 'time', 'title', 'description', 'link', 'image', 'loc', 'stationId', 'lat', 'lng', 'color', 'durationMinutes'];
 const adminTableSort = { field: 'id', direction: 'asc' };
 let systemMetricsTimer = null;
 let systemMetricsLoading = false;
@@ -1240,7 +1240,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.341';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.342';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1328,7 +1328,7 @@ function getStationTableRows() {
 function getEventTableRows() {
     return (state.events || []).map(e => ({
         id: e.id ?? '', time: e.time ?? '', title: e.title ?? '', description: e.desc ?? '', link: e.link ?? '',
-        image: e.image ?? '', loc: e.loc ?? '', stationId: e.stationId ?? '', lat: e.lat ?? '', lng: e.lng ?? '', color: e.color ?? ''
+        image: e.image ?? '', loc: e.loc ?? '', stationId: e.stationId ?? '', lat: e.lat ?? '', lng: e.lng ?? '', color: e.color ?? '', durationMinutes: e.durationMinutes ?? ''
     }));
 }
 
@@ -1339,7 +1339,7 @@ async function readExcelTable(file, expectedColumns) {
     const worksheet = workbook.worksheets[0];
     if (!worksheet || worksheet.rowCount < 2) return [];
     const headers = worksheet.getRow(1).values.slice(1).map(value => normalizeExcelCellValue(value).trim());
-    const missingColumns = expectedColumns.filter(column => column !== 'number' && !headers.includes(column));
+    const missingColumns = expectedColumns.filter(column => !['number', 'durationMinutes'].includes(column) && !headers.includes(column));
     if (missingColumns.length) {
         throw new Error(`Falsche oder veraltete Vorlage. Fehlende Spalten: ${missingColumns.join(', ')}`);
     }
@@ -1452,7 +1452,7 @@ async function importRowsGeneric(rows, kind, options = {}) {
     }
     const expectedColumns = kind === 'stations' ? STATION_TABLE_COLUMNS : EVENT_TABLE_COLUMNS;
     const availableColumns = Object.keys(rows[0] || {});
-    const missingColumns = expectedColumns.filter(column => !(kind === 'stations' && column === 'number') && !availableColumns.includes(column));
+    const missingColumns = expectedColumns.filter(column => column !== 'durationMinutes' && !(kind === 'stations' && column === 'number') && !availableColumns.includes(column));
     if (missingColumns.length) {
         throw new Error(`${kind === 'stations' ? 'Stationen' : 'Programm'}: fehlende Spalten ${missingColumns.join(', ')}`);
     }
@@ -1534,6 +1534,9 @@ async function importRowsGeneric(rows, kind, options = {}) {
             const evt = {
                 id: idRaw || ('evt_' + Date.now() + '_' + idx),
                 time: (r.time ?? '').toString().trim(),
+                durationMinutes: !Object.hasOwn(r, 'durationMinutes')
+                    ? state.events.find(event => String(event.id) === idRaw)?.durationMinutes
+                    : String(r.durationMinutes ?? '').trim() === '' ? undefined : parseLocalizedNumber(r.durationMinutes),
                 title: (r.title ?? '').toString().trim(),
                 desc: (r.description ?? '').toString().trim(),
                 link: normalizeImportedUrl(r.link),
@@ -1837,9 +1840,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.341';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.341';
-import { renderList, renderTimeline } from './ui.js?v=1.4.341';
+import { showToast } from './utils.js?v=1.4.342';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.342';
+import { renderList, renderTimeline } from './ui.js?v=1.4.342';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 

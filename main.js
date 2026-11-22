@@ -1,15 +1,17 @@
 import { state } from './js/state.js';
-import { countAvailableStations } from './js/station-status.js?v=1.4.341';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.341';
-import { initCheckinDiagnostics, setCheckinDiagnosticsConsent } from './js/checkin-diagnostics.js?v=1.4.341';
-import { shareStation, showToast } from './js/utils.js?v=1.4.341';
-import * as utils from './js/utils.js?v=1.4.341';
-import { initFirebase } from './js/firebase-init.js?v=1.4.341';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.341';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.341';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.341';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.341';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.341';
+import { countAvailableStations } from './js/station-status.js?v=1.4.342';
+import { getExplicitProgramPhase } from './js/event-duration.js?v=1.4.342';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.342';
+import { initCheckinDiagnostics, setCheckinDiagnosticsConsent } from './js/checkin-diagnostics.js?v=1.4.342';
+import { bindProgramPush, initProgramPush, isProgramPushActive } from './js/program-push.js?v=1.4.342';
+import { shareStation, showToast } from './js/utils.js?v=1.4.342';
+import * as utils from './js/utils.js?v=1.4.342';
+import { initFirebase } from './js/firebase-init.js?v=1.4.342';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.342';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.342';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.342';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.342';
+import { initPresence, initAutoCheckin, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.342';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -18,12 +20,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, flyToProgramEvent, closePlanningBanner, openRoutePlan, updateProgramOverview
-} from './js/ui.js?v=1.4.341';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.341';
-import { recordAuditEvent } from './js/audit.js?v=1.4.341';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.341';
-import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.341';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.341';
+} from './js/ui.js?v=1.4.342';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.342';
+import { recordAuditEvent } from './js/audit.js?v=1.4.342';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.342';
+import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.342';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.342';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -33,7 +35,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.341";
+const APP_VERSION = "1.4.342";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -172,15 +174,14 @@ function getLocalDateKey(date = new Date()) {
 
 function getNextVisitorEvent(eventWindow) {
     if (!eventWindow || !Array.isArray(state.events) || state.events.length === 0) return null;
-    const todayKey = getLocalDateKey();
-    if (eventWindow.dateKey !== todayKey) return null;
-
     const now = new Date();
+    const isEventDay = eventWindow.dateKey === getLocalDateKey(now);
     const nowMinutes = (now.getHours() * 60) + now.getMinutes();
     return state.events
-        .map(event => ({ event, minutes: parseTimeToMinutes(event.time) }))
-        .filter(item => item.minutes !== null && item.minutes >= nowMinutes)
-        .sort((a, b) => a.minutes - b.minutes)[0]?.event || null;
+        .map(event => ({ event, minutes: parseTimeToMinutes(event.time), phase: getExplicitProgramPhase(event, eventWindow.dateKey, now) }))
+        .filter(item => item.minutes !== null && item.phase !== 'past'
+            && (item.phase === 'live' || (isEventDay && item.minutes >= nowMinutes)))
+        .sort((first, second) => Number(second.phase === 'live') - Number(first.phase === 'live') || first.minutes - second.minutes)[0]?.event || null;
 }
 
 function hideVisitorStartCard() {
@@ -685,6 +686,7 @@ window.showPassInfo = () => {
 
     document.body.appendChild(overlay);
 
+    initAutoCheckin();
     const close = () => overlay.remove();
     overlay.querySelectorAll('[data-close="1"]').forEach(btn => btn.addEventListener('click', close));
     document.getElementById('pass-join-raffle')?.addEventListener('click', () => {
@@ -1751,6 +1753,9 @@ const initializeApp = async () => {
 
     initStationActivity();
     initCheckinDiagnostics();
+    bindProgramPush();
+    window.addEventListener('program-push-status', updateProgramNotificationButton);
+    void initProgramPush();
     // Tracking: only load after explicit user consent.
     if (typeof window.hasTrackingConsent === 'function' && window.hasTrackingConsent()) {
         startTrackingIfConsented();
@@ -1918,6 +1923,7 @@ window.showLastBroadcast = () => {
 };
 
 function checkUpcomingEvents() {
+    if (isProgramPushActive()) return;
     if (!state.events) return;
     const now = new Date();
     const currentHours = now.getHours();
@@ -1969,7 +1975,7 @@ function updateProgramNotificationButton() {
     document.getElementById('program-install-hint')?.classList.toggle('hidden', getInstallGuidance().installed);
     const button = document.getElementById('program-notification-opt-in');
     if (!button) return;
-    const canAsk = 'Notification' in window && Notification.permission === 'default';
+    const canAsk = !isProgramPushActive() && 'Notification' in window && Notification.permission === 'default';
     button.classList.toggle('hidden', !canAsk);
 }
 

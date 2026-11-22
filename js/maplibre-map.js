@@ -1,12 +1,13 @@
 import { state } from './state.js';
-import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.341';
-import { isStationCancelled } from './station-status.js?v=1.4.341';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.341';
-import { getStationNumber } from './station-number.js?v=1.4.341';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.341';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.341';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.341';
-import { saveData } from './data.js?v=1.4.341';
+import { buildGoogleNavigationUrl } from './external-navigation.js?v=1.4.342';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.342';
+import { isStationCancelled } from './station-status.js?v=1.4.342';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.342';
+import { getStationNumber } from './station-number.js?v=1.4.342';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.342';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.342';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.342';
+import { saveData } from './data.js?v=1.4.342';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {
@@ -316,10 +317,7 @@ function bindAmenityNavigation(element, coordinates, kind, options) {
         const description = document.createElement('p');
         description.textContent = parking ? 'Mit dem Auto · Google Maps' : 'Zu Fuß · direkt auf der Karte';
         const link = document.createElement('a');
-        const url = new URL('https://www.google.com/maps/dir/');
-        url.search = new URLSearchParams({ api: '1', destination: `${coordinates.latitude},${coordinates.longitude}`, travelmode: parking ? 'driving' : 'walking' });
-        url.searchParams.set('dir_action', 'navigate');
-        link.href = url.href;
+        link.href = buildGoogleNavigationUrl(coordinates.latitude, coordinates.longitude, parking ? 'driving' : 'walking') || '#';
         link.target = parking ? '_blank' : '_self';
         link.rel = 'noopener noreferrer';
         link.textContent = parking ? 'Zum Parkplatz navigieren' : 'Zum WC navigieren';
@@ -571,19 +569,20 @@ function setGpsUiStatus(status) {
         denied: 'GPS gesperrt',
         error: 'GPS nicht verfügbar'
     };
-    const label = labels[status] || labels.idle;
+    const uncertain = status === 'connected' && (!Number.isFinite(state.gpsAccuracy) || state.gpsAccuracy > 20);
+    const label = uncertain ? (Number.isFinite(state.gpsAccuracy) ? `GPS ±${Math.round(state.gpsAccuracy)} m` : 'GPS-Genauigkeit unbekannt') : labels[status] || labels.idle;
     if (statusIndicator) statusIndicator.innerText = label;
 
     ['map-gps-status', 'list-gps-status'].forEach(id => {
         const element = document.getElementById(id);
         if (!element) return;
-        element.classList.toggle('hidden', status === 'connected');
+        element.classList.toggle('hidden', status === 'connected' && !uncertain);
         element.textContent = id === 'list-gps-status' && status === 'idle'
             ? `${label} · aktivieren für Entfernung und Gehzeit`
             : label;
-        element.classList.toggle('text-green-700', status === 'connected');
-        element.classList.toggle('dark:text-green-300', status === 'connected');
-        element.classList.toggle('text-orange-700', status === 'searching' || status === 'timeout');
+        element.classList.toggle('text-green-700', status === 'connected' && !uncertain);
+        element.classList.toggle('dark:text-green-300', status === 'connected' && !uncertain);
+        element.classList.toggle('text-orange-700', uncertain || status === 'searching' || status === 'timeout');
         element.classList.toggle('text-red-700', status === 'denied' || status === 'error');
     });
 
@@ -984,7 +983,6 @@ export async function locateUser(cb, options = {}) {
         if (context.requestToken !== state.gpsRequestToken || !shouldAcceptGpsPosition(pos, state)) return;
         context.hasFix = true;
         context.denied = false;
-        setGpsUiStatus('connected');
         lastGpsErrorSignature = '';
         lastGpsErrorToastAt = 0;
         timeoutRetryToastShown = false;
@@ -997,6 +995,7 @@ export async function locateUser(cb, options = {}) {
         state.userLocation = { lat: userLat, lng: userLng };
         state.gpsAccuracy = Number.isFinite(Number(pos.coords.accuracy)) ? Number(pos.coords.accuracy) : null;
         state.gpsLastFixAt = fixTimestamp;
+        setGpsUiStatus('connected');
         localStorage.setItem(GPS_AUTO_RESUME_STORAGE_KEY, 'true');
         localStorage.setItem(GPS_AUTO_RESUME_INTENT_STORAGE_KEY, 'true');
         advanceOverviewNavigationIfReached(userLat, userLng);

@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { createProximityDwell } from './proximity-dwell.js?v=1.4.341';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.341';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.341';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.341';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.342';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.342';
+import { STATION_ARRIVAL_RADIUS_METERS, stationCoordinates, distanceMeters } from './round-trip.js?v=1.4.342';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.342';
 import {
     showToast,
     getDistance,
@@ -11,12 +11,12 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.341';
-import * as utils from './utils.js?v=1.4.341';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.341';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.341';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.341';
-import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.341';
+} from './utils.js?v=1.4.342';
+import * as utils from './utils.js?v=1.4.342';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.342';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.342';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.342';
+import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.342';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -419,7 +419,9 @@ export function updateModalFavBtn(id) {
     btn.innerHTML = `<i class="ph ${isFav ? 'ph-fill ph-star text-yellow-500' : 'ph-star text-gray-400'} text-2xl"></i>`;
 }
 
-export async function checkIn(id, diagnosticToken = null) {
+export async function checkIn(id, diagnosticToken = null, options = {}) {
+    const automatic = options.automatic === true;
+    if (automatic && !canAutomaticallyCheckIn(id)) return;
     if (!getVisitedStationIdSet().has(String(id))) diagnosticToken = recordCheckinDiagnostic('attempt', id, diagnosticToken);
     if (isStationCancelled(state.stations.find(station => String(station.id) === String(id)))) {
         recordCheckinDiagnostic('cancelled', id, diagnosticToken);
@@ -441,7 +443,7 @@ export async function checkIn(id, diagnosticToken = null) {
         return;
     }
 
-    if (localStorage.getItem('gps_checkin_hint_seen_v1') !== 'true') {
+    if (!automatic && localStorage.getItem('gps_checkin_hint_seen_v1') !== 'true') {
         showGpsCheckInHint(() => checkIn(id, diagnosticToken));
         return;
     }
@@ -590,7 +592,7 @@ export async function checkIn(id, diagnosticToken = null) {
     
     // Hide smart button if it was for this station
     if (state.smartActionStationId === id) {
-        document.getElementById('smart-action-btn').classList.add('hidden');
+        document.getElementById('smart-action-btn')?.classList.add('hidden');
         state.smartActionStationId = null;
     }
 }
@@ -753,11 +755,98 @@ export function initPresence() {
 }
 
 const updateProximityDwell = createProximityDwell();
+const updateAutomaticDwell = createProximityDwell({ durationMs: 120000, strictlyLonger: true });
+const automaticAttempts = new Set();
+const boundAutoCheckinControls = new WeakSet();
+let autoCheckinEnabled = false;
+let visibilityListenerBound = false;
+let automaticReadyStationId = null;
 let proximityTimer = null;
 
-export function checkProximity(lat, lng) {
-    if (proximityTimer !== null) window.clearTimeout(proximityTimer);
+function resetProximity() {
+    if (proximityTimer != null) window.clearTimeout?.(proximityTimer);
     proximityTimer = null;
+    updateProximityDwell({ id: null });
+    updateAutomaticDwell({ id: null });
+    automaticReadyStationId = null;
+    state.smartActionStationId = null;
+    document.getElementById('smart-action-btn')?.classList.add('hidden');
+}
+
+function bindProximityVisibility() {
+    if (visibilityListenerBound || typeof document.addEventListener !== 'function') return;
+    document.addEventListener('visibilitychange', resetProximity);
+    window.addEventListener?.('pagehide', resetProximity);
+    visibilityListenerBound = true;
+}
+
+export function setAutoCheckinEnabled(enabled) {
+    autoCheckinEnabled = enabled === true;
+    resetProximity();
+    bindProximityVisibility();
+    const checkbox = document.getElementById('auto-checkin-enabled');
+    if (checkbox) checkbox.checked = autoCheckinEnabled;
+    return autoCheckinEnabled;
+}
+
+export function initAutoCheckin() {
+    bindProximityVisibility();
+    let checkbox = document.getElementById('auto-checkin-enabled');
+    if (!checkbox) {
+        const content = document.getElementById('pass-modal')?.querySelector('.relative.z-10');
+        if (!content) return;
+        const control = document.createElement('div');
+        control.className = 'mt-4 p-3 rounded-xl border border-gray-200 dark:border-gray-600 text-sm';
+        control.innerHTML = `<label class="flex items-center gap-3 font-bold"><input type="checkbox" id="auto-checkin-enabled" aria-describedby="auto-checkin-description">Automatisch einchecken (freiwillig)</label>
+            <p id="auto-checkin-description" class="mt-2 text-xs">Nur bei sichtbarer App und mehr als zwei Minuten durchgehend innerhalb von 20 m zur nächsten nicht abgesagten Station mit frischen GPS-Messungen (gemeldete Genauigkeit höchstens ±20 m). Standort wird nicht automatisch angefordert. GPS kann abweichen; eine tatsächliche Genauigkeit ist nicht garantiert. Manuelles Einchecken bleibt möglich.</p>`;
+        content.appendChild(control);
+        checkbox = document.getElementById('auto-checkin-enabled');
+    }
+    if (!checkbox) return;
+    checkbox.checked = autoCheckinEnabled;
+    if (boundAutoCheckinControls.has(checkbox)) return;
+    checkbox.addEventListener('change', () => setAutoCheckinEnabled(checkbox.checked));
+    boundAutoCheckinControls.add(checkbox);
+}
+
+function nearestAutomaticStation(lat, lng, now = Date.now()) {
+    const location = stationCoordinates({ lat, lng });
+    const current = stationCoordinates(state.userLocation);
+    if (!location || !current || location[0] !== current[0] || location[1] !== current[1]
+        || document.visibilityState !== 'visible' || !Number.isFinite(state.gpsAccuracy)
+        || state.gpsAccuracy < 0 || state.gpsAccuracy > 20 || !Number.isFinite(state.gpsLastFixAt)
+        || state.gpsLastFixAt > now || now - state.gpsLastFixAt > 5000) return null;
+    const candidates = (state.stations || []).filter(station => !isStationCancelled(station) && stationCoordinates(station))
+        .map(station => ({ station, distance: distanceMeters(location, stationCoordinates(station)) }))
+        .sort((first, second) => first.distance - second.distance);
+    if (!candidates.length || candidates[0].distance > 20
+        || (candidates[1] && Math.abs(candidates[1].distance - candidates[0].distance) < 0.01)) return null;
+    return candidates[0].station;
+}
+
+function canAutomaticallyCheckIn(id) {
+    const nearest = nearestAutomaticStation(state.userLocation?.lat, state.userLocation?.lng);
+    return autoCheckinEnabled && automaticReadyStationId === String(id) && isPassActiveToday()
+        && nearest != null && String(nearest.id) === String(id) && !getVisitedStationIdSet().has(String(id));
+}
+
+export function checkProximity(lat, lng) {
+    if (proximityTimer != null) window.clearTimeout?.(proximityTimer);
+    proximityTimer = null;
+    bindProximityVisibility();
+    const now = Date.now();
+    const automaticStation = autoCheckinEnabled && isPassActiveToday() ? nearestAutomaticStation(lat, lng, now) : null;
+    const automaticDwell = updateAutomaticDwell({
+        id: automaticStation && !getVisitedStationIdSet().has(String(automaticStation.id)) ? automaticStation.id : null,
+        accuracy: state.gpsAccuracy,
+        fixAt: state.gpsLastFixAt,
+        visible: document.visibilityState === 'visible'
+    }, now);
+    automaticReadyStationId = automaticDwell.ready ? String(automaticStation.id) : null;
+    if (automaticDwell.ready && !automaticAttempts.has(automaticReadyStationId)) {
+        automaticAttempts.add(automaticReadyStationId);
+        void checkIn(automaticStation.id, null, { automatic: true }).catch(error => console.warn('Automatic check-in failed', error));
+    }
     // Hide smart check-in outside the configured event day to avoid unfair early check-ins.
     if (!isPassActiveToday()) {
         updateProximityDwell({ id: null });
@@ -797,16 +886,16 @@ export function checkProximity(lat, lng) {
         }
     });
 
-    const btn = document.getElementById('smart-action-btn');
-    if (!btn) return;
-
     const dwell = updateProximityDwell({
         id: candidates.length > 0 && nearest && minDist <= DETECT_RADIUS ? nearest.id : null,
         accuracy: state.gpsAccuracy,
         fixAt: state.gpsLastFixAt,
-        visible: document.visibilityState !== 'hidden'
+        visible: document.visibilityState === 'visible'
     });
-    if (dwell.monitoring) {
+    const btn = document.getElementById('smart-action-btn');
+    if (!btn) return;
+
+    if (dwell.monitoring && !autoCheckinEnabled) {
         proximityTimer = window.setTimeout(() => {
             const location = state.userLocation;
             checkProximity(location?.lat, location?.lng);
@@ -817,7 +906,8 @@ export function checkProximity(lat, lng) {
         // Show Smart Button
         state.smartActionStationId = nearest.id;
         const extraCount = candidates.length - 1;
-        document.getElementById('smart-action-text').innerText = extraCount > 0 ? `${nearest.name} (+${extraCount})` : nearest.name;
+        const text = document.getElementById('smart-action-text');
+        if (text) text.innerText = extraCount > 0 ? `${nearest.name} (+${extraCount})` : nearest.name;
         btn.classList.remove('hidden');
         // Add minimal bounce if it just appeared? (Handled by CSS animation class)
     } else {

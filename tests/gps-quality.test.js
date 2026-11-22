@@ -37,3 +37,10 @@ test('stale, future, malformed and out-of-range first fixes are rejected too', (
     }
     assert.equal(shouldAcceptGpsPosition(fix(20000), {}, 20000), true);
 });
+
+test('isolated implausible jumps do not replace a fresh fix, but recovery after expiry works', () => {
+    assert.equal(shouldAcceptGpsPosition(fix(11000, 5, 49.17), previous, 11000), false);
+    assert.equal(shouldAcceptGpsPosition(fix(10000, 3, 49.17), previous, 11000), false);
+    assert.equal(shouldAcceptGpsPosition(fix(26000, 5, 49.17), previous, 26000), true);
+    assert.equal(shouldAcceptGpsPosition(fix(11000), previous, NaN), false);
+});
