@@ -1,5 +1,5 @@
-import { stationCoordinates } from './round-trip.js?v=1.4.339';
-import { isStationCancelled } from './station-status.js?v=1.4.339';
+import { stationCoordinates } from './round-trip.js?v=1.4.340';
+import { isStationCancelled } from './station-status.js?v=1.4.340';
 
 export const TOUR_STORAGE_KEY = 'active_station_tour_v1';
 

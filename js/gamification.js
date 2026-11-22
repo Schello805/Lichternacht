@@ -1,21 +1,21 @@
 import { state } from './state.js';
-import { createProximityDwell } from './proximity-dwell.js?v=1.4.339';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.339';
-import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.339';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.339';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.340';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.340';
+import { STATION_ARRIVAL_RADIUS_METERS } from './round-trip.js?v=1.4.340';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.340';
 import {
     showToast,
     getDistance,
-    getVisitedStationRecords,
+    getPassVisitedStationRecords,
     getVisitedStationIdSet,
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.339';
-import * as utils from './utils.js?v=1.4.339';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.339';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.339';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.339';
+} from './utils.js?v=1.4.340';
+import * as utils from './utils.js?v=1.4.340';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.340';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.340';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.340';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -203,9 +203,9 @@ function showRewardModal(level, prizeText) {
         claimBtn.addEventListener('click', () => {
             close();
             if (typeof window.openPrizeClaimModal === 'function') {
-                const visitedStations = getVisitedStationIdSet();
+                const visitedStations = getPassVisitedStationRecords();
                 const total = countAvailableStations(state.stations);
-                window.openPrizeClaimModal(levelLabel, prizeText, visitedStations.size, total);
+                window.openPrizeClaimModal(levelLabel, prizeText, visitedStations.length, total);
             } else {
                 showToast('Bitte öffne den Lichter‑Pass, um den Preis anzufordern.', 'info');
             }
@@ -272,7 +272,7 @@ export function undoCheckIn(id) {
         flushOfflineActions();
     }
     removeStationVisited(id);
-    const count = getVisitedStationIdSet().size;
+    const count = getPassVisitedStationRecords().length;
     const total = countAvailableStations(state.stations);
     const rewards = getRewardConfig();
     for (const level of ['bronze', 'silver', 'gold']) {
@@ -484,7 +484,7 @@ export async function checkIn(id) {
     }
 
     markStationVisited(id);
-    const updatedVisitedStations = getVisitedStationIdSet();
+    const updatedVisitedStations = getPassVisitedStationRecords();
 
     state.lastCheckedStationId = id;
     localStorage.setItem('last_checked_station', id.toString());
@@ -492,7 +492,7 @@ export async function checkIn(id) {
     updatePassProgress();
 
     // Check for Champion Status
-    const count = updatedVisitedStations.size;
+    const count = updatedVisitedStations.length;
     if (count >= 3 && typeof window.maybeAskPassParticipation === 'function') {
         window.maybeAskPassParticipation();
     }
@@ -650,7 +650,7 @@ if (typeof window.addEventListener === 'function') window.addEventListener('lich
 });
 
 export function updatePassProgress() {
-    const count = getVisitedStationRecords().length;
+    const count = getPassVisitedStationRecords().length;
     const total = countAvailableStations(state.stations);
     const el = document.getElementById('pass-progress');
     if (el) {

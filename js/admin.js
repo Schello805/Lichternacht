@@ -1,17 +1,18 @@
 
 import { state } from './state.js';
-import { metricsChart, historySummary } from './metrics-history.js?v=1.4.339';
-import { loadStationActivityReport } from './station-activity.js?v=1.4.339';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.339';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.339';
-import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.339';
-import { saveData, seedStations, seedEvents } from './data.js?v=1.4.339';
-import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.339';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.340';
+import { metricsChart, historySummary } from './metrics-history.js?v=1.4.340';
+import { loadStationActivityReport } from './station-activity.js?v=1.4.340';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.340';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.340';
+import { showToast, parseEventWindowConfig, formatEventWindowDe } from './utils.js?v=1.4.340';
+import { saveData, seedStations, seedEvents } from './data.js?v=1.4.340';
+import { parseCsv, parseLocalizedNumber, toCsv } from './csv.js?v=1.4.340';
 import { validateStations, validateEvents } from './validate.js';
-import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.339';
-import { recordAuditEvent } from './audit.js?v=1.4.339';
-import { applyLikesResetToken } from './client-reset.js?v=1.4.339';
-import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.339';
+import { buildUsageSummaryEmailHtml } from './email.js?v=1.4.340';
+import { recordAuditEvent } from './audit.js?v=1.4.340';
+import { applyLikesResetToken } from './client-reset.js?v=1.4.340';
+import { beginStandaloneRestroomPlacement, beginStandaloneParkingPlacement, refreshStandaloneRestroomMarkers, refreshStandaloneParkingMarkers } from './maplibre-map.js?v=1.4.340';
 
 console.log("js/admin.js module loaded"); // DEBUG
 
@@ -281,7 +282,7 @@ export async function loadSystemMetrics() {
             { label: 'Freier Speicher', value: formatBytes(metrics.disk?.free), detail: `${diskPercent.toFixed(1)} % belegt · ${formatBytes(metrics.disk?.total)} gesamt`, icon: 'ph-hard-drives', tone: metricTone(diskPercent) },
             { label: 'Aktive Besucher', value: audience.activeVisitors ?? '–', detail: 'Geräte der letzten 2 Minuten', icon: 'ph-users-three', tone: 'blue' },
             { label: 'App-Admins', value: adminCountAvailable ? audience.admins : 1, detail: adminCountAvailable ? 'Berechtigte Konten' : 'Mindestens aktuelles Konto', icon: 'ph-shield-check', tone: 'blue' },
-            { label: 'Stationen', value: state.stations.length, detail: 'Aktuell geladene Stationen', icon: 'ph-map-trifold', tone: 'blue' },
+            { label: 'Stationen', value: countAvailableStations(state.stations), detail: 'Teilnehmende Stationen ohne Absagen', icon: 'ph-map-trifold', tone: 'blue' },
             { label: 'Events', value: state.events.length, detail: 'Programmpunkte', icon: 'ph-calendar-dots', tone: 'blue' },
             { label: 'WCs', value: wcAtStations + standaloneRestrooms, detail: `${wcAtStations} an Stationen · ${standaloneRestrooms} frei`, icon: 'ph-toilet', tone: 'blue' },
             { label: 'Parkplätze', value: standaloneParking, detail: 'Freie Parkplatzmarker', icon: 'ph-parking', tone: 'blue' },
@@ -541,7 +542,7 @@ function renderAdminDataTables() {
 
     container.innerHTML = `
         <div class="bg-white/70 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-600 overflow-x-auto">
-            <div class="px-3 py-2 font-bold">Stationen (${stations.length}/${(state.stations || []).length})</div>
+            <div class="px-3 py-2 font-bold">Stationen (${stations.length} Datensätze · ${countAvailableStations(state.stations)} teilnehmend)</div>
             <table class="w-full min-w-[1180px]">
                 <thead class="text-[10px] uppercase text-gray-500 bg-gray-50 dark:bg-gray-700">
                     <tr><th class="text-left py-2 px-3">${sortButton('id', 'Nr.', 'text-left')}</th><th class="text-left py-2">${sortButton('name', 'Name')}</th><th class="text-left py-2">Adresse</th><th class="text-left py-2">Werbetext</th><th class="text-center py-2">Link</th><th class="text-left py-2">Lat</th><th class="text-left py-2">Lng</th><th class="text-left py-2">Tags</th><th class="text-center py-2">Bild</th><th class="text-right py-2">Likes</th><th class="text-right py-2 px-3">Aktion</th></tr>
@@ -609,6 +610,7 @@ function renderDefaultRouteStationSelection() {
 
     const selectedIds = new Set((state.config.defaultRouteStationIds || []).map(String));
     const stations = [...(state.stations || [])]
+        .filter(station => !isStationCancelled(station))
         .filter(station => String(station.id || '').trim())
         .sort((first, second) => Number(first.id) - Number(second.id));
     container.innerHTML = stations.length
@@ -1236,7 +1238,7 @@ function loadExcelJs() {
     if (excelJsPromise) return excelJsPromise;
     excelJsPromise = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.339';
+        script.src = 'vendor/exceljs/exceljs.min.js?v=1.4.340';
         script.onload = () => window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel-Modul konnte nicht gestartet werden.'));
         script.onerror = () => reject(new Error('Excel-Modul konnte nicht geladen werden.'));
         document.head.appendChild(script);
@@ -1833,9 +1835,9 @@ export function downloadDataJs() {
     };
     
     const content = `import { state } from './state.js';
-import { showToast } from './utils.js?v=1.4.339';
-import { refreshMapMarkers } from './maplibre-map.js?v=1.4.339';
-import { renderList, renderTimeline } from './ui.js?v=1.4.339';
+import { showToast } from './utils.js?v=1.4.340';
+import { refreshMapMarkers } from './maplibre-map.js?v=1.4.340';
+import { renderList, renderTimeline } from './ui.js?v=1.4.340';
 
 export const seedStations = ${JSON.stringify(data.stations, null, 4)};
 
@@ -2221,7 +2223,10 @@ export async function saveRewardsConfig() {
 }
 
 function buildUsageSummary(checkins, activity = []) {
-    const stationLookup = new Map((state.stations || []).map(station => [String(station.id), station]));
+    const availableStations = (state.stations || []).filter(station => !isStationCancelled(station));
+    const stationLookup = new Map(availableStations.map(station => [String(station.id), station]));
+    checkins = checkins.filter(record => stationLookup.has(String(record.stationId)));
+    activity = activity.filter(record => stationLookup.has(String(record.stationId))).map(record => ({ ...record, stationId: String(record.stationId) }));
     const byStation = new Map();
     const byHour = new Map();
     const byDate = new Map();
@@ -2259,9 +2264,9 @@ function buildUsageSummary(checkins, activity = []) {
         .sort((a, b) => b.count - a.count || a.stationName.localeCompare(b.stationName, 'de'));
     const hourlyRows = [...byHour.entries()].map(([hour, count]) => ({ hour, count })).sort((a, b) => a.hour.localeCompare(b.hour));
     const dateRows = [...byDate.entries()].map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
-    const totalStations = (state.stations || []).length;
+    const totalStations = availableStations.length;
     const visitedStationIds = new Set(stationRows.filter(row => row.count > 0).map(row => String(row.stationId)));
-    const stationsWithoutCheckins = (state.stations || [])
+    const stationsWithoutCheckins = availableStations
         .filter(station => !visitedStationIds.has(String(station.id)))
         .map(station => ({ stationId: String(station.id), stationName: station.name || `Station ${station.id}` }));
     const peakHour = hourlyRows.slice().sort((a, b) => b.count - a.count)[0] || null;
@@ -2311,6 +2316,7 @@ function renderUsageSummary(summary) {
     const activityRows = summary.stationRows.map(row => `<tr class="border-t border-gray-200 dark:border-gray-700"><td class="py-2 pr-2">${escapeHtml(row.stationName)}</td><td class="text-right">${row.visits}</td><td class="text-right">${row.checkedInVisits}</td><td class="text-right">${row.checkinPercent === null ? '–' : `${row.checkinPercent.toLocaleString('de-DE')} %`}</td></tr>`).join('');
 
     el.innerHTML = `
+        <p class="mb-2 text-xs text-gray-500">Auswertung ohne abgesagte Stationen und deren Check-ins. Rohdaten bleiben in der Sicherung erhalten.</p>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Check-ins</div><div class="text-xl font-extrabold">${summary.totalCheckins}</div></div>
             <div class="p-3 rounded-lg bg-white/70 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600"><div class="text-[10px] uppercase text-gray-500">Aktive Geräte</div><div class="text-xl font-extrabold">${summary.uniqueVisitors}</div></div>

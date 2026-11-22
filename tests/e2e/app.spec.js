@@ -628,6 +628,54 @@ test('cancelled station cards are fully grey and excluded from every station fil
     await expect(page.locator('#stations-list > button')).toHaveCount(2);
 });
 
+test('cancelled historical visits are excluded from pass counts routes and analytics without being erased', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.stations = [
+            { id: 1, name: 'Erste Station', lat: 49.158, lng: 10.552, tags: [] },
+            { id: 2, name: 'Zweite Station', lat: 49.159, lng: 10.553, tags: [] },
+            { id: 43, number: '1A', name: 'Absage Station', cancelled: true, lat: 49.16, lng: 10.554, tags: [] }
+        ];
+        window.state.config.defaultRouteStationIds = ['1', '43', '2'];
+        const utils = await import(`/js/utils.js?v=${window.APP_VERSION}`);
+        utils.markStationVisited(1);
+        utils.markStationVisited(43);
+        window.updatePassProgress();
+        window.showPassInfo();
+    });
+    await expect(page.locator('#pass-progress')).toContainText('1/2');
+    await expect(page.locator('#pass-modal')).toContainText('1/2 Stationen besucht');
+    await expect(page.locator('#pass-modal')).not.toContainText('Absage Station');
+    await page.locator('#pass-modal button[data-close="1"]').last().click();
+    await page.evaluate(() => window.openRoutePlan());
+    await expect(page.locator('[data-route-plan-station]')).toHaveCount(2);
+    await expect(page.locator('[data-route-plan-station][value="43"]')).toHaveCount(0);
+    await expect(page.locator('[data-route-plan-count]')).toContainText('2 Stationen');
+    await page.evaluate(async () => {
+        window.closeModal('route-plan-modal');
+        window.state.isAdmin = true;
+        const admin = await import(`/js/admin.js?v=${window.APP_VERSION}`);
+        admin.openAdminPanel();
+        window.state.useLocalStorage = false;
+        window.state.localBackend = false;
+        window.state.db = {};
+        window.__analyticsRecords = [{ stationId: '1', anonymousId: 'active' }, { stationId: '43', anonymousId: 'cancelled' }];
+        window.state.fb = {
+            collection: () => ({}),
+            getDocs: async () => ({ forEach: callback => window.__analyticsRecords.forEach((data, index) => callback({ id: String(index), data: () => data })) })
+        };
+        await admin.loadUsageAnalytics();
+    });
+    await expect(page.locator('#admin-default-route-stations input')).toHaveCount(2);
+    await expect(page.locator('#admin-default-route-stations input[value="43"]')).toHaveCount(0);
+    expect(await page.evaluate(() => ({ checkins: window.state.usageSummary.totalCheckins, stations: window.state.usageSummary.totalStations }))).toEqual({ checkins: 1, stations: 2 });
+    await expect(page.locator('#admin-usage-summary')).not.toContainText('Absage Station');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('visited_stations')).includes('43'))).toBe(true);
+    expect(await page.evaluate(() => window.__analyticsRecords.length)).toBe(2);
+    await page.evaluate(() => { window.state.stations.find(station => station.id === 43).cancelled = false; window.updatePassProgress(); });
+    await expect(page.locator('#pass-progress')).toContainText('2/3');
+});
+
 test('invalid saved favorites do not interrupt app startup', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('favorites', '{invalid'));
     await page.goto('/index.html');
