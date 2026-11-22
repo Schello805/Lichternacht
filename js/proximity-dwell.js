@@ -21,7 +21,7 @@ export function createProximityDwell({ durationMs = 10000, strictlyLonger = fals
         }
         lastFixAt = fixAt;
         lastSampleAt = now;
-        const elapsed = Math.min(now - startedAt, lastFixAt - firstFixAt);
-        return { ready: advancing && (strictlyLonger ? elapsed > durationMs : elapsed >= durationMs), monitoring: true };
+        const elapsed = strictlyLonger ? Math.min(now - startedAt, lastFixAt - firstFixAt) : now - startedAt;
+        return { ready: (strictlyLonger ? advancing && elapsed > durationMs : lastFixAt > firstFixAt && elapsed >= durationMs), monitoring: true };
     };
 }

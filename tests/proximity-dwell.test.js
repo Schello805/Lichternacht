@@ -10,6 +10,12 @@ test('automatic suggestion waits ten seconds with repeated fresh fixes for the s
     assert.equal(update(sample(11000), 11000).ready, true);
 });
 
+test('manual suggestion may appear on its timer while the latest advancing fix is still fresh', () => {
+    const update = createProximityDwell();
+    for (const now of [1000, 4000, 7000, 10000]) update(sample(now), now);
+    assert.equal(update(sample(10000), 11000).ready, true);
+});
+
 test('a single cached fix, inaccurate location, missing accuracy and future fixes never trigger a suggestion', () => {
     for (const invalid of [sample(1000), sample(11000, 1, 21), sample(11000, 1, null), sample(12000)]) {
         const update = createProximityDwell();
