@@ -1,6 +1,194 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('usage dashboard separates cohorts, supports station search and fits mobile and dark mode', async ({ page }) => {
+    await page.route('**/api/local-data?collection=stationActivity&report=true', route => route.fulfill({ json: { stations: [{ stationId: '1', visits: 2, checkedIn: 1 }, { stationId: '2', visits: 0, checkedIn: 0 }] } }));
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const state = window.state;
+        state.isAdmin = true;
+        state.stations = [{ id: 1, number: '1A', name: 'Museum' }, { id: 2, name: 'Kirche' }, { id: 3, name: 'Absage', cancelled: true }];
+        const admin = await import(`/js/admin.js?v=${window.APP_VERSION}`);
+        admin.openAdminPanel();
+        state.localBackend = true;
+        state.useLocalStorage = false;
+        state.db = {};
+        state.auth = { currentUser: { getIdToken: async () => 'test' } };
+        state.downloads.icsDate = '21.11.2026 17:00-21:00';
+        state.fb = {
+            collection: (...parts) => ({ name: parts.at(-1) }),
+            getDocs: async reference => ({ forEach: callback => (reference.name === 'checkins' ? [
+                { stationId: '1', ownerUid: 'one', checkedAt: '2026-11-21T16:05:00Z' },
+                { stationId: '2', ownerUid: 'one', checkedAt: '2026-11-21T17:05:00Z' },
+                { stationId: '1', ownerUid: 'two', checkedAt: '2026-11-21T16:05:00Z' },
+                { stationId: '3', ownerUid: 'cancelled' }
+            ] : [{ stationId: '1', eventKey: '1795273200000:1795302000000', stages: ['attempt', 'gps_missing'], stage: 'gps_missing' }]).forEach((data, index) => callback({ id: String(index), data: () => data })) })
+        };
+        await admin.loadUsageAnalytics();
+    });
+    await page.locator('#admin-analytics-section > summary').click();
+    const dashboard = page.locator('[data-usage-dashboard]');
+    await expect(dashboard).toBeVisible();
+    await expect(dashboard.locator('.usage-kpi strong')).toHaveText(['3', '2', '2/2', '1,5']);
+    await expect(dashboard.locator('.usage-cohort-value')).toHaveText('1 von 2 · geringe Datenbasis');
+    await expect(dashboard).not.toContainText('Absage');
+    await expect(dashboard.getByRole('list', { name: 'Check-ins pro halber Stunde' }).getByRole('listitem')).toHaveCount(3);
+    for (const theme of ['light', 'dark']) {
+        await page.evaluate(value => window.setThemePreference(value), theme);
+        for (const width of [390, 1280]) {
+            await page.setViewportSize({ width, height: 844 });
+            const box = await dashboard.boundingBox();
+            expect(box.x).toBeGreaterThanOrEqual(0);
+            expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
+        }
+    }
+    await dashboard.locator('[data-usage-search]').fill('1a');
+    await expect(dashboard.locator('[data-usage-station]:visible')).toHaveCount(1);
+    await expect(dashboard.locator('[data-usage-station]:visible')).toContainText('Museum');
+    await dashboard.locator('[data-usage-search]').fill('unknown');
+    await expect(dashboard.locator('[data-usage-search-empty]')).toBeVisible();
+    await dashboard.locator('[data-usage-search]').fill('');
+    const ready = page.waitForEvent('download');
+    await page.evaluate(() => window.exportUsageAnalyticsCsv());
+    const download = await ready;
+    const csv = await readFile(await download.path(), 'utf8');
+    expect(csv).toContain('stationNumber');
+    expect(csv).toContain('1;1A;Museum;2;2;');
+    expect(csv).toContain(';2;1;;2');
+    expect(csv).not.toContain('Absage');
+    await page.evaluate(() => {
+        const dashboard = document.querySelector('[data-usage-dashboard]').cloneNode(true);
+        document.body.replaceChildren(dashboard);
+        document.body.className = '';
+        document.body.style.cssText = 'height:auto;overflow:visible;margin:0;padding:20px;position:static';
+        document.documentElement.style.cssText = 'height:auto;overflow:visible';
+    });
+    for (const theme of ['light', 'dark']) {
+        await page.evaluate(value => document.documentElement.classList.toggle('dark', value === 'dark'), theme);
+        for (const width of [390, 1280]) {
+            await page.setViewportSize({ width, height: 844 });
+            await page.screenshot({ path: `/tmp/lichternacht-dashboard-${width}-${theme}.png`, fullPage: true });
+        }
+    }
+});
+
+test('dashboard loading clears stale results and distinguishes unavailable sources from no visits', async ({ page }) => {
+    await page.route('**/api/local-data?collection=stationActivity&report=true', route => route.fulfill({ status: 503, json: { ok: false } }));
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.isAdmin = true;
+        window.__usageAdmin = await import(`/js/admin.js?v=${window.APP_VERSION}`);
+        window.__usageAdmin.openAdminPanel();
+        window.state.localBackend = true;
+        window.state.useLocalStorage = false;
+        window.state.db = {};
+        window.state.auth = { currentUser: { getIdToken: async () => 'test' } };
+        window.state.fb = {
+            collection: (...parts) => ({ name: parts.at(-1) }),
+            getDocs: reference => reference.name === 'checkins' ? new Promise(resolve => { window.__finishUsageLoad = () => resolve({ forEach() {} }); }) : Promise.reject(new Error('unavailable'))
+        };
+        void window.__usageAdmin.loadUsageAnalytics();
+    });
+    await page.locator('#admin-analytics-section > summary').click();
+    await expect(page.locator('#admin-usage-load')).toBeDisabled();
+    await expect(page.locator('#admin-usage-summary')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#admin-usage-summary')).toContainText('wird geladen');
+    await page.evaluate(() => window.__finishUsageLoad());
+    await expect(page.locator('#admin-usage-load')).toBeEnabled();
+    await expect(page.locator('[data-usage-dashboard]')).toContainText('Quelle nicht verfügbar');
+    await expect(page.locator('[data-usage-dashboard]')).toContainText('Diagnosequelle derzeit nicht verfügbar');
+    await page.evaluate(() => {
+        window.state.fb.getDocs = async () => { throw new Error('offline'); };
+        void window.__usageAdmin.loadUsageAnalytics();
+    });
+    await expect(page.locator('[data-usage-dashboard]')).toHaveCount(0);
+    await expect(page.locator('#admin-usage-summary')).toContainText('konnte nicht geladen werden');
+    expect(await page.evaluate(() => window.state.usageSummary)).toBe(null);
+});
+
+test('checkin diagnostics are opt-in within the shared banner and do not transmit coordinates', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2026-11-21T17:00:00Z'));
+    const payloads = [];
+    await page.route('**/api/local-data', route => {
+        payloads.push(route.request().postDataJSON());
+        return route.fulfill({ json: { ok: true } });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        window.state.map?.stop();
+        window.state.localBackend = true;
+        window.state.auth = { currentUser: { getIdToken: async () => 'test' } };
+        window.state.downloads.icsDate = '21.11.2026 17:00-21:00';
+        const diagnostics = await import(`/js/checkin-diagnostics.js?v=${window.APP_VERSION}`);
+        window.__diagnostics = diagnostics;
+        diagnostics.recordCheckinDiagnostic('attempt', 1);
+        await diagnostics.flushCheckinDiagnostics();
+        window.openCookieBanner();
+    });
+    expect(payloads.filter(item => item.action === 'checkinDiagnostic')).toHaveLength(0);
+    await page.locator('#tracking-consent summary').click();
+    await expect(page.locator('#checkin-diagnostics-consent')).not.toBeChecked();
+    await page.locator('#checkin-diagnostics-consent').check();
+    await page.locator('#tracking-consent-save').click();
+    await page.evaluate(async () => {
+        const diagnostics = window.__diagnostics;
+        const token = diagnostics.recordCheckinDiagnostic('attempt', 1);
+        diagnostics.recordCheckinDiagnostic('gps_inaccurate', 1, token);
+        await diagnostics.flushCheckinDiagnostics();
+        window.openCookieBanner();
+    });
+    const diagnostics = payloads.filter(item => item.action === 'checkinDiagnostic');
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].stages).toEqual(['attempt', 'gps_inaccurate']);
+    expect(Object.keys(diagnostics[0]).sort()).toEqual(['action', 'eventKey', 'stage', 'stages', 'stationId', 'token']);
+    await page.locator('#tracking-consent summary').click();
+    await page.locator('#checkin-diagnostics-consent').uncheck();
+    await page.locator('#tracking-consent-save').click();
+    await page.evaluate(() => window.__diagnostics.flushCheckinDiagnostics());
+    expect(payloads.filter(item => item.action === 'checkinDiagnostic' && item.forget)).toHaveLength(1);
+});
+
+test('actual checkin stages follow GPS errors local saving and server confirmation without linking the diagnostic token', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-11-21T17:00:00Z') });
+    await page.clock.pauseAt(new Date('2026-11-21T17:00:00Z'));
+    const payloads = [];
+    await page.route('**/api/local-data', route => {
+        payloads.push(route.request().postDataJSON());
+        return route.fulfill({ json: { ok: true } });
+    });
+    await page.goto('/index.html');
+    await page.evaluate(async () => {
+        const state = window.state;
+        state.map?.stop();
+        state.localBackend = true;
+        state.useLocalStorage = false;
+        state.db = {};
+        state.auth = { currentUser: { uid: 'browser', getIdToken: async () => 'test' } };
+        state.downloads.icsDate = '21.11.2026 17:00-21:00';
+        state.fb = { collection: (...parts) => parts.join('/'), doc: (...parts) => parts.join('/'), addDoc: async () => {}, setDoc: async (_reference, data) => { window.__normalCheckin = data; }, serverTimestamp: () => new Date().toISOString() };
+        const station = state.stations[0];
+        state.userLocation = { lat: Number(station.lat), lng: Number(station.lng) };
+        state.gpsLastFixAt = Date.now();
+        state.gpsAccuracy = 100;
+        localStorage.setItem('gps_checkin_hint_seen_v1', 'true');
+        window.__diagnostics = await import(`/js/checkin-diagnostics.js?v=${window.APP_VERSION}`);
+        window.__diagnostics.setCheckinDiagnosticsConsent(true);
+        await window.checkIn(station.id);
+        await window.__diagnostics.flushCheckinDiagnostics();
+        state.gpsAccuracy = 5;
+        await window.checkIn(station.id);
+    });
+    await expect.poll(() => page.evaluate(() => window.__normalCheckin?.stationId)).toBeTruthy();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('offline_action_queue_v1')).length)).toBe(0);
+    await page.evaluate(() => window.__diagnostics.flushCheckinDiagnostics());
+    const diagnosis = payloads.filter(item => item.action === 'checkinDiagnostic');
+    expect(diagnosis.find(item => item.stage === 'gps_inaccurate')).toBeTruthy();
+    expect(diagnosis.find(item => item.stage === 'synced')?.stages).toEqual(['attempt', 'gps_ready', 'station_detected', 'local_saved', 'synced']);
+    expect(await page.evaluate(() => Object.keys(window.__normalCheckin))).not.toContain('diagnosticToken');
+    expect(await page.evaluate(() => JSON.stringify(window.__normalCheckin))).not.toContain(diagnosis.at(-1).token);
+});
+
 test('compact explanations keep route and cookie details collapsed', async ({ page }) => {
     await page.route('https://fonts.googleapis.com/**', route => route.fulfill({ contentType: 'text/css', body: '' }));
     await page.goto('/index.html');

@@ -1,14 +1,15 @@
 import { state } from './js/state.js';
-import { countAvailableStations } from './js/station-status.js?v=1.4.340';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.340';
-import { shareStation, showToast } from './js/utils.js?v=1.4.340';
-import * as utils from './js/utils.js?v=1.4.340';
-import { initFirebase } from './js/firebase-init.js?v=1.4.340';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.340';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.340';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.340';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.340';
-import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.340';
+import { countAvailableStations } from './js/station-status.js?v=1.4.341';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.341';
+import { initCheckinDiagnostics, setCheckinDiagnosticsConsent } from './js/checkin-diagnostics.js?v=1.4.341';
+import { shareStation, showToast } from './js/utils.js?v=1.4.341';
+import * as utils from './js/utils.js?v=1.4.341';
+import { initFirebase } from './js/firebase-init.js?v=1.4.341';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.341';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.341';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.341';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.341';
+import { initPresence, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.341';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -17,12 +18,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, flyToProgramEvent, closePlanningBanner, openRoutePlan, updateProgramOverview
-} from './js/ui.js?v=1.4.340';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.340';
-import { recordAuditEvent } from './js/audit.js?v=1.4.340';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.340';
-import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.340';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.340';
+} from './js/ui.js?v=1.4.341';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.341';
+import { recordAuditEvent } from './js/audit.js?v=1.4.341';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.341';
+import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.341';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.341';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -32,7 +33,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.340";
+const APP_VERSION = "1.4.341";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');
@@ -1476,20 +1477,23 @@ function initTrackingConsentUi() {
         localStorage.setItem('station_activity_notice_v1', 'shown');
         document.getElementById('matomo-consent-choice').checked = window.hasTrackingConsent?.() === true;
         document.getElementById('station-activity-consent').checked = localStorage.getItem('station_activity_consent_v1') === 'granted';
+        document.getElementById('checkin-diagnostics-consent').checked = localStorage.getItem('checkin_diagnostics_consent_v1') === 'granted';
         modal.querySelector('details').open = false;
         modal.classList.remove('hidden');
     };
-    const saveChoices = (matomo, activity) => {
+    const saveChoices = (matomo, activity, diagnostics) => {
         const wasTracking = window.hasTrackingConsent?.() === true;
         window.setTrackingConsent?.(matomo);
         setStationActivityConsent(activity);
+        setCheckinDiagnosticsConsent(diagnostics);
         hide();
         if (matomo) startTrackingIfConsented();
         else if (wasTracking) window.location.reload();
     };
     document.getElementById('tracking-consent-save').onclick = () => saveChoices(
         document.getElementById('matomo-consent-choice').checked,
-        document.getElementById('station-activity-consent').checked
+        document.getElementById('station-activity-consent').checked,
+        document.getElementById('checkin-diagnostics-consent').checked
     );
 
     // Allow opening the cookie banner from other pages/links.
@@ -1498,12 +1502,12 @@ function initTrackingConsentUi() {
 
     if (acceptBtn) {
         acceptBtn.onclick = () => {
-            saveChoices(true, true);
+            saveChoices(true, true, true);
         };
     }
     if (declineBtn) {
         declineBtn.onclick = () => {
-            saveChoices(false, false);
+            saveChoices(false, false, false);
         };
     }
     if (closeBtn) closeBtn.onclick = () => hide();
@@ -1746,6 +1750,7 @@ const initializeApp = async () => {
     }
 
     initStationActivity();
+    initCheckinDiagnostics();
     // Tracking: only load after explicit user consent.
     if (typeof window.hasTrackingConsent === 'function' && window.hasTrackingConsent()) {
         startTrackingIfConsented();

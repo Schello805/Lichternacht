@@ -1,5 +1,6 @@
 import { state } from './state.js';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.340';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.341';
+import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.341';
 
 const QUEUE_KEY = 'offline_action_queue_v1';
 let flushing = false;
@@ -45,12 +46,13 @@ function writeQueue(queue) {
     window.dispatchEvent(new CustomEvent('lichternacht:sync-queue', { detail: { count: queue.length } }));
 }
 
-export function queueOfflineAction(type, payload) {
+export function queueOfflineAction(type, payload, metadata = {}) {
     const queue = readQueue();
     const action = {
         id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         type,
         payload,
+        diagnosticToken: metadata.diagnosticToken || null,
         ownerUid: state.auth?.currentUser?.uid || null,
         queuedAt: new Date().toISOString()
     };
@@ -112,14 +114,17 @@ export async function flushOfflineActions() {
                 await executeAction(action);
                 completedIds.add(action.id);
                 updateCheckinStatus(action, 'synced');
+                if (action.type === 'checkin' && action.diagnosticToken) recordCheckinDiagnostic('synced', stationId, action.diagnosticToken);
                 if (['checkin', 'undo-checkin'].includes(action.type)) window.dispatchEvent(new Event('station-checkin-synced'));
             } catch (error) {
                 if (error.permanent) {
+                    if (action.type === 'checkin' && action.diagnosticToken) recordCheckinDiagnostic('sync_rejected', stationId, action.diagnosticToken);
                     completedIds.add(action.id);
                     updateCheckinStatus(action, 'rejected', error.message);
                     continue;
                 }
                 blockedStations.add(stationId);
+                if (action.type === 'checkin' && action.diagnosticToken) recordCheckinDiagnostic('sync_retry', stationId, action.diagnosticToken);
                 if (noteFirestoreError(error)) break;
                 console.warn('Offline-Aktion konnte noch nicht synchronisiert werden.', error);
             }
