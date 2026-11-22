@@ -24,6 +24,7 @@ from http.cookies import SimpleCookie, CookieError
 from local_database import LocalDatabase
 from local_auth import LocalAuth
 from metrics_history import MetricsHistory, MetricsRecorder, WINDOW
+from program_push import configure_push, event_schedule, PushStore
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST = os.environ.get('BIND_HOST', '127.0.0.1')
@@ -95,6 +96,57 @@ RATE_LIMIT_LOCK = threading.Lock()
 
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
+    def _program_push(self, action):
+        service = getattr(self.server, 'program_push', None)
+        if action == 'config':
+            available = bool(service and LOCAL_AUTH_ENABLED and LOCAL_DATABASE_ENABLED)
+            return self._send_json(200, {'available': available, 'publicKey': service.public_key if available else None})
+        if self.headers.get('Origin') != LOCAL_AUTH_ORIGIN:
+            return self._send_json(403, {'ok': False, 'error': 'Anfrage-Ursprung nicht erlaubt'})
+        user = self._local_user() if LOCAL_AUTH_ENABLED else None
+        if not user:
+            return self._send_json(401, {'ok': False, 'error': 'Anmeldung erforderlich'})
+        owner_bucket = hashlib.sha256(user['uid'].encode()).hexdigest()
+        if not self._rate_limit('program-push-' + owner_bucket, 60, 60) or not self._rate_limit('program-push-emergency', 6000, 60):
+            return self._send_json(429, {'ok': False, 'error': 'Bitte später erneut versuchen'})
+        payload = self._read_json()
+        if not isinstance(payload, dict):
+            return self._send_json(400, {'ok': False, 'error': 'Ungültige Anfrage'})
+        try:
+            if action == 'unsubscribe':
+                endpoint = payload.get('endpoint')
+                if not isinstance(endpoint, str) or len(endpoint) > 2048:
+                    raise ValueError('Ungültiges Abonnement')
+                path = os.path.realpath(os.environ.get('PROGRAM_PUSH_DATABASE', os.path.join(PRIVATE_DIR, 'program-push.sqlite3')))
+                if os.path.commonpath([BASE_DIR, path]) == BASE_DIR and os.path.commonpath([PRIVATE_DIR, path]) != PRIVATE_DIR:
+                    raise ValueError('Unsicherer Datenbankpfad')
+                store = service.store if service else PushStore(path) if os.path.isfile(path) else None
+                if store:
+                    store.unsubscribe(user['uid'], endpoint)
+                return self._send_json(200, {'ok': True, 'active': False})
+            if not service:
+                return self._send_json(503, {'ok': False, 'error': 'Web Push ist nicht konfiguriert'})
+            if action == 'subscribe':
+                if payload.get('consent') is not True or payload.get('scope') != 'all-program-events':
+                    raise ValueError('Ausdrückliche Einwilligung für alle Programmpunkte erforderlich')
+                _, end = event_schedule(service.snapshot())
+                if time.time() >= end:
+                    raise ValueError('Veranstaltung ist beendet')
+                service.store.subscribe(user['uid'], payload.get('subscription'), end + 86400, time.time())
+                return self._send_json(200, {'ok': True, 'active': True})
+            if action == 'status':
+                endpoint = payload.get('endpoint')
+                if not isinstance(endpoint, str) or len(endpoint) > 2048:
+                    raise ValueError('Ungültiges Abonnement')
+                return self._send_json(200, {'ok': True, 'active': service.store.active(user['uid'], endpoint, time.time())})
+            return self._send_json(404, {'ok': False})
+        except PermissionError:
+            return self._send_json(403, {'ok': False, 'error': 'Abonnement gehört einer anderen Sitzung'})
+        except (ValueError, TypeError, KeyError):
+            return self._send_json(400, {'ok': False, 'error': 'Abonnement oder Veranstaltungsdatum ungültig'})
+        except Exception:
+            return self._send_json(503, {'ok': False, 'error': 'Web Push vorübergehend nicht verfügbar'})
+
     def end_headers(self):
         self.send_header('Permissions-Policy', 'geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)')
         self.send_header('X-Content-Type-Options', 'nosniff')
@@ -550,6 +602,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         image_endpoint = self.path.split('?', 1)[0]
+        if image_endpoint.startswith('/api/program-push/'):
+            return self._program_push(image_endpoint.rsplit('/', 1)[-1])
         if LOCAL_AUTH_ENABLED and image_endpoint.startswith('/api/'):
             if self.headers.get('Origin') != LOCAL_AUTH_ORIGIN:
                 return self._send_json(403, {'ok': False, 'error': 'Anfrage-Ursprung nicht erlaubt'})
@@ -794,6 +848,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/api/program-push/config':
+            return self._program_push('config')
         if parsed_path.path == '/api/local-auth/session':
             if not LOCAL_AUTH_ENABLED:
                 return self._send_json(404, {'ok': False})
@@ -872,7 +928,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         protected_files = {
             '/server.py', '/deploy.sh', '/firebase.json', '/firestore.rules',
             '/package.json', '/package-lock.json', '/playwright.config.js', '/metrics_history.py',
-            '/tailwind.config.js', '/server-htaccess', '/local_database.py', '/local_auth.py'
+            '/tailwind.config.js', '/server-htaccess', '/local_database.py', '/local_auth.py', '/program_push.py'
         }
 
         if (
@@ -949,6 +1005,16 @@ if __name__ == '__main__':
     print(f"Uploads werden in '{UPLOAD_DIR}/' gespeichert.")
     with ReusableTCPServer((HOST, PORT), CustomHandler) as httpd:
         recorder = None
+        httpd.program_push = None
+        if LOCAL_AUTH_ENABLED and LOCAL_DATABASE_ENABLED:
+            try:
+                httpd.program_push = configure_push(BASE_DIR, lambda: LocalDatabase(LOCAL_DATABASE_PATH).read())
+                if httpd.program_push:
+                    httpd.program_push.start()
+            except Exception:
+                print('Program Push: nicht verfügbar; Konfiguration und optionale Abhängigkeiten prüfen.', flush=True)
+        import signal
+        signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=httpd.shutdown, daemon=True).start())
         try:
             candidate = MetricsRecorder(MetricsHistory(METRICS_HISTORY_PATH))
             candidate.start()
@@ -958,5 +1024,7 @@ if __name__ == '__main__':
         try:
             httpd.serve_forever()
         finally:
+            if httpd.program_push:
+                httpd.program_push.stop()
             if recorder:
                 recorder.stop()

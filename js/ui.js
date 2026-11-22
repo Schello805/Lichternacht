@@ -1,18 +1,20 @@
 
 import { state } from './state.js';
-import { isStationCancelled } from './station-status.js?v=1.4.341';
-import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.341';
-import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.341';
-import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.341';
-import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.341';
-import * as utils from './utils.js?v=1.4.341';
-import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.341';
-import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.341';
-import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.341';
-import { recordAuditEvent } from './audit.js?v=1.4.341';
-import { normalizeImageUrl } from './image-url.js?v=1.4.341';
-import { getFeedbackLocation } from './feedback-location.js?v=1.4.341';
-import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.341';
+import { isStationCancelled } from './station-status.js?v=1.4.342';
+import { renderStationActivity, refreshStationActivity } from './station-activity.js?v=1.4.342';
+import { getStationNumber, compareStationNumbers, normalizeStationNumber } from './station-number.js?v=1.4.342';
+import { getStationTags, normalizeStationTag } from './station-tags.js?v=1.4.342';
+import { showToast, getDistance, getVisitedStationIdSet } from './utils.js?v=1.4.342';
+import * as utils from './utils.js?v=1.4.342';
+import { saveData, deleteData, saveStationEdit } from './data.js?v=1.4.342';
+import { refreshMapMarkers, toggleOverviewRoute, highlightRecentlyClosedStation, highlightProgramOnMap, clearProgramMapTarget } from './maplibre-map.js?v=1.4.342';
+import { updateCheckInBtn, updateLikeBtn } from './gamification.js?v=1.4.342';
+import { recordAuditEvent } from './audit.js?v=1.4.342';
+import { normalizeImageUrl } from './image-url.js?v=1.4.342';
+import { getFeedbackLocation } from './feedback-location.js?v=1.4.342';
+import { buildEventCalendar, canDownloadEventCalendar, getCalendarEventWindow } from './event-calendar.js?v=1.4.342';
+import { formatProgramTime, getExplicitProgramPhase, getProgramLiveEndMinutes, isValidEventDurationMinutes, parseEventDurationMinutes } from './event-duration.js?v=1.4.342';
+import { buildGoogleNavigationUrl } from './external-navigation.js?v=1.4.342';
 
 const STATION_OFFER_MAX_LENGTH = 250;
 const STATION_TAG_MAX_COUNT = 5;
@@ -24,6 +26,7 @@ const EVENT_LOCATION_MAX_LENGTH = 160;
 const URL_MAX_LENGTH = 2048;
 const TAG_MAX_LENGTH = 30;
 let eventImageDraft = '';
+let eventDraft = {};
 let editingStation = null;
 let editingStationSnapshot = null;
 let stationSaving = false;
@@ -285,9 +288,10 @@ export function openModal(target) {
         
         if (btnMaps) {
             btnMaps.onclick = () => {
+                const url = buildGoogleNavigationUrl(s.lat, s.lng, 'walking');
+                if (!url) return;
                 recordAuditEvent('navigation_started', { stationId: s.id, stationName: s.name || '' });
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
-                window.open(url, '_blank');
+                window.open(url, '_blank', 'noopener,noreferrer');
             };
         }
 
@@ -1725,12 +1729,14 @@ export function openNewEvent() {
 export function editEvent(id) {
     const e = state.events.find(x => x.id == id);
     if (!e) return;
+    eventDraft = { ...e };
     
     state.activeEventId = e.id;
     populateEventStationSelect(e.stationId || '');
     updateEventStationLinkControls();
     
     document.getElementById('evt-time').value = e.time;
+    document.getElementById('evt-duration').value = e.durationMinutes ?? '';
     document.getElementById('evt-title').value = e.title;
     document.getElementById('evt-desc').value = e.desc || '';
     document.getElementById('evt-link').value = e.link || '';
@@ -1760,14 +1766,18 @@ export function duplicateEvent() {
     const copyTitle = titleInput.value.trim();
     titleInput.value = `${copyTitle.slice(0, Math.max(0, EVENT_TITLE_MAX_LENGTH - copySuffix.length))}${copySuffix}`;
     state.activeEventId = null;
+    delete eventDraft.id;
+    delete eventDraft.__docId;
     document.getElementById('btn-delete-event').classList.add('hidden');
     document.getElementById('btn-duplicate-event').classList.add('hidden');
     showToast('Kopie erstellt – Zeit prüfen und speichern.', 'info');
 }
 
 function resetEventModal() {
+    eventDraft = {};
     state.activeEventId = null;
     document.getElementById('evt-time').value = '';
+    document.getElementById('evt-duration').value = '';
     document.getElementById('evt-title').value = '';
     document.getElementById('evt-desc').value = '';
     document.getElementById('evt-link').value = '';
@@ -1832,6 +1842,12 @@ export function fillEventCoords() {
 
 export async function saveEventChanges() {
     const time = document.getElementById('evt-time').value.trim();
+    const durationValue = document.getElementById('evt-duration').value;
+    if (!isValidEventDurationMinutes(durationValue)) {
+        showToast('Dauer muss eine ganze Zahl von 1 bis 1440 Minuten sein', 'error');
+        return;
+    }
+    const durationMinutes = parseEventDurationMinutes(durationValue);
     const title = document.getElementById('evt-title').value.trim();
     const desc = document.getElementById('evt-desc').value.trim();
     const link = normalizeExternalLink(document.getElementById('evt-link').value);
@@ -1894,6 +1910,7 @@ export async function saveEventChanges() {
     }
     
     const evt = {
+        ...eventDraft,
         id: state.activeEventId || ('evt_' + Date.now()),
         time,
         title,
@@ -1906,6 +1923,8 @@ export async function saveEventChanges() {
         color,
         image: eventImageDraft
     };
+    if (durationMinutes !== null) evt.durationMinutes = durationMinutes;
+    else delete evt.durationMinutes;
 
     const existingIndex = state.events.findIndex(event => event.id == evt.id);
     const previousEvent = existingIndex >= 0 ? state.events[existingIndex] : null;
@@ -2317,7 +2336,7 @@ function createEventDate(event, offsetMinutes = 0) {
 
 function downloadSingleEventIcs(event) {
     const start = createEventDate(event);
-    const end = createEventDate(event, 30);
+    const end = createEventDate(event, parseEventDurationMinutes(event.durationMinutes) ?? 30);
     const format = (date) => date.toISOString().replace(/-|:|\.\d+/g, "");
     const icsContent = [
         'BEGIN:VCALENDAR',
@@ -2382,12 +2401,19 @@ function formatCountdown(minutes) {
     return rest > 0 ? `in ${hours} Std. ${rest} Min.` : `in ${hours} Std.`;
 }
 
-function getProgramStatus(event, context) {
+export function getProgramStatus(event, context) {
     const [hour, minute] = String(event.time || '00:00').split(':').map(Number);
     const eventTimeVal = (Number(hour) || 0) * 60 + (Number(minute) || 0);
     const diff = eventTimeVal - context.currentTimeVal;
     if (!context.hasConfiguredEventDate) {
         return { key: 'no-date', label: 'Datum fehlt', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
+    }
+    const explicitPhase = getExplicitProgramPhase(event, context.configuredWindow?.dateKey, context.now);
+    if (explicitPhase === 'live') {
+        return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
+    }
+    if (explicitPhase === 'past') {
+        return { key: 'past', label: 'Vorbei', className: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300', isPast: true, eventTimeVal };
     }
     if (context.configuredWindow && !context.isEventDay) {
         return { key: 'date', label: 'Geplant', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200', isPast: false, eventTimeVal };
@@ -2395,14 +2421,8 @@ function getProgramStatus(event, context) {
     if (diff > 0) {
         return { key: diff <= 30 ? 'soon' : 'upcoming', label: formatCountdown(diff), className: diff <= 30 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', isPast: false, eventTimeVal };
     }
-    const nextSlot = state.events.reduce((next, item) => {
-        const [nextHour, nextMinute] = String(item.time || '').split(':').map(Number);
-        const start = nextHour * 60 + nextMinute;
-        return start > eventTimeVal ? Math.min(next, start) : next;
-    }, Infinity);
-    const withinLiveSlot = Number.isFinite(nextSlot)
-        ? context.currentTimeVal < nextSlot
-        : context.currentTimeVal <= eventTimeVal + 45;
+    const { end, inclusive } = getProgramLiveEndMinutes(event, state.events);
+    const withinLiveSlot = inclusive ? context.currentTimeVal <= end : context.currentTimeVal < end;
     if (context.isEventDay && withinLiveSlot) {
         return { key: 'live', label: 'Live', className: 'bg-red-500 text-white animate-pulse', isPast: false, eventTimeVal };
     }
@@ -2423,6 +2443,7 @@ export function openProgramEvent(id) {
     const configuredWindow = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const context = {
+        now,
         configuredWindow,
         hasConfiguredEventDate: !!configuredWindow,
         isEventDay: !!configuredWindow && todayKey === configuredWindow.dateKey,
@@ -2446,7 +2467,7 @@ export function openProgramEvent(id) {
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
-                        <span class="text-sm font-extrabold px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">${escapeHtml(event.time)} Uhr</span>
+                        <span class="text-sm font-extrabold px-2.5 py-1 rounded-lg bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">${escapeHtml(formatProgramTime(event))}</span>
                         <span data-program-status-event="${escapeHtml(event.id)}" class="text-xs font-extrabold px-2.5 py-1 rounded-full ${status.className}">${escapeHtml(status.label)}</span>
                     </div>
                     <div class="flex items-start gap-2">
@@ -2602,7 +2623,7 @@ export function renderTimeline() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeVal = currentHours * 60 + currentMinutes;
-    const statusContext = { configuredWindow, hasConfiguredEventDate, isEventDay, currentTimeVal };
+    const statusContext = { now, configuredWindow, hasConfiguredEventDate, isEventDay, currentTimeVal };
     const openStatus = document.querySelector('[data-program-status-event]');
     if (openStatus) {
         const openEvent = state.events.find(event => String(event.id) === openStatus.dataset.programStatusEvent);
@@ -2630,7 +2651,7 @@ export function renderTimeline() {
         }
 
         // Find Current Event (first one that is active)
-        if (isEventDay && !currentActiveEvent && isCurrent) {
+        if (!currentActiveEvent && isCurrent) {
             currentActiveEvent = e;
         }
 
@@ -2682,6 +2703,7 @@ export function renderTimeline() {
                         </div>` : ''}
                 </div>
                 <h5 class="font-bold text-gray-900 dark:text-white">${escapeHtml(e.title)}</h5>
+                ${parseEventDurationMinutes(e.durationMinutes) !== null ? `<p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(formatProgramTime(e))}</p>` : ''}
                 ${linkedStation ? `<span class="inline-flex items-center gap-1 mb-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><i class="ph ph-map-pin"></i> Bei Station #${escapeHtml(getStationNumber(linkedStation))} · ${escapeHtml(linkedStation.name)}</span>` : ''}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${escapeHtml(e.desc)}</p>
                 <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-1 flex-wrap">
@@ -2716,7 +2738,7 @@ export function renderTimeline() {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Event-Datum fehlt – kein Live-Status.</p>`;
             return;
         }
-        if (configuredWindow && !isEventDay) {
+        if (configuredWindow && !isEventDay && !currentActiveEvent) {
             headerDisplay.innerHTML = `<p class="text-white/90 text-sm">Programm am ${utils.formatEventWindowDe(configuredWindow)}.</p>`;
             return;
         }

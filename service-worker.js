@@ -1,6 +1,7 @@
+importScripts('js/program-push-worker.js?v=1.4.342');
 importScripts('vendor/workbox/workbox-sw.js');
 
-const CACHE_NAME = 'lichternacht-v1.4.341';
+const CACHE_NAME = 'lichternacht-v1.4.342';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const IMAGE_CACHE = 'images';
 const FONT_CACHE = 'local-fonts-v1';

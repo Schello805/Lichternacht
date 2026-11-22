@@ -1,4 +1,4 @@
-import { distanceMeters, stationCoordinates } from './round-trip.js?v=1.4.341';
+import { distanceMeters, stationCoordinates } from './round-trip.js?v=1.4.342';
 
 export function shouldMoveGpsMarker(previous, current) {
     const next = stationCoordinates(current);
@@ -12,7 +12,7 @@ export function shouldAcceptGpsPosition(position, previous, now = Date.now()) {
     const longitude = position?.coords?.longitude;
     const accuracy = position?.coords?.accuracy;
     const timestamp = position?.timestamp;
-    if (![latitude, longitude, accuracy, timestamp].every(Number.isFinite)
+    if (![latitude, longitude, accuracy, timestamp, now].every(Number.isFinite)
         || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || accuracy < 0
         || timestamp > now || now - timestamp > 15000) return false;
     const lastTimestamp = previous?.gpsLastFixAt;
@@ -21,5 +21,11 @@ export function shouldAcceptGpsPosition(position, previous, now = Date.now()) {
     if (timestamp < lastTimestamp) return false;
     if (timestamp === lastTimestamp && Number.isFinite(lastAccuracy) && accuracy >= lastAccuracy) return false;
     const previousIsFresh = now >= lastTimestamp && now - lastTimestamp <= 15000;
+    const displayed = stationCoordinates(previous.userLocation);
+    if (previousIsFresh && displayed && Number.isFinite(lastAccuracy) && lastAccuracy <= 20) {
+        const movement = distanceMeters(displayed, [longitude, latitude]);
+        const elapsedSeconds = Math.max(0, timestamp - lastTimestamp) / 1000;
+        if (movement > Math.max(30, accuracy + lastAccuracy) + elapsedSeconds * 15) return false;
+    }
     return !previousIsFresh || !Number.isFinite(lastAccuracy) || accuracy <= Math.max(20, lastAccuracy * 2);
 }
