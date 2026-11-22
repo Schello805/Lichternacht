@@ -761,8 +761,11 @@ const boundAutoCheckinControls = new WeakSet();
 let autoCheckinEnabled = false;
 let visibilityListenerBound = false;
 let automaticReadyStationId = null;
+let proximityTimer = null;
 
 function resetProximity() {
+    if (proximityTimer != null) window.clearTimeout?.(proximityTimer);
+    proximityTimer = null;
     updateProximityDwell({ id: null });
     updateAutomaticDwell({ id: null });
     automaticReadyStationId = null;
@@ -828,6 +831,8 @@ function canAutomaticallyCheckIn(id) {
 }
 
 export function checkProximity(lat, lng) {
+    if (proximityTimer != null) window.clearTimeout?.(proximityTimer);
+    proximityTimer = null;
     bindProximityVisibility();
     const now = Date.now();
     const automaticStation = autoCheckinEnabled && isPassActiveToday() ? nearestAutomaticStation(lat, lng, now) : null;
@@ -889,6 +894,13 @@ export function checkProximity(lat, lng) {
     });
     const btn = document.getElementById('smart-action-btn');
     if (!btn) return;
+
+    if (dwell.monitoring && !autoCheckinEnabled) {
+        proximityTimer = window.setTimeout(() => {
+            const location = state.userLocation;
+            checkProximity(location?.lat, location?.lng);
+        }, 1000);
+    }
 
     if (dwell.ready && nearest) {
         // Show Smart Button
