@@ -34,6 +34,15 @@ test('station table follows official numbering rather than ranking small samples
     assert.deepEqual(summary.stationRows.map(row => row.stationNumber), ['1A', 2, 10]);
 });
 
+test('human-readable scope labels do not merge visits from different event dates', () => {
+    const records = [
+        { stationId: '1', ownerUid: 'same', checkedAt: '2025-11-21T17:00:00Z' },
+        { stationId: '1', ownerUid: 'same', checkedAt: '2026-11-21T17:00:00Z' }
+    ];
+    assert.equal(buildUsageSummary(stations, records, [], [], { scopeLabel: 'Gesamter Datenbestand' }).totalCheckins, 2);
+    assert.equal(buildUsageSummary(stations, records, [], [], { eventKey: 'one-event' }).totalCheckins, 1);
+});
+
 test('deduplication, missing identities and medals do not inflate device averages', () => {
     const summary = buildUsageSummary(stations, [
         { stationId: '1', ownerUid: 'same', reachedLevel: 'bronze' },

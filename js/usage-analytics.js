@@ -46,7 +46,7 @@ export function buildUsageSummary(stations, checkins = [], activity = [], diagno
             : time.date && (time.date < dateAt(options.startMs) || time.date > dateAt(options.endMs)));
         if (!row || outside) { excludedCheckins++; continue; }
         const device = record.ownerUid || record.anonymousId || '';
-        const identity = device ? `${device}:${row.stationId}:${options.scopeLabel || time.date || 'unknown'}` : null;
+        const identity = device ? JSON.stringify([device, row.stationId, options.eventKey || time.date || 'unknown']) : null;
         if (identity && seen.has(identity)) { duplicateCheckins++; continue; }
         if (identity) seen.add(identity);
         row.count++; includedCheckins++;
