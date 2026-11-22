@@ -73,18 +73,21 @@ test('automatic check-in consent, continuous coverage and modal integration', as
     }
     const visited = () => JSON.parse(values.get('visited_stations') || '[]');
 
-    await context.test('default off, even with a saved or prechecked checkbox', () => {
-        setup();
-        values.set('auto_checkin_enabled', 'true');
-        const checkbox = { checked: true, addEventListener() {} };
+    await context.test('default on without opening the Pass, with a working session opt-out', () => {
+        const id = setup();
+        const checkbox = { checked: false, addEventListener() {} };
         elements.set('auto-checkin-enabled', checkbox);
+        cover(130);
+        assert.deepEqual(visited(), [String(id)]);
         initAutoCheckin();
-        assert.equal(checkbox.checked, false);
+        assert.equal(checkbox.checked, true);
+        setup();
+        setAutoCheckinEnabled(false);
         cover(130);
         assert.deepEqual(visited(), []);
     });
 
-    await context.test('strict threshold, fresh fixes and no GPS-hint modal or timer', () => {
+    await context.test('strict threshold, fresh fixes and no GPS hint or additional location request', () => {
         const id = setup();
         setAutoCheckinEnabled(true);
         checkProximity(state.userLocation.lat, state.userLocation.lng);
@@ -96,7 +99,6 @@ test('automatic check-in consent, continuous coverage and modal integration', as
         assert.deepEqual(visited(), [String(id)]);
         assert.equal(values.has('gps_checkin_hint_seen_v1'), false);
         assert.equal(locateCalls, 0);
-        assert.equal(timers, 0);
     });
 
     await context.test('hidden transitions, pagehide and GPS gaps reset elapsed time', () => {

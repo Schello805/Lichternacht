@@ -83,8 +83,8 @@ muss erreichbar sein. Keine Ports nach außen zusätzlich öffnen.
 
 ## Andere Nach-Event-Änderungen
 
-Automatisches Einchecken ist im Lichter-Pass freiwillig aktivierbar und gilt nur
-für die aktuelle Seitensitzung. Mehr als zwei Minuten kontinuierlich brauchbare
+Automatisches Einchecken ist standardmäßig aktiv und im Lichter-Pass für die
+aktuelle Seitensitzung abschaltbar. Nach Neuladen ist es wieder aktiv. Mehr als zwei Minuten kontinuierlich brauchbare
 GPS-Messungen innerhalb von 20 Metern sind erforderlich; Ausblenden, Messlücken
 und Stationswechsel setzen den Zähler zurück. Keine Garantie für GPS-Genauigkeit.
 Programmdauer ist im Editor optional (1–1440 Minuten). Ohne Angabe bleiben die

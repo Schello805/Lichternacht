@@ -1,5 +1,5 @@
-import { normalizeStationNumber } from './station-number.js?v=1.4.342';
-import { isValidEventDurationMinutes } from './event-duration.js?v=1.4.342';
+import { normalizeStationNumber } from './station-number.js?v=1.4.343';
+import { isValidEventDurationMinutes } from './event-duration.js?v=1.4.343';
 
 function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0;
