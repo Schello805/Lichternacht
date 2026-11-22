@@ -74,6 +74,10 @@ test('diagnostics require separate consent, coalesce stages, retry safely and de
         install('fetch', async () => ({ ok: false, json: async () => ({ permanent: true }) }));
         await flushCheckinDiagnostics();
         assert.equal(JSON.parse(values.get('checkin_diagnostics_queue_v1'))[retry].pending, false);
+        values.set('checkin_diagnostics_queue_v1', JSON.stringify({ [retry]: { expiresAt: Date.now() - 1 } }));
+        online = false;
+        await flushCheckinDiagnostics();
+        assert.deepEqual(JSON.parse(values.get('checkin_diagnostics_queue_v1')), {});
     } finally {
         Object.assign(state, previousState);
         for (const key of keys) {

@@ -11,7 +11,9 @@ function records() {
     try {
         const value = JSON.parse(localStorage.getItem(RECORDS_KEY) || '{}');
         if (!value || Array.isArray(value) || typeof value !== 'object') return {};
-        return Object.fromEntries(Object.entries(value).filter(([token, record]) => /^[a-f0-9]{64}$/.test(token) && record?.expiresAt > Date.now()));
+        const current = Object.fromEntries(Object.entries(value).filter(([token, record]) => /^[a-f0-9]{64}$/.test(token) && record?.expiresAt > Date.now()));
+        if (Object.keys(current).length !== Object.keys(value).length) localStorage.setItem(RECORDS_KEY, JSON.stringify(current));
+        return current;
     } catch { return {}; }
 }
 
@@ -45,15 +47,17 @@ export function recordCheckinDiagnostic(stage, stationId, token = null) {
 }
 
 export async function flushCheckinDiagnostics() {
+    const queued = records();
     if (busy || !state.localBackend || !navigator.onLine || !state.auth?.currentUser) return;
     busy = true;
     try {
-        for (const [token, record] of Object.entries(records())) {
+        for (const [token, record] of Object.entries(queued)) {
             const forget = record.forget || localStorage.getItem(CONSENT_KEY) !== 'granted';
             if (!forget && !record.pending) continue;
             const payload = forget ? { token, forget: true } : { token, stationId: record.stationId, eventKey: record.eventKey, stage: record.stage, stages: record.stages };
             const authorization = await state.auth.currentUser.getIdToken();
-            if (!forget && localStorage.getItem(CONSENT_KEY) !== 'granted') { schedule(); continue; }
+            const latest = records()[token];
+            if (!forget && (!latest || latest.forget || localStorage.getItem(CONSENT_KEY) !== 'granted')) { schedule(); continue; }
             const response = await fetch('./api/local-data', {
                 method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(10000),
                 headers: { Authorization: `Bearer ${authorization}`, 'Content-Type': 'application/json' },
