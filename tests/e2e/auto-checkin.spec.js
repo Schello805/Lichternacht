@@ -76,9 +76,10 @@ test.beforeEach(async ({ page }) => {
     });
 });
 
-test('mounted Pass checkbox defaults off, toggles and resets after page reload', async ({ page }) => {
+test('mounted Pass checkbox defaults on, allows session opt-out and resets on reload', async ({ page }) => {
     const checkbox = page.getByRole('checkbox', { name: 'Automatisch einchecken (freiwillig)' });
-    await expect(checkbox).not.toBeChecked();
+    await expect(checkbox).toBeChecked();
+    await checkbox.uncheck();
     await expect(page.locator('#auto-checkin-description')).toContainText('Genauigkeit ist nicht garantiert');
     await page.evaluate(() => window.__startFixes());
     await page.clock.runFor(125000);
@@ -91,11 +92,10 @@ test('mounted Pass checkbox defaults off, toggles and resets after page reload',
     await checkbox.uncheck();
     await page.clock.runFor(125000);
     expect(await page.evaluate(() => window.__visited())).toEqual([]);
-    await checkbox.check();
     await page.reload();
     await page.waitForFunction(() => window.__harnessReady);
     await page.evaluate(() => window.showPassInfo());
-    await expect(checkbox).not.toBeChecked();
+    await expect(checkbox).toBeChecked();
 });
 
 test('strict two-minute boundary needs a new accurate fix and never opens the GPS hint', async ({ page }) => {

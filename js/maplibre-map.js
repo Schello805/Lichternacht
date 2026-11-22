@@ -1,13 +1,13 @@
 import { state } from './state.js';
-import { buildGoogleNavigationUrl } from './external-navigation.js?v=1.4.342';
-import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.342';
-import { isStationCancelled } from './station-status.js?v=1.4.342';
-import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.342';
-import { getStationNumber } from './station-number.js?v=1.4.342';
-import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.342';
-import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.342';
-import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.342';
-import { saveData } from './data.js?v=1.4.342';
+import { buildGoogleNavigationUrl } from './external-navigation.js?v=1.4.343';
+import { shouldAcceptGpsPosition, shouldMoveGpsMarker } from './gps-quality.js?v=1.4.343';
+import { isStationCancelled } from './station-status.js?v=1.4.343';
+import { readSavedTour, saveTour, TOUR_STORAGE_KEY } from './tour-storage.js?v=1.4.343';
+import { getStationNumber } from './station-number.js?v=1.4.343';
+import { buildRoundTrip, hasNavigationFix, canConfirmTarget, targetDistanceLabel } from './round-trip.js?v=1.4.343';
+import { planWalkingTour, fetchFootRoute } from './foot-routing.js?v=1.4.343';
+import { showToast, getVisitedStationIdSet } from './utils.js?v=1.4.343';
+import { saveData } from './data.js?v=1.4.343';
 import * as maplibregl from '../vendor/maplibre/maplibre-gl.mjs';
 
 function escapeHtml(value) {

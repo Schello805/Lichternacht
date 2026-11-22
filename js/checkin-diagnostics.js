@@ -1,6 +1,6 @@
 import { state } from './state.js';
-import { getCalendarEventWindow } from './event-calendar.js?v=1.4.342';
-import { DIAGNOSTIC_LABELS } from './usage-analytics.js?v=1.4.342';
+import { getCalendarEventWindow } from './event-calendar.js?v=1.4.343';
+import { DIAGNOSTIC_LABELS } from './usage-analytics.js?v=1.4.343';
 
 const CONSENT_KEY = 'checkin_diagnostics_consent_v1';
 const RECORDS_KEY = 'checkin_diagnostics_queue_v1';

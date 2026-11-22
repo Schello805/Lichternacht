@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { createProximityDwell } from './proximity-dwell.js?v=1.4.342';
-import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.342';
-import { STATION_ARRIVAL_RADIUS_METERS, stationCoordinates, distanceMeters } from './round-trip.js?v=1.4.342';
-import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.342';
+import { createProximityDwell } from './proximity-dwell.js?v=1.4.343';
+import { isStationCancelled, countAvailableStations } from './station-status.js?v=1.4.343';
+import { STATION_ARRIVAL_RADIUS_METERS, stationCoordinates, distanceMeters } from './round-trip.js?v=1.4.343';
+import { canUseFirestore, noteFirestoreError } from './firebase-quota.js?v=1.4.343';
 import {
     showToast,
     getDistance,
@@ -11,12 +11,12 @@ import {
     markStationVisited,
     removeStationVisited,
     vibrateFeedback
-} from './utils.js?v=1.4.342';
-import * as utils from './utils.js?v=1.4.342';
-import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.342';
-import { showProximityRadius } from './maplibre-map.js?v=1.4.342';
-import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.342';
-import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.342';
+} from './utils.js?v=1.4.343';
+import * as utils from './utils.js?v=1.4.343';
+import { getAnonymousAuditId, recordAuditEvent } from './audit.js?v=1.4.343';
+import { showProximityRadius } from './maplibre-map.js?v=1.4.343';
+import { queueOfflineAction, flushOfflineActions, getCheckinSyncStatus } from './offline-sync.js?v=1.4.343';
+import { recordCheckinDiagnostic } from './checkin-diagnostics.js?v=1.4.343';
 
 function isPassActiveToday() {
     const w = (typeof utils.getConfiguredEventWindow === 'function') ? utils.getConfiguredEventWindow() : null;
@@ -758,7 +758,7 @@ const updateProximityDwell = createProximityDwell();
 const updateAutomaticDwell = createProximityDwell({ durationMs: 120000, strictlyLonger: true });
 const automaticAttempts = new Set();
 const boundAutoCheckinControls = new WeakSet();
-let autoCheckinEnabled = false;
+let autoCheckinEnabled = true;
 let visibilityListenerBound = false;
 let automaticReadyStationId = null;
 let proximityTimer = null;
@@ -895,7 +895,7 @@ export function checkProximity(lat, lng) {
     const btn = document.getElementById('smart-action-btn');
     if (!btn) return;
 
-    if (dwell.monitoring && !autoCheckinEnabled) {
+    if (dwell.monitoring) {
         proximityTimer = window.setTimeout(() => {
             const location = state.userLocation;
             checkProximity(location?.lat, location?.lng);

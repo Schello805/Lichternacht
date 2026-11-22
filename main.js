@@ -1,17 +1,17 @@
 import { state } from './js/state.js';
-import { countAvailableStations } from './js/station-status.js?v=1.4.342';
-import { getExplicitProgramPhase } from './js/event-duration.js?v=1.4.342';
-import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.342';
-import { initCheckinDiagnostics, setCheckinDiagnosticsConsent } from './js/checkin-diagnostics.js?v=1.4.342';
-import { bindProgramPush, initProgramPush, isProgramPushActive } from './js/program-push.js?v=1.4.342';
-import { shareStation, showToast } from './js/utils.js?v=1.4.342';
-import * as utils from './js/utils.js?v=1.4.342';
-import { initFirebase } from './js/firebase-init.js?v=1.4.342';
-import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.342';
-import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.342';
-import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.342';
-import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.342';
-import { initPresence, initAutoCheckin, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.342';
+import { countAvailableStations } from './js/station-status.js?v=1.4.343';
+import { getExplicitProgramPhase } from './js/event-duration.js?v=1.4.343';
+import { initStationActivity, setStationActivityConsent } from './js/station-activity.js?v=1.4.343';
+import { initCheckinDiagnostics, setCheckinDiagnosticsConsent } from './js/checkin-diagnostics.js?v=1.4.343';
+import { bindProgramPush, initProgramPush, isProgramPushActive } from './js/program-push.js?v=1.4.343';
+import { shareStation, showToast } from './js/utils.js?v=1.4.343';
+import * as utils from './js/utils.js?v=1.4.343';
+import { initFirebase } from './js/firebase-init.js?v=1.4.343';
+import { requestLocalPasswordReset } from './js/local-auth.js?v=1.4.343';
+import { initMap, updateMapTiles, locateUser, resumeGrantedLocation, pauseLocationTracking, calculateRoute, clearRoute, resetMap, refreshMapMarkers, toggleSatelliteView, toggleOverviewRoute, startOverviewNavigation, skipOverviewNavigationStation, toggleMapEditMode } from './js/maplibre-map.js?v=1.4.343';
+import { hydrateVisitorDataCache, loadData, refreshVisitorDataIfStale, syncGlobalConfig } from './js/data.js?v=1.4.343';
+import { initAuthListener, performLogin, logoutAdmin, createNewUser } from './js/auth.js?v=1.4.343';
+import { initPresence, initAutoCheckin, toggleLike, toggleFavorite, checkIn, undoCheckIn, checkProximity, executeSmartAction, updatePassProgress } from './js/gamification.js?v=1.4.343';
 import {
     openModal, closeModal, switchTab, toggleDarkMode, initializeThemePreference, setThemePreference, toggleThemeMenu,
     openHelpModal, closeHelpModal, saveStationChanges, cancelStationEdit, deleteStation,
@@ -20,12 +20,12 @@ import {
     fillStationCoords, searchStationAddress, createEventForStation, openNewEvent, clearStationImage, startStationPicker,
     openBugReportModal, submitBugReport, editEvent, applyStationToEvent, unlinkEventFromStation,
     renderList, renderTimeline, renderFilterBar, openStation, openProgramEvent, startEventPicker, refreshStationList, updateStationDistances, checkPlanningMode, flyToStation, flyToProgramEvent, closePlanningBanner, openRoutePlan, updateProgramOverview
-} from './js/ui.js?v=1.4.342';
-import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.342';
-import { recordAuditEvent } from './js/audit.js?v=1.4.342';
-import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.342';
-import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.342';
-import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.342';
+} from './js/ui.js?v=1.4.343';
+import { buildPassParticipationEmailHtml, buildPrizeClaimEmailHtml } from './js/email.js?v=1.4.343';
+import { recordAuditEvent } from './js/audit.js?v=1.4.343';
+import { updateHeaderCountdown } from './js/header-countdown.js?v=1.4.343';
+import { initPwaInstall, triggerPwaInstall, getInstallGuidance } from './js/pwa-install.js?v=1.4.343';
+import { initOfflineSync, flushOfflineActions, getCheckinSyncSummary } from './js/offline-sync.js?v=1.4.343';
 
 window.__appStartupPhase = 'module-loaded';
 
@@ -35,7 +35,7 @@ window.addEventListener('lichternacht:checkin-sync', () => {
 });
 
 // Bind to Window for HTML access
-const APP_VERSION = "1.4.342";
+const APP_VERSION = "1.4.343";
 console.log(`Lichternacht App v${APP_VERSION} loaded`);
 window.APP_VERSION = APP_VERSION;
 const adminReleaseVersion = document.getElementById('admin-release-version');

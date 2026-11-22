@@ -1,5 +1,5 @@
-import { isStationCancelled } from './station-status.js?v=1.4.342';
-import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.342';
+import { isStationCancelled } from './station-status.js?v=1.4.343';
+import { getStationNumber, compareStationNumbers } from './station-number.js?v=1.4.343';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const number = value => Number(value).toLocaleString('de-DE', { maximumFractionDigits: 1 });
